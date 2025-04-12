@@ -117,6 +117,10 @@ const CircularTimeline: React.FC<CircularTimelineProps> = ({
       .attr("transform", `translate(${centerX}, ${centerY})`);
     
     // Calculate positions for each event marker
+    const sortedEvents = [...timeline.events].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
     timeline.events.forEach((event: Event) => {
       const eventDate = new Date(event.date);
       
@@ -125,7 +129,15 @@ const CircularTimeline: React.FC<CircularTimelineProps> = ({
       
       // Calculate the angle for this event (from -150 to +150 degrees)
       const timeRatio = (eventDate.getTime() - startDate.getTime()) / timeSpan;
-      const angleInDegrees = -150 + (timeRatio * 300);
+      let angleInDegrees = -150 + (timeRatio * 300);
+      
+      // If this is the first event in chronological order, adjust position
+      if (sortedEvents.length > 0 && sortedEvents[0].id === event.id) {
+        angleInDegrees = -150; // Position at start of arc
+      } else if (sortedEvents.length > 0 && sortedEvents[sortedEvents.length - 1].id === event.id) {
+        angleInDegrees = 150; // Position at end of arc
+      }
+      
       const angleInRadians = angleInDegrees * (Math.PI / 180);
       
       // Calculate position on the arc

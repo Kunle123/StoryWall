@@ -152,6 +152,83 @@ const TimelinePage: React.FC = () => {
                     date: "2000-09-28",
                     description: "Palestinian uprising following the failure of peace negotiations.",
                     importance: 4
+                  },
+                  {
+                    id: "event-006",
+                    title: "Israel-Gaza War",
+                    date: "2008-12-27",
+                    description: "Israeli military operation in the Gaza Strip, codenamed Operation Cast Lead.",
+                    importance: 4,
+                    media: [
+                      {
+                        type: "image",
+                        url: "https://example.com/image6.jpg",
+                        caption: "Gaza during the conflict"
+                      }
+                    ]
+                  },
+                  {
+                    id: "event-007",
+                    title: "Palestine UNESCO Membership",
+                    date: "2011-10-31",
+                    description: "Palestine admitted as a member state to UNESCO despite strong opposition from Israel and the United States.",
+                    importance: 3
+                  },
+                  {
+                    id: "event-008",
+                    title: "UN Recognition of Palestine",
+                    date: "2012-11-29",
+                    description: "UN General Assembly votes to recognize Palestine as a non-member observer state.",
+                    importance: 4,
+                    media: [
+                      {
+                        type: "image",
+                        url: "https://example.com/image8.jpg",
+                        caption: "UN General Assembly voting"
+                      }
+                    ]
+                  },
+                  {
+                    id: "event-009",
+                    title: "Gaza-Israel Conflict",
+                    date: "2014-07-08",
+                    description: "Military operation launched by Israel in the Hamas-ruled Gaza Strip, codenamed Operation Protective Edge.",
+                    importance: 4
+                  },
+                  {
+                    id: "event-010",
+                    title: "US Embassy Move to Jerusalem",
+                    date: "2018-05-14",
+                    description: "United States relocates its embassy from Tel Aviv to Jerusalem, recognizing Jerusalem as Israel's capital.",
+                    importance: 5,
+                    media: [
+                      {
+                        type: "image",
+                        url: "https://example.com/image10.jpg",
+                        caption: "US Embassy opening ceremony"
+                      }
+                    ]
+                  },
+                  {
+                    id: "event-011",
+                    title: "Abraham Accords",
+                    date: "2020-09-15",
+                    description: "Israel establishes diplomatic relations with the United Arab Emirates and Bahrain.",
+                    importance: 4
+                  },
+                  {
+                    id: "event-012",
+                    title: "Hamas-Israel War",
+                    date: "2023-10-07",
+                    description: "Conflict erupts following a Hamas attack on Israel, leading to a massive Israeli military response in Gaza.",
+                    importance: 5,
+                    media: [
+                      {
+                        type: "image",
+                        url: "https://example.com/image12.jpg",
+                        caption: "Destruction in Gaza City"
+                      }
+                    ]
                   }
                 ]
               }

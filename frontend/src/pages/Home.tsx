@@ -105,6 +105,139 @@ const Home: React.FC = () => {
                   },
                   thumbnail_url: "https://via.placeholder.com/120",
                   category: "science"
+                },
+                {
+                  id: "timeline-126",
+                  title: "The Rise of Artificial Intelligence",
+                  description: "From early AI concepts to modern machine learning and generative AI applications.",
+                  start_date: "1950",
+                  end_date: "2023",
+                  author: {
+                    id: "user-459",
+                    name: "AI Researcher",
+                    avatar_url: "https://example.com/avatar4.jpg"
+                  },
+                  social_metrics: {
+                    likes: 2105,
+                    shares: 690,
+                    comments: 142
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "technology"
+                },
+                {
+                  id: "timeline-127",
+                  title: "History of Modern Music",
+                  description: "The evolution of popular music genres from jazz to electronic dance music.",
+                  start_date: "1920",
+                  end_date: "2023",
+                  author: {
+                    id: "user-460",
+                    name: "Music Historian",
+                    avatar_url: "https://example.com/avatar5.jpg"
+                  },
+                  social_metrics: {
+                    likes: 876,
+                    shares: 312,
+                    comments: 74
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "culture"
+                },
+                {
+                  id: "timeline-128",
+                  title: "Climate Change: Key Events",
+                  description: "Major milestones in climate science, policy, and activism over the past century.",
+                  start_date: "1896",
+                  end_date: "2023",
+                  author: {
+                    id: "user-461",
+                    name: "Climate Scientist",
+                    avatar_url: "https://example.com/avatar6.jpg"
+                  },
+                  social_metrics: {
+                    likes: 1893,
+                    shares: 712,
+                    comments: 205
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "science"
+                },
+                {
+                  id: "timeline-129",
+                  title: "Women's Rights Movement",
+                  description: "The struggle for gender equality and women's rights from suffrage to modern feminism.",
+                  start_date: "1848",
+                  end_date: "2023",
+                  author: {
+                    id: "user-462",
+                    name: "Social Historian",
+                    avatar_url: "https://example.com/avatar7.jpg"
+                  },
+                  social_metrics: {
+                    likes: 2345,
+                    shares: 876,
+                    comments: 198
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "politics"
+                },
+                {
+                  id: "timeline-130",
+                  title: "Video Game Evolution",
+                  description: "From Pong to virtual reality: the technological and cultural evolution of video games.",
+                  start_date: "1958",
+                  end_date: "2023",
+                  author: {
+                    id: "user-463",
+                    name: "Game Developer",
+                    avatar_url: "https://example.com/avatar8.jpg"
+                  },
+                  social_metrics: {
+                    likes: 1654,
+                    shares: 498,
+                    comments: 123
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "technology"
+                },
+                {
+                  id: "timeline-131",
+                  title: "The Cold War",
+                  description: "A chronological history of the geopolitical tension between the Eastern and Western blocs.",
+                  start_date: "1947",
+                  end_date: "1991",
+                  author: {
+                    id: "user-464",
+                    name: "Political Historian",
+                    avatar_url: "https://example.com/avatar9.jpg"
+                  },
+                  social_metrics: {
+                    likes: 1255,
+                    shares: 432,
+                    comments: 87
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "history"
+                },
+                {
+                  id: "timeline-132",
+                  title: "Internet History",
+                  description: "From ARPANET to the World Wide Web and social media platforms.",
+                  start_date: "1969",
+                  end_date: "2023",
+                  author: {
+                    id: "user-465",
+                    name: "Tech Reporter",
+                    avatar_url: "https://example.com/avatar10.jpg"
+                  },
+                  social_metrics: {
+                    likes: 1876,
+                    shares: 543,
+                    comments: 108
+                  },
+                  thumbnail_url: "https://via.placeholder.com/120",
+                  category: "technology"
                 }
               ]
             }
