@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # User Service
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./services/user-service/.env
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/storywall-users
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:4000
+    depends_on:
+      - mongodb
+    volumes:
+      - ./services/user-service/logs:/usr/src/app/logs
+    networks:
+      - storywall-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "src/healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Timeline Service
+  timeline-service:
+    build:
+      context: ./services/timeline-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./services/timeline-service/.env
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/storywall-timelines
+      - USER_SERVICE_URL=http://user-service:3000
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:4000
+    depends_on:
+      - mongodb
+      - user-service
+    volumes:
+      - ./services/timeline-service/logs:/usr/src/app/logs
+    networks:
+      - storywall-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "src/healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Frontend (to be developed)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_GATEWAY_URL=http://localhost:3002
+    depends_on:
+      - api-gateway
+    networks:
+      - storywall-network
+    restart: unless-stopped
+
+  # API Gateway Service
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./services/api-gateway/.env
+    environment:
+      - NODE_ENV=development
+      - USER_SERVICE_URL=http://user-service:3000
+      - TIMELINE_SERVICE_URL=http://timeline-service:3001
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:4000
+    depends_on:
+      - user-service
+      - timeline-service
+    networks:
+      - storywall-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "src/healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # MongoDB
+  mongodb:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - storywall-network
+    restart: unless-stopped
+    command: mongod --logpath=/dev/null # Disable logging to console
+
+networks:
+  storywall-network:
+    driver: bridge
+
+volumes:
+  mongodb-data: 
