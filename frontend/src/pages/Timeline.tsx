@@ -288,6 +288,7 @@ const TimelinePage: React.FC = () => {
       <ShareModal 
         isOpen={shareModalOpen} 
         onClose={handleCloseShareModal}
+        onShare={handleIncrementShares}
         title={timeline.title}
         timelineId={timeline.id}
       />

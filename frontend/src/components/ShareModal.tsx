@@ -4,11 +4,12 @@ import styled from 'styled-components';
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onShare?: () => void;
   title: string;
   timelineId: string;
 }
 
-const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, timelineId }) => {
+const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, onShare, title, timelineId }) => {
   const [copied, setCopied] = useState(false);
   
   if (!isOpen) return null;
@@ -20,6 +21,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, timelin
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      if (onShare) onShare();
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -48,6 +50,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, timelin
     }
     
     window.open(shareLink, '_blank');
+    if (onShare) onShare();
   };
   
   return (

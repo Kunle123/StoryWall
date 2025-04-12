@@ -84,9 +84,10 @@ const CircularTimeline: React.FC<CircularTimelineProps> = ({
     const timeSpan = endDate.getTime() - startDate.getTime();
     
     // Create a time scale
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const timeScale = d3.scaleTime()
       .domain([startDate, endDate])
-      .range([0, 300 * (Math.PI / 180)]); // 300 degrees in radians
+      .range([0, 2 * Math.PI * (300 / 360)]);
     
     // Create the 300-degree arc (spanning from -150 to +150 degrees)
     const arc = d3.arc()

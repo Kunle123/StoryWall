@@ -18,6 +18,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const {
     isAuthenticated,
     user,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token,
     login,
     register,

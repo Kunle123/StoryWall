@@ -47,11 +47,11 @@ const Register: React.FC = () => {
 
     try {
       // For development, simulate successful registration if API isn't ready
-      let response;
+      let _response;
       try {
         // Remove confirmPassword from data sent to API
         const { confirmPassword, ...registrationData } = formData;
-        response = await axiosInstance.post('/api/auth/register', registrationData);
+        _response = await axiosInstance.post('/api/auth/register', registrationData);
         
         // Redirect to login page on success
         navigate('/login', { state: { message: 'Registration successful! Please log in.' } });

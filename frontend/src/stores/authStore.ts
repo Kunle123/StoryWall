@@ -110,14 +110,9 @@ export const useAuthStore = create<AuthState>()(
           set({ loading: true, error: null });
           
           // For development, simulate registration if API isn't ready
-          try {
-            const _response = await axiosInstance.post('/api/auth/register', userData);
-            set({ loading: false });
-          } catch (error) {
-            console.log('API not available, simulating registration');
-            // Just simulate success for development
-            set({ loading: false });
-          }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _response = await axiosInstance.post('/api/auth/register', userData);
+          set({ loading: false });
         } catch (error: any) {
           set({
             loading: false,
