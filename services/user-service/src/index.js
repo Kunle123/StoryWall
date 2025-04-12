@@ -7,13 +7,13 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const { logger } = require('./utils/logger');
-const timelinesRoutes = require('./api/routes/timelineRoutes');
-const eventsRoutes = require('./api/routes/eventRoutes');
+const usersRoutes = require('./api/routes/userRoutes');
+const authRoutes = require('./api/routes/authRoutes');
 const { errorHandler } = require('./api/middleware/errorHandler');
 
 // Initialize express app
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Apply middleware
 app.use(helmet()); // Security headers
@@ -36,16 +36,15 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/timelines', timelinesRoutes);
-app.use('/api/events', eventsRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'UP',
     timestamp: new Date().toISOString(),
-    service: 'timeline-service',
-    dbConnection: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    service: 'user-service'
   });
 });
 
@@ -57,8 +56,7 @@ if (process.env.NODE_ENV !== 'production') {
       nodeVersion: process.version,
       requestId: req.id,
       memory: process.memoryUsage(),
-      uptime: process.uptime(),
-      dbState: mongoose.connection.readyState
+      uptime: process.uptime()
     });
   });
 }
@@ -80,10 +78,10 @@ const startServer = async () => {
     }
     
     app.listen(PORT, () => {
-      logger.info(`Timeline service running on port ${PORT}`);
+      logger.info(`User service running on port ${PORT}`);
     });
   } catch (error) {
-    logger.error('Failed to start server', { error: error.message, stack: error.stack });
+    logger.error('Failed to start server', { error: error.message });
     process.exit(1);
   }
 };

@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const Timeline = require('../../domain/models/timeline');
+const User = require('../../domain/models/user');
 const { logger } = require('../../utils/logger');
 
 // Authenticate middleware
@@ -26,10 +26,24 @@ const authenticate = async (req, res, next) => {
       process.env.JWT_SECRET || 'fallback-secret-for-development-only'
     );
     
+    // Find user
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      logger.warn('Authentication failed - user not found', { 
+        userId: decoded.id, 
+        requestId: req.id 
+      });
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid authentication token' }
+      });
+    }
+    
     // Add user to request
     req.user = {
-      id: decoded.id,
-      role: decoded.role
+      id: user._id.toString(),
+      role: user.role
     };
     
     next();
@@ -54,9 +68,9 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// Authorization middleware for timeline owners
-const authorizeTimelineOwner = async (req, res, next) => {
-  try {
+// Authorization middleware
+const authorize = (role) => {
+  return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -64,30 +78,11 @@ const authorizeTimelineOwner = async (req, res, next) => {
       });
     }
     
-    const timelineId = req.params.timelineId || req.params.id;
-    
-    // Find the timeline
-    const timeline = await Timeline.findById(timelineId);
-    
-    if (!timeline) {
-      logger.warn('Timeline not found for authorization', { 
-        timelineId,
-        requestId: req.id 
-      });
-      return res.status(404).json({
-        success: false,
-        error: { code: 'NOT_FOUND', message: 'Timeline not found' }
-      });
-    }
-    
-    // Check if user is the owner of the timeline or an admin
-    const isOwner = timeline.userId.toString() === req.user.id;
-    const isAdmin = req.user.role === 'admin';
-    
-    if (!isOwner && !isAdmin) {
+    if (req.user.role !== role) {
       logger.warn('Authorization failed - insufficient privileges', { 
         userId: req.user.id, 
-        timelineId,
+        requiredRole: role, 
+        userRole: req.user.role,
         requestId: req.id 
       });
       return res.status(403).json({
@@ -96,46 +91,11 @@ const authorizeTimelineOwner = async (req, res, next) => {
       });
     }
     
-    // Add timeline to request
-    req.timeline = timeline;
-    
     next();
-  } catch (error) {
-    logger.error('Authorization error', { 
-      error: error.message, 
-      requestId: req.id,
-      stack: error.stack
-    });
-    next(error);
-  }
-};
-
-// Admin authorization middleware
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      error: { code: 'NOT_AUTHENTICATED', message: 'User not authenticated' }
-    });
-  }
-  
-  if (req.user.role !== 'admin') {
-    logger.warn('Authorization failed - not an admin', { 
-      userId: req.user.id, 
-      role: req.user.role,
-      requestId: req.id 
-    });
-    return res.status(403).json({
-      success: false,
-      error: { code: 'FORBIDDEN', message: 'Admin access required' }
-    });
-  }
-  
-  next();
+  };
 };
 
 module.exports = {
   authenticate,
-  authorizeTimelineOwner,
-  authorizeAdmin
+  authorize
 }; 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import ThemeToggle from './ThemeToggle';
 import '../styles/Header.css';
 
 const Header: React.FC = () => {
@@ -50,6 +51,9 @@ const Header: React.FC = () => {
                 </li>
               </>
             )}
+            <li className="theme-toggle-container">
+              <ThemeToggle />
+            </li>
           </ul>
         </nav>
       </div>

@@ -1,37 +1,36 @@
 const express = require('express');
 const { 
-  getEvents,
+  getEventsByTimeline,
   getEventById,
-  getEventsByTimelineId,
   createEvent,
   updateEvent,
-  deleteEvent 
+  deleteEvent,
+  getEventsByCategory
 } = require('../controllers/eventController');
 const { 
-  authenticate, 
-  authorizeTimelineOwner 
+  authenticate,
+  authorizeTimelineOwner
 } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Public routes for public timelines
-router.get('/public/timeline/:timelineId', getEventsByTimelineId);
+router.get('/public/timeline/:timelineId', getEventsByTimeline);
 router.get('/public/:id', getEventById);
+router.get('/public/timeline/:timelineId/category/:category', getEventsByCategory);
 
 // Protected routes - require authentication
 router.use(authenticate);
 
-// Get all events (for admin or filtering)
-router.get('/', getEvents);
-
 // Get events by timeline ID
-router.get('/timeline/:timelineId', getEventsByTimelineId);
+router.get('/timeline/:timelineId', getEventsByTimeline);
+router.get('/timeline/:timelineId/category/:category', getEventsByCategory);
 
 // Get single event
 router.get('/:id', getEventById);
 
-// Create event
-router.post('/', createEvent);
+// Create event for a timeline
+router.post('/timeline/:timelineId', createEvent);
 
 // Update event
 router.put('/:id', updateEvent);

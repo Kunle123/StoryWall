@@ -10,6 +10,8 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './stores/authStore';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const App: React.FC = () => {
   const { isAuthenticated, loading } = useAuthStore();
@@ -19,35 +21,39 @@ const App: React.FC = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="timeline/:id" element={<Timeline />} />
-        
-        {/* Protected Routes */}
-        <Route
-          path="create-timeline"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <CreateTimeline />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="profile"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        
-        {/* 404 Not Found */}
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
+            <Route path="timeline/:id" element={<Timeline />} />
+            
+            {/* Protected Routes */}
+            <Route
+              path="create-timeline"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <CreateTimeline />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute isAuthenticated={isAuthenticated}>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

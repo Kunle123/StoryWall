@@ -85,3 +85,47 @@
 3. **Incremental Development**
    - Complete one component fully before moving to the next
    - Deploy services incrementally and verify each before proceeding 
+
+## Database Connectivity
+
+1. **MongoDB Connection Issues**
+   - Use `127.0.0.1` instead of `localhost` in connection strings to avoid IPv6 resolution issues
+   - Add connection options like `directConnection=true` and `serverSelectionTimeoutMS=5000` to improve reliability
+   - Look for "Operation buffering timed out" errors which indicate connection issues despite successful initial connection
+   - Ensure MongoDB binaries are in system PATH or use absolute paths
+   - Create required data directories before starting MongoDB
+   - Check for proper port availability with `netstat -ano | findstr :<port>` before starting services
+
+2. **Dependency Management**
+   - Add `dotenv` package and ensure it's loaded at the top of the entry file
+   - Explicitly check for environment variables and provide useful defaults
+   - Include appropriate error messages when database connection fails
+   - Use database connection pooling for microservices
+
+## PowerShell Specifics
+
+1. **Command Syntax Differences**
+   - Use semicolons `;` instead of `&&` for command chaining in PowerShell
+   - For complex commands, create PowerShell scripts instead of one-liners
+   - Use `-ErrorAction SilentlyContinue` when checking for running processes
+   - Format JSON data properly with single quotes for PowerShell commands
+
+2. **Process Management**
+   - Use `Get-Process` and `Stop-Process` to manage running services
+   - Check port usage with `netstat -ano | findstr :<port>` before starting services
+   - Use `Start-Process -NoNewWindow` for background processes
+   - Add tools like MongoDB to PATH temporarily with `$env:PATH += ";path/to/bin"`
+
+## Health Check Patterns
+
+1. **Service Health Monitoring**
+   - Implement standardized health check endpoints at `/health` on all services
+   - Include status, uptime, service name, and timestamp in health responses
+   - Create separate debug endpoints with more detailed diagnostic information
+   - Add memory usage and connection status to health checks
+
+2. **Service Recovery**
+   - Implement proper port release when services stop unexpectedly
+   - Handle common error cases like `EADDRINUSE` with clear error messages
+   - Include explicit shutdown handlers for database connections
+   - Use SIGTERM handlers to close resources gracefully 

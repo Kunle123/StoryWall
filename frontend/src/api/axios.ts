@@ -1,7 +1,7 @@
-import axios from 'axios';
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 // Create an Axios instance with default configurations
-const api = axios.create({
+const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3002',
   headers: {
     'Content-Type': 'application/json'
@@ -10,8 +10,8 @@ const api = axios.create({
 });
 
 // Add request interceptor to include auth token
-api.interceptors.request.use(
-  (config) => {
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
     // Get token from localStorage if it exists
     const token = localStorage.getItem('auth-storage')
       ? JSON.parse(localStorage.getItem('auth-storage') || '{}').state?.token
@@ -19,22 +19,23 @@ api.interceptors.request.use(
     
     // If token exists, add it to the headers
     if (token) {
+      config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
 // Add response interceptor for error handling
-api.interceptors.response.use(
-  (response) => {
+axiosInstance.interceptors.response.use(
+  (response: AxiosResponse) => {
     return response;
   },
-  (error) => {
+  (error: AxiosError) => {
     // Handle 401 (Unauthorized) responses
     if (error.response && error.response.status === 401) {
       // Clear local storage and redirect to login page
@@ -52,4 +53,5 @@ api.interceptors.response.use(
   }
 );
 
-export default api; 
+export { axiosInstance };
+export default axiosInstance; 
