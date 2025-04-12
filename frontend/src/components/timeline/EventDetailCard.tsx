@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 
 interface Media {
@@ -18,9 +18,72 @@ interface Event {
 
 interface EventDetailCardProps {
   event: Event;
+  onNextEvent?: () => void;
+  onPrevEvent?: () => void;
 }
 
-const EventDetailCard: React.FC<EventDetailCardProps> = ({ event }) => {
+const EventDetailCard: React.FC<EventDetailCardProps> = ({ 
+  event,
+  onNextEvent,
+  onPrevEvent
+}) => {
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Set mobile state on render and window resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
+  // Handle swipe gestures
+  useEffect(() => {
+    // Required minimum distance traveled to be considered swipe
+    const minSwipeDistance = 50;
+    
+    if (touchStart && touchEnd && (onNextEvent || onPrevEvent)) {
+      // Calculate distance traveled
+      const distance = touchStart - touchEnd;
+      const isSwipe = Math.abs(distance) > minSwipeDistance;
+      
+      if (isSwipe) {
+        // Determine direction and navigate
+        if (distance > 0 && onNextEvent) {
+          // Swiped left (next)
+          onNextEvent();
+        } else if (distance < 0 && onPrevEvent) {
+          // Swiped right (previous)
+          onPrevEvent();
+        }
+      }
+    }
+  }, [touchEnd, touchStart, onNextEvent, onPrevEvent]);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null); // Reset touchEnd
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
   // Format the date for display
   const formatDate = (dateString: string) => {
     try {
@@ -58,7 +121,12 @@ const EventDetailCard: React.FC<EventDetailCardProps> = ({ event }) => {
   };
 
   return (
-    <Container>
+    <Container 
+      ref={cardRef}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <Title>{event.title}</Title>
       <DateDisplay>{formatDate(event.date)}</DateDisplay>
       <Description>{event.description}</Description>
@@ -75,6 +143,12 @@ const EventDetailCard: React.FC<EventDetailCardProps> = ({ event }) => {
           ))}
         </MediaSection>
       )}
+      
+      {isMobile && (onPrevEvent || onNextEvent) && (
+        <NavigationHint>
+          ← Swipe to navigate →
+        </NavigationHint>
+      )}
     </Container>
   );
 };
@@ -87,14 +161,22 @@ const Container = styled.div`
   padding: 15px;
   margin: 20px auto 40px;
   box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
   
   @media (min-width: 768px) {
     padding: 20px;
     width: 85%;
+    
+    &:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
   }
   
   @media (max-width: 767px) {
     width: 95%;
+    padding: 15px 12px;
+    margin: 10px auto 30px;
   }
 `;
 
@@ -103,6 +185,10 @@ const Title = styled.h3`
   font-weight: bold;
   margin: 0 0 5px 0;
   color: var(--text-primary);
+  
+  @media (max-width: 767px) {
+    font-size: 16px;
+  }
 `;
 
 const DateDisplay = styled.div`
@@ -110,6 +196,11 @@ const DateDisplay = styled.div`
   font-weight: 500;
   margin-bottom: 15px;
   color: var(--text-secondary);
+  
+  @media (max-width: 767px) {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
 `;
 
 const Description = styled.div`
@@ -128,10 +219,19 @@ const MediaSection = styled.div`
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid var(--divider-color);
+  
+  @media (max-width: 767px) {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
 `;
 
 const MediaItem = styled.div`
   margin-bottom: 10px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const MediaImage = styled.img`
@@ -140,12 +240,31 @@ const MediaImage = styled.img`
   border-radius: 4px;
   margin-bottom: 5px;
   display: block;
+  
+  @media (max-width: 767px) {
+    max-height: 200px;
+  }
 `;
 
 const MediaCaption = styled.div`
   font-size: 12px;
   color: var(--text-secondary);
   font-style: italic;
+  
+  @media (max-width: 767px) {
+    font-size: 11px;
+  }
+`;
+
+const NavigationHint = styled.div`
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--divider-color);
+  font-style: italic;
+  opacity: 0.7;
 `;
 
 export default EventDetailCard; 

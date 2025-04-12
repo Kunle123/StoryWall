@@ -182,6 +182,24 @@ const TimelinePage: React.FC = () => {
     setSelectedEvent(event);
   };
 
+  const handleNextEvent = () => {
+    if (!selectedEvent || !timeline) return;
+    
+    const currentIndex = timeline.events.findIndex(e => e.id === selectedEvent.id);
+    if (currentIndex !== -1 && currentIndex < timeline.events.length - 1) {
+      setSelectedEvent(timeline.events[currentIndex + 1]);
+    }
+  };
+  
+  const handlePrevEvent = () => {
+    if (!selectedEvent || !timeline) return;
+    
+    const currentIndex = timeline.events.findIndex(e => e.id === selectedEvent.id);
+    if (currentIndex > 0) {
+      setSelectedEvent(timeline.events[currentIndex - 1]);
+    }
+  };
+
   const handleViewChange = (viewIndex: number) => {
     setActiveView(viewIndex);
   };
@@ -262,7 +280,11 @@ const TimelinePage: React.FC = () => {
           />
           
           {selectedEvent && (
-            <EventDetailCard event={selectedEvent} />
+            <EventDetailCard 
+              event={selectedEvent} 
+              onNextEvent={handleNextEvent}
+              onPrevEvent={handlePrevEvent}
+            />
           )}
         </TimelineViewContainer>
       )}
