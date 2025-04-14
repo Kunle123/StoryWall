@@ -1,308 +1,272 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import styled from 'styled-components';
+import { HorizontalTimelineProps } from './types';
+import { useTimelineStore } from '../../stores/timelineStore';
+import TimelineDot from './TimelineDot';
 import * as d3 from 'd3';
 
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  description: string;
-  importance: number;
-}
+// Styled components
+const TimelineContainer = styled.div`
+  width: 100%;
+  padding: 0 20px;
+  margin-bottom: 2rem;
+  overflow-x: hidden;
+  position: relative;
+`;
 
-interface Timeline {
-  id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  events: Event[];
-}
+const TimelineWrapper = styled.div<{ offset: number }>`
+  width: 100%;
+  transition: transform 0.5s ease;
+  transform: translateX(${props => props.offset}px);
+`;
 
-interface HorizontalTimelineProps {
-  timeline: Timeline;
-  selectedEvent: Event | null;
-  onEventSelect: (event: Event) => void;
-}
+const SVGContainer = styled.svg`
+  width: 100%;
+  height: 100px;
+  margin: 0 auto;
+`;
 
+const EventTitle = styled.text<{ isSelected: boolean }>`
+  font-size: ${props => props.isSelected ? '14px' : '12px'};
+  font-weight: ${props => props.isSelected ? 'bold' : 'normal'};
+  fill: var(--text-color, #333);
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+  transition: font-size 0.3s ease, font-weight 0.3s ease;
+`;
+
+const EventLine = styled.line<{ isSelected: boolean }>`
+  stroke: ${props => props.isSelected ? 'var(--selected-color, #ff5555)' : 'var(--unselected-color, #ff9999)'};
+  stroke-width: ${props => props.isSelected ? '3px' : '2px'};
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+`;
+
+const MainLine = styled.line`
+  stroke: var(--timeline-bg, #e0e0e0);
+  stroke-width: 2px;
+`;
+
+/**
+ * Horizontal timeline component that displays a zoomed section of events
+ * Uses Zustand for state management
+ */
 const HorizontalTimeline: React.FC<HorizontalTimelineProps> = ({
-  timeline,
-  selectedEvent,
-  onEventSelect
+  width = 800,
+  height = 100
 }) => {
+  // Get state and actions from store
+  const {
+    events,
+    selectedEventId,
+    zoomedTimespan,
+    selectEvent,
+    recalculateOffset,
+  } = useTimelineStore();
+  
+  // Calculate offset for centering
+  const [offsetX, setOffsetX] = useState(0);
+
+  // Reference to the SVG container
   const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
+
+  // Timeline Y position
+  const timelineY = height / 2;
   
-  // Set mobile state on initial render and window resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  // Calculate padding and available width
+  const padding = 50;
+  const availableWidth = width - (padding * 2);
+
+  // Sort events by date
+  const sortedEvents = useMemo(() => {
+    if (!events || events.length === 0) return [];
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
-  
-  useEffect(() => {
-    if (!svgRef.current || !timeline.events.length) return;
-    
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove(); // Clear previous elements
-    
-    // Get container dimensions
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const width = container.clientWidth;
-    const height = isMobile ? 60 : 70; // Increased height for better touch targets
-    
-    // Timeline bar dimensions
-    const barHeight = isMobile ? 8 : 12;
-    const barY = height / 2 - barHeight / 2;
-    
-    // Create time scale
-    const startDate = new Date(timeline.start_date);
-    const endDate = new Date(timeline.end_date);
-    
-    const timeScale = d3.scaleTime()
-      .domain([startDate, endDate])
-      .range([20, width - 20]); // Margin on both sides
-    
-    // Draw main timeline bar
-    svg.append("rect")
-      .attr("x", 20)
-      .attr("y", barY)
-      .attr("width", width - 40)
-      .attr("height", barHeight)
-      .attr("fill", "#D0D0D0")
-      .attr("rx", barHeight / 2) // Fully rounded ends
-      .attr("ry", barHeight / 2);
-    
-    // Add start year label
-    svg.append("text")
-      .attr("x", 10)
-      .attr("y", barY + barHeight / 2)
-      .attr("text-anchor", "end")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", isMobile ? "12px" : "14px")
-      .attr("font-weight", "bold")
-      .attr("fill", "var(--text-secondary)")
-      .text(timeline.start_date);
-    
-    // Add end year label
-    svg.append("text")
-      .attr("x", width - 10)
-      .attr("y", barY + barHeight / 2)
-      .attr("text-anchor", "start")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", isMobile ? "12px" : "14px")
-      .attr("fill", "var(--text-secondary)")
-      .text(timeline.end_date);
-    
-    // Add event markers
-    timeline.events.forEach(event => {
-      const eventDate = new Date(event.date);
-      if (eventDate >= startDate && eventDate <= endDate) {
-        const eventX = timeScale(eventDate);
-        const isSelected = selectedEvent && selectedEvent.id === event.id;
-        
-        // Event dot
-        const markerSize = isSelected ? (isMobile ? 5 : 7) : (isMobile ? 3 : 5);
-        const markerColor = isSelected ? "var(--primary-color)" : "var(--secondary-color)";
-        
-        svg.append("circle")
-          .attr("cx", eventX)
-          .attr("cy", barY + barHeight / 2)
-          .attr("r", markerSize)
-          .attr("fill", markerColor)
-          .attr("stroke", isSelected ? "var(--primary-dark)" : "transparent")
-          .attr("stroke-width", 1.5)
-          .style("cursor", "pointer")
-          .on("click", () => onEventSelect(event));
-      }
+    return [...events].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
     });
+  }, [events]);
+  
+  // Get selected event index
+  const selectedEventIndex = useMemo(() => {
+    return sortedEvents.findIndex(e => e.id === selectedEventId);
+  }, [sortedEvents, selectedEventId]);
+
+  // Create a full timeline date scale (from earliest to latest event)
+  const fullDateScale = useMemo(() => {
+    if (!sortedEvents || sortedEvents.length < 2) return null;
     
-    // Draw position indicator for selected event
-    if (selectedEvent) {
-      const eventDate = new Date(selectedEvent.date);
-      if (eventDate >= startDate && eventDate <= endDate) {
-        const indicatorX = timeScale(eventDate);
-        
-        // Vertical indicator line
-        svg.append("line")
-          .attr("x1", indicatorX)
-          .attr("y1", barY - 4)
-          .attr("x2", indicatorX)
-          .attr("y2", barY + barHeight + 4)
-          .attr("stroke", "var(--primary-color)")
-          .attr("stroke-width", 2);
-        
-        // Event label for selected event
-        if (!isMobile) {
-          const labelY = barY + barHeight + 18;
-          
-          // Background for better readability
-          const labelText = selectedEvent.title.length > 20 
-            ? selectedEvent.title.substring(0, 20) + '...' 
-            : selectedEvent.title;
-          
-          const textWidth = labelText.length * 6; // Approximate width
-          
-          svg.append("rect")
-            .attr("x", indicatorX - textWidth / 2 - 5)
-            .attr("y", labelY - 12)
-            .attr("width", textWidth + 10)
-            .attr("height", 20)
-            .attr("fill", "var(--card-background)")
-            .attr("rx", 3)
-            .attr("ry", 3)
-            .attr("stroke", "var(--divider-color)")
-            .attr("stroke-width", 1);
-          
-          svg.append("text")
-            .attr("x", indicatorX)
-            .attr("y", labelY)
-            .attr("text-anchor", "middle")
-            .attr("font-size", "12px")
-            .attr("fill", "var(--text-primary)")
-            .text(labelText);
-        }
-      }
+    return d3.scaleTime()
+      .domain([
+        new Date(sortedEvents[0].date),
+        new Date(sortedEvents[sortedEvents.length - 1].date)
+      ])
+      .range([padding, width - padding]);
+  }, [sortedEvents, padding, width]);
+  
+  // Create a zoomed timeline date scale (for the visible section)
+  const zoomedDateScale = useMemo(() => {
+    if (!zoomedTimespan) return null;
+    
+    return d3.scaleTime()
+      .domain([zoomedTimespan.start, zoomedTimespan.end])
+      .range([padding, width - padding]);
+  }, [zoomedTimespan, padding, width]);
+  
+  // Filter events to show only those in the zoomed range
+  const filteredEvents = useMemo(() => {
+    if (!zoomedTimespan) return [];
+    
+    return sortedEvents.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate >= zoomedTimespan.start && eventDate <= zoomedTimespan.end;
+    });
+  }, [sortedEvents, zoomedTimespan]);
+  
+  // Ensure we show the selected event and at least 3 events total when possible
+  const eventsToShow = useMemo(() => {
+    if (!filteredEvents.length) return [];
+    
+    // If we have a zoomed range and enough events, use that
+    if (filteredEvents.length >= 3) {
+      return filteredEvents;
     }
     
-    // Make timeline interactive
-    const interactionRect = svg.append("rect")
-      .attr("x", 0)
-      .attr("y", barY - 15)
-      .attr("width", width)
-      .attr("height", barHeight + 30) // Larger touch target
-      .attr("fill", "transparent")
-      .style("cursor", "pointer");
-
-    // Handle mouse/touch interaction
-    const handleInteraction = function(event: any) {
-      // Don't handle if we're in the middle of a drag operation
-      if (isDragging) return;
-      
-      // Get interaction position and convert to date
-      const interactionX = d3.pointer(event)[0];
-      const clickDate = timeScale.invert(interactionX);
-      
-      // Find the nearest event
-      if (timeline.events.length > 0) {
-        const nearestEvent = findNearestEvent(clickDate, timeline.events);
-        if (nearestEvent) {
-          onEventSelect(nearestEvent);
-        }
-      }
-    };
-    
-    // Add mouse events
-    interactionRect
-      .on("click", handleInteraction);
-      
-    // Add touch events
-    interactionRect
-      .on("touchend", (event: TouchEvent) => {
-        if (!isDragging) {
-          handleInteraction(event);
-        }
-        setIsDragging(false);
-      });
-    
-    // Set the SVG height
-    svgRef.current.setAttribute("height", String(height));
-    
-  }, [timeline, selectedEvent, onEventSelect, isMobile, isDragging]);
+    // Not enough events in zoomed range, or selected event not in filtered range
+    if (selectedEventIndex === 0) {
+      // First event selected - show first 3 events (or all if less than 3)
+      return sortedEvents.slice(0, Math.min(3, sortedEvents.length));
+    } else if (selectedEventIndex === sortedEvents.length - 1) {
+      // Last event selected - show last 3 events (or all if less than 3)
+      return sortedEvents.slice(Math.max(0, sortedEvents.length - 3));
+    } else {
+      // Try to center the selected event with one before and one after
+      const startIndex = Math.max(0, selectedEventIndex - 1);
+      const endIndex = Math.min(sortedEvents.length, startIndex + 3);
+      return sortedEvents.slice(startIndex, endIndex);
+    }
+  }, [filteredEvents, selectedEventIndex, sortedEvents]);
   
-  // Helper function to find the nearest event to a given date
-  const findNearestEvent = (date: Date, events: Event[]) => {
-    let nearestEvent = null;
-    let minDiff = Number.MAX_VALUE;
+  // Position events along the horizontal axis
+  const positionedEvents = useMemo(() => {
+    if (!eventsToShow.length || !zoomedTimespan) return [];
     
-    events.forEach(event => {
+    // Choose the appropriate scale based on whether events are in zoom range
+    const scale = zoomedDateScale || fullDateScale;
+    if (!scale) return [];
+    
+    return eventsToShow.map(event => {
       const eventDate = new Date(event.date);
-      const diff = Math.abs(eventDate.getTime() - date.getTime());
+      // Use the scale to determine x position
+      const xPosition = scale(eventDate);
       
-      if (diff < minDiff) {
-        minDiff = diff;
-        nearestEvent = event;
-      }
+      return {
+        ...event,
+        x: xPosition,
+        isSelected: event.id === selectedEventId
+      };
     });
-    
-    return nearestEvent;
-  };
+  }, [eventsToShow, zoomedTimespan, zoomedDateScale, fullDateScale, selectedEventId]);
   
-  // Touch event handlers for drag detection
-  const handleTouchStart = () => {
-    setIsDragging(false);
-  };
+  // Center the timeline on the selected event
+  useEffect(() => {
+    if (selectedEventId && positionedEvents.length > 0) {
+      const selectedEvent = positionedEvents.find(e => e.id === selectedEventId);
+      if (selectedEvent) {
+        // Calculate offset to center the selected event
+        const centerPosition = width / 2;
+        const selectedX = selectedEvent.x;
+        const offset = centerPosition - selectedX;
+        
+        // Apply transformation to center the selected event
+        setOffsetX(offset);
+        
+        // Update the store
+        recalculateOffset(offset);
+      }
+    }
+  }, [selectedEventId, positionedEvents, width, recalculateOffset]);
   
-  const handleTouchMove = () => {
-    setIsDragging(true);
+  if (!zoomedTimespan || positionedEvents.length === 0) {
+    return null;
+  }
+  
+  // Format dates for display
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
   
   return (
-    <Container 
-      ref={containerRef}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-    >
-      <SVG 
-        ref={svgRef} 
-        width="100%" 
-        height={isMobile ? "60" : "70"}
-        preserveAspectRatio="xMidYMid meet"
-      />
-      {isMobile && selectedEvent && (
-        <MobileLabel>
-          {selectedEvent.title}
-        </MobileLabel>
-      )}
-    </Container>
+    <TimelineContainer>
+      <TimelineWrapper offset={offsetX}>
+        <SVGContainer
+          width={width}
+          height={height}
+          aria-label="Horizontal timeline"
+          role="navigation"
+        >
+          {/* Main timeline line */}
+          <MainLine
+            x1={padding}
+            y1={timelineY}
+            x2={width - padding}
+            y2={timelineY}
+          />
+          
+          {/* Event markers */}
+          {positionedEvents.map(event => (
+            <g
+              key={event.id}
+              className={`event-marker-group ${event.isSelected ? 'selected' : ''}`}
+              data-event-id={event.id}
+            >
+              {/* Vertical line for the event */}
+              <EventLine
+                x1={event.x}
+                y1={timelineY - 20}
+                x2={event.x}
+                y2={timelineY + 20}
+                isSelected={event.isSelected}
+              />
+              
+              {/* Event title */}
+              <EventTitle
+                x={event.x}
+                y={timelineY + 35}
+                isSelected={event.isSelected}
+              >
+                {event.title.length > 20 ? `${event.title.substring(0, 17)}...` : event.title}
+              </EventTitle>
+              
+              {/* Use TimelineDot component instead of direct circle rendering */}
+              <TimelineDot 
+                event={event}
+                position={{ x: event.x, y: timelineY }}
+                isSelected={event.isSelected}
+                onClick={selectEvent}
+              />
+            </g>
+          ))}
+          
+          {/* Date range indicator */}
+          <text
+            x={width / 2}
+            y={10}
+            textAnchor="middle"
+            fontSize="12px"
+            fill="var(--text-color, #555)"
+          >
+            {formatDate(zoomedTimespan.start)} - {formatDate(zoomedTimespan.end)}
+          </text>
+        </SVGContainer>
+      </TimelineWrapper>
+    </TimelineContainer>
   );
 };
-
-const Container = styled.div`
-  width: 80%;
-  margin: 10px auto 25px;
-  position: relative;
-  touch-action: pan-y; /* Allow vertical scrolling but capture horizontal */
-  
-  @media (max-width: 767px) {
-    width: 90%;
-    margin: 5px auto 30px;
-  }
-`;
-
-const SVG = styled.svg`
-  width: 100%;
-  display: block;
-`;
-
-const MobileLabel = styled.div`
-  text-align: center;
-  font-size: 12px;
-  margin-top: 5px;
-  color: var(--text-primary);
-  font-weight: 500;
-  background-color: var(--background-light);
-  padding: 4px 8px;
-  border-radius: 12px;
-  display: inline-block;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 90%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
 
 export default HorizontalTimeline; 

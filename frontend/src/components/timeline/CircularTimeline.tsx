@@ -157,10 +157,39 @@ const CircularTimeline: React.FC<CircularTimelineProps> = ({
         .attr("fill", markerColor)
         .attr("class", "event-marker")
         .attr("data-event-id", event.id)
-        .style("cursor", "pointer")
-        .on("click", () => onEventSelect(event));
+        .style("cursor", "pointer");
       
-      // Add touch and mouse events
+      // IMPROVED EVENT HANDLING - Create a larger transparent hit area
+      eventsGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", markerSize + 10) // Larger than the visible marker
+        .attr("fill", "transparent")
+        .attr("stroke", "transparent")
+        .attr("class", "event-marker-hitarea")
+        .attr("data-event-id", event.id)
+        .style("cursor", "pointer");
+      
+      // Add improved click handler with event capturing
+      const markerNode = eventMarker.node();
+      if (markerNode) {
+        markerNode.addEventListener('click', (e) => {
+          console.log('CircularTimeline - EVENT CLICKED:', event.id, event.title);
+          e.stopPropagation();
+          e.preventDefault();
+          onEventSelect(event);
+        });
+        
+        // Add touch support for mobile
+        markerNode.addEventListener('touchend', (e) => {
+          console.log('CircularTimeline - EVENT TOUCHED:', event.id, event.title);
+          e.stopPropagation();
+          e.preventDefault();
+          onEventSelect(event);
+        });
+      }
+      
+      // Add touch and mouse events for visual feedback
       const handleInteractionStart = function(this: SVGCircleElement) {
         d3.select(this).attr("r", markerSize + 2);
         
