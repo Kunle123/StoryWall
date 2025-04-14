@@ -53,6 +53,21 @@ const TimelinePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState(0); // 0: Timeline, 1: Map, 2: Gallery
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  
+  // Use local width state instead of trying to get it from the store
+  const [width, setWidth] = useState(window.innerWidth * 0.9);
+  
+  // Add window resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      setWidth(Math.min(window.innerWidth * 0.9, 1200));
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchTimeline = async () => {
@@ -351,9 +366,8 @@ const TimelinePage: React.FC = () => {
           />
           
           <HorizontalTimeline 
-            timeline={timeline} 
-            selectedEvent={selectedEvent} 
-            onEventSelect={handleEventSelect} 
+            width={width} 
+            height={100}
           />
           
           {selectedEvent && (

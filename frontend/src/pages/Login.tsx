@@ -6,8 +6,8 @@ import { axiosInstance } from '../api/axios';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: 'demo@example.com',
+    password: 'Demo123!'
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,23 +37,24 @@ const Login: React.FC = () => {
           state: { token, user }
         }));
         
-        // Redirect to home page
-        navigate('/');
+        // Redirect to timeline demo page
+        navigate('/timeline-demo');
       } catch (error) {
         console.log('API not available, simulating login');
         // Simulate login with mock data
-        if (formData.email === 'user@example.com' && formData.password === 'password') {
+        if (formData.email === 'demo@example.com' && formData.password === 'Demo123!') {
           localStorage.setItem('auth-storage', JSON.stringify({
             state: { 
               token: 'mock-token-for-development',
               user: {
                 id: 'user-123',
                 email: formData.email,
-                name: 'Test User'
+                name: 'Demo User'
               }
             }
           }));
-          navigate('/');
+          // Redirect to timeline demo page
+          navigate('/timeline-demo');
         } else {
           setError('Invalid email or password');
         }
@@ -70,6 +71,7 @@ const Login: React.FC = () => {
     <Container>
       <FormContainer>
         <Title>Sign In</Title>
+        <Subtitle>Use the pre-filled demo account to explore timelines</Subtitle>
         
         {error && <ErrorMessage>{error}</ErrorMessage>}
         
@@ -109,6 +111,12 @@ const Login: React.FC = () => {
           </SubmitButton>
         </Form>
         
+        <DemoCredentials>
+          <p><strong>Demo Credentials:</strong></p>
+          <p>Email: demo@example.com</p>
+          <p>Password: Demo123!</p>
+        </DemoCredentials>
+        
         <SignupText>
           Don't have an account? <SignupLink to="/register">Sign Up</SignupLink>
         </SignupText>
@@ -140,6 +148,13 @@ const Title = styled.h1`
   margin-bottom: 20px;
   text-align: center;
   color: #333333;
+`;
+
+const Subtitle = styled.p`
+  font-size: 14px;
+  color: #666666;
+  text-align: center;
+  margin-bottom: 20px;
 `;
 
 const Form = styled.form`
@@ -231,6 +246,23 @@ const SignupLink = styled(Link)`
   
   &:hover {
     text-decoration: underline;
+  }
+`;
+
+const DemoCredentials = styled.div`
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  font-size: 14px;
+  
+  p {
+    margin: 5px 0;
+    color: #333333;
+  }
+  
+  strong {
+    color: #FF5555;
   }
 `;
 
