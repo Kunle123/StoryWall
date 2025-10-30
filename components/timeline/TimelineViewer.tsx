@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Timeline as TimelineType, Event } from '@/lib/types';
 import HorizontalTimeline from './HorizontalTimeline';
+import HorizontalTimelineWithOverview from './HorizontalTimelineWithOverview';
 import VerticalTimeline from './VerticalTimeline';
 import CardGridTimeline from './CardGridTimeline';
 
@@ -27,7 +28,7 @@ export default function TimelineViewer({ timeline, events, isEditable = false }:
   const renderTimeline = () => {
     switch (viewType) {
       case 'horizontal':
-        return <HorizontalTimeline events={events} />;
+        return <HorizontalTimelineWithOverview events={events} />;
       case 'vertical':
         return <VerticalTimeline events={events} />;
       case 'grid':
