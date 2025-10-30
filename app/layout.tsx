@@ -10,11 +10,12 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const clerkKeyLooksValid = !!pk && /^pk_(test|live)_.+/.test(pk);
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50 text-gray-900">
-        {hasClerk ? (
+        {clerkKeyLooksValid ? (
           <ClerkProvider>
             <Header />
             <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>

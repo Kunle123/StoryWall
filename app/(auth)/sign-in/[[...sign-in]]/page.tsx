@@ -3,8 +3,9 @@
 import { SignIn } from '@clerk/nextjs';
 
 export default function SignInPage() {
-  const hasClerk = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
-  if (!hasClerk) {
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const clerkKeyLooksValid = !!pk && /^pk_(test|live)_.+/.test(pk);
+  if (!clerkKeyLooksValid) {
     return (
       <div className="min-h-screen grid place-items-center p-6 text-center">
         <div className="max-w-md">
