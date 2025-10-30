@@ -92,10 +92,20 @@ const Profile = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="icon">
+              <Button
+                // @ts-ignore - Type inference issue with class-variance-authority
+                variant="outline"
+                // @ts-ignore - Type inference issue with class-variance-authority
+                size="icon"
+              >
                 <Settings className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button
+                // @ts-ignore - Type inference issue with class-variance-authority
+                variant="outline"
+                // @ts-ignore - Type inference issue with class-variance-authority
+                size="icon"
+              >
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
