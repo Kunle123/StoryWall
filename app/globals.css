@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+:root {
+  --background: #f9fafb;
+}
+
+html, body {
+  background: var(--background);
+}
+
+
