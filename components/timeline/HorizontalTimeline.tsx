@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Timeline } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { Event } from '@/lib/types';
 
@@ -24,18 +23,30 @@ export default function HorizontalTimeline({ events }: HorizontalTimelineProps) 
       className: event.category || 'default',
     }));
 
+    const isSmall = typeof window !== 'undefined' && window.innerWidth < 640;
     const options = {
       width: '100%',
-      height: '400px',
-      margin: { item: 20 },
+      height: isSmall ? '300px' : '420px',
+      margin: { item: isSmall ? 10 : 20 },
       orientation: 'both',
-      zoomMin: 1000 * 60 * 60 * 24 * 7,
+      zoomMin: 1000 * 60 * 60 * 24 * 3,
       zoomMax: 1000 * 60 * 60 * 24 * 365 * 100,
     } as any;
 
-    const timeline = new Timeline(timelineRef.current, items as any, options);
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const mod = await import('vis-timeline/standalone');
+        const timeline = new mod.Timeline(timelineRef.current as HTMLDivElement, items as any, options);
+        cleanup = () => timeline.destroy();
+      } catch (e) {
+        // noop: avoid crashing client if library fails to load
+        // Consider logging to an error service in prod
+      }
+    })();
+
     return () => {
-      timeline.destroy();
+      if (cleanup) cleanup();
     };
   }, [events]);
 

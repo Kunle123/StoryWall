@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Timeline as TimelineType, Event } from '@/lib/types';
 import HorizontalTimeline from './HorizontalTimeline';
+import HorizontalTimelineWithOverview from './HorizontalTimelineWithOverview';
 import VerticalTimeline from './VerticalTimeline';
 import CardGridTimeline from './CardGridTimeline';
 
@@ -15,10 +16,19 @@ interface TimelineViewerProps {
 export default function TimelineViewer({ timeline, events, isEditable = false }: TimelineViewerProps) {
   const [viewType, setViewType] = useState(timeline.visualization_type);
 
+  // Prefer vertical on small screens by default
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      setViewType('vertical');
+    }
+    // No deps: run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const renderTimeline = () => {
     switch (viewType) {
       case 'horizontal':
-        return <HorizontalTimeline events={events} />;
+        return <HorizontalTimelineWithOverview events={events} />;
       case 'vertical':
         return <VerticalTimeline events={events} />;
       case 'grid':

@@ -19,7 +19,8 @@ export default function VerticalTimeline({ events }: VerticalTimelineProps) {
   const maxDate = Math.max(...dates);
   const timeSpan = maxDate - minDate;
   const years = timeSpan / (1000 * 60 * 60 * 24 * 365);
-  const pixelsPerYear = Math.max(50, Math.min(200, 3000 / years));
+  const isSmall = typeof window !== 'undefined' && window.innerWidth < 640;
+  const pixelsPerYear = Math.max(isSmall ? 40 : 50, Math.min(isSmall ? 140 : 200, 3000 / years));
 
   const eventsWithPositions: { event: Event; topPosition: number }[] = [];
   for (let i = 0; i < sortedEvents.length; i++) {
@@ -30,7 +31,7 @@ export default function VerticalTimeline({ events }: VerticalTimelineProps) {
 
     if (i > 0) {
       const prevPosition = eventsWithPositions[i - 1].topPosition;
-      const minGap = 180;
+      const minGap = isSmall ? 120 : 180;
       if (topPosition - prevPosition < minGap) {
         topPosition = prevPosition + minGap;
       }
