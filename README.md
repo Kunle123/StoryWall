@@ -1,5 +1,9 @@
 # StoryWall (MVP Scaffold)
 
+![License](https://img.shields.io/badge/license-MIT-green)
+![Deploy](https://img.shields.io/badge/deploy-Railway-blue)
+![Build](https://img.shields.io/github/actions/workflow/status/Kunle123/StoryWall/ci.yml?label=build)
+
 Collaborative timeline platform - "Wikipedia for timelines". This repository contains a Next.js 14 + TypeScript + Tailwind scaffold aligned with the design spec.
 
 ## Tech Stack
