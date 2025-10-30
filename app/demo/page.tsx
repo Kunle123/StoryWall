@@ -1,12 +1,12 @@
 import TimelineViewer from '@/components/timeline/TimelineViewer';
 import { Timeline, Event } from '@/lib/types';
 
-export default function DemoPage() {
+function buildAutoIndustryDemo(): { timeline: Timeline; events: Event[] } {
   const timeline: Timeline = {
-    id: 'demo-1',
-    title: 'Apollo Program',
-    description: 'NASA program that landed humans on the Moon.',
-    slug: 'apollo-program',
+    id: 'auto-1',
+    title: 'History of the Automobile Industry',
+    description: 'Key milestones from the birth of the car to modern EVs.',
+    slug: 'auto-industry',
     creator_id: 'guest',
     visualization_type: 'horizontal',
     is_public: true,
@@ -16,13 +16,69 @@ export default function DemoPage() {
     updated_at: new Date().toISOString(),
   } as any;
 
-  const events: Event[] = [
-    { id: 'e1', timeline_id: 'demo-1', title: 'Apollo 8', date: '1968-12-21', description: 'First crewed flight to orbit the Moon.', created_at: '', updated_at: '' },
-    { id: 'e2', timeline_id: 'demo-1', title: 'Apollo 11', date: '1969-07-16', end_date: '1969-07-24', description: 'First Moon landing.', created_at: '', updated_at: '' },
-    { id: 'e3', timeline_id: 'demo-1', title: 'Apollo 13', date: '1970-04-11', description: 'In-flight emergency; safe return.', created_at: '', updated_at: '' },
-    { id: 'e4', timeline_id: 'demo-1', title: 'Apollo 17', date: '1972-12-07', description: 'Last crewed Moon mission of Apollo.', created_at: '', updated_at: '' },
+  const seedMilestones: Array<{ y: number; m?: number; d?: number; t: string; desc?: string }> = [
+    { y: 1886, t: 'Patent Motorwagen', desc: 'Karl Benz patents the Motorwagen.' },
+    { y: 1908, t: 'Model T', desc: 'Ford introduces the Model T.' },
+    { y: 1913, t: 'Moving Assembly Line', desc: 'Ford deploys moving assembly line.' },
+    { y: 1934, t: 'Citroën Traction Avant', desc: 'Mass-produced front-wheel drive.' },
+    { y: 1938, t: 'Volkswagen Beetle', desc: 'Production begins.' },
+    { y: 1955, t: 'Citroën DS', desc: 'Hydropneumatic suspension breakthrough.' },
+    { y: 1964, t: 'Ford Mustang', desc: 'Launch of the pony car segment.' },
+    { y: 1973, t: 'Oil Crisis', desc: 'Fuel economy becomes critical.' },
+    { y: 1989, t: 'Mazda Miata (MX-5)', desc: 'Revives lightweight roadster.' },
+    { y: 1997, t: 'Toyota Prius', desc: 'First mass-produced hybrid.' },
+    { y: 2008, t: 'Tesla Roadster', desc: 'Lithium-ion EV goes mainstream.' },
+    { y: 2012, t: 'Tesla Model S', desc: 'Long-range EV sedan.' },
+    { y: 2016, t: 'Autopilot Advances', desc: 'Consumer ADAS becomes common.' },
+    { y: 2020, t: 'EV Acceleration', desc: 'Global EV adoption surges.' },
+    { y: 2023, t: 'ADAS Regulation', desc: 'Safety and autonomy guidelines mature.' },
   ];
 
+  // Convert seeds to events
+  const events: Event[] = seedMilestones.map((s, i) => ({
+    id: `seed-${i + 1}`,
+    timeline_id: 'auto-1',
+    title: s.t,
+    description: s.desc,
+    date: `${s.y}-${String(s.m ?? 6).padStart(2, '0')}-${String(s.d ?? 15).padStart(2, '0')}`,
+    created_at: '',
+    updated_at: '',
+  }));
+
+  // Add synthetic filler events with varied spacings between 1890 and 2025
+  const totalNeeded = 50;
+  let currentYear = 1890;
+  let idx = 0;
+  const usedKeys = new Set(events.map(e => `${e.title}-${e.date}`));
+  while (events.length < totalNeeded && currentYear <= 2025) {
+    const gap = Math.max(1, Math.min(9, Math.floor(Math.random() * 10))); // 1-9 year gaps
+    currentYear += gap;
+    const month = Math.floor(Math.random() * 12) + 1;
+    const day = Math.floor(Math.random() * 28) + 1;
+    const title = `Industry development ${idx + 1}`;
+    const date = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const key = `${title}-${date}`;
+    if (usedKeys.has(key)) continue;
+    usedKeys.add(key);
+    events.push({
+      id: `synth-${idx + 1}`,
+      timeline_id: 'auto-1',
+      title,
+      description: 'Supplier innovation, regulatory change, or notable model.',
+      date,
+      created_at: '',
+      updated_at: '',
+    });
+    idx += 1;
+  }
+
+  // Ensure chronological order for nice layout
+  events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return { timeline, events };
+}
+
+export default function DemoPage() {
+  const { timeline, events } = buildAutoIndustryDemo();
   return (
     <div>
       <TimelineViewer timeline={timeline} events={events} />
