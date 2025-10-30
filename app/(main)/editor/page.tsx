@@ -1,190 +1,224 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Header from '@/components/layout/Header';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TimelineCard } from "@/components/timeline/TimelineCard";
+import { TimelineEvent } from "@/components/timeline/Timeline";
+import { Save, Eye } from "lucide-react";
 
-const categories = ['event', 'vehicle', 'crisis', 'milestone', 'innovation'];
-
-export default function CardEditorPage() {
+const CardEditor = () => {
+  const router = useRouter();
   const [showPreview, setShowPreview] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    year: '',
-    month: '',
-    day: '',
-    category: '',
-    imageUrl: '',
-    videoUrl: '',
+  
+  const [formData, setFormData] = useState<TimelineEvent>({
+    id: "",
+    year: new Date().getFullYear(),
+    month: undefined,
+    day: undefined,
+    title: "",
+    description: "",
+    category: "event",
+    image: "",
+    video: "",
   });
 
-  const isValid = formData.title.trim() && formData.year.trim();
-
   const handleSave = () => {
-    // TODO: API call to save
-    alert('Card saved to portfolio!');
+    // UI only - would save to portfolio here
+    console.log("Saving card to portfolio:", formData);
+    router.push("/portfolio");
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Card Editor</h1>
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-5xl">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl font-display font-bold mb-2">Card Editor</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Create a new timeline card for your collection</p>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Form */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Title *</label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter event title"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter description"
-                className="w-full border rounded-lg px-3 py-2 text-sm resize-none"
-                rows={4}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Year *</label>
+        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
+          {/* Editor Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display">Card Details</CardTitle>
+              <CardDescription>Fill in the information for your timeline event</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Title */}
+              <div className="space-y-2">
+                <Label htmlFor="title">Title *</Label>
                 <Input
-                  type="number"
-                  value={formData.year}
-                  onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                  placeholder="2024"
+                  id="title"
+                  placeholder="Event title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Month</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={formData.month}
-                  onChange={(e) => setFormData({ ...formData, month: e.target.value })}
-                  placeholder="6"
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Event description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="min-h-[100px]"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Day</label>
+
+              {/* Date Fields */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label htmlFor="year" className="text-sm">Year *</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    placeholder="2024"
+                    value={formData.year}
+                    onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear() })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="month" className="text-sm">Month</Label>
+                  <Input
+                    id="month"
+                    type="number"
+                    placeholder="1-12"
+                    min="1"
+                    max="12"
+                    value={formData.month || ""}
+                    onChange={(e) => setFormData({ ...formData, month: e.target.value ? parseInt(e.target.value) : undefined })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="day" className="text-sm">Day</Label>
+                  <Input
+                    id="day"
+                    type="number"
+                    placeholder="1-31"
+                    min="1"
+                    max="31"
+                    value={formData.day || ""}
+                    onChange={(e) => setFormData({ ...formData, day: e.target.value ? parseInt(e.target.value) : undefined })}
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select 
+                  value={formData.category} 
+                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Event</SelectItem>
+                    <SelectItem value="vehicle">Vehicle</SelectItem>
+                    <SelectItem value="crisis">Crisis</SelectItem>
+                    <SelectItem value="milestone">Milestone</SelectItem>
+                    <SelectItem value="innovation">Innovation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Image URL */}
+              <div className="space-y-2">
+                <Label htmlFor="image">Image URL</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={formData.day}
-                  onChange={(e) => setFormData({ ...formData, day: e.target.value })}
-                  placeholder="15"
+                  id="image"
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={formData.image}
+                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="">Select category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
+              {/* Video URL */}
+              <div className="space-y-2">
+                <Label htmlFor="video">Video URL</Label>
+                <Input
+                  id="video"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=..."
+                  value={formData.video}
+                  onChange={(e) => setFormData({ ...formData, video: e.target.value })}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Image URL</label>
-              <Input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button 
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  {showPreview ? "Hide" : "Show"} Preview
+                </Button>
+                <Button 
+                  onClick={handleSave}
+                  disabled={!formData.title || !formData.year}
+                  className="flex-1"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save to Portfolio
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Video URL</label>
-              <Input
-                type="url"
-                value={formData.videoUrl}
-                onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                placeholder="https://example.com/video.mp4"
-              />
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowPreview(!showPreview)}
-              >
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={!isValid}
-              >
-                Save to Portfolio
-              </Button>
-            </div>
-          </div>
-
-          {/* Right Column - Preview */}
-          <div className="hidden lg:block">
-            {showPreview && (
-              <div className="sticky top-20">
-                <div className="bg-white border rounded-lg p-4 shadow-sm">
-                  <h3 className="font-semibold mb-2">Preview</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">
-                        {formData.year || 'Year'}{formData.month ? `/${formData.month}` : ''}{formData.day ? `/${formData.day}` : ''}
-                      </span>
-                      {formData.category && (
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 rounded">
-                          {formData.category}
-                        </span>
-                      )}
-                    </div>
-                    <h4 className="font-semibold">{formData.title || 'Event Title'}</h4>
-                    {formData.description && (
-                      <p className="text-gray-600">{formData.description}</p>
-                    )}
-                    {formData.imageUrl && (
-                      <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-500">
-                        Image Preview
-                      </div>
-                    )}
+          {/* Live Preview */}
+          <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display text-lg sm:text-xl">Live Preview</CardTitle>
+                <CardDescription className="text-sm">See how your card will look on the timeline</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {showPreview && formData.title ? (
+                  <div className="flex justify-center max-w-sm mx-auto">
+                    <TimelineCard 
+                      event={{ ...formData, id: "preview" }}
+                      side="left"
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground text-sm">
+                    {!formData.title ? "Add a title to see preview" : "Click 'Show Preview' to view your card"}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-                {/* Tips Card */}
-                <div className="mt-4 bg-gray-50 border rounded-lg p-4">
-                  <h4 className="font-semibold mb-2 text-sm">Tips</h4>
-                  <ul className="space-y-1 text-xs text-gray-600">
-                    <li>• Use clear, descriptive titles</li>
-                    <li>• Add dates for accurate timeline placement</li>
-                    <li>• Include media to make cards more engaging</li>
-                  </ul>
-                </div>
-              </div>
-            )}
+            {/* Tips Card */}
+            <Card className="bg-primary/5 border-primary/20 hidden sm:block">
+              <CardHeader>
+                <CardTitle className="text-base sm:text-lg font-display">Tips</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                <p>• Keep titles concise (under 60 characters)</p>
+                <p>• Use high-quality images for best results</p>
+                <p>• Categories help organize and color-code your events</p>
+                <p>• Add month and day for more precise timeline placement</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
 
+export default CardEditor;

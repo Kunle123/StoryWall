@@ -1,112 +1,176 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Header from '@/components/layout/Header';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TimelineCard } from "@/components/timeline/TimelineCard";
+import { TimelineEvent } from "@/components/timeline/Timeline";
+import { Plus, Download, Trash2, FileJson } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-// Mock data
-const mockCards = [
-  { id: '1', title: 'Patent Motorwagen', year: 1886, month: 1, day: 29, category: 'innovation', description: 'Karl Benz patents the Motorwagen.' },
-  { id: '2', title: 'Model T Introduction', year: 1908, month: 10, category: 'milestone', description: 'Ford introduces the Model T.' },
-];
-
-export default function PortfolioPage() {
-  const [cards, setCards] = useState(mockCards);
+const Portfolio = () => {
+  const router = useRouter();
+  
+  // Mock saved cards - would come from state/storage in real implementation
+  const [savedCards] = useState<TimelineEvent[]>([
+    {
+      id: "1",
+      year: 2024,
+      month: 3,
+      day: 15,
+      title: "My First Timeline Event",
+      description: "This is an example of a saved timeline card in your portfolio.",
+      category: "milestone",
+      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+    },
+    {
+      id: "2",
+      year: 2023,
+      month: 7,
+      title: "Summer Innovation",
+      description: "Another card example showing how your portfolio collection works.",
+      category: "innovation",
+    },
+    {
+      id: "3",
+      year: 2024,
+      month: 1,
+      day: 1,
+      title: "New Year Milestone",
+      description: "Starting the year with an important event.",
+      category: "event",
+    },
+  ]);
 
   const handleExport = () => {
-    const json = JSON.stringify(cards, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'portfolio.json';
-    a.click();
+    // UI only - would export cards as JSON
+    const dataStr = JSON.stringify(savedCards, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "timeline-cards.json";
+    link.click();
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Delete this card?')) {
-      setCards(cards.filter(c => c.id !== id));
-    }
+    // UI only - would delete from storage
+    console.log("Deleting card:", id);
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Portfolio</h1>
-            <p className="text-gray-600">{cards.length} cards</p>
+            <h1 className="text-4xl font-display font-bold mb-2">My Portfolio</h1>
+            <p className="text-muted-foreground">
+              Your collection of timeline cards • {savedCards.length} {savedCards.length === 1 ? "card" : "cards"}
+            </p>
           </div>
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={handleExport}>Export JSON</Button>
-            <Link href="/editor">
-              <Button>New Card</Button>
-            </Link>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="mr-2 h-4 w-4" />
+              Export JSON
+            </Button>
+            <Button onClick={() => router.push("/editor")}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Card
+            </Button>
           </div>
         </div>
 
-        {cards.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📭</div>
-            <h2 className="text-2xl font-semibold mb-2">No cards yet</h2>
-            <p className="text-gray-600 mb-6">Create your first timeline card to get started</p>
-            <Link href="/editor">
-              <Button>Create First Card</Button>
-            </Link>
-          </div>
+        {/* Empty State */}
+        {savedCards.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <FileJson className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-display font-semibold mb-2">No cards yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm">
+                Start building your timeline by creating your first card
+              </p>
+              <Button onClick={() => router.push("/editor")}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create First Card
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {cards.map((card) => (
-                <div key={card.id} className="bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition relative group">
-                  <button
-                    onClick={() => handleDelete(card.id)}
-                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition text-xs"
-                    aria-label="Delete"
-                  >
-                    ×
-                  </button>
-                  {card.category && (
-                    <span className="text-xs px-2 py-0.5 bg-gray-100 rounded mb-2 inline-block">
-                      {card.category}
-                    </span>
-                  )}
-                  <h3 className="font-semibold mb-1">{card.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {card.year}{card.month ? `/${card.month}` : ''}{card.day ? `/${card.day}` : ''}
-                  </p>
-                  {card.description && (
-                    <p className="text-sm text-gray-500 line-clamp-2">{card.description}</p>
-                  )}
+            {/* Cards Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {savedCards.map((card) => (
+                <div key={card.id} className="relative group">
+                  <TimelineCard event={card} side="left" />
+                  
+                  {/* Action Overlay */}
+                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="h-8 w-8 shadow-lg"
+                      onClick={() => handleDelete(card.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Category Badge */}
+                  <div className="absolute top-2 left-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {card.category || "event"}
+                    </Badge>
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Usage Guide */}
-            <div className="bg-gray-50 border rounded-lg p-6">
-              <h2 className="font-semibold mb-4">Usage Guide</h2>
-              <ol className="space-y-2 text-sm text-gray-600">
-                <li className="flex gap-3">
-                  <span className="font-semibold text-gray-800">1.</span>
-                  <span>Create cards using the editor to build your timeline</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold text-gray-800">2.</span>
-                  <span>Export your portfolio as JSON to back up your work</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="font-semibold text-gray-800">3.</span>
-                  <span>Import JSON files to restore or share portfolios</span>
-                </li>
-              </ol>
-            </div>
+            <Card className="bg-accent/5 border-accent/20">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">How to Use Your Cards</CardTitle>
+                <CardDescription>
+                  Build your own timelines with these cards
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    1
+                  </div>
+                  <p className="text-muted-foreground">
+                    Export your cards as JSON using the "Export JSON" button
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    2
+                  </div>
+                  <p className="text-muted-foreground">
+                    Import the JSON file into any timeline view to display your custom events
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    3
+                  </div>
+                  <p className="text-muted-foreground">
+                    Mix and match cards from different portfolios to create unique timelines
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
-      </div>
+      </main>
     </div>
   );
-}
+};
 
+export default Portfolio;

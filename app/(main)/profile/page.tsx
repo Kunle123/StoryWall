@@ -1,110 +1,152 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Header from '@/components/layout/Header';
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-// Mock signed in state - would come from auth
-const [signedIn] = useState(false);
-
-const mockProfile = {
-  name: 'User Name',
-  avatar: null,
-  storyCount: 12,
-  followersCount: 342,
-  followingCount: 128,
-  badges: ['Timeline Creator', 'History Enthusiast'],
-};
-
-const mockStories = [
-  { id: '1', content: 'First timeline event about automotive history...', createdAt: '2024-01-15', reactions: 45, views: 234 },
-  { id: '2', content: 'Another historical milestone documented...', createdAt: '2024-01-10', reactions: 32, views: 189 },
+const mockUserStories = [
+  {
+    id: "1",
+    content: "Just saw a pigeon steal an entire sandwich from a businessman...",
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    reactions: 1200,
+    views: 5400,
+  },
+  {
+    id: "2",
+    content: "My neighbor has been playing the same 3 seconds of a song on repeat...",
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    reactions: 345,
+    views: 1890,
+  },
 ];
 
-export default function ProfilePage() {
-  const [isSignedIn] = useState(signedIn);
+const Profile = () => {
+  const router = useRouter();
+  const [isSignedIn] = useState(false);
+
+  function formatDistance(date: Date) {
+    const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return "today";
+    if (days === 1) return "1 day ago";
+    if (days < 7) return `${days} days ago`;
+    if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+    return `${Math.floor(days / 30)} months ago`;
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-16 max-w-2xl text-center">
+          <div className="space-y-6">
+            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center text-4xl mx-auto">
+              👤
+            </div>
+            <h1 className="text-3xl font-bold">Sign in to view your profile</h1>
+            <p className="text-muted-foreground">
+              Create an account to share your stories and see your activity
+            </p>
+            <Button size="lg" onClick={() => router.push("/auth")}>
+              Sign In / Sign Up
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {!isSignedIn ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 rounded-full bg-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Sign in to view your profile</h2>
-            <p className="text-gray-600 mb-6">Create and manage your timeline stories</p>
-            <Link href="/auth">
-              <Button>Sign In / Sign Up</Button>
-            </Link>
+
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Profile Header */}
+        <Card className="p-6 mb-8">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center text-4xl">
+                👤
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Your Stories</h1>
+                <p className="text-muted-foreground mb-2">
+                  {mockUserStories.length} stories posted
+                </p>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">342</span>
+                    <span className="text-muted-foreground">Followers</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <UserPlus className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">128</span>
+                    <span className="text-muted-foreground">Following</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon">
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        ) : (
-          <>
-            {/* Profile Header Card */}
-            <div className="bg-white border rounded-lg shadow-sm p-6 mb-8">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gray-300" />
-                  <div>
-                    <h1 className="text-2xl font-bold mb-1">Your Stories</h1>
-                    <p className="text-gray-600">{mockProfile.storyCount} stories</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button className="w-10 h-10 border rounded-lg hover:bg-gray-50" aria-label="Settings">
-                    ⚙️
-                  </button>
-                  <button className="w-10 h-10 border rounded-lg hover:bg-gray-50" aria-label="Logout">
-                    🚪
-                  </button>
-                </div>
-              </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">Timeline Creator</Badge>
+            <Badge variant="secondary">History Enthusiast</Badge>
+          </div>
+        </Card>
 
-              <div className="flex items-center gap-6 mb-4">
-                <div>
-                  <span className="text-sm text-gray-600">{mockProfile.followersCount} Followers</span>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">{mockProfile.followingCount} Following</span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 flex-wrap">
-                {mockProfile.badges.map((badge) => (
-                  <span key={badge} className="text-xs px-3 py-1 bg-gray-100 rounded-full">
-                    {badge}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Stories List */}
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Your Stories</h2>
+        {/* User Stories */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Your Stories</h2>
+          {mockUserStories.map((story) => (
+            <Card key={story.id} className="p-6 hover:shadow-lg transition-all">
               <div className="space-y-4">
-                {mockStories.map((story) => (
-                  <div key={story.id} className="bg-white border rounded-lg p-4 shadow-sm">
-                    <p className="text-gray-700 mb-3 line-clamp-2">{story.content}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>📅 {story.createdAt}</span>
-                        <span>👍 {story.reactions}</span>
-                        <span>👁️ {story.views}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">View</Button>
-                        <Button variant="outline" size="sm">Delete</Button>
-                      </div>
-                    </div>
+                <p className="text-foreground line-clamp-2">{story.content}</p>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>Posted {formatDistance(story.createdAt)}</span>
+                  <span>•</span>
+                  <span>😂 {story.reactions} reactions</span>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    {story.views} views
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/story/${story.id}`)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </div>
+            </Card>
+          ))}
+        </div>
+      </main>
     </div>
   );
-}
+};
 
+export default Profile;

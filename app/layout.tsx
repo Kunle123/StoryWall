@@ -1,12 +1,10 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
 
 export const metadata = {
-  title: 'StoryWall',
-  description: 'Collaborative timeline platform',
+  title: 'Timeline - Interactive Timeline Platform',
+  description: 'A powerful timeline component for visualizing any historical data',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -14,19 +12,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const clerkKeyLooksValid = !!pk && /^pk_(test|live)_[A-Za-z0-9_\-]{20,}$/.test(pk);
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
+      <body className="min-h-screen bg-background text-foreground">
         {clerkKeyLooksValid ? (
           <ClerkProvider>
-            <Header />
-            <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-            <Footer />
+            {children}
           </ClerkProvider>
         ) : (
-          <>
-            <Header />
-            <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
-            <Footer />
-          </>
+          children
         )}
       </body>
     </html>
