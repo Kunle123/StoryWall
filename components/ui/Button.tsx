@@ -15,7 +15,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const base = 'inline-flex items-center justify-center rounded-md font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2';
   const variants: Record<Variant, string> = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-600',
+    primary: 'bg-gray-800 text-white hover:bg-gray-900 focus:ring-gray-800',
     outline: 'border border-gray-300 text-gray-900 hover:bg-gray-100',
     ghost: 'text-gray-900 hover:bg-gray-100',
   };

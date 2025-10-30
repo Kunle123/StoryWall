@@ -11,10 +11,15 @@ html, body {
   background: var(--background);
 }
 
+/* Global grayscale */
+html {
+  filter: grayscale(1);
+}
+
 /* Overview (minimap) selection window */
 .overview-window {
-  background: rgba(37, 99, 235, 0.15) !important; /* blue-600 @ 15% */
-  border: 1px solid rgba(37, 99, 235, 0.4) !important;
+  background: rgba(107, 114, 128, 0.2) !important; /* gray-500 @ 20% */
+  border: 1px solid rgba(107, 114, 128, 0.45) !important;
 }
 
 

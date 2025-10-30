@@ -48,7 +48,7 @@ export default function VerticalTimeline({ events }: VerticalTimelineProps) {
 
       {eventsWithPositions.map(({ event, topPosition }) => (
         <div key={event.id} className="absolute pl-20 w-full" style={{ top: `${topPosition}px` }}>
-          <div className="absolute left-6 w-5 h-5 bg-blue-600 rounded-full border-4 border-white shadow" />
+          <div className="absolute left-6 w-5 h-5 bg-gray-700 rounded-full border-4 border-white shadow" />
           <EventCard event={event} />
         </div>
       ))}
