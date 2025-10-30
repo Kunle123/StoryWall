@@ -37,7 +37,9 @@ export const Header = () => {
             </Link>
           </Button>
           <Button
+            // @ts-ignore - Type inference issue with class-variance-authority
             variant="ghost"
+            // @ts-ignore - Type inference issue with class-variance-authority
             size="icon"
             className="rounded-full"
             asChild
