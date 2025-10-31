@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus } from "lucide-react";
+import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle } from "lucide-react";
 import { carTimelineEvents, ukWarsTimeline } from "@/lib/data/timelineData";
 import { getAllEvents } from "@/lib/data/mockTimelines";
 import { fetchEventById } from "@/lib/api/client";
@@ -156,11 +156,34 @@ const Story = () => {
           Back to Timeline
         </Button>
 
-        {/* Event Detail Card */}
-        <Card className="p-8">
+        {/* Single Unified Card */}
+        <Card className="p-6">
+          {/* User Profile and Follow Button at Top */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-semibold text-primary">TC</span>
+              </div>
+              <div>
+                <p className="text-[15px] font-bold leading-tight">Timeline Creator</p>
+                <p className="text-[13px] text-muted-foreground">@historian</p>
+              </div>
+            </div>
+            <Button
+              // @ts-ignore - Type inference issue with class-variance-authority
+              variant={isFollowing ? "outline" : "default"}
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="rounded-full h-8 px-4 text-sm font-bold"
+              onClick={() => setIsFollowing(!isFollowing)}
+            >
+              {isFollowing ? "Following" : "Follow"}
+            </Button>
+          </div>
+
           {/* Multimedia Content */}
           {(event.image || event.video) && (
-            <div className="mb-6 rounded-lg overflow-hidden">
+            <div className="mb-3 rounded-lg overflow-hidden border border-border">
               {event.image && (
                 <img 
                   src={event.image} 
@@ -180,84 +203,76 @@ const Story = () => {
             </div>
           )}
           
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calendar className="w-5 h-5" />
-              <span className="text-lg font-medium">
-                {formatDate(event.year, event.month, event.day)}
-              </span>
-            </div>
-            {event.category && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  <span
-                    className={`text-sm px-3 py-1 rounded-full font-medium ${
-                      event.category === "vehicle"
-                        ? "bg-primary/10 text-primary"
-                        : event.category === "crisis"
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-accent/10 text-accent"
-                    }`}
-                  >
-                    {event.category}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <h1 className="text-4xl font-display font-bold mb-6">{event.title}</h1>
+          <h1 className="text-[23px] font-bold mb-3 leading-[28px]">{event.title}</h1>
 
           {event.description && (
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+            <p className="text-[15px] leading-[20px] mb-3">
               {event.description}
             </p>
           )}
 
+          {/* Date and Category */}
+          <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+            <span className="text-[15px] text-muted-foreground">
+              {formatDate(event.year, event.month, event.day)}
+            </span>
+            {event.category && (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <span
+                  className={`text-[13px] px-2 py-0.5 rounded-full font-medium ${
+                    event.category === "vehicle"
+                      ? "bg-primary/10 text-primary"
+                      : event.category === "crisis"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-accent/10 text-accent"
+                  }`}
+                >
+                  {event.category}
+                </span>
+              </>
+            )}
+          </div>
+
           {/* Social Actions */}
-          <div className="flex items-center gap-3 pt-6 border-t border-border">
+          <div className="flex items-center gap-12 py-3 border-b border-border">
             <Button
-              // @ts-ignore - Type inference issue with class-variance-authority
-              variant={isLiked ? "default" : "outline"}
+              variant="ghost"
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
-              className="gap-1.5"
+              className={`gap-2 h-auto p-0 hover:text-pink-600 transition-colors ${isLiked ? "text-pink-600" : "text-muted-foreground"}`}
               onClick={() => {
                 setIsLiked(!isLiked);
                 setLikes(isLiked ? likes - 1 : likes + 1);
               }}
             >
-              <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-              {likes}
+              <Heart className={`w-[18px] h-[18px] ${isLiked ? "fill-current" : ""}`} />
+              <span className="text-[13px]">{likes}</span>
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              className="gap-1.5"
+              size="sm" 
+              className="gap-2 h-auto p-0 text-muted-foreground hover:text-primary transition-colors"
             >
-              <Share2 className="w-4 h-4" />
-              {shares}
+              <MessageCircle className="w-[18px] h-[18px]" />
+              <span className="text-[13px]">{mockComments.length}</span>
             </Button>
-            <Button
+            <Button 
+              variant="ghost" 
               // @ts-ignore - Type inference issue with class-variance-authority
-              variant={isFollowing ? "secondary" : "default"}
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              className="gap-1.5 ml-auto"
-              onClick={() => setIsFollowing(!isFollowing)}
+              size="sm" 
+              className="gap-2 h-auto p-0 text-muted-foreground hover:text-green-600 transition-colors"
             >
-              <UserPlus className="w-4 h-4" />
-              {isFollowing ? "Following" : "Follow"}
+              <Share2 className="w-[18px] h-[18px]" />
+              <span className="text-[13px]">{shares}</span>
             </Button>
           </div>
-        </Card>
 
-        {/* Comments Section */}
-        <Card className="p-6 mt-6">
-          <CommentsSection comments={mockComments} />
+          {/* Comments Section */}
+          <div className="pt-0">
+            <CommentsSection comments={mockComments} />
+          </div>
         </Card>
       </main>
     </div>
