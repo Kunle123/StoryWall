@@ -173,3 +173,7 @@ export const getAllTimelines = (): TimelineInfo[] => {
   return Object.values(timelineMap);
 };
 
+export const getTimelineById = (id: string): TimelineInfo | undefined => {
+  return timelineMap[id];
+};
+
