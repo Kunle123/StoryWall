@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Folder, Plus, User } from "lucide-react";
+import { Folder, Plus, User, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Header = () => {
@@ -16,6 +16,18 @@ export const Header = () => {
         </Link>
 
         <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            // @ts-ignore - Type inference issue with class-variance-authority
+            size="icon"
+            className="h-8 w-8"
+            // @ts-ignore - Type inference issue with asChild prop
+            asChild
+          >
+            <Link href="/discover">
+              <Search className="w-4 h-4" />
+            </Link>
+          </Button>
           <Button 
             variant="ghost" 
             size="sm"
