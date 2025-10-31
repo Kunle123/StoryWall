@@ -12,7 +12,9 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "test:setup-user": "tsx scripts/setup-test-user.ts",
-    "test:api": "tsx scripts/test-api.ts"
+    "test:api": "tsx scripts/test-api.ts",
+    "test:create-data": "tsx scripts/create-test-data.ts",
+    "railway:create-data": "tsx scripts/create-test-data-railway.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.0",
