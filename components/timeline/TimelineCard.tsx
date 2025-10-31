@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
-import { Image, Video } from "lucide-react";
+import { Image, Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -14,6 +15,8 @@ interface TimelineCardProps {
 }
 
 export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false }: TimelineCardProps) => {
+  const router = useRouter();
+  
   const formatDate = (year: number, month?: number, day?: number) => {
     if (day && month) {
       return new Date(year, month - 1, day).toLocaleDateString("en-US", {
@@ -31,77 +34,115 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
     return year.toString();
   };
 
-  const truncateText = (text: string, maxLength: number = 240) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + "...";
-  };
-
   return (
-    <Link href={`/story/${event.id}`}>
-      <Card
-        className={`p-4 transition-all duration-300 cursor-pointer animate-fade-in bg-card border-l-4 group ${
-          event.category === "vehicle"
-            ? "border-l-primary"
-            : event.category === "crisis"
-            ? "border-l-destructive"
-            : "border-l-accent"
-        } ${
-          isStacked 
-            ? "hover:scale-105 hover:shadow-2xl" 
-            : "shadow-lg hover:shadow-2xl"
-        } ${
-          isHighlighted 
-            ? event.category === "vehicle"
-              ? "ring-4 ring-primary/50 shadow-2xl scale-105"
-              : event.category === "crisis"
-              ? "ring-4 ring-destructive/50 shadow-2xl scale-105"
-              : "ring-4 ring-accent/50 shadow-2xl scale-105"
-            : ""
-        }`}
-      >
-        <div className="space-y-2 relative">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-display font-semibold text-base leading-tight">{event.title}</h3>
-            <span className="text-xs text-muted-foreground whitespace-nowrap font-medium">
-              {formatDate(event.year, event.month, event.day)}
+    <Card
+      onClick={() => router.push(`/story/${event.id}`)}
+      className={`p-4 transition-all duration-200 cursor-pointer bg-card border-y border-x-0 rounded-none hover:bg-muted/30 ${
+        isHighlighted ? "bg-muted/50" : ""
+      }`}
+    >
+      <div className="space-y-3">
+        {/* Header with category and date */}
+        <div className="flex items-center justify-between">
+          {event.category && (
+            <span className={`text-[13px] font-semibold ${
+              event.category === "vehicle"
+                ? "text-primary"
+                : event.category === "crisis"
+                ? "text-destructive"
+                : "text-accent"
+            }`}>
+              {event.category.toUpperCase()}
             </span>
-          </div>
-          {event.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{truncateText(event.description)}</p>
           )}
-          <div className="flex items-center justify-between">
-            {event.category && (
-              <span
-                className={`text-xs px-2 py-1 rounded-full ${
-                  event.category === "vehicle"
-                    ? "bg-primary/10 text-primary"
-                    : event.category === "crisis"
-                    ? "bg-destructive/10 text-destructive"
-                    : "bg-accent/10 text-accent"
-                }`}
-              >
-                {event.category}
-              </span>
-            )}
-            {/* Multimedia indicators */}
-            {(event.image || event.video) && (
-              <div className="flex gap-1 ml-auto">
-                {event.image && (
-                  <div className="p-1 rounded bg-primary/10">
-                    <Image className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-                {event.video && (
-                  <div className="p-1 rounded bg-primary/10">
-                    <Video className="w-3 h-3 text-primary" />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <span className="text-[13px] text-muted-foreground">
+            {formatDate(event.year, event.month, event.day)}
+          </span>
         </div>
-      </Card>
-    </Link>
+
+        {/* Title */}
+        <h3 className="font-bold text-[15px] leading-tight">{event.title}</h3>
+
+        {/* Description */}
+        {event.description && (
+          <p className="text-[15px] text-foreground/90 leading-normal">{event.description}</p>
+        )}
+
+        {/* Image display */}
+        {event.image && (
+          <div className="mt-3 rounded-lg overflow-hidden border border-border">
+            <img 
+              src={event.image} 
+              alt={event.title}
+              className="w-full h-auto object-cover"
+            />
+          </div>
+        )}
+
+        {/* Video indicator */}
+        {event.video && (
+          <div className="flex gap-2 pt-1">
+            <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
+              <Video className="w-4 h-4" />
+              <span>Video</span>
+            </div>
+          </div>
+        )}
+
+        {/* Social and sharing icons */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-3">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="h-8 px-2 hover:bg-muted"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle like action
+              }}
+            >
+              <Heart className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="h-8 px-2 hover:bg-muted"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle comment action
+              }}
+            >
+              <MessageCircle className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="h-8 px-2 hover:bg-muted"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Handle bookmark action
+              }}
+            >
+              <Bookmark className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            // @ts-ignore - Type inference issue with class-variance-authority
+            size="sm"
+            className="h-8 px-2 hover:bg-muted"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Handle share action
+            }}
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 };
-

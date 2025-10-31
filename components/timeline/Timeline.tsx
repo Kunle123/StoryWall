@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { TimelineCard } from "./TimelineCard";
 import { Button } from "@/components/ui/button";
 
@@ -24,8 +24,9 @@ interface TimelineProps {
 export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
-  const zoom = 1; // Fixed zoom level
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Sort events by date
   const sortedEvents = [...events].sort((a, b) => {
@@ -34,47 +35,149 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
     return dateA.getTime() - dateB.getTime();
   });
 
-  // Calculate earliest and latest years
-  const earliestYear = sortedEvents[0]?.year || 1886;
-  const latestYear = sortedEvents[sortedEvents.length - 1]?.year || 2026;
+  // Calculate earliest and latest events
+  const earliestEvent = sortedEvents[0];
+  const latestEvent = sortedEvents[sortedEvents.length - 1];
+  
+  const startDate = new Date(earliestEvent?.year || 1886, earliestEvent?.month || 0, earliestEvent?.day || 1);
+  const endDate = new Date(latestEvent?.year || 2026, latestEvent?.month || 0, latestEvent?.day || 1);
+  const totalTimeSpan = endDate.getTime() - startDate.getTime();
 
-  // Generate decade markers
-  const decades: number[] = [];
-  const startDecade = Math.floor(earliestYear / 10) * 10;
-  const endDecade = Math.ceil(latestYear / 10) * 10;
-  for (let decade = startDecade; decade <= endDecade; decade += 10) {
-    decades.push(decade);
-  }
-
-  // Calculate position for each event
-  const getEventPosition = (event: TimelineEvent) => {
+  // Calculate position as percentage of timeline height
+  const getEventPositionPercent = (event: TimelineEvent) => {
     const eventDate = new Date(event.year, event.month || 0, event.day || 1);
-    const startDate = new Date(earliestYear, 0, 1);
-    const yearDiff = (eventDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    return yearDiff * pixelsPerYear * zoom;
+    const timeDiff = eventDate.getTime() - startDate.getTime();
+    return (timeDiff / totalTimeSpan) * 100;
   };
 
-  const handleDotClick = (eventId: string) => {
-    const isAlreadySelected = selectedEventId === eventId;
-    setSelectedEventId(isAlreadySelected ? null : eventId);
+  // Group only events at the exact same date/position
+  const markerGroups: { position: number; events: TimelineEvent[] }[] = [];
+  
+  sortedEvents.forEach((event) => {
+    const position = getEventPositionPercent(event);
+    const existingGroup = markerGroups.find(g => g.position === position);
     
-    if (!isAlreadySelected && containerRef.current) {
-      const event = sortedEvents.find(e => e.id === eventId);
-      if (event) {
-        const position = getEventPosition(event);
-        const containerTop = containerRef.current.getBoundingClientRect().top;
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const targetPosition = scrollTop + containerTop + position - window.innerHeight / 2;
-        
-        window.scrollTo({
-          top: targetPosition,
-          behavior: 'smooth'
-        });
-      }
+    if (existingGroup) {
+      existingGroup.events.push(event);
+    } else {
+      markerGroups.push({ position, events: [event] });
+    }
+  });
+
+  const handleMarkerClick = (eventId: string) => {
+    setSelectedEventId(selectedEventId === eventId ? null : eventId);
+    
+    // Get the card and scroll container
+    const cardElement = cardRefs.current.get(eventId);
+    const scrollContainer = cardElement?.closest('.overflow-y-auto');
+    
+    if (cardElement && scrollContainer) {
+      // Get positions
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const cardRect = cardElement.getBoundingClientRect();
+      
+      // Calculate the center of the container
+      const containerCenter = containerRect.height / 2;
+      
+      // Calculate how much to scroll to center the card
+      const cardCenter = cardRect.top - containerRect.top + cardRect.height / 2;
+      const scrollOffset = cardCenter - containerCenter;
+      
+      // Perform the scroll
+      scrollContainer.scrollBy({
+        top: scrollOffset,
+        behavior: 'smooth'
+      });
     }
   };
 
+  // Track visible cards using IntersectionObserver
+  useEffect(() => {
+    if (viewMode !== "vertical") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleCardIds((prev) => {
+          const updated = new Set(prev);
+          entries.forEach((entry) => {
+            const cardId = entry.target.getAttribute("data-card-id");
+            if (cardId) {
+              if (entry.isIntersecting) {
+                updated.add(cardId);
+              } else {
+                updated.delete(cardId);
+              }
+            }
+          });
+          return updated;
+        });
+      },
+      {
+        root: null,
+        threshold: 0.3, // Card is considered visible when 30% is shown
+      }
+    );
+
+    cardRefs.current.forEach((card) => {
+      observer.observe(card);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [viewMode, sortedEvents]);
+
+  // Calculate box position based on visible cards, center on selected when present
+  const getVisibleMarkerBox = useCallback(() => {
+    // Build base range from currently visible cards
+    const visibleEvents = sortedEvents.filter((e) => visibleCardIds.has(e.id));
+
+    let baseMin = 0;
+    let baseMax = 0;
+
+    if (visibleEvents.length > 0) {
+      const positions = visibleEvents.map((e) => getEventPositionPercent(e));
+      baseMin = Math.min(...positions);
+      baseMax = Math.max(...positions);
+    } else {
+      // Fallback small box when nothing is visible yet
+      baseMin = 0;
+      baseMax = 6;
+    }
+
+    let height = Math.max(baseMax - baseMin, 2);
+
+    // If a marker is selected, center the box on that marker while preserving height
+    if (selectedEventId) {
+      const focused = sortedEvents.find((e) => e.id === selectedEventId);
+      if (focused) {
+        const pos = getEventPositionPercent(focused);
+        let top = pos - height / 2;
+        // Clamp to timeline bounds [0, 100 - height]
+        top = Math.max(0, Math.min(100 - height, top));
+        return { top, bottom: top + height, height };
+      }
+    }
+
+    // Default: box spans visible cards
+    return {
+      top: baseMin,
+      bottom: baseMax,
+      height,
+    };
+  }, [visibleCardIds, sortedEvents, selectedEventId]);
+
   if (viewMode === "hybrid") {
+    // Generate decade markers for hybrid view
+    const earliestYear = sortedEvents[0]?.year || 1886;
+    const latestYear = sortedEvents[sortedEvents.length - 1]?.year || 2026;
+    const decades: number[] = [];
+    const startDecade = Math.floor(earliestYear / 10) * 10;
+    const endDecade = Math.ceil(latestYear / 10) * 10;
+    for (let decade = startDecade; decade <= endDecade; decade += 10) {
+      decades.push(decade);
+    }
+
     return (
       <div ref={containerRef} className="w-full">
         {/* Mode Toggle - Fixed at bottom */}
@@ -128,36 +231,9 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
     );
   }
 
-  // Detect overlapping cards - only stack when cards would actually overlap
-  const OVERLAP_THRESHOLD = 60;
-  const cardGroups: number[][] = [];
-  let currentGroup: number[] = [];
-
-  sortedEvents.forEach((event, index) => {
-    const position = getEventPosition(event);
-    
-    if (currentGroup.length === 0) {
-      currentGroup.push(index);
-    } else {
-      const lastIndex = currentGroup[currentGroup.length - 1];
-      const lastPosition = getEventPosition(sortedEvents[lastIndex]);
-      
-      if (position - lastPosition < OVERLAP_THRESHOLD) {
-        currentGroup.push(index);
-      } else {
-        cardGroups.push([...currentGroup]);
-        currentGroup = [index];
-      }
-    }
-  });
-  
-  if (currentGroup.length > 0) {
-    cardGroups.push(currentGroup);
-  }
-
-  // Vertical View with proportional spacing and stacking
+  // Vertical View - Full screen timeline
   return (
-    <div ref={containerRef} className="w-full overflow-visible">
+    <div ref={containerRef} className="w-full h-[calc(100vh-8rem)] relative flex">
       {/* Mode Toggle - Fixed at bottom */}
       <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-[200] bg-background/95 backdrop-blur-sm py-1.5 px-3 rounded-lg border border-border/50 shadow-lg">
         <div className="flex gap-2 items-center">
@@ -183,111 +259,105 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
         </div>
       </div>
 
-      {/* Vertical Timeline */}
-      <div className="relative w-full pb-8 pl-12 md:pl-24">
-        {/* Left vertical line */}
-        <div className="absolute left-6 md:left-12 w-0.5 bg-border h-full" />
+      {/* Vertical Timeline - Fixed left side */}
+      <div className="relative h-full pl-12 flex-shrink-0">
+        {/* Main vertical line - 5px, with padding for dates */}
+        <div className="absolute left-6 w-[5px] bg-border" style={{ top: '2rem', bottom: '2rem' }} />
 
-        {/* Decade markers */}
-        {decades.map((decade) => {
-          const position = getEventPosition({ id: "", year: decade, title: "" });
-          return (
-            <div
-              key={decade}
-              className="absolute left-6 md:left-12 transform -translate-x-1/2 -translate-y-1/2"
-              style={{ top: `${position}px` }}
-            >
-              <div className="bg-primary text-primary-foreground px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm font-semibold shadow-md whitespace-nowrap">
-                {decade}s
-              </div>
-            </div>
-          );
-        })}
+        {/* Visible cards highlight box */}
+        {getVisibleMarkerBox() && (
+          <div
+            className="absolute w-3 border-l-2 border-r-2 border-primary/60 bg-primary/5 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
+            style={{
+              left: 'calc(1.5rem + 2.5px)',
+              top: `calc(2rem + ${getVisibleMarkerBox()!.top}%)`,
+              height: `${Math.max(getVisibleMarkerBox()!.height, 2)}%`,
+            }}
+          />
+        )}
 
-        {/* Timeline events with stacking */}
-        {cardGroups.map((group) => {
-          const groupLeaderIndex = group[group.length - 1];
-          const groupPosition = getEventPosition(sortedEvents[groupLeaderIndex]);
+        {/* Start date marker */}
+        <div className="absolute left-12 top-0 transform -translate-y-1/2">
+          <div className="text-foreground text-sm font-semibold whitespace-nowrap">
+            {earliestEvent?.year}
+          </div>
+        </div>
 
-          return (
-            <div
-              key={`group-${group[0]}`}
-              className="absolute left-16 md:left-28 pr-2"
-              style={{
-                top: `${groupPosition}px`,
-                width: 'calc(100% - 6rem)',
-              }}
-            >
-              {group.map((eventIndex, stackIndex) => {
-                const event = sortedEvents[eventIndex];
-                const isLeader = stackIndex === group.length - 1;
-                const stackDepth = group.length - 1 - stackIndex;
-                const isHighlighted = selectedEventId === event.id;
-                
-                return (
-                  <div
-                    key={event.id}
-                    className="absolute transition-all duration-300 hover:z-50"
-                    style={{
-                      top: `${-stackDepth * 8}px`,
-                      left: `${-stackDepth * 12}px`,
-                      transform: `scale(${1 - stackDepth * 0.05})`,
-                      opacity: isHighlighted ? 1 : 1 - stackDepth * 0.15,
-                      zIndex: isHighlighted ? 100 : isLeader ? 10 : 10 - stackDepth,
-                    }}
-                  >
-                    <TimelineCard 
-                      event={event} 
-                      side="left" 
-                      isStacked={!isLeader} 
-                      stackDepth={stackDepth}
-                      isHighlighted={isHighlighted}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+        {/* End date marker */}
+        <div className="absolute left-12 bottom-0 transform translate-y-1/2">
+          <div className="text-foreground text-sm font-semibold whitespace-nowrap">
+            {latestEvent?.year}
+          </div>
+        </div>
 
-        {/* Connection dots */}
-        {sortedEvents.map((event) => {
-          const position = getEventPosition(event);
-          const isSelected = selectedEventId === event.id;
-          const dotColorClass = event.category === "vehicle" 
+        {/* Square markers with overlap counts */}
+        {markerGroups.map((group, idx) => {
+          const isSelected = group.events.some(e => e.id === selectedEventId);
+          const firstEvent = group.events[0];
+          const showCount = group.events.length > 1;
+          
+          const markerColorClass = firstEvent.category === "vehicle" 
             ? "bg-primary" 
-            : event.category === "crisis" 
+            : firstEvent.category === "crisis" 
             ? "bg-destructive" 
             : "bg-accent";
-          const ringColorClass = event.category === "vehicle" 
-            ? "ring-primary/30" 
-            : event.category === "crisis" 
-            ? "ring-destructive/30" 
-            : "ring-accent/30";
-          const hoverColorClass = event.category === "vehicle" 
-            ? "hover:bg-primary/80" 
-            : event.category === "crisis" 
-            ? "hover:bg-destructive/80" 
-            : "hover:bg-accent/80";
           
           return (
             <div
-              key={`dot-${event.id}`}
-              onClick={() => handleDotClick(event.id)}
-              className={`absolute left-6 md:left-12 transform -translate-x-1/2 rounded-full border-2 border-background shadow-md cursor-pointer transition-all duration-300 hover:scale-150 ${dotColorClass} ${
-                isSelected 
-                  ? `w-4 h-4 ring-4 ${ringColorClass} scale-125` 
-                  : `w-3 h-3 ${hoverColorClass}`
-              }`}
-              style={{ top: `${position}px` }}
-            />
+              key={`marker-${idx}`}
+              className="absolute"
+              style={{ 
+                left: 'calc(1.5rem + 2.5px)', // Center of the 5px timeline
+                top: `calc(2rem + ${group.position}%)` 
+              }}
+            >
+              {/* Square marker - 5px width, truly centered on timeline */}
+              <div
+                onClick={() => handleMarkerClick(group.events[0].id)}
+                className={`transform -translate-x-1/2 -translate-y-1/2 w-[5px] h-[5px] cursor-pointer transition-all duration-300 hover:scale-150 ${markerColorClass} ${
+                  isSelected ? 'w-[7px] h-[7px] scale-125' : ''
+                }`}
+              />
+              
+              {/* Overlap count */}
+              {showCount && (
+                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-foreground">
+                  {group.events.length}
+                </div>
+              )}
+            </div>
           );
         })}
+      </div>
 
-        {/* Bottom spacer based on last event position */}
-        <div style={{ height: `${getEventPosition(sortedEvents[sortedEvents.length - 1]) + 200}px` }} />
+      {/* Scrollable cards area - Right side */}
+      <div className="flex-1 overflow-y-auto h-full">
+        <div className="space-y-0">
+          {sortedEvents.map((event) => {
+            const isSelected = selectedEventId === event.id;
+            
+            return (
+              <div
+                key={`card-${event.id}`}
+                ref={(el) => {
+                  if (el) {
+                    cardRefs.current.set(event.id, el);
+                  } else {
+                    cardRefs.current.delete(event.id);
+                  }
+                }}
+                data-card-id={event.id}
+              >
+                <TimelineCard 
+                  event={event} 
+                  side="left"
+                  isHighlighted={isSelected}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 };
-
