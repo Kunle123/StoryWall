@@ -140,7 +140,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       const viewportCenter = window.innerHeight / 2;
       let closestCard: { id: string; distance: number } | null = null;
 
-      cardRefs.current.forEach((card, id) => {
+      for (const [id, card] of cardRefs.current.entries()) {
         const rect = card.getBoundingClientRect();
         const cardCenter = rect.top + rect.height / 2;
         const distance = Math.abs(cardCenter - viewportCenter);
@@ -148,10 +148,12 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         if (!closestCard || distance < closestCard.distance) {
           closestCard = { id, distance };
         }
-      });
+      }
 
       if (closestCard && closestCard.distance < window.innerHeight) {
         setCenteredCardId(closestCard.id);
+      } else {
+        setCenteredCardId(null);
       }
     };
 
