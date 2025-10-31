@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchEventsByTimelineId, fetchTimelines, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
+import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { Loader2 } from "lucide-react";
@@ -14,13 +15,6 @@ const UKWarsPage = () => {
   const [loading, setLoading] = useState(true);
   const [timelineTitle, setTimelineTitle] = useState("UK Wars & Conflicts Timeline");
 
-  const formatDateRange = (events: TimelineEvent[]) => {
-    if (events.length === 0) return "";
-    const sorted = [...events].sort((a, b) => a.year - b.year);
-    const startYear = sorted[0].year;
-    const endYear = sorted[sorted.length - 1].year;
-    return `${startYear} - ${endYear}`;
-  };
 
   useEffect(() => {
     async function loadTimeline() {
@@ -59,7 +53,7 @@ const UKWarsPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
@@ -71,8 +65,9 @@ const UKWarsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {events.length > 0 && <SubMenuBar title={timelineTitle} />}
       <Toaster />
-      <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Timeline not found. Please seed the database first.</p>
@@ -82,8 +77,6 @@ const UKWarsPage = () => {
         )}
       </main>
       <BottomMenuBar 
-        title={timelineTitle}
-        dateRange={formatDateRange(events)}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />

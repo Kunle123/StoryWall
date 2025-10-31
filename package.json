@@ -15,7 +15,9 @@
     "test:api": "tsx scripts/test-api.ts",
     "test:create-data": "tsx scripts/create-test-data.ts",
     "railway:create-data": "tsx scripts/create-test-data-railway.ts",
-    "seed:all": "tsx scripts/seed-all-data.ts"
+    "seed:all": "tsx scripts/seed-all-data.ts",
+    "update:transportation": "tsx scripts/update-transportation-timeline.ts",
+    "railway:update-transportation": "tsx scripts/update-transportation-railway.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.0",

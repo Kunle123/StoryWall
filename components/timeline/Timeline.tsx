@@ -96,6 +96,32 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     }
   };
 
+  // Clear selection when user scrolls
+  useEffect(() => {
+    if (viewMode !== "vertical") return;
+
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    let scrollTimeout: NodeJS.Timeout;
+
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        setSelectedEventId(null);
+      }, 150); // Clear selection after scrolling stops
+    };
+
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+      clearTimeout(scrollTimeout);
+    };
+  }, [viewMode]);
+
   // Track visible cards using IntersectionObserver
   useEffect(() => {
     if (viewMode !== "vertical") return;
@@ -241,69 +267,26 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   // Vertical View - Full screen timeline
   return (
     <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
-      {/* Vertical Timeline - Fixed left side */}
-      <div className="relative h-full pl-4 flex-shrink-0 pt-8 pb-0">
-        {/* Main vertical line - 8px */}
-        <div className="absolute left-2 w-[8px] bg-border top-0 bottom-0" />
-
-        {/* Visible cards highlight box */}
-        {getVisibleMarkerBox() && (
-          <div
-            className="absolute w-3 border-l-2 border-r-2 border-orange-500/60 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
-            style={{
-              left: 'calc(0.5rem + 4px)',
-              top: `${getVisibleMarkerBox()!.top}%`,
-              height: `${Math.max(getVisibleMarkerBox()!.height, 2)}%`,
-            }}
-          />
-        )}
-
-        {/* Square markers with overlap counts */}
-        {markerGroups.map((group, idx) => {
-          const isSelected = group.events.some(e => e.id === selectedEventId);
-          const isCentered = group.events.some(e => e.id === centeredCardId);
-          const showCount = group.events.length > 1;
-          
-          const markerColorClass = isCentered ? "bg-orange-500" : isSelected ? "bg-orange-500" : "bg-muted-foreground";
-          
-          return (
-            <div
-              key={`marker-${idx}`}
-              className="absolute"
-              style={{ 
-                left: 'calc(0.5rem + 4px)', // Center of the 8px timeline
-                top: `${group.position}%` 
-              }}
-            >
-              {/* Larger touch target wrapper */}
-              <div
-                onClick={() => handleMarkerClick(group.events[0].id)}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer p-3"
-              >
-                {/* Square marker - 8px width, truly centered on timeline */}
-                <div
-                  className={`w-[8px] h-[8px] transition-all duration-300 hover:scale-150 ${markerColorClass} ${
-                    isCentered ? 'w-[12px] h-[12px] scale-150 shadow-lg shadow-orange-500/50' : isSelected ? 'w-[10px] h-[10px] scale-125' : ''
-                  }`}
-                />
-              </div>
-              
-              {/* Overlap count */}
-              {showCount && (
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-foreground">
-                  {group.events.length}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Scrollable cards area - Right side */}
-      <div className="flex-1 overflow-y-auto h-full">
-        <div className="space-y-0 pt-8 pb-0">
+      {/* Scrollable cards area - Left side with date margin */}
+      <div className="flex-1 overflow-y-auto h-full pr-1 md:pr-0 scrollbar-hide">
+        <div className="space-y-0 pt-0 pb-0 ml-10 mr-1 md:mr-0">
           {sortedEvents.map((event) => {
             const isSelected = selectedEventId === event.id;
+            const formatDate = () => {
+              if (event.day && event.month) {
+                return new Date(event.year, event.month - 1, event.day).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric',
+                  year: 'numeric'
+                });
+              } else if (event.month) {
+                return new Date(event.year, event.month - 1).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  year: 'numeric'
+                });
+              }
+              return event.year.toString();
+            };
             
             return (
               <div
@@ -316,12 +299,82 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                   }
                 }}
                 data-card-id={event.id}
+                className="relative"
               >
+                {/* Date in left margin */}
+                <div className="absolute -left-10 top-6 w-8 text-right">
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    {formatDate()}
+                  </span>
+                </div>
+                
                 <TimelineCard 
                   event={event} 
                   side="left"
                   isHighlighted={isSelected}
                 />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Vertical Timeline - Fixed right side */}
+      <div className="absolute md:relative right-[-6px] h-[calc(100%-3.5rem)] w-3 flex-shrink-0 pt-0 pb-0 z-10">
+        {/* Timeline container with line, outline, and markers */}
+        <div className="relative h-full flex items-center justify-center">
+          {/* Main vertical line - 8px, centered */}
+          <div className="absolute left-1/2 -translate-x-1/2 w-[8px] bg-border top-0 bottom-0 z-0" />
+
+          {/* Visible cards highlight box */}
+          {getVisibleMarkerBox() && (
+            <div
+              className="absolute w-full border-l-2 border-r-2 border-primary/60 pointer-events-none transition-all duration-500 ease-out z-10"
+              style={{
+                left: 0,
+                top: `${getVisibleMarkerBox()!.top}%`,
+                height: `${Math.max(getVisibleMarkerBox()!.height, 2)}%`,
+              }}
+            />
+          )}
+
+          {/* Square markers with overlap counts */}
+          {markerGroups.map((group, idx) => {
+            const isSelected = group.events.some(e => e.id === selectedEventId);
+            const isCentered = group.events.some(e => e.id === centeredCardId);
+            const firstEvent = group.events[0];
+            const showCount = group.events.length > 1;
+            
+            const markerColorClass = isCentered ? "bg-orange-500" : isSelected ? "bg-primary" : "bg-muted-foreground";
+            
+            return (
+              <div
+                key={`marker-${idx}`}
+                className="absolute left-1/2 -translate-x-1/2 z-30"
+                style={{ 
+                  top: `${group.position}%`,
+                  marginLeft: '-14px'
+                }}
+              >
+                {/* Larger touch target wrapper */}
+                <div
+                  onClick={() => handleMarkerClick(group.events[0].id)}
+                  className="absolute left-0 -translate-y-1/2 cursor-pointer p-3"
+                >
+                  {/* Circular marker - maintains center point when scaled */}
+                  <div
+                    className={`w-[5px] h-[5px] rounded-full transition-all duration-300 hover:scale-150 ${markerColorClass} ${
+                      isCentered ? 'scale-[1.6] shadow-lg shadow-orange-500/50' : isSelected ? 'scale-[1.4]' : ''
+                    }`}
+                  />
+                </div>
+                
+                {/* Overlap count */}
+                {showCount && (
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-foreground">
+                    {group.events.length}
+                  </div>
+                )}
               </div>
             );
           })}

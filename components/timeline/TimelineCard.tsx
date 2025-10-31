@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
-import { Image, Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
+import { Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface TimelineCardProps {
@@ -42,24 +42,12 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
       }`}
     >
       <div className="space-y-3">
-        {/* Header with category and date */}
-        <div className="flex items-center justify-between">
-          {event.category && (
-            <span className="text-[13px] font-semibold text-orange-500">
-              {event.category.toUpperCase()}
-            </span>
-          )}
-          <span className="text-[13px] text-muted-foreground">
-            {formatDate(event.year, event.month, event.day)}
-          </span>
-        </div>
-
         {/* Title */}
-        <h3 className="font-bold text-[15px] leading-tight">{event.title}</h3>
+        <h3 className="font-semibold text-[15px] leading-tight text-orange-500">{event.title}</h3>
 
         {/* Description */}
         {event.description && (
-          <p className="text-[15px] text-foreground/90 leading-normal">
+          <p className="text-[15px] text-foreground/90 leading-normal font-light">
             {event.description.length > 240 
               ? `${event.description.substring(0, 240)}...` 
               : event.description}

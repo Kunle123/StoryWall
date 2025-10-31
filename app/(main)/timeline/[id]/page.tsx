@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
+import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -18,13 +19,6 @@ const TimelinePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
 
-  const formatDateRange = (events: TimelineEvent[]) => {
-    if (events.length === 0) return "";
-    const sorted = [...events].sort((a, b) => a.year - b.year);
-    const startYear = sorted[0].year;
-    const endYear = sorted[sorted.length - 1].year;
-    return `${startYear} - ${endYear}`;
-  };
 
   useEffect(() => {
     async function loadTimeline() {
@@ -66,7 +60,7 @@ const TimelinePage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading timeline...</p>
           </div>
@@ -79,7 +73,7 @@ const TimelinePage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
           <div className="text-center py-20">
             <h2 className="text-2xl font-bold mb-2">Timeline Not Found</h2>
             <p className="text-muted-foreground">{error || "This timeline does not exist."}</p>
@@ -92,8 +86,9 @@ const TimelinePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <SubMenuBar title={timeline.title} />
       <Toaster />
-      <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
         <Timeline 
           events={events.length > 0 ? events : timeline.events || []} 
           pixelsPerYear={30} 
@@ -102,8 +97,6 @@ const TimelinePage = () => {
         />
       </main>
       <BottomMenuBar 
-        title={timeline.title} 
-        dateRange={formatDateRange(events.length > 0 ? events : timeline.events || [])}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />

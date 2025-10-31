@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
+import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 
@@ -13,13 +14,6 @@ const Index = () => {
   const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
 
-  const formatDateRange = (events: TimelineEvent[]) => {
-    if (events.length === 0) return "";
-    const sorted = [...events].sort((a, b) => a.year - b.year);
-    const startYear = sorted[0].year;
-    const endYear = sorted[sorted.length - 1].year;
-    return `${startYear} - ${endYear}`;
-  };
   
   useEffect(() => {
     // Try to fetch the first public timeline from API
@@ -60,7 +54,7 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading timeline...</p>
           </div>
@@ -72,8 +66,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {events.length > 0 && <SubMenuBar title={timelineTitle} />}
       <Toaster />
-      <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
+      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">No timelines available. Create one to get started!</p>
@@ -83,8 +78,6 @@ const Index = () => {
         )}
       </main>
       <BottomMenuBar 
-        title={timelineTitle} 
-        dateRange={formatDateRange(events)}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
