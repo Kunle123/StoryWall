@@ -58,9 +58,14 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         {event.image && (
           <div className="mt-3 rounded-lg overflow-hidden border border-border">
             <img 
-              src={event.image} 
+              src={event.image.startsWith('http') ? event.image : `https://${event.image}`}
               alt={event.title}
               className="w-full h-auto object-cover"
+              onError={(e) => {
+                // Hide broken images
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
             />
           </div>
         )}

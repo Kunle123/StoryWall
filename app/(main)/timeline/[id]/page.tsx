@@ -26,14 +26,15 @@ const TimelinePage = () => {
         setLoading(true);
         setError(null);
         
-        // Try API first
+        // Try API first - fetchTimelineById handles both UUID and slug
         const timelineResult = await fetchTimelineById(timelineId);
         
         if (timelineResult.data) {
           setTimeline(timelineResult.data);
           
-          // Fetch events
-          const eventsResult = await fetchEventsByTimelineId(timelineId);
+          // Use the timeline ID (not the slug) for fetching events
+          const eventsTimelineId = timelineResult.data.id || timelineId;
+          const eventsResult = await fetchEventsByTimelineId(eventsTimelineId);
           if (eventsResult.data && eventsResult.data.length > 0) {
             const transformedEvents = eventsResult.data.map(transformApiEventToTimelineEvent);
             setEvents(transformedEvents);

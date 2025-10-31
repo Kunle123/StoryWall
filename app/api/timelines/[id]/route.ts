@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTimelineById, updateTimeline, deleteTimeline } from '@/lib/db/timelines';
+import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
 
 // Note: Auth is currently disabled. Uncomment when Clerk is configured.
 // import { auth } from '@clerk/nextjs';
+
+// Helper to check if a string is a UUID
+function isUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const timeline = await getTimelineById(params.id);
+    // Try to find by ID or slug
+    let timeline;
+    if (isUUID(params.id)) {
+      timeline = await getTimelineById(params.id);
+    } else {
+      timeline = await getTimelineBySlug(params.id);
+    }
     
     if (!timeline) {
       return NextResponse.json({ error: 'Timeline not found' }, { status: 404 });
