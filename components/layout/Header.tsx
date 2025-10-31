@@ -11,20 +11,66 @@ export const Header = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+    let scrollableContainers: Element[] = [];
+    let containerScrollPositions = new Map<Element, number>();
+
+    const handleScroll = (scrollY: number, previousScrollY: number) => {
+      const scrollDirection = scrollY > previousScrollY ? 'down' : 'up';
       
-      if (currentScrollY > lastScrollY && currentScrollY > 80) {
+      if (scrollDirection === 'down' && scrollY > 80) {
         setIsVisible(false);
       } else {
         setIsVisible(true);
       }
       
-      setLastScrollY(currentScrollY);
+      setLastScrollY(scrollY);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Handle window scroll (for pages without timeline)
+    const handleWindowScroll = () => {
+      const currentScrollY = window.scrollY;
+      handleScroll(currentScrollY, lastScrollY);
+    };
+
+    // Handle scrollable container scroll (for timeline view)
+    const handleContainerScroll = (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+      
+      const previousScrollY = containerScrollPositions.get(target) || 0;
+      const currentScrollY = target.scrollTop;
+      containerScrollPositions.set(target, currentScrollY);
+      
+      handleScroll(currentScrollY, previousScrollY);
+    };
+
+    // Find all scrollable containers with overflow-y-auto (timeline containers)
+    const findScrollableContainers = () => {
+      const containers = document.querySelectorAll('.overflow-y-auto');
+      containers.forEach((container) => {
+        if (!scrollableContainers.includes(container)) {
+          scrollableContainers.push(container);
+          containerScrollPositions.set(container, container.scrollTop);
+          container.addEventListener('scroll', handleContainerScroll, { passive: true });
+        }
+      });
+    };
+
+    // Initial find and periodic check for dynamically added containers
+    findScrollableContainers();
+    const containerCheckInterval = setInterval(findScrollableContainers, 500);
+
+    // Listen to window scroll (fallback for non-timeline pages)
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll);
+      scrollableContainers.forEach((container) => {
+        container.removeEventListener('scroll', handleContainerScroll);
+      });
+      clearInterval(containerCheckInterval);
+      containerScrollPositions.clear();
+    };
   }, [lastScrollY]);
 
   return (

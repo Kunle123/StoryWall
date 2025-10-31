@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { TimelineEvent } from "@/components/timeline/Timeline";
-import { Save, Eye, Loader2 } from "lucide-react";
+import { Save, Eye, Loader2, Upload, X } from "lucide-react";
 import { getOrCreatePortfolioTimeline, createEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,6 +21,8 @@ const CardEditor = () => {
   const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<TimelineEvent>({
     id: "",
@@ -90,6 +92,71 @@ const CardEditor = () => {
       });
       setIsSaving(false);
     }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPEG, PNG, GIF, or WebP image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      setUploadedImageUrl(data.url);
+      setFormData({ ...formData, image: data.url });
+      
+      toast({
+        title: "Success!",
+        description: "Image uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Please try again or use an image URL",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveUploadedImage = () => {
+    setUploadedImageUrl(null);
+    setFormData({ ...formData, image: "" });
   };
 
   return (
@@ -191,15 +258,86 @@ const CardEditor = () => {
                 </Select>
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload/URL */}
               <div className="space-y-2">
-                <Label htmlFor="image">Image URL</Label>
+                <Label htmlFor="image">Image</Label>
+                
+                {/* Upload Button */}
+                <div className="flex gap-2">
+                  <label
+                    htmlFor="image-upload"
+                    className="flex items-center justify-center px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Image
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                  {uploadedImageUrl && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveUploadedImage}
+                      className="gap-1.5"
+                    >
+                      <X className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+
+                {/* Preview uploaded image */}
+                {uploadedImageUrl && (
+                  <div className="mt-2">
+                    <img
+                      src={uploadedImageUrl}
+                      alt="Uploaded preview"
+                      className="w-full h-32 object-cover rounded-md border"
+                    />
+                  </div>
+                )}
+
+                {/* URL Input (fallback) */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or enter URL
+                    </span>
+                  </div>
+                </div>
                 <Input
                   id="image"
                   type="url"
                   placeholder="https://example.com/image.jpg"
                   value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, image: e.target.value });
+                    // Clear uploaded image if user types a URL
+                    if (e.target.value && e.target.value !== uploadedImageUrl) {
+                      setUploadedImageUrl(null);
+                    }
+                  }}
+                  disabled={!!uploadedImageUrl}
+                  className={uploadedImageUrl ? "bg-muted" : ""}
                 />
               </div>
 
