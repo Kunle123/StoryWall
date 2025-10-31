@@ -121,12 +121,12 @@ const CardEditor = () => {
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadFormData,
       });
 
       if (!response.ok) {
@@ -136,7 +136,7 @@ const CardEditor = () => {
 
       const data = await response.json();
       setUploadedImageUrl(data.url);
-      setFormData({ ...formData, image: data.url });
+      setFormData((prev) => ({ ...prev, image: data.url }));
       
       toast({
         title: "Success!",
