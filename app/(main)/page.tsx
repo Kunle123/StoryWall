@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Timeline } from "@/components/timeline/Timeline";
 import { carTimelineEvents } from "@/lib/data/timelineData";
 import { Header } from "@/components/layout/Header";
+import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, UserPlus } from "lucide-react";
@@ -33,20 +34,10 @@ const Index = () => {
   ];
   
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-14">
       <Header />
       <Toaster />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-display font-bold mb-2">Interactive Timeline</h1>
-          <p className="text-muted-foreground text-lg">
-            A powerful timeline component for visualizing any historical data
-          </p>
-          <p className="text-sm text-muted-foreground/80 mt-2">
-            Example: Automotive history from 1886 to present
-          </p>
-        </div>
-
+      <main className="container mx-auto px-4 pt-12 max-w-6xl">
         <Timeline events={carTimelineEvents} pixelsPerYear={30} />
         
         {/* Timeline Social Interactions */}
@@ -84,6 +75,7 @@ const Index = () => {
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
+      <BottomMenuBar title="Interactive Timeline" />
     </div>
   );
 };

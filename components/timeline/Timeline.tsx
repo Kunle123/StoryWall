@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { TimelineCard } from "./TimelineCard";
 import { Button } from "@/components/ui/button";
-import { Share2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 export interface TimelineEvent {
   id: string;
@@ -25,11 +23,9 @@ interface TimelineProps {
 
 export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
-  const [zoom, setZoom] = useState(1);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const initialPinchDistance = useRef<number | null>(null);
-  const { toast } = useToast();
+  const zoom = 1; // Fixed zoom level
 
   // Sort events by date
   const sortedEvents = [...events].sort((a, b) => {
@@ -58,32 +54,6 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
     return yearDiff * pixelsPerYear * zoom;
   };
 
-  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
-
-  const handleShareTimeline = () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: 'Check out this Interactive Timeline',
-        text: 'Explore this amazing timeline with historical events',
-        url: url,
-      }).catch(() => {
-        navigator.clipboard.writeText(url);
-        toast({
-          title: "Link copied!",
-          description: "Timeline link copied to clipboard",
-        });
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      toast({
-        title: "Link copied!",
-        description: "Timeline link copied to clipboard",
-      });
-    }
-  };
-
   const handleDotClick = (eventId: string) => {
     const isAlreadySelected = selectedEventId === eventId;
     setSelectedEventId(isAlreadySelected ? null : eventId);
@@ -104,68 +74,18 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
     }
   };
 
-  // Calculate distance between two touch points
-  const getTouchDistance = (touches: TouchList) => {
-    const touch1 = touches[0];
-    const touch2 = touches[1];
-    const dx = touch1.clientX - touch2.clientX;
-    const dy = touch1.clientY - touch2.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
-
-  // Handle pinch-to-zoom
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        initialPinchDistance.current = getTouchDistance(e.touches);
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && initialPinchDistance.current) {
-        e.preventDefault();
-        const currentDistance = getTouchDistance(e.touches);
-        const scale = currentDistance / initialPinchDistance.current;
-        
-        setZoom(prev => {
-          const newZoom = prev * scale;
-          return Math.max(0.5, Math.min(3, newZoom));
-        });
-        
-        initialPinchDistance.current = currentDistance;
-      }
-    };
-
-    const handleTouchEnd = () => {
-      initialPinchDistance.current = null;
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, []);
-
   if (viewMode === "hybrid") {
     return (
-      <div ref={containerRef} className="w-full touch-none">
-        {/* Mode Toggle and Zoom Controls */}
-        <div className="flex gap-4 mb-6 justify-center sticky top-4 z-[200] bg-background/80 backdrop-blur-sm py-2 rounded-lg items-center">
-          <div className="flex gap-2">
+      <div ref={containerRef} className="w-full">
+        {/* Mode Toggle - Fixed at bottom */}
+        <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-[200] bg-background/95 backdrop-blur-sm py-1.5 px-3 rounded-lg border border-border/50 shadow-lg">
+          <div className="flex gap-2 items-center">
             <Button
               variant="outline"
               onClick={() => setViewMode("vertical")}
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
+              className="h-7 text-xs"
             >
               Vertical
             </Button>
@@ -175,31 +95,9 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
               onClick={() => setViewMode("hybrid")}
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
+              className="h-7 text-xs"
             >
               Hybrid
-            </Button>
-          </div>
-          <div className="flex gap-2 items-center border-l pl-4">
-            <Button
-              variant="outline"
-              onClick={handleZoomOut}
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              disabled={zoom <= 0.5}
-            >
-              -
-            </Button>
-            <span className="text-sm font-medium min-w-[60px] text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <Button
-              variant="outline"
-              onClick={handleZoomIn}
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              disabled={zoom >= 3}
-            >
-              +
             </Button>
           </div>
         </div>
@@ -259,16 +157,17 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
 
   // Vertical View with proportional spacing and stacking
   return (
-    <div ref={containerRef} className="w-full touch-none">
-      {/* Mode Toggle, Zoom Controls, and Share */}
-      <div className="flex gap-4 mb-6 justify-center sticky top-4 z-[200] bg-background/80 backdrop-blur-sm py-2 rounded-lg items-center">
-        <div className="flex gap-2">
+    <div ref={containerRef} className="w-full overflow-visible">
+      {/* Mode Toggle - Fixed at bottom */}
+      <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-[200] bg-background/95 backdrop-blur-sm py-1.5 px-3 rounded-lg border border-border/50 shadow-lg">
+        <div className="flex gap-2 items-center">
           <Button
             // @ts-ignore - Type inference issue with class-variance-authority
             variant="default"
             onClick={() => setViewMode("vertical")}
             // @ts-ignore - Type inference issue with class-variance-authority
             size="sm"
+            className="h-7 text-xs"
           >
             Vertical
           </Button>
@@ -277,43 +176,9 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
             onClick={() => setViewMode("hybrid")}
             // @ts-ignore - Type inference issue with class-variance-authority
             size="sm"
+            className="h-7 text-xs"
           >
             Hybrid
-          </Button>
-        </div>
-        <div className="flex gap-2 items-center border-l pl-4">
-          <Button
-            variant="outline"
-            onClick={handleZoomOut}
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="sm"
-            disabled={zoom <= 0.5}
-          >
-            -
-          </Button>
-          <span className="text-sm font-medium min-w-[60px] text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          <Button
-            variant="outline"
-            onClick={handleZoomIn}
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="sm"
-            disabled={zoom >= 3}
-          >
-            +
-          </Button>
-        </div>
-        <div className="flex gap-2 items-center border-l pl-4">
-          <Button
-            variant="outline"
-            onClick={handleShareTimeline}
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="sm"
-            className="gap-2"
-          >
-            <Share2 className="w-4 h-4" />
-            Share Timeline
           </Button>
         </div>
       </div>
@@ -347,11 +212,10 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
           return (
             <div
               key={`group-${group[0]}`}
-              className="absolute left-16 md:left-28 pr-4"
+              className="absolute left-16 md:left-28 pr-2"
               style={{
                 top: `${groupPosition}px`,
-                width: 'calc(100% - 4rem)',
-                maxWidth: '280px',
+                width: 'calc(100% - 6rem)',
               }}
             >
               {group.map((eventIndex, stackIndex) => {

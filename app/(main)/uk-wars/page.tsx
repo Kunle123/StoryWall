@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Timeline } from "@/components/timeline/Timeline";
 import { ukWarsTimeline } from "@/lib/data/timelineData";
 import { Header } from "@/components/layout/Header";
+import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, UserPlus } from "lucide-react";
@@ -33,22 +34,10 @@ const UKWarsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-14">
       <Header />
       <Toaster />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-display font-bold mb-2">
-            UK Wars & Conflicts Timeline
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            A comprehensive timeline of wars and conflicts involving the United Kingdom since 1707
-          </p>
-          <p className="text-sm text-muted-foreground/80 mt-2">
-            From the War of Spanish Succession to modern interventions • {ukWarsTimeline.length} conflicts documented
-          </p>
-        </div>
-
+      <main className="container mx-auto px-4 pt-12 max-w-6xl">
         <Timeline events={ukWarsTimeline} pixelsPerYear={15} />
 
         {/* Timeline Social Interactions */}
@@ -86,6 +75,7 @@ const UKWarsPage = () => {
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
+      <BottomMenuBar title="UK Wars & Conflicts Timeline" />
     </div>
   );
 };
