@@ -63,13 +63,13 @@ const Portfolio = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 pt-16 pb-8 max-w-4xl">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-display font-bold mb-2">My Portfolio</h1>
-            <p className="text-muted-foreground">
-              Your collection of timeline cards • {savedCards.length} {savedCards.length === 1 ? "card" : "cards"}
+            <h1 className="text-[23px] font-bold leading-[28px] mb-1">My Portfolio</h1>
+            <p className="text-[15px] text-muted-foreground">
+              {savedCards.length} {savedCards.length === 1 ? "card" : "cards"}
             </p>
           </div>
           <div className="flex gap-2">
@@ -104,7 +104,7 @@ const Portfolio = () => {
         ) : (
           <>
             {/* Cards Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
               {savedCards.map((card) => (
                 <div key={card.id} className="relative group">
                   <TimelineCard event={card} side="left" />
@@ -136,12 +136,12 @@ const Portfolio = () => {
             {/* Usage Guide */}
             <Card className="bg-accent/5 border-accent/20">
               <CardHeader>
-                <CardTitle className="text-lg font-display">How to Use Your Cards</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-[15px] font-bold">How to Use Your Cards</CardTitle>
+                <CardDescription className="text-[13px]">
                   Build your own timelines with these cards
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="space-y-3 text-[13px]">
                 <div className="flex gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold flex-shrink-0">
                     1

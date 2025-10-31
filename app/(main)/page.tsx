@@ -6,16 +6,9 @@ import { carTimelineEvents } from "@/lib/data/timelineData";
 import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, UserPlus } from "lucide-react";
-import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
-  const [isLiked, setIsLiked] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [likes, setLikes] = useState(1247);
   const [events, setEvents] = useState<TimelineEvent[]>(carTimelineEvents);
   const [loading, setLoading] = useState(true);
   const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
@@ -64,28 +57,11 @@ const Index = () => {
     loadTimeline();
   }, []);
   
-  const mockComments = [
-    {
-      id: "1",
-      author: "HistoryFan",
-      content: "This is an amazing timeline! Love how you've organized everything.",
-      timestamp: "1 hour ago",
-      likes: 23,
-    },
-    {
-      id: "2",
-      author: "CarEnthusiast",
-      content: "Great collection of automotive milestones. Very informative!",
-      timestamp: "3 hours ago",
-      likes: 15,
-    },
-  ];
-  
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pb-14">
+      <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 pt-12 max-w-6xl">
+        <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading timeline...</p>
           </div>
@@ -95,46 +71,11 @@ const Index = () => {
   }
   
   return (
-    <div className="min-h-screen bg-background pb-14">
+    <div className="min-h-screen bg-background">
       <Header />
       <Toaster />
-      <main className="container mx-auto px-4 pt-12 max-w-6xl">
+      <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
         <Timeline events={events} pixelsPerYear={30} viewMode={viewMode} onViewModeChange={setViewMode} />
-        
-        {/* Timeline Social Interactions */}
-        <Card className="p-6 mt-8 bg-card border-2">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <Button
-                // @ts-ignore - Type inference issue with class-variance-authority
-                variant={isLiked ? "default" : "outline"}
-                className="gap-2"
-                onClick={() => {
-                  setIsLiked(!isLiked);
-                  setLikes(isLiked ? likes - 1 : likes + 1);
-                }}
-              >
-                <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-                {likes} Likes
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <MessageCircle className="w-4 h-4" />
-                {mockComments.length} Comments
-              </Button>
-            </div>
-            <Button
-              // @ts-ignore - Type inference issue with class-variance-authority
-              variant={isFollowing ? "secondary" : "default"}
-              className="gap-2"
-              onClick={() => setIsFollowing(!isFollowing)}
-            >
-              <UserPlus className="w-4 h-4" />
-              {isFollowing ? "Following Creator" : "Follow Creator"}
-            </Button>
-          </div>
-          
-          <CommentsSection comments={mockComments} />
-        </Card>
       </main>
       <BottomMenuBar 
         title={timelineTitle} 
