@@ -17,7 +17,7 @@ function bufferToStream(buffer: Buffer) {
   return readable;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Check if Cloudinary is configured
     if (!process.env.CLOUDINARY_CLOUD_NAME || 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Upload to Cloudinary
-    return new Promise((resolve, reject) => {
+    return new Promise<NextResponse>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: 'storywall', // Organize uploads in a folder
