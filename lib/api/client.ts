@@ -148,6 +148,87 @@ export async function createEvent(timelineId: string, eventData: {
   }
 }
 
+export async function updateEvent(id: string, eventData: Partial<{
+  title: string;
+  description?: string;
+  date: string;
+  end_date?: string;
+  image_url?: string;
+  location_lat?: number;
+  location_lng?: number;
+  location_name?: string;
+  category?: string;
+  links?: string[];
+}>): Promise<ApiResponse<any>> {
+  try {
+    const response = await fetch(`/api/events/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to update event' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update event' };
+  }
+}
+
+export async function deleteEventById(id: string): Promise<ApiResponse<void>> {
+  try {
+    const response = await fetch(`/api/events/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to delete event' };
+    }
+
+    return { data: undefined };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to delete event' };
+  }
+}
+
+// Helper function to get or create user's portfolio timeline
+export async function getOrCreatePortfolioTimeline(): Promise<ApiResponse<any>> {
+  try {
+    // Fetch all timelines (server will filter by test user ID if needed)
+    // Since auth is disabled, server uses test user ID automatically
+    const timelinesResult = await fetchTimelines({ limit: 100 });
+    
+    if (timelinesResult.data) {
+      // Find portfolio timeline by title or slug
+      const portfolioTimeline = timelinesResult.data.find(
+        (t: any) => t.title === 'My Portfolio' || t.slug === 'my-portfolio'
+      );
+      
+      if (portfolioTimeline) {
+        return { data: portfolioTimeline };
+      }
+    }
+    
+    // Create portfolio timeline if it doesn't exist
+    // Server will automatically assign it to the test user
+    const createResult = await createTimeline({
+      title: 'My Portfolio',
+      description: 'My personal collection of timeline events',
+      is_public: false,
+      is_collaborative: false,
+    });
+    
+    return createResult;
+  } catch (error: any) {
+    return { error: error.message || 'Failed to get or create portfolio timeline' };
+  }
+}
+
 // Helper function to transform API event to TimelineEvent format
 export function transformApiEventToTimelineEvent(apiEvent: any) {
   const date = new Date(apiEvent.date);

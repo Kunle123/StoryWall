@@ -1,48 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { TimelineEvent } from "@/components/timeline/Timeline";
-import { Plus, Download, Trash2, FileJson } from "lucide-react";
+import { Plus, Download, Trash2, FileJson, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getOrCreatePortfolioTimeline, fetchEventsByTimelineId, deleteEventById, transformApiEventToTimelineEvent } from "@/lib/api/client";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 const Portfolio = () => {
   const router = useRouter();
+  const { toast } = useToast();
+  const [savedCards, setSavedCards] = useState<TimelineEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Mock saved cards - would come from state/storage in real implementation
-  const [savedCards] = useState<TimelineEvent[]>([
-    {
-      id: "1",
-      year: 2024,
-      month: 3,
-      day: 15,
-      title: "My First Timeline Event",
-      description: "This is an example of a saved timeline card in your portfolio.",
-      category: "milestone",
-      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-    },
-    {
-      id: "2",
-      year: 2023,
-      month: 7,
-      title: "Summer Innovation",
-      description: "Another card example showing how your portfolio collection works.",
-      category: "innovation",
-    },
-    {
-      id: "3",
-      year: 2024,
-      month: 1,
-      day: 1,
-      title: "New Year Milestone",
-      description: "Starting the year with an important event.",
-      category: "event",
-    },
-  ]);
+  useEffect(() => {
+    async function loadPortfolio() {
+      try {
+        setLoading(true);
+        
+        // Get or create portfolio timeline
+        const portfolioResult = await getOrCreatePortfolioTimeline();
+        if (portfolioResult.error || !portfolioResult.data) {
+          console.error('Failed to load portfolio timeline:', portfolioResult.error);
+          setSavedCards([]);
+          return;
+        }
+
+        const portfolioTimeline = portfolioResult.data;
+
+        // Fetch events from portfolio timeline
+        const eventsResult = await fetchEventsByTimelineId(portfolioTimeline.id);
+        if (eventsResult.data) {
+          const transformedEvents = eventsResult.data.map(transformApiEventToTimelineEvent);
+          setSavedCards(transformedEvents);
+        } else {
+          setSavedCards([]);
+        }
+      } catch (error) {
+        console.error('Failed to load portfolio:', error);
+        setSavedCards([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadPortfolio();
+  }, []);
 
   const handleExport = () => {
     // UI only - would export cards as JSON
@@ -55,14 +64,51 @@ const Portfolio = () => {
     link.click();
   };
 
-  const handleDelete = (id: string) => {
-    // UI only - would delete from storage
-    console.log("Deleting card:", id);
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this card?")) {
+      return;
+    }
+
+    try {
+      const result = await deleteEventById(id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Remove from local state
+      setSavedCards(savedCards.filter(card => card.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Card deleted from your portfolio",
+      });
+    } catch (error: any) {
+      console.error("Error deleting card:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete card. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 pt-16 pb-8 max-w-4xl">
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <Toaster />
       <main className="container mx-auto px-4 pt-16 pb-8 max-w-4xl">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">

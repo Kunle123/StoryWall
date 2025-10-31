@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, TrendingUp, Clock } from "lucide-react";
-import { getAllTimelines } from "@/lib/data/timelineMap";
 import { fetchTimelines } from "@/lib/api/client";
 
 interface TimelineDisplay {
@@ -22,7 +21,7 @@ interface TimelineDisplay {
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
-  const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>(getAllTimelines());
+  const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,16 +41,13 @@ const Discover = () => {
             category: 'History', // Default category, could be added to timeline model
             avatar: t.creator?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.id,
           }));
-          // Combine API timelines with mock timelines (mock timelines as fallback)
-          const mockTimelines = getAllTimelines();
-          setAllTimelines([...transformed, ...mockTimelines]);
+          setAllTimelines(transformed);
         } else {
-          // Fallback to mock data - show all 14 timelines
-          setAllTimelines(getAllTimelines());
+          setAllTimelines([]);
         }
       } catch (error) {
-        console.error('Failed to load timelines from API, using mock data:', error);
-        setAllTimelines(getAllTimelines());
+        console.error('Failed to load timelines from API:', error);
+        setAllTimelines([]);
       } finally {
         setLoading(false);
       }

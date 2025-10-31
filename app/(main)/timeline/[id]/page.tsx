@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
-import { getTimelineById as getMockTimeline } from "@/lib/data/timelineMap";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
@@ -48,25 +47,11 @@ const TimelinePage = () => {
             setEvents([]);
           }
         } else {
-          // Fallback to mock data
-          const mockTimeline = getMockTimeline(timelineId);
-          if (mockTimeline) {
-            setTimeline(mockTimeline);
-            setEvents(mockTimeline.events);
-          } else {
-            setError('Timeline not found');
-          }
+          setError('Timeline not found');
         }
       } catch (err) {
         console.error('Failed to load timeline:', err);
-        // Try mock data as fallback
-        const mockTimeline = getMockTimeline(timelineId);
-        if (mockTimeline) {
-          setTimeline(mockTimeline);
-          setEvents(mockTimeline.events);
-        } else {
-          setError('Timeline not found');
-        }
+        setError('Failed to load timeline');
       } finally {
         setLoading(false);
       }

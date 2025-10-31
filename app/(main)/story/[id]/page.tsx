@@ -5,8 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle } from "lucide-react";
-import { carTimelineEvents, ukWarsTimeline } from "@/lib/data/timelineData";
-import { getAllEvents } from "@/lib/data/mockTimelines";
 import { fetchEventById } from "@/lib/api/client";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { useState, useEffect } from "react";
@@ -43,25 +41,11 @@ const Story = () => {
             video: undefined,
           });
         } else {
-          // Fallback to mock data
-          const allEvents = [
-            ...carTimelineEvents,
-            ...ukWarsTimeline,
-            ...getAllEvents(),
-          ];
-          const foundEvent = allEvents.find(e => e.id === params.id);
-          setEvent(foundEvent || null);
+          setEvent(null);
         }
       } catch (error) {
-        console.error('Failed to load event from API, using mock data:', error);
-        // Fallback to mock data
-        const allEvents = [
-          ...carTimelineEvents,
-          ...ukWarsTimeline,
-          ...getAllEvents(),
-        ];
-        const foundEvent = allEvents.find(e => e.id === params.id);
-        setEvent(foundEvent || null);
+        console.error('Failed to load event from API:', error);
+        setEvent(null);
       } finally {
         setLoading(false);
       }

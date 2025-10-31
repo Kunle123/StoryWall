@@ -11,11 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { TimelineEvent } from "@/components/timeline/Timeline";
-import { Save, Eye } from "lucide-react";
+import { Save, Eye, Loader2 } from "lucide-react";
+import { getOrCreatePortfolioTimeline, createEvent } from "@/lib/api/client";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 const CardEditor = () => {
   const router = useRouter();
+  const { toast } = useToast();
   const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [formData, setFormData] = useState<TimelineEvent>({
     id: "",
@@ -29,15 +34,68 @@ const CardEditor = () => {
     video: "",
   });
 
-  const handleSave = () => {
-    // UI only - would save to portfolio here
-    console.log("Saving card to portfolio:", formData);
-    router.push("/portfolio");
+  const handleSave = async () => {
+    if (!formData.title || !formData.year) {
+      toast({
+        title: "Validation Error",
+        description: "Title and year are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Get or create portfolio timeline
+      const portfolioResult = await getOrCreatePortfolioTimeline();
+      if (portfolioResult.error || !portfolioResult.data) {
+        throw new Error(portfolioResult.error || "Failed to get portfolio timeline");
+      }
+
+      const portfolioTimeline = portfolioResult.data;
+
+      // Format date (YYYY-MM-DD)
+      const day = formData.day || 1;
+      const month = formData.month || 1;
+      const dateStr = `${formData.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      // Create event in portfolio timeline
+      const eventResult = await createEvent(portfolioTimeline.id, {
+        title: formData.title,
+        description: formData.description || undefined,
+        date: dateStr,
+        image_url: formData.image || undefined,
+        category: formData.category || undefined,
+      });
+
+      if (eventResult.error) {
+        throw new Error(eventResult.error);
+      }
+
+      toast({
+        title: "Success!",
+        description: "Card saved to your portfolio",
+      });
+
+      // Navigate to portfolio after a brief delay
+      setTimeout(() => {
+        router.push("/portfolio");
+      }, 1000);
+    } catch (error: any) {
+      console.error("Error saving card:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save card. Please try again.",
+        variant: "destructive",
+      });
+      setIsSaving(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <Toaster />
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-5xl">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-3xl sm:text-4xl font-display font-bold mb-2">Card Editor</h1>
@@ -169,11 +227,20 @@ const CardEditor = () => {
                 </Button>
                 <Button 
                   onClick={handleSave}
-                  disabled={!formData.title || !formData.year}
+                  disabled={!formData.title || !formData.year || isSaving}
                   className="flex-1"
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save to Portfolio
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save to Portfolio
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>

@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
-import { carTimelineEvents } from "@/lib/data/timelineData";
 import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
-  const [events, setEvents] = useState<TimelineEvent[]>(carTimelineEvents);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
@@ -43,12 +42,12 @@ const Index = () => {
           }
         }
         
-        // Fallback to mock data
-        setEvents(carTimelineEvents);
+        // No timeline found - show empty state
+        setEvents([]);
         setTimelineTitle("Interactive Timeline");
       } catch (error) {
-        console.error('Failed to load timeline from API, using mock data:', error);
-        setEvents(carTimelineEvents);
+        console.error('Failed to load timeline from API:', error);
+        setEvents([]);
       } finally {
         setLoading(false);
       }
@@ -75,7 +74,13 @@ const Index = () => {
       <Header />
       <Toaster />
       <main className="container mx-auto px-3 pt-14 pb-0 max-w-6xl">
-        <Timeline events={events} pixelsPerYear={30} viewMode={viewMode} onViewModeChange={setViewMode} />
+        {events.length === 0 ? (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-muted-foreground">No timelines available. Create one to get started!</p>
+          </div>
+        ) : (
+          <Timeline events={events} pixelsPerYear={30} viewMode={viewMode} onViewModeChange={setViewMode} />
+        )}
       </main>
       <BottomMenuBar 
         title={timelineTitle} 
