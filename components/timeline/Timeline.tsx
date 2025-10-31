@@ -209,7 +209,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         {/* Visible cards highlight box */}
         {getVisibleMarkerBox() && (
           <div
-            className="absolute w-3 border-l-2 border-r-2 border-primary/60 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
+            className="absolute w-3 border-l-2 border-r-2 border-orange-500/60 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
             style={{
               left: 'calc(0.5rem + 4px)',
               top: `${getVisibleMarkerBox()!.top}%`,
@@ -223,7 +223,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
           const isSelected = group.events.some(e => e.id === selectedEventId);
           const showCount = group.events.length > 1;
           
-          const markerColorClass = isSelected ? "bg-primary" : "bg-muted-foreground";
+          const markerColorClass = isSelected ? "bg-orange-500" : "bg-muted-foreground";
           
           return (
             <div

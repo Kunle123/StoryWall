@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Folder, Plus, User, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StoryWallIcon } from "@/components/StoryWallIcon";
 
 export const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -30,10 +31,10 @@ export const Header = () => {
     <header className={`fixed top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container mx-auto px-3 h-12 flex items-center justify-between max-w-4xl">
         <Link href="/" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-lg">
-            📖
+          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+            <StoryWallIcon size={28} />
           </div>
-          <span className="font-display font-bold text-lg text-foreground">StoryWall</span>
+          <span className="font-display font-bold text-xl text-foreground">StoryWall</span>
         </Link>
 
         <div className="flex items-center gap-1">

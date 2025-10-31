@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StoryWallIcon } from "@/components/StoryWallIcon";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -45,11 +47,18 @@ const AuthPage = () => {
       <main className="container mx-auto px-4 py-16 max-w-md">
         <Card>
           <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Link href="/" className="inline-flex items-center gap-2">
+                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center">
+                  <StoryWallIcon size={48} />
+                </div>
+              </Link>
+            </div>
             <CardTitle className="text-3xl font-display font-bold">
-              {isLogin ? "Sign In" : "Sign Up"}
+              Welcome to StoryWall
             </CardTitle>
             <CardDescription>
-              {isLogin ? "Welcome back!" : "Create your account to get started"}
+              Share your weird, funny, and strange moments with the world
             </CardDescription>
           </CardHeader>
           <CardContent>

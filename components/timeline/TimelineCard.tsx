@@ -45,13 +45,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         {/* Header with category and date */}
         <div className="flex items-center justify-between">
           {event.category && (
-            <span className={`text-[13px] font-semibold ${
-              event.category === "vehicle"
-                ? "text-primary"
-                : event.category === "crisis"
-                ? "text-destructive"
-                : "text-accent"
-            }`}>
+            <span className="text-[13px] font-semibold text-orange-500">
               {event.category.toUpperCase()}
             </span>
           )}
