@@ -31,6 +31,11 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
     return year.toString();
   };
 
+  const truncateText = (text: string, maxLength: number = 240) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + "...";
+  };
+
   return (
     <Link href={`/story/${event.id}`}>
       <Card
@@ -62,7 +67,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             </span>
           </div>
           {event.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{event.description}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{truncateText(event.description)}</p>
           )}
           <div className="flex items-center justify-between">
             {event.category && (

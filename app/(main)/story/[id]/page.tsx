@@ -155,27 +155,36 @@ const Story = () => {
             <Button
               // @ts-ignore - Type inference issue with class-variance-authority
               variant={isLiked ? "default" : "outline"}
-              className="gap-2"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="gap-1.5"
               onClick={() => {
                 setIsLiked(!isLiked);
                 setLikes(isLiked ? likes - 1 : likes + 1);
               }}
             >
               <Heart className={`w-4 h-4 ${isLiked ? "fill-current" : ""}`} />
-              {likes} Likes
+              {likes}
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button 
+              variant="outline" 
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="gap-1.5"
+            >
               <Share2 className="w-4 h-4" />
-              {shares} Shares
+              {shares}
             </Button>
             <Button
               // @ts-ignore - Type inference issue with class-variance-authority
               variant={isFollowing ? "secondary" : "default"}
-              className="gap-2 ml-auto"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="sm"
+              className="gap-1.5 ml-auto"
               onClick={() => setIsFollowing(!isFollowing)}
             >
               <UserPlus className="w-4 h-4" />
-              {isFollowing ? "Following" : "Follow Creator"}
+              {isFollowing ? "Following" : "Follow"}
             </Button>
           </div>
         </Card>
