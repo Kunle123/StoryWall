@@ -29,6 +29,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   const setViewMode = onViewModeChange || setInternalViewMode;
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(new Set());
+  const [centeredCardId, setCenteredCardId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -131,6 +132,43 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     };
   }, [viewMode, sortedEvents]);
 
+  // Track the centered card
+  useEffect(() => {
+    if (viewMode !== "vertical") return;
+
+    const findCenteredCard = () => {
+      const viewportCenter = window.innerHeight / 2;
+      let closestCard: { id: string; distance: number } | null = null;
+
+      cardRefs.current.forEach((card, id) => {
+        const rect = card.getBoundingClientRect();
+        const cardCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(cardCenter - viewportCenter);
+
+        if (!closestCard || distance < closestCard.distance) {
+          closestCard = { id, distance };
+        }
+      });
+
+      if (closestCard && closestCard.distance < window.innerHeight) {
+        setCenteredCardId(closestCard.id);
+      }
+    };
+
+    // Find centered card on scroll
+    const scrollContainer = document.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', findCenteredCard);
+      findCenteredCard(); // Initial check
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', findCenteredCard);
+      }
+    };
+  }, [viewMode, sortedEvents]);
+
   // Calculate box position based on visible cards
   const getVisibleMarkerBox = useCallback(() => {
     // Build range from currently visible cards
@@ -221,9 +259,10 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         {/* Square markers with overlap counts */}
         {markerGroups.map((group, idx) => {
           const isSelected = group.events.some(e => e.id === selectedEventId);
+          const isCentered = group.events.some(e => e.id === centeredCardId);
           const showCount = group.events.length > 1;
           
-          const markerColorClass = isSelected ? "bg-orange-500" : "bg-muted-foreground";
+          const markerColorClass = isCentered ? "bg-orange-500" : isSelected ? "bg-orange-500" : "bg-muted-foreground";
           
           return (
             <div
@@ -242,7 +281,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                 {/* Square marker - 8px width, truly centered on timeline */}
                 <div
                   className={`w-[8px] h-[8px] transition-all duration-300 hover:scale-150 ${markerColorClass} ${
-                    isSelected ? 'w-[10px] h-[10px] scale-125' : ''
+                    isCentered ? 'w-[12px] h-[12px] scale-150 shadow-lg shadow-orange-500/50' : isSelected ? 'w-[10px] h-[10px] scale-125' : ''
                   }`}
                 />
               </div>
