@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { TimelineCard } from "./TimelineCard";
-import { Button } from "@/components/ui/button";
 
 export interface TimelineEvent {
   id: string;
@@ -19,10 +18,15 @@ export interface TimelineEvent {
 interface TimelineProps {
   events: TimelineEvent[];
   pixelsPerYear?: number;
+  title?: string;
+  viewMode?: "vertical" | "hybrid";
+  onViewModeChange?: (mode: "vertical" | "hybrid") => void;
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
-  const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
+export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange }: TimelineProps) => {
+  const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
+  const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+  const setViewMode = onViewModeChange || setInternalViewMode;
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [visibleCardIds, setVisibleCardIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,9 +131,9 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
     };
   }, [viewMode, sortedEvents]);
 
-  // Calculate box position based on visible cards, center on selected when present
+  // Calculate box position based on visible cards
   const getVisibleMarkerBox = useCallback(() => {
-    // Build base range from currently visible cards
+    // Build range from currently visible cards
     const visibleEvents = sortedEvents.filter((e) => visibleCardIds.has(e.id));
 
     let baseMin = 0;
@@ -145,27 +149,15 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
       baseMax = 6;
     }
 
-    let height = Math.max(baseMax - baseMin, 2);
+    const height = Math.max(baseMax - baseMin, 2);
 
-    // If a marker is selected, center the box on that marker while preserving height
-    if (selectedEventId) {
-      const focused = sortedEvents.find((e) => e.id === selectedEventId);
-      if (focused) {
-        const pos = getEventPositionPercent(focused);
-        let top = pos - height / 2;
-        // Clamp to timeline bounds [0, 100 - height]
-        top = Math.max(0, Math.min(100 - height, top));
-        return { top, bottom: top + height, height };
-      }
-    }
-
-    // Default: box spans visible cards
+    // Box spans visible cards only
     return {
       top: baseMin,
       bottom: baseMax,
       height,
     };
-  }, [visibleCardIds, sortedEvents, selectedEventId]);
+  }, [visibleCardIds, sortedEvents]);
 
   if (viewMode === "hybrid") {
     // Generate decade markers for hybrid view
@@ -180,31 +172,6 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
 
     return (
       <div ref={containerRef} className="w-full">
-        {/* Mode Toggle - Fixed at bottom */}
-        <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-[200] bg-background/95 backdrop-blur-sm py-1.5 px-3 rounded-lg border border-border/50 shadow-lg">
-          <div className="flex gap-2 items-center">
-            <Button
-              variant="outline"
-              onClick={() => setViewMode("vertical")}
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              className="h-7 text-xs"
-            >
-              Vertical
-            </Button>
-            <Button
-              // @ts-ignore - Type inference issue with class-variance-authority
-              variant="default"
-              onClick={() => setViewMode("hybrid")}
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              className="h-7 text-xs"
-            >
-              Hybrid
-            </Button>
-          </div>
-        </div>
-
         {/* Hybrid View: Vertical Overview */}
         <div className="space-y-2">
           {decades.map((decade) => {
@@ -233,91 +200,52 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
 
   // Vertical View - Full screen timeline
   return (
-    <div ref={containerRef} className="w-full h-[calc(100vh-8rem)] relative flex">
-      {/* Mode Toggle - Fixed at bottom */}
-      <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 z-[200] bg-background/95 backdrop-blur-sm py-1.5 px-3 rounded-lg border border-border/50 shadow-lg">
-        <div className="flex gap-2 items-center">
-          <Button
-            // @ts-ignore - Type inference issue with class-variance-authority
-            variant="default"
-            onClick={() => setViewMode("vertical")}
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="sm"
-            className="h-7 text-xs"
-          >
-            Vertical
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setViewMode("hybrid")}
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="sm"
-            className="h-7 text-xs"
-          >
-            Hybrid
-          </Button>
-        </div>
-      </div>
-
+    <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
       {/* Vertical Timeline - Fixed left side */}
-      <div className="relative h-full pl-12 flex-shrink-0">
-        {/* Main vertical line - 5px, with padding for dates */}
-        <div className="absolute left-6 w-[5px] bg-border" style={{ top: '2rem', bottom: '2rem' }} />
+      <div className="relative h-full pl-4 flex-shrink-0 pt-8 pb-0">
+        {/* Main vertical line - 8px */}
+        <div className="absolute left-2 w-[8px] bg-border top-0 bottom-0" />
 
         {/* Visible cards highlight box */}
         {getVisibleMarkerBox() && (
           <div
-            className="absolute w-3 border-l-2 border-r-2 border-primary/60 bg-primary/5 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
+            className="absolute w-3 border-l-2 border-r-2 border-primary/60 pointer-events-none transition-all duration-500 ease-out transform -translate-x-1/2"
             style={{
-              left: 'calc(1.5rem + 2.5px)',
-              top: `calc(2rem + ${getVisibleMarkerBox()!.top}%)`,
+              left: 'calc(0.5rem + 4px)',
+              top: `${getVisibleMarkerBox()!.top}%`,
               height: `${Math.max(getVisibleMarkerBox()!.height, 2)}%`,
             }}
           />
         )}
 
-        {/* Start date marker */}
-        <div className="absolute left-12 top-0 transform -translate-y-1/2">
-          <div className="text-foreground text-sm font-semibold whitespace-nowrap">
-            {earliestEvent?.year}
-          </div>
-        </div>
-
-        {/* End date marker */}
-        <div className="absolute left-12 bottom-0 transform translate-y-1/2">
-          <div className="text-foreground text-sm font-semibold whitespace-nowrap">
-            {latestEvent?.year}
-          </div>
-        </div>
-
         {/* Square markers with overlap counts */}
         {markerGroups.map((group, idx) => {
           const isSelected = group.events.some(e => e.id === selectedEventId);
-          const firstEvent = group.events[0];
           const showCount = group.events.length > 1;
           
-          const markerColorClass = firstEvent.category === "vehicle" 
-            ? "bg-primary" 
-            : firstEvent.category === "crisis" 
-            ? "bg-destructive" 
-            : "bg-accent";
+          const markerColorClass = isSelected ? "bg-primary" : "bg-muted-foreground";
           
           return (
             <div
               key={`marker-${idx}`}
               className="absolute"
               style={{ 
-                left: 'calc(1.5rem + 2.5px)', // Center of the 5px timeline
-                top: `calc(2rem + ${group.position}%)` 
+                left: 'calc(0.5rem + 4px)', // Center of the 8px timeline
+                top: `${group.position}%` 
               }}
             >
-              {/* Square marker - 5px width, truly centered on timeline */}
+              {/* Larger touch target wrapper */}
               <div
                 onClick={() => handleMarkerClick(group.events[0].id)}
-                className={`transform -translate-x-1/2 -translate-y-1/2 w-[5px] h-[5px] cursor-pointer transition-all duration-300 hover:scale-150 ${markerColorClass} ${
-                  isSelected ? 'w-[7px] h-[7px] scale-125' : ''
-                }`}
-              />
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer p-3"
+              >
+                {/* Square marker - 8px width, truly centered on timeline */}
+                <div
+                  className={`w-[8px] h-[8px] transition-all duration-300 hover:scale-150 ${markerColorClass} ${
+                    isSelected ? 'w-[10px] h-[10px] scale-125' : ''
+                  }`}
+                />
+              </div>
               
               {/* Overlap count */}
               {showCount && (
@@ -332,7 +260,7 @@ export const Timeline = ({ events, pixelsPerYear = 50 }: TimelineProps) => {
 
       {/* Scrollable cards area - Right side */}
       <div className="flex-1 overflow-y-auto h-full">
-        <div className="space-y-0">
+        <div className="space-y-0 pt-8 pb-0">
           {sortedEvents.map((event) => {
             const isSelected = selectedEventId === event.id;
             

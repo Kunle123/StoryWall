@@ -24,6 +24,15 @@ const TimelinePage = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
+
+  const formatDateRange = (events: TimelineEvent[]) => {
+    if (events.length === 0) return "";
+    const sorted = [...events].sort((a, b) => a.year - b.year);
+    const startYear = sorted[0].year;
+    const endYear = sorted[sorted.length - 1].year;
+    return `${startYear} - ${endYear}`;
+  };
 
   useEffect(() => {
     async function loadTimeline() {
@@ -124,7 +133,12 @@ const TimelinePage = () => {
       <Header />
       <Toaster />
       <main className="container mx-auto px-4 pt-12 max-w-6xl">
-        <Timeline events={events.length > 0 ? events : timeline.events || []} pixelsPerYear={30} />
+        <Timeline 
+          events={events.length > 0 ? events : timeline.events || []} 
+          pixelsPerYear={30} 
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
 
         {/* Timeline Social Interactions */}
         <Card className="p-6 mt-8 bg-card border-2">
@@ -161,7 +175,12 @@ const TimelinePage = () => {
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
-      <BottomMenuBar title={timeline.title} />
+      <BottomMenuBar 
+        title={timeline.title} 
+        dateRange={formatDateRange(events.length > 0 ? events : timeline.events || [])}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
     </div>
   );
 };

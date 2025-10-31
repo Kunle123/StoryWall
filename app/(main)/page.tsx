@@ -19,6 +19,15 @@ const Index = () => {
   const [events, setEvents] = useState<TimelineEvent[]>(carTimelineEvents);
   const [loading, setLoading] = useState(true);
   const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
+  const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
+
+  const formatDateRange = (events: TimelineEvent[]) => {
+    if (events.length === 0) return "";
+    const sorted = [...events].sort((a, b) => a.year - b.year);
+    const startYear = sorted[0].year;
+    const endYear = sorted[sorted.length - 1].year;
+    return `${startYear} - ${endYear}`;
+  };
   
   useEffect(() => {
     // Try to fetch the first public timeline from API
@@ -90,7 +99,7 @@ const Index = () => {
       <Header />
       <Toaster />
       <main className="container mx-auto px-4 pt-12 max-w-6xl">
-        <Timeline events={events} pixelsPerYear={30} />
+        <Timeline events={events} pixelsPerYear={30} viewMode={viewMode} onViewModeChange={setViewMode} />
         
         {/* Timeline Social Interactions */}
         <Card className="p-6 mt-8 bg-card border-2">
@@ -127,7 +136,12 @@ const Index = () => {
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
-      <BottomMenuBar title={timelineTitle} />
+      <BottomMenuBar 
+        title={timelineTitle} 
+        dateRange={formatDateRange(events)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
     </div>
   );
 };

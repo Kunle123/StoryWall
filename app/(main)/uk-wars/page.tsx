@@ -15,6 +15,15 @@ const UKWarsPage = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likes, setLikes] = useState(2341);
+  const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
+
+  const formatDateRange = (events: typeof ukWarsTimeline) => {
+    if (events.length === 0) return "";
+    const sorted = [...events].sort((a, b) => a.year - b.year);
+    const startYear = sorted[0].year;
+    const endYear = sorted[sorted.length - 1].year;
+    return `${startYear} - ${endYear}`;
+  };
 
   const mockComments = [
     {
@@ -38,7 +47,7 @@ const UKWarsPage = () => {
       <Header />
       <Toaster />
       <main className="container mx-auto px-4 pt-12 max-w-6xl">
-        <Timeline events={ukWarsTimeline} pixelsPerYear={15} />
+        <Timeline events={ukWarsTimeline} pixelsPerYear={15} viewMode={viewMode} onViewModeChange={setViewMode} />
 
         {/* Timeline Social Interactions */}
         <Card className="p-6 mt-8 bg-card border-2">
@@ -75,7 +84,12 @@ const UKWarsPage = () => {
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
-      <BottomMenuBar title="UK Wars & Conflicts Timeline" />
+      <BottomMenuBar 
+        title="UK Wars & Conflicts Timeline" 
+        dateRange={formatDateRange(ukWarsTimeline)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
     </div>
   );
 };
