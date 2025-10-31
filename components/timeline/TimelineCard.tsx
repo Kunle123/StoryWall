@@ -59,7 +59,11 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
 
         {/* Description */}
         {event.description && (
-          <p className="text-[15px] text-foreground/90 leading-normal">{event.description}</p>
+          <p className="text-[15px] text-foreground/90 leading-normal">
+            {event.description.length > 240 
+              ? `${event.description.substring(0, 240)}...` 
+              : event.description}
+          </p>
         )}
 
         {/* Image display */}
