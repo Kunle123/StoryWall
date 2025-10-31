@@ -42,9 +42,11 @@ const Discover = () => {
             category: 'History', // Default category, could be added to timeline model
             avatar: t.creator?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.id,
           }));
-          setAllTimelines(transformed);
+          // Combine API timelines with mock timelines (mock timelines as fallback)
+          const mockTimelines = getAllTimelines();
+          setAllTimelines([...transformed, ...mockTimelines]);
         } else {
-          // Fallback to mock data
+          // Fallback to mock data - show all 14 timelines
           setAllTimelines(getAllTimelines());
         }
       } catch (error) {
@@ -58,19 +60,17 @@ const Discover = () => {
     loadTimelines();
   }, []);
   
-  // Sort by views (trending = highest views)
+  // Sort by views (trending = highest views) - Show ALL timelines
   const trendingTimelines = [...allTimelines]
     .sort((a, b) => {
       const aViews = parseFloat(a.views.replace('k', ''));
       const bViews = parseFloat(b.views.replace('k', ''));
       return bViews - aViews;
-    })
-    .slice(0, 6);
+    }); // Show all timelines, no limit
 
-  // Recent = reverse order (assuming later added are at end)
+  // Recent = reverse order (assuming later added are at end) - Show ALL timelines
   const recentTimelines = [...allTimelines]
-    .reverse()
-    .slice(0, 6);
+    .reverse(); // Show all timelines, no limit
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
@@ -114,6 +114,7 @@ const Discover = () => {
           <div className="flex items-center gap-2 px-4 mb-3">
             <TrendingUp className="w-5 h-5 text-primary" />
             <h2 className="font-display font-bold text-xl">Trending Now</h2>
+            <span className="text-sm text-muted-foreground">({trendingTimelines.length} timelines)</span>
           </div>
           <div>
             {trendingTimelines.map((timeline, index) => (
@@ -152,6 +153,7 @@ const Discover = () => {
           <div className="flex items-center gap-2 px-4 mb-3">
             <Clock className="w-5 h-5 text-accent" />
             <h2 className="font-display font-bold text-xl">Recently Added</h2>
+            <span className="text-sm text-muted-foreground">({recentTimelines.length} timelines)</span>
           </div>
           <div>
             {recentTimelines.map((timeline, index) => (
