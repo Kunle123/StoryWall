@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique @map("clerk_id") @db.VarChar(255)
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(255)
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  timelines     Timeline[]       @relation("TimelineCreator")
+  events        Event[]
+  collaborations Collaborator[]
+
+  @@map("users")
+}
+
+model Timeline {
+  id                String        @id @default(uuid())
+  title             String        @db.VarChar(255)
+  description       String?
+  slug              String        @unique @db.VarChar(255)
+  creatorId         String        @map("creator_id")
+  visualizationType String        @default("horizontal") @map("visualization_type") @db.VarChar(50)
+  isPublic          Boolean       @default(true) @map("is_public")
+  isCollaborative   Boolean       @default(false) @map("is_collaborative")
+  viewCount         Int           @default(0) @map("view_count")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  creator      User          @relation("TimelineCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  events       Event[]
+  categories   Category[]
+  collaborators Collaborator[]
+
+  @@index([slug])
+  @@index([creatorId])
+  @@index([isPublic])
+  @@map("timelines")
+}
+
+model Event {
+  id          String    @id @default(uuid())
+  timelineId  String    @map("timeline_id")
+  title       String    @db.VarChar(255)
+  description String?
+  date        DateTime  @db.Date
+  endDate     DateTime?  @map("end_date") @db.Date
+  imageUrl    String?   @map("image_url")
+  locationLat Decimal?  @map("location_lat") @db.Decimal(10, 8)
+  locationLng Decimal?  @map("location_lng") @db.Decimal(11, 8)
+  locationName String?  @map("location_name") @db.VarChar(255)
+  category    String?   @db.VarChar(100)
+  links       String[]  @db.Text
+  createdBy   String?   @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  timeline  Timeline  @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  creator   User?     @relation(fields: [createdBy], references: [id])
+
+  @@index([timelineId])
+  @@index([date])
+  @@map("events")
+}
+
+model Category {
+  id         String   @id @default(uuid())
+  timelineId String   @map("timeline_id")
+  name       String   @db.VarChar(100)
+  color      String   @db.VarChar(7) // Hex color
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+
+  @@index([timelineId])
+  @@map("categories")
+}
+
+model Collaborator {
+  id         String   @id @default(uuid())
+  timelineId String   @map("timeline_id")
+  userId     String   @map("user_id")
+  role       String   @default("editor") @db.VarChar(20) // 'editor' or 'viewer'
+  addedAt    DateTime @default(now()) @map("added_at")
+
+  // Relations
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([timelineId, userId])
+  @@index([timelineId])
+  @@index([userId])
+  @@map("collaborators")
+}
+

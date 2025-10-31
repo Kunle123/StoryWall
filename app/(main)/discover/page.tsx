@@ -1,29 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, TrendingUp, Clock } from "lucide-react";
+import { getAllTimelines } from "@/lib/data/timelineMap";
+import { fetchTimelines } from "@/lib/api/client";
+
+interface TimelineDisplay {
+  id: string;
+  title: string;
+  creator: string;
+  views: string;
+  category: string;
+  avatar: string;
+}
 
 const Discover = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
+  const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>(getAllTimelines());
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for discovery
-  const trendingTimelines = [
-    { id: 1, title: "Automotive History", creator: "CarEnthusiast", views: "12.4k", category: "Technology", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=CarEnthusiast" },
-    { id: 2, title: "Space Exploration", creator: "AstroNerd", views: "8.9k", category: "Science", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=AstroNerd" },
-    { id: 3, title: "Music Evolution", creator: "MusicLover", views: "6.2k", category: "Culture", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=MusicLover" },
-  ];
+  useEffect(() => {
+    async function loadTimelines() {
+      try {
+        setLoading(true);
+        // Try to fetch from API
+        const result = await fetchTimelines({ limit: 50, is_public: true });
+        
+        if (result.data && result.data.length > 0) {
+          // Transform API timelines to display format
+          const transformed = result.data.map((t: any) => ({
+            id: t.id,
+            title: t.title,
+            creator: t.creator?.username || 'Unknown',
+            views: `${(t.view_count / 1000).toFixed(1)}k`,
+            category: 'History', // Default category, could be added to timeline model
+            avatar: t.creator?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.id,
+          }));
+          setAllTimelines(transformed);
+        } else {
+          // Fallback to mock data
+          setAllTimelines(getAllTimelines());
+        }
+      } catch (error) {
+        console.error('Failed to load timelines from API, using mock data:', error);
+        setAllTimelines(getAllTimelines());
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    loadTimelines();
+  }, []);
+  
+  // Sort by views (trending = highest views)
+  const trendingTimelines = [...allTimelines]
+    .sort((a, b) => {
+      const aViews = parseFloat(a.views.replace('k', ''));
+      const bViews = parseFloat(b.views.replace('k', ''));
+      return bViews - aViews;
+    })
+    .slice(0, 6);
 
-  const recentTimelines = [
-    { id: 4, title: "AI Development", creator: "TechGuru", views: "5.1k", category: "Technology", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TechGuru" },
-    { id: 5, title: "Fashion Through Ages", creator: "StyleIcon", views: "4.3k", category: "Culture", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=StyleIcon" },
-    { id: 6, title: "Medical Breakthroughs", creator: "HealthPro", views: "3.8k", category: "Science", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=HealthPro" },
-  ];
+  // Recent = reverse order (assuming later added are at end)
+  const recentTimelines = [...allTimelines]
+    .reverse()
+    .slice(0, 6);
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
@@ -73,7 +120,7 @@ const Discover = () => {
               <div key={timeline.id}>
                 <div
                   className="px-4 py-3 cursor-pointer hover:bg-accent/5 transition-colors"
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push(`/timeline/${timeline.id}`)}
                 >
                   <div className="flex gap-3">
                     <Avatar className="w-10 h-10 flex-shrink-0">
@@ -111,7 +158,7 @@ const Discover = () => {
               <div key={timeline.id}>
                 <div
                   className="px-4 py-3 cursor-pointer hover:bg-accent/5 transition-colors"
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push(`/timeline/${timeline.id}`)}
                 >
                   <div className="flex gap-3">
                     <Avatar className="w-10 h-10 flex-shrink-0">

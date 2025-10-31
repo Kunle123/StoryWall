@@ -5,9 +5,11 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus } from "lucide-react";
-import { carTimelineEvents } from "@/lib/data/timelineData";
+import { carTimelineEvents, ukWarsTimeline } from "@/lib/data/timelineData";
+import { getAllEvents } from "@/lib/data/mockTimelines";
+import { fetchEventById } from "@/lib/api/client";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Story = () => {
   const params = useParams();
@@ -16,8 +18,59 @@ const Story = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [likes, setLikes] = useState(248);
   const [shares, setShares] = useState(64);
+  const [event, setEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   
-  const event = carTimelineEvents.find(e => e.id === params.id);
+  useEffect(() => {
+    async function loadEvent() {
+      try {
+        setLoading(true);
+        // Try API first
+        const result = await fetchEventById(params.id as string);
+        
+        if (result.data) {
+          // Transform API event to display format
+          const date = new Date(result.data.date);
+          setEvent({
+            id: result.data.id,
+            title: result.data.title,
+            description: result.data.description,
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            day: date.getDate(),
+            category: result.data.category,
+            image: result.data.image_url,
+            video: undefined,
+          });
+        } else {
+          // Fallback to mock data
+          const allEvents = [
+            ...carTimelineEvents,
+            ...ukWarsTimeline,
+            ...getAllEvents(),
+          ];
+          const foundEvent = allEvents.find(e => e.id === params.id);
+          setEvent(foundEvent || null);
+        }
+      } catch (error) {
+        console.error('Failed to load event from API, using mock data:', error);
+        // Fallback to mock data
+        const allEvents = [
+          ...carTimelineEvents,
+          ...ukWarsTimeline,
+          ...getAllEvents(),
+        ];
+        const foundEvent = allEvents.find(e => e.id === params.id);
+        setEvent(foundEvent || null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (params.id) {
+      loadEvent();
+    }
+  }, [params.id]);
 
   // Mock comments data
   const mockComments = [
@@ -36,6 +89,19 @@ const Story = () => {
       likes: 8,
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-4xl">
+          <div className="flex items-center justify-center py-20">
+            <p className="text-muted-foreground">Loading event...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!event) {
     return (

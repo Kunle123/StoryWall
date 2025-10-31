@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
-import { carTimelineEvents } from "@/lib/data/timelineData";
-import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
+import { getTimelineById as getMockTimeline } from "@/lib/data/timelineMap";
+import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Card } from "@/components/ui/card";
@@ -12,49 +13,68 @@ import { Heart, MessageCircle, UserPlus } from "lucide-react";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { Toaster } from "@/components/ui/toaster";
 
-const Index = () => {
+const TimelinePage = () => {
+  const params = useParams();
+  const timelineId = params.id as string;
+
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likes, setLikes] = useState(1247);
-  const [events, setEvents] = useState<TimelineEvent[]>(carTimelineEvents);
+  const [timeline, setTimeline] = useState<any>(null);
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
-  
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    // Try to fetch the first public timeline from API
     async function loadTimeline() {
       try {
         setLoading(true);
-        const timelinesResult = await fetchTimelines({ limit: 1, is_public: true });
+        setError(null);
         
-        if (timelinesResult.data && timelinesResult.data.length > 0) {
-          const timeline = timelinesResult.data[0];
-          setTimelineTitle(timeline.title || "Interactive Timeline");
+        // Try API first
+        const timelineResult = await fetchTimelineById(timelineId);
+        
+        if (timelineResult.data) {
+          setTimeline(timelineResult.data);
           
-          // Fetch events for this timeline
-          const eventsResult = await fetchEventsByTimelineId(timeline.id);
+          // Fetch events
+          const eventsResult = await fetchEventsByTimelineId(timelineId);
           if (eventsResult.data && eventsResult.data.length > 0) {
             const transformedEvents = eventsResult.data.map(transformApiEventToTimelineEvent);
             setEvents(transformedEvents);
-            setLoading(false);
-            return;
+          } else {
+            setEvents([]);
+          }
+        } else {
+          // Fallback to mock data
+          const mockTimeline = getMockTimeline(timelineId);
+          if (mockTimeline) {
+            setTimeline(mockTimeline);
+            setEvents(mockTimeline.events);
+          } else {
+            setError('Timeline not found');
           }
         }
-        
-        // Fallback to mock data
-        setEvents(carTimelineEvents);
-        setTimelineTitle("Interactive Timeline");
-      } catch (error) {
-        console.error('Failed to load timeline from API, using mock data:', error);
-        setEvents(carTimelineEvents);
+      } catch (err) {
+        console.error('Failed to load timeline:', err);
+        // Try mock data as fallback
+        const mockTimeline = getMockTimeline(timelineId);
+        if (mockTimeline) {
+          setTimeline(mockTimeline);
+          setEvents(mockTimeline.events);
+        } else {
+          setError('Timeline not found');
+        }
       } finally {
         setLoading(false);
       }
     }
     
-    loadTimeline();
-  }, []);
-  
+    if (timelineId) {
+      loadTimeline();
+    }
+  }, [timelineId]);
+
   const mockComments = [
     {
       id: "1",
@@ -65,13 +85,13 @@ const Index = () => {
     },
     {
       id: "2",
-      author: "CarEnthusiast",
-      content: "Great collection of automotive milestones. Very informative!",
+      author: "TimelineEnthusiast",
+      content: "Great collection! Very informative and well-structured.",
       timestamp: "3 hours ago",
       likes: 15,
     },
   ];
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-14">
@@ -84,14 +104,28 @@ const Index = () => {
       </div>
     );
   }
-  
+
+  if (error || !timeline) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-4xl">
+          <Card className="p-8 text-center">
+            <h2 className="text-2xl font-bold mb-2">Timeline Not Found</h2>
+            <p className="text-muted-foreground">{error || "This timeline does not exist."}</p>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-14">
       <Header />
       <Toaster />
       <main className="container mx-auto px-4 pt-12 max-w-6xl">
-        <Timeline events={events} pixelsPerYear={30} />
-        
+        <Timeline events={events.length > 0 ? events : timeline.events || []} pixelsPerYear={30} />
+
         {/* Timeline Social Interactions */}
         <Card className="p-6 mt-8 bg-card border-2">
           <div className="flex items-center justify-between mb-6">
@@ -123,13 +157,14 @@ const Index = () => {
               {isFollowing ? "Following Creator" : "Follow Creator"}
             </Button>
           </div>
-          
+
           <CommentsSection comments={mockComments} />
         </Card>
       </main>
-      <BottomMenuBar title={timelineTitle} />
+      <BottomMenuBar title={timeline.title} />
     </div>
   );
 };
 
-export default Index;
+export default TimelinePage;
+

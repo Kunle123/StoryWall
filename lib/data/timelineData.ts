@@ -1,4 +1,5 @@
 import { TimelineEvent } from "@/components/timeline/Timeline";
+import { getAllEvents } from "./mockTimelines";
 
 export const carTimelineEvents: TimelineEvent[] = [
   { id: "1", year: 1886, title: "Motorwagen", description: "Karl Benz patents the first practical automobile", category: "vehicle", image: "https://images.unsplash.com/photo-1543076659-9380cdf10613?w=800&auto=format&fit=crop" },
