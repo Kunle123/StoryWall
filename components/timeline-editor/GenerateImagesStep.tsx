@@ -72,18 +72,20 @@ export const GenerateImagesStep = ({
 
       const data = await response.json();
       
+      // Update events with images immediately
+      setEvents(
+        events.map((e, idx) => ({
+          ...e,
+          imageUrl: data.images[idx] || e.imageUrl,
+        }))
+      );
+      
       // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress((prev) => {
           if (prev >= 100) {
             clearInterval(progressInterval);
             setIsGenerating(false);
-            setEvents(
-              events.map((e, idx) => ({
-                ...e,
-                imageUrl: data.images[idx] || e.imageUrl,
-              }))
-            );
             return 100;
           }
           return prev + 10;

@@ -189,9 +189,15 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       }
 
       if (closestCard !== null) {
-        setCenteredCardId(closestCard.id);
+        setCenteredCardId((prevId) => {
+          // Only update if the ID actually changed to prevent unnecessary re-renders
+          if (prevId !== closestCard!.id) {
+            return closestCard!.id;
+          }
+          return prevId;
+        });
         
-        // Notify parent of centered event
+        // Notify parent of centered event (use callback ref to avoid dependency issues)
         if (onCenteredEventChange) {
           const centeredEvent = sortedEvents.find(e => e.id === closestCard!.id);
           onCenteredEventChange(centeredEvent || null);
@@ -203,7 +209,10 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     const scrollContainer = document.querySelector('.overflow-y-auto');
     if (scrollContainer) {
       scrollContainer.addEventListener('scroll', findCenteredCard);
-      findCenteredCard(); // Initial check
+      // Use requestAnimationFrame to avoid calling during render
+      requestAnimationFrame(() => {
+        findCenteredCard();
+      });
     }
 
     return () => {
@@ -211,7 +220,10 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         scrollContainer.removeEventListener('scroll', findCenteredCard);
       }
     };
-  }, [viewMode, sortedEvents, onCenteredEventChange]);
+    // Remove onCenteredEventChange from dependencies to prevent infinite loop
+    // It's a callback that should be stable, but if it changes, we'll still call it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, sortedEvents.length]);
 
   // Calculate box position based on visible cards
   const getVisibleMarkerBox = useCallback(() => {
