@@ -21,9 +21,11 @@ interface TimelineProps {
   title?: string;
   viewMode?: "vertical" | "hybrid";
   onViewModeChange?: (mode: "vertical" | "hybrid") => void;
+  onSelectedEventChange?: (event: TimelineEvent | null) => void;
+  onCenteredEventChange?: (event: TimelineEvent | null) => void;
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange }: TimelineProps) => {
+export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange }: TimelineProps) => {
   const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -70,7 +72,14 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   });
 
   const handleMarkerClick = (eventId: string) => {
-    setSelectedEventId(selectedEventId === eventId ? null : eventId);
+    const newSelectedId = selectedEventId === eventId ? null : eventId;
+    setSelectedEventId(newSelectedId);
+    
+    // Notify parent of selected event
+    if (onSelectedEventChange) {
+      const selectedEvent = newSelectedId ? sortedEvents.find(e => e.id === newSelectedId) : null;
+      onSelectedEventChange(selectedEvent || null);
+    }
     
     // Get the card and scroll container
     const cardElement = cardRefs.current.get(eventId);
@@ -107,6 +116,9 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         setSelectedEventId(null);
+        if (onSelectedEventChange) {
+          onSelectedEventChange(null);
+        }
       }, 150); // Clear selection after scrolling stops
     };
 
@@ -120,7 +132,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       }
       clearTimeout(scrollTimeout);
     };
-  }, [viewMode]);
+  }, [viewMode, onSelectedEventChange]);
 
   // Track visible cards using IntersectionObserver
   useEffect(() => {
@@ -166,7 +178,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       const viewportCenter = window.innerHeight / 2;
       let closestCard: { id: string; distance: number } | null = null;
 
-      for (const [id, card] of cardRefs.current.entries()) {
+      cardRefs.current.forEach((card, id) => {
         const rect = card.getBoundingClientRect();
         const cardCenter = rect.top + rect.height / 2;
         const distance = Math.abs(cardCenter - viewportCenter);
@@ -174,12 +186,16 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         if (!closestCard || distance < closestCard.distance) {
           closestCard = { id, distance };
         }
-      }
+      });
 
       if (closestCard && closestCard.distance < window.innerHeight) {
         setCenteredCardId(closestCard.id);
-      } else {
-        setCenteredCardId(null);
+        
+        // Notify parent of centered event
+        if (onCenteredEventChange) {
+          const centeredEvent = sortedEvents.find(e => e.id === closestCard!.id);
+          onCenteredEventChange(centeredEvent || null);
+        }
       }
     };
 
@@ -195,7 +211,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         scrollContainer.removeEventListener('scroll', findCenteredCard);
       }
     };
-  }, [viewMode, sortedEvents]);
+  }, [viewMode, sortedEvents, onCenteredEventChange]);
 
   // Calculate box position based on visible cards
   const getVisibleMarkerBox = useCallback(() => {
@@ -264,13 +280,32 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     );
   }
 
+  // Calculate time difference between events
+  const getTimeDifference = (event1: TimelineEvent, event2: TimelineEvent) => {
+    const date1 = new Date(event1.year, event1.month || 0, event1.day || 1);
+    const date2 = new Date(event2.year, event2.month || 0, event2.day || 1);
+    const diffMs = Math.abs(date2.getTime() - date1.getTime());
+    
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30.44);
+    const diffYears = Math.floor(diffDays / 365.25);
+    
+    if (diffYears > 0) {
+      return diffYears === 1 ? "1 Year" : `${diffYears} Years`;
+    } else if (diffMonths > 0) {
+      return diffMonths === 1 ? "1 Month" : `${diffMonths} Months`;
+    } else {
+      return diffDays === 1 ? "1 Day" : `${diffDays} Days`;
+    }
+  };
+
   // Vertical View - Full screen timeline
   return (
     <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
       {/* Scrollable cards area - Left side with date margin */}
       <div className="flex-1 overflow-y-auto h-full pr-1 md:pr-0 scrollbar-hide">
-        <div className="space-y-0 pt-0 pb-0 ml-10 mr-1 md:mr-0">
-          {sortedEvents.map((event) => {
+        <div className="space-y-0.5 pt-0 pb-0 ml-10 mr-1 md:mr-0">
+          {sortedEvents.map((event, index) => {
             const isSelected = selectedEventId === event.id;
             const formatDate = () => {
               if (event.day && event.month) {
@@ -289,30 +324,42 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             };
             
             return (
-              <div
-                key={`card-${event.id}`}
-                ref={(el) => {
-                  if (el) {
-                    cardRefs.current.set(event.id, el);
-                  } else {
-                    cardRefs.current.delete(event.id);
-                  }
-                }}
-                data-card-id={event.id}
-                className="relative"
-              >
-                {/* Date in left margin */}
-                <div className="absolute -left-10 top-6 w-8 text-right">
-                  <span className="text-sm font-semibold text-muted-foreground">
-                    {formatDate()}
-                  </span>
+              <div key={`card-wrapper-${event.id}`}>
+                <div
+                  ref={(el) => {
+                    if (el) {
+                      cardRefs.current.set(event.id, el);
+                    } else {
+                      cardRefs.current.delete(event.id);
+                    }
+                  }}
+                  data-card-id={event.id}
+                  className="relative"
+                >
+                  {/* Date in left margin */}
+                  <div className="absolute -left-10 top-6 w-8 text-right">
+                    <span className="text-sm font-semibold text-muted-foreground">
+                      {formatDate()}
+                    </span>
+                  </div>
+                  
+                  <TimelineCard 
+                    event={event} 
+                    side="left"
+                    isHighlighted={isSelected}
+                    isSelected={isSelected}
+                    isCentered={centeredCardId === event.id}
+                  />
                 </div>
                 
-                <TimelineCard 
-                  event={event} 
-                  side="left"
-                  isHighlighted={isSelected}
-                />
+                {/* Time difference indicator */}
+                {index < sortedEvents.length - 1 && (
+                  <div className="flex items-center justify-center py-1">
+                    <span className="text-[11px] text-muted-foreground">
+                      {getTimeDifference(event, sortedEvents[index + 1])}
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -329,7 +376,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
           {/* Visible cards highlight box */}
           {getVisibleMarkerBox() && (
             <div
-              className="absolute w-full border-l-2 border-r-2 border-primary/60 pointer-events-none transition-all duration-500 ease-out z-10"
+              className="absolute w-full bg-primary/80 rounded-full pointer-events-none transition-all duration-500 ease-out z-10"
               style={{
                 left: 0,
                 top: `${getVisibleMarkerBox()!.top}%`,
@@ -338,14 +385,12 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             />
           )}
 
-          {/* Square markers with overlap counts */}
+          {/* Square markers with overlap counts - Hidden but clickable */}
           {markerGroups.map((group, idx) => {
             const isSelected = group.events.some(e => e.id === selectedEventId);
             const isCentered = group.events.some(e => e.id === centeredCardId);
             const firstEvent = group.events[0];
             const showCount = group.events.length > 1;
-            
-            const markerColorClass = isCentered ? "bg-orange-500" : isSelected ? "bg-primary" : "bg-muted-foreground";
             
             return (
               <div
@@ -361,20 +406,13 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                   onClick={() => handleMarkerClick(group.events[0].id)}
                   className="absolute left-0 -translate-y-1/2 cursor-pointer p-3"
                 >
-                  {/* Circular marker - maintains center point when scaled */}
+                  {/* Marker - visible when centered, otherwise invisible */}
                   <div
-                    className={`w-[5px] h-[5px] rounded-full transition-all duration-300 hover:scale-150 ${markerColorClass} ${
-                      isCentered ? 'scale-[1.6] shadow-lg shadow-orange-500/50' : isSelected ? 'scale-[1.4]' : ''
+                    className={`w-[5px] h-[5px] rounded-full transition-opacity duration-300 bg-primary ${
+                      isCentered ? 'opacity-100' : 'opacity-0 hover:opacity-100'
                     }`}
                   />
                 </div>
-                
-                {/* Overlap count */}
-                {showCount && (
-                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-xs font-semibold text-foreground">
-                    {group.events.length}
-                  </div>
-                )}
               </div>
             );
           })}

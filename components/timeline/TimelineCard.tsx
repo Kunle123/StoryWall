@@ -12,9 +12,11 @@ interface TimelineCardProps {
   isStacked?: boolean;
   stackDepth?: number;
   isHighlighted?: boolean;
+  isSelected?: boolean;
+  isCentered?: boolean;
 }
 
-export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false }: TimelineCardProps) => {
+export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false }: TimelineCardProps) => {
   const router = useRouter();
   
   const formatDate = (year: number, month?: number, day?: number) => {
@@ -37,10 +39,26 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
   return (
     <Card
       onClick={() => router.push(`/story/${event.id}`)}
-      className={`p-4 transition-all duration-200 cursor-pointer bg-card border-y border-x-0 rounded-none hover:bg-muted/30 ${
+      className={`p-4 transition-all duration-200 cursor-pointer bg-card border-y border-x-0 rounded-none hover:bg-muted/30 relative ${
         isHighlighted ? "bg-muted/50" : ""
       }`}
     >
+      {/* Selected indicator dot */}
+      {isSelected && (
+        <div 
+          className="absolute top-2 left-2 w-3 h-[5px] bg-blue-500 rounded-full z-10 shadow-lg shadow-blue-500/50" 
+          style={{ 
+            animation: 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) 1'
+          }} 
+        />
+      )}
+      
+      {/* Centered indicator dot */}
+      {isCentered && (
+        <div 
+          className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full z-10 animate-[pulse_3s_ease-in-out_infinite]" 
+        />
+      )}
       <div className="space-y-3">
         {/* Title */}
         <h3 className="font-semibold text-[15px] leading-tight text-orange-500">{event.title}</h3>
@@ -58,14 +76,9 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         {event.image && (
           <div className="mt-3 rounded-lg overflow-hidden border border-border">
             <img 
-              src={event.image.startsWith('http') ? event.image : `https://${event.image}`}
+              src={event.image} 
               alt={event.title}
               className="w-full h-auto object-cover"
-              onError={(e) => {
-                // Hide broken images
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
             />
           </div>
         )}
@@ -85,7 +98,6 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
               className="h-8 px-2 hover:bg-muted"
               onClick={(e) => {
@@ -97,7 +109,6 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             </Button>
             <Button
               variant="ghost"
-              // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
               className="h-8 px-2 hover:bg-muted"
               onClick={(e) => {
@@ -109,7 +120,6 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             </Button>
             <Button
               variant="ghost"
-              // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
               className="h-8 px-2 hover:bg-muted"
               onClick={(e) => {
@@ -122,7 +132,6 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           </div>
           <Button
             variant="ghost"
-            // @ts-ignore - Type inference issue with class-variance-authority
             size="sm"
             className="h-8 px-2 hover:bg-muted"
             onClick={(e) => {
