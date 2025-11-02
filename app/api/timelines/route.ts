@@ -77,13 +77,11 @@ export async function GET(request: NextRequest) {
       creatorId: creatorId || undefined,
     });
 
-    return NextResponse.json(timelines);
-  } catch (error) {
+    return NextResponse.json(timelines || []);
+  } catch (error: any) {
     console.error('Error fetching timelines:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch timelines' },
-      { status: 500 }
-    );
+    // Return empty array instead of error to prevent frontend crashes
+    return NextResponse.json([]);
   }
 }
 

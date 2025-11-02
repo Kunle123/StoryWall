@@ -31,9 +31,13 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      // User doesn't exist - could create here or return error
+      // User doesn't exist - return error but allow frontend to handle gracefully
       return NextResponse.json(
-        { error: 'User not found. Please complete your profile first.' },
+        { 
+          error: 'User not found',
+          credits: 0,
+          message: 'Please complete your profile first'
+        },
         { status: 404 }
       );
     }
