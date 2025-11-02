@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export interface TimelineEvent {
   id: string;
@@ -38,8 +39,18 @@ export const WritingStyleStep = ({
   timelineDescription = "",
   timelineName = "",
 }: WritingStyleStepProps) => {
+  const { toast } = useToast();
+
   const handleGenerateEvents = async () => {
-    // Call AI API to generate events
+    if (!timelineDescription || !timelineName) {
+      toast({
+        title: "Missing information",
+        description: "Please provide timeline name and description first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch("/api/ai/generate-events", {
         method: "POST",
@@ -51,11 +62,16 @@ export const WritingStyleStep = ({
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to generate events");
+        throw new Error(data.error || "Failed to generate events");
       }
 
-      const data = await response.json();
+      if (!data.events || data.events.length === 0) {
+        throw new Error("No events were generated");
+      }
+
       const generatedEvents: TimelineEvent[] = data.events.map((e: any, idx: number) => ({
         id: `event-${Date.now()}-${idx}`,
         year: e.year,
@@ -63,21 +79,17 @@ export const WritingStyleStep = ({
       }));
 
       setEvents(generatedEvents);
-    } catch (error) {
-      // Mock fallback
-      const mockEvents: TimelineEvent[] = [
-        { id: "1", year: 1920, title: "British Mandate Begins" },
-        { id: "2", year: 1936, title: "Arab Revolt" },
-        { id: "3", year: 1947, title: "UN Partition Plan" },
-        { id: "4", year: 1948, title: "Declaration of Israeli Independence" },
-        { id: "5", year: 1967, title: "Six-Day War" },
-        { id: "6", year: 1973, title: "Yom Kippur War" },
-        { id: "7", year: 1987, title: "First Intifada" },
-        { id: "8", year: 1993, title: "Oslo Accords" },
-        { id: "9", year: 2000, title: "Second Intifada" },
-        { id: "10", year: 2005, title: "Gaza Disengagement" },
-      ];
-      setEvents(mockEvents);
+      toast({
+        title: "Success!",
+        description: `Generated ${generatedEvents.length} events`,
+      });
+    } catch (error: any) {
+      console.error("Error generating events:", error);
+      toast({
+        title: "Failed to generate events",
+        description: error.message || "Please check your OpenAI API key configuration and try again.",
+        variant: "destructive",
+      });
     }
   };
 

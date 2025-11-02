@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
+import { useToast } from "@/hooks/use-toast";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -12,6 +13,8 @@ interface EventDetailsStepProps {
 }
 
 export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle }: EventDetailsStepProps) => {
+  const { toast } = useToast();
+
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
       events.map((e) => (e.id === id ? { ...e, description } : e))
@@ -33,18 +36,41 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        updateEventDescription(id, data.descriptions[0] || "");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate description");
       }
-    } catch (error) {
-      // Mock fallback
-      const mockDescription = `This was a pivotal moment in ${event.year} when ${event.title.toLowerCase()}. It marked a significant milestone in the journey.`;
-      updateEventDescription(id, mockDescription);
+
+      if (!data.descriptions || data.descriptions.length === 0) {
+        throw new Error("No description was generated");
+      }
+
+      updateEventDescription(id, data.descriptions[0] || "");
+      toast({
+        title: "Success!",
+        description: "Description generated",
+      });
+    } catch (error: any) {
+      console.error("Error generating description:", error);
+      toast({
+        title: "Failed to generate description",
+        description: error.message || "Please check your OpenAI API key configuration and try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const generateAllDescriptions = async () => {
+    if (events.length === 0) {
+      toast({
+        title: "No events",
+        description: "Please add events first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
         method: "POST",
@@ -56,23 +82,33 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(
-          events.map((e, idx) => ({
-            ...e,
-            description: data.descriptions[idx] || e.description,
-          }))
-        );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate descriptions");
       }
-    } catch (error) {
-      // Mock fallback
+
+      if (!data.descriptions || data.descriptions.length === 0) {
+        throw new Error("No descriptions were generated");
+      }
+
       setEvents(
-        events.map((e) => ({
+        events.map((e, idx) => ({
           ...e,
-          description: `This was a pivotal moment in ${e.year} when ${e.title.toLowerCase()}. It marked a significant milestone in the journey.`,
+          description: data.descriptions[idx] || e.description,
         }))
       );
+      toast({
+        title: "Success!",
+        description: `Generated descriptions for ${events.length} events`,
+      });
+    } catch (error: any) {
+      console.error("Error generating descriptions:", error);
+      toast({
+        title: "Failed to generate descriptions",
+        description: error.message || "Please check your OpenAI API key configuration and try again.",
+        variant: "destructive",
+      });
     }
   };
 

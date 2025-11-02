@@ -66,11 +66,15 @@ export const GenerateImagesStep = ({
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to generate images");
+        throw new Error(data.error || "Failed to generate images");
       }
 
-      const data = await response.json();
+      if (!data.images || data.images.length === 0) {
+        throw new Error("No images were generated");
+      }
       
       // Update events with images immediately
       setEvents(
@@ -86,16 +90,22 @@ export const GenerateImagesStep = ({
           if (prev >= 100) {
             clearInterval(progressInterval);
             setIsGenerating(false);
+            toast({
+              title: "Success!",
+              description: `Generated ${data.images.length} images`,
+            });
             return 100;
           }
           return prev + 10;
         });
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       setIsGenerating(false);
+      setProgress(0);
+      console.error("Error generating images:", error);
       toast({
-        title: "Generation failed",
-        description: "Failed to generate images. Please try again.",
+        title: "Failed to generate images",
+        description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
     }
