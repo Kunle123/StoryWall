@@ -27,25 +27,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Integrate with AI service (OpenAI, Anthropic, etc.)
-    // For now, return a mock response structure
-    // Replace this with actual AI API call
-    
     const aiApiKey = process.env.OPENAI_API_KEY;
     
     if (!aiApiKey) {
-      // Return mock data for development
-      console.warn('OPENAI_API_KEY not set. Returning mock data.');
-      return NextResponse.json({
-        events: [
-          { year: 1939, month: 9, day: 1, title: 'Start of Timeline Event 1' },
-          { year: 1940, title: 'Timeline Event 2' },
-          { year: 1941, month: 12, day: 7, title: 'Timeline Event 3' },
-        ].slice(0, Math.min(maxEvents, 3)),
-      });
+      return NextResponse.json(
+        { error: 'OPENAI_API_KEY is not configured. Please add it to your environment variables.' },
+        { status: 500 }
+      );
     }
 
-    // Actual AI integration with OpenAI
+    // AI integration with OpenAI GPT-4
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -57,31 +48,55 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a timeline event generator. Generate up to ${maxEvents} historical events based on the provided timeline description. Return events as a JSON array with fields: year (required), month (optional), day (optional), title (required). Events should be chronologically ordered and relevant to the timeline description.`,
+            content: `You are a timeline event generator. Generate up to ${maxEvents} historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Events should be chronologically ordered and relevant to the timeline description.`,
           },
           {
             role: 'user',
-            content: `Timeline: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${maxEvents} relevant events as a JSON array.`,
+            content: `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} relevant events. Return as JSON: { "events": [{ "year": 1939, "month": 9, "day": 1, "title": "Event Title" }, ...] }`,
           },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error('Failed to generate events');
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      console.error('OpenAI API error:', errorData);
+      return NextResponse.json(
+        { error: 'Failed to generate events from OpenAI API', details: errorData.message || errorData.error?.message || 'Unknown error' },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from OpenAI');
+    }
+    
     const content = JSON.parse(data.choices[0].message.content);
     
     // Ensure the response has the correct format
-    const events = content.events || [];
+    if (!content.events || !Array.isArray(content.events)) {
+      throw new Error('Invalid events format in OpenAI response');
+    }
     
-    return NextResponse.json({ events });
+    const events = content.events.map((event: any) => ({
+      year: parseInt(event.year) || new Date().getFullYear(),
+      month: event.month ? parseInt(event.month) : undefined,
+      day: event.day ? parseInt(event.day) : undefined,
+      title: String(event.title || 'Untitled Event'),
+    })).filter((event: any) => event.year && event.title);
+    
+    return NextResponse.json({ events: events.slice(0, maxEvents) });
   } catch (error: any) {
     console.error('Error generating events:', error);
     return NextResponse.json(

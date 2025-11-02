@@ -27,60 +27,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Integrate with AI image generation service (OpenAI DALL-E, Stability AI, etc.)
-    const aiImageApiKey = process.env.OPENAI_API_KEY || process.env.STABILITY_API_KEY;
+    const aiImageApiKey = process.env.OPENAI_API_KEY;
     
     if (!aiImageApiKey) {
-      // Return placeholder URLs for development
-      console.warn('AI Image API key not set. Returning placeholder URLs.');
-      return NextResponse.json({
-        images: events.map(() => 
-          `https://via.placeholder.com/800x600/${themeColor.slice(1)}/FFFFFF?text=AI+Image+Placeholder`
-        ),
-      });
+      return NextResponse.json(
+        { error: 'OPENAI_API_KEY is not configured. Please add it to your environment variables.' },
+        { status: 500 }
+      );
     }
 
-    // Determine which service to use
-    const useOpenAI = !!process.env.OPENAI_API_KEY;
+    // Use OpenAI DALL-E 3 for image generation
     
     const images: string[] = [];
     
-    // Generate images for each event
+    // Generate images for each event using DALL-E 3
     for (const event of events) {
       try {
-        const prompt = `Create a ${imageStyle} style image representing: ${event.title}. ${event.description ? `Context: ${event.description.substring(0, 200)}` : ''} Theme color: ${themeColor}`;
-        
-        if (useOpenAI) {
-          // OpenAI DALL-E 3
-          const response = await fetch('https://api.openai.com/v1/images/generations', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'dall-e-3',
-              prompt: prompt.substring(0, 400), // DALL-E 3 has a 400 char limit
-              n: 1,
-              size: '1024x1024',
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to generate image');
-          }
-
-          const data = await response.json();
-          images.push(data.data[0].url);
-        } else {
-          // Stability AI or other service
-          // Add implementation here based on your chosen service
-          throw new Error('Image generation service not configured');
+        // Build prompt with style, event details, and theme
+        let prompt = `Create a ${imageStyle} style image representing: ${event.title}`;
+        if (event.description) {
+          prompt += `. ${event.description.substring(0, 150)}`;
         }
+        // DALL-E 3 has a 400 character limit for prompts
+        prompt = prompt.substring(0, 400);
+        
+        const response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${aiImageApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: prompt,
+            n: 1,
+            size: '1024x1024',
+            quality: 'standard',
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { message: errorText };
+          }
+          console.error(`OpenAI DALL-E API error for "${event.title}":`, errorData);
+          throw new Error(`Failed to generate image: ${errorData.message || errorData.error?.message || 'Unknown error'}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.data || !data.data[0] || !data.data[0].url) {
+          throw new Error('Invalid image response format from OpenAI');
+        }
+        
+        images.push(data.data[0].url);
       } catch (error: any) {
         console.error(`Error generating image for event "${event.title}":`, error);
-        // Use placeholder if generation fails
-        images.push(`https://via.placeholder.com/800x600/${themeColor.slice(1)}/FFFFFF?text=${encodeURIComponent(event.title)}`);
+        return NextResponse.json(
+          { error: `Failed to generate image for "${event.title}"`, details: error.message },
+          { status: 500 }
+        );
       }
     }
     
