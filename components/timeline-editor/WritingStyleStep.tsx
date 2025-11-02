@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export interface TimelineEvent {
   id: string;
@@ -40,6 +41,7 @@ export const WritingStyleStep = ({
   timelineName = "",
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerateEvents = async () => {
     if (!timelineDescription || !timelineName) {
@@ -51,6 +53,7 @@ export const WritingStyleStep = ({
       return;
     }
 
+    setIsGenerating(true);
     try {
       const response = await fetch("/api/ai/generate-events", {
         method: "POST",
@@ -98,6 +101,8 @@ export const WritingStyleStep = ({
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -150,11 +155,15 @@ export const WritingStyleStep = ({
       <div className="flex gap-2">
         <Button
           onClick={handleGenerateEvents}
-          disabled={!writingStyle}
+          disabled={!writingStyle || isGenerating}
           className="flex-1"
         >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Generate Events with AI
+          {isGenerating ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-4 w-4" />
+          )}
+          {isGenerating ? "Generating..." : "Generate Events with AI"}
         </Button>
         <Button variant="outline" onClick={addEvent}>
           <Plus className="mr-2 h-4 w-4" />

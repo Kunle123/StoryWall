@@ -1,9 +1,10 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -14,6 +15,8 @@ interface EventDetailsStepProps {
 
 export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle }: EventDetailsStepProps) => {
   const { toast } = useToast();
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -25,6 +28,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     const event = events.find((e) => e.id === id);
     if (!event) return;
 
+    setGeneratingId(id);
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
         method: "POST",
@@ -65,6 +69,8 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
+    } finally {
+      setGeneratingId(null);
     }
   };
 
@@ -78,6 +84,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       return;
     }
 
+    setIsGeneratingAll(true);
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
         method: "POST",
@@ -123,6 +130,8 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsGeneratingAll(false);
     }
   };
 
@@ -137,11 +146,16 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         </p>
         <Button
           onClick={generateAllDescriptions}
+          disabled={isGeneratingAll}
           size="lg"
           className="w-full"
         >
-          <Sparkles className="mr-2 h-5 w-5" />
-          Generate All Descriptions with AI
+          {isGeneratingAll ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-5 w-5" />
+          )}
+          {isGeneratingAll ? "Generating All..." : "Generate All Descriptions with AI"}
         </Button>
       </div>
 
@@ -157,9 +171,14 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
                 variant="outline"
                 size="sm"
                 onClick={() => generateDescription(event.id)}
+                disabled={generatingId === event.id}
               >
-                <Sparkles className="mr-2 h-3 w-3" />
-                Generate with AI
+                {generatingId === event.id ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-3 w-3" />
+                )}
+                {generatingId === event.id ? "Generating..." : "Generate with AI"}
               </Button>
             </div>
             <Textarea

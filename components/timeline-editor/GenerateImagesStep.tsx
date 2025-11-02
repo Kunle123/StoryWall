@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Eye, Pencil } from "lucide-react";
+import { Sparkles, Eye, Pencil, Loader2 } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -83,13 +83,25 @@ export const GenerateImagesStep = ({
         throw new Error("No images were generated");
       }
       
-      // Update events with images immediately
+      // Update events with images immediately (filter out null values)
+      const successfulImages = data.images.filter((img: any) => img !== null);
+      const failedCount = data.images.length - successfulImages.length;
+      
       setEvents(
         events.map((e, idx) => ({
           ...e,
           imageUrl: data.images[idx] || e.imageUrl,
         }))
       );
+      
+      // Show warning if some images failed
+      if (failedCount > 0) {
+        toast({
+          title: "Partial success",
+          description: `Generated ${successfulImages.length} of ${events.length} images. Some prompts may have been rejected by content policy.`,
+          variant: "default",
+        });
+      }
       
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -135,11 +147,15 @@ export const GenerateImagesStep = ({
       <div className="space-y-4">
         <Button
           onClick={handleGenerateImages}
-          disabled={isGenerating}
+          disabled={allGenerated || isGenerating}
           size="lg"
           className="w-full"
         >
-          <Sparkles className="mr-2 h-5 w-5" />
+          {isGenerating ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-5 w-5" />
+          )}
           {isGenerating ? "Generating Images..." : "Generate All Images"}
         </Button>
 
