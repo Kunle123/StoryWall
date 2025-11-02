@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/db/prisma';
+import { getOrCreateUser } from '@/lib/db/users';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -64,15 +65,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      // Find user by Clerk ID
-      const user = await prisma.user.findUnique({
-        where: { clerkId: userId },
-      });
-
-      if (!user) {
-        console.error('User not found for Clerk ID:', userId);
-        return NextResponse.json({ received: true });
-      }
+      // Get or create user (auto-creates if doesn't exist)
+      const user = await getOrCreateUser(userId);
 
       // Add credits to user
       await prisma.user.update({
@@ -93,22 +87,19 @@ export async function POST(request: NextRequest) {
       const credits = parseInt(paymentIntent.metadata?.credits || '0', 10);
 
       if (userId && credits) {
-        const user = await prisma.user.findUnique({
-          where: { clerkId: userId },
+        // Get or create user (auto-creates if doesn't exist)
+        const user = await getOrCreateUser(userId);
+        
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            credits: {
+              increment: credits,
+            },
+          },
         });
 
-        if (user) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: {
-              credits: {
-                increment: credits,
-              },
-            },
-          });
-
-          console.log(`Added ${credits} credits to user ${user.id} via payment_intent`);
-        }
+        console.log(`Added ${credits} credits to user ${user.id} via payment_intent`);
       }
     }
 

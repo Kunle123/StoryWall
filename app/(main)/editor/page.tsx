@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 
+const STORAGE_KEY = 'timeline-editor-state';
+
 const TimelineEditor = () => {
   const router = useRouter();
   const { toast } = useToast();
@@ -30,6 +32,64 @@ const TimelineEditor = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setTimelineName(state.timelineName || "");
+        setTimelineDescription(state.timelineDescription || "");
+        setWritingStyle(state.writingStyle || "");
+        setImageStyle(state.imageStyle || "");
+        setThemeColor(state.themeColor || "");
+        setEvents(state.events || []);
+        setCurrentStep(state.currentStep || 1);
+      } catch (e) {
+        console.error('Failed to load saved state:', e);
+      }
+    }
+  }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const state = {
+      timelineName,
+      timelineDescription,
+      writingStyle,
+      imageStyle,
+      themeColor,
+      events,
+      currentStep,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [timelineName, timelineDescription, writingStyle, imageStyle, themeColor, events, currentStep]);
+
+  // Handle Stripe success return
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const success = params.get('success');
+      const credits = params.get('credits');
+      
+      if (success === 'true' && credits) {
+        // Refresh credits and show success message
+        import('@/hooks/use-credits').then(({ useCredits }) => {
+          const creditsStore = useCredits.getState();
+          creditsStore.fetchCredits().then(() => {
+            toast({
+              title: "Payment Successful!",
+              description: `You've received ${credits} credits. Your balance has been updated.`,
+            });
+          });
+        });
+        
+        // Remove query params
+        router.replace('/editor');
+      }
+    }
+  }, [router, toast]);
 
   const steps = [
     { number: 1, title: "Timeline Info" },
@@ -96,6 +156,9 @@ const TimelineEditor = () => {
         title: "Success!",
         description: "Timeline saved successfully",
       });
+
+      // Clear saved state since timeline is saved
+      localStorage.removeItem(STORAGE_KEY);
 
       // Navigate to timeline view
       setTimeout(() => {

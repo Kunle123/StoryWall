@@ -96,7 +96,10 @@ export const Header = () => {
             variant="outline"
             size="sm"
             className="h-8 gap-1.5"
-            onClick={() => setShowBuyCredits(true)}
+            onClick={() => {
+              setShowBuyCredits(true);
+            }}
+            data-buy-credits
           >
             <Coins className="w-4 h-4" />
             <span className="font-semibold">{credits}</span>
@@ -117,7 +120,16 @@ export const Header = () => {
         </div>
       </div>
       
-      <BuyCreditsModal open={showBuyCredits} onOpenChange={setShowBuyCredits} />
+      <BuyCreditsModal 
+        open={showBuyCredits} 
+        onOpenChange={(open) => {
+          setShowBuyCredits(open);
+          // Refresh credits when modal closes (in case purchase was made)
+          if (!open) {
+            fetchCredits();
+          }
+        }} 
+      />
     </header>
   );
 };

@@ -567,7 +567,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "Transcontinental Railroad", 
     description: "The First Transcontinental Railroad in the United States is completed when the Central Pacific and Union Pacific railroads meet at Promontory Summit, Utah. The 'Golden Spike' ceremony connected the East and West coasts, reducing cross-country travel from months to just over a week. This engineering marvel transformed America's economy, enabling rapid settlement of the West and revolutionizing freight transportation, forever changing the nation's geography and society.", 
     category: "milestone",
-    image: "https://images.unsplash.com/photo-1570347929626-2ebe003a841b?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-4", 
@@ -577,7 +577,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "First Motorcycle", 
     description: "Gottlieb Daimler and Wilhelm Maybach create the 'Daimler Reitwagen' (riding wagon), widely considered the world's first true motorcycle. This wooden-framed vehicle featured a small internal combustion engine mounted between the wheels, reaching speeds of about 12 mph. Though crude by modern standards, this invention demonstrated the potential of motorized personal transport and paved the way for the motorcycle industry, offering individuals unprecedented mobility and freedom.", 
     category: "innovation",
-    image: "https://images.unsplash.com/photo-1558980663-3681c1f3e6f0?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-5", 
@@ -617,7 +617,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "Hindenburg Disaster", 
     description: "The German passenger airship LZ 129 Hindenburg catches fire and is destroyed while attempting to dock at Naval Air Station Lakehurst in New Jersey, killing 36 people. This catastrophic event, captured in dramatic newsreel footage, marked the end of the passenger airship era. The disaster highlighted the dangers of hydrogen-filled dirigibles and shifted focus entirely to fixed-wing aircraft for commercial air travel, accelerating the development of safer passenger planes.", 
     category: "crisis",
-    image: "https://images.unsplash.com/photo-1580836779849-6b772370e0e8?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-9", 
@@ -706,7 +706,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "Channel Tunnel Opens", 
     description: "The Channel Tunnel (Eurotunnel) opens, creating the first fixed link between Great Britain and continental Europe. This engineering marvel, spanning 31.4 miles (50.5 km) beneath the English Channel, enables high-speed rail travel between London and Paris in just over 2 hours. The tunnel represents one of the greatest civil engineering achievements of the 20th century, overcoming immense geological and technical challenges to connect two nations and transform European travel.", 
     category: "milestone",
-    image: "https://images.unsplash.com/photo-1570347929626-2ebe003a841b?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-18", 
@@ -736,7 +736,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "Segway Invented", 
     description: "Inventor Dean Kamen unveils the Segway Personal Transporter, a self-balancing, battery-powered personal transportation device. Using sophisticated gyroscopes and tilt sensors, the Segway could sense a rider's body movement and respond instantly. Though it never achieved widespread adoption as originally envisioned, the Segway's revolutionary self-balancing technology influenced the development of hoverboards, e-scooters, and other personal mobility devices.", 
     category: "innovation",
-    image: "https://images.unsplash.com/photo-1558980663-3681c1f3e6f0?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-21", 
@@ -866,7 +866,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "COVID-19 Transport", 
     description: "The COVID-19 pandemic fundamentally transforms transportation habits worldwide. Public transit ridership plummeted, while cycling, walking, and private vehicle use surged. Remote work eliminated millions of daily commutes, and delivery services exploded as people avoided stores. The crisis accelerated trends toward electric vehicles, bike lanes, and urban redesign, while highlighting transportation's role in public health and creating lasting changes in how and why people travel.", 
     category: "crisis",
-    image: "https://images.unsplash.com/photo-1558980663-3681c1f3e6f0?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-34", 
@@ -1086,7 +1086,7 @@ export const transportationEvolutionTimeline: TimelineEvent[] = [
     title: "Solar Roads", 
     description: "Major roadways integrated with solar panels begin generating electricity while supporting vehicle traffic. These solar roads use durable, transparent panels that can withstand heavy traffic while generating renewable energy for the grid and powering street lights, electric vehicle charging, and other infrastructure. The technology represents a convergence of transportation and energy infrastructure, turning roads into power generators and contributing to sustainable transportation systems.", 
     category: "innovation",
-    image: "https://images.unsplash.com/photo-1570347929626-2ebe003a841b?w=800&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&auto=format&fit=crop"
   },
   { 
     id: "trans-56", 

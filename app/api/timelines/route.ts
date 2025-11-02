@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createTimeline, listTimelines } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
-
-// Note: Auth is currently disabled. Uncomment when Clerk is configured.
-// import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
+import { getOrCreateUser } from '@/lib/db/users';
 
 export async function POST(request: NextRequest) {
   try {
-    // const { userId } = auth();
-    // if (!userId) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // For now, use the test user ID until auth is set up
-    // TODO: Replace with actual userId from Clerk auth
-    const placeholderUserId = process.env.TEST_USER_ID || '4b499a69-c3f1-48ee-a938-305cce4c19e8';
+    // Get or create user (auto-creates if doesn't exist)
+    const user = await getOrCreateUser(userId);
 
     const body = await request.json();
     const { title, description, visualization_type, is_public, is_collaborative } = body;
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
       title,
       description,
       slug,
-      creator_id: placeholderUserId, // Replace with userId when auth is enabled
+      creator_id: user.id, // Use actual user ID from database
       visualization_type: visualization_type || 'horizontal',
       is_public: is_public !== false,
       is_collaborative: is_collaborative || false,

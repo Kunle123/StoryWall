@@ -2,10 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, Loader2, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useCredits } from "@/hooks/use-credits";
+import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 
 export interface TimelineEvent {
   id: string;
@@ -33,6 +34,8 @@ const writingStyles = [
   "Poetic",
 ];
 
+const CREDIT_COST_EVENTS = 10;
+
 export const WritingStyleStep = ({
   writingStyle,
   setWritingStyle,
@@ -43,7 +46,8 @@ export const WritingStyleStep = ({
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const { deductCredits } = useCredits();
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
+  const { deductCredits, credits } = useCredits();
 
   const handleGenerateEvents = async () => {
     if (!timelineDescription || !timelineName) {
@@ -56,19 +60,15 @@ export const WritingStyleStep = ({
     }
 
     // Deduct credits before generating
-    const creditsDeducted = await deductCredits(10, "AI Event Generation");
+    const creditsDeducted = await deductCredits(CREDIT_COST_EVENTS, "AI Event Generation");
     if (!creditsDeducted) {
-      toast({
-        title: "Insufficient Credits",
-        description: "You need 10 credits for AI Event Generation. Click the credits button to purchase more.",
-        variant: "destructive",
-      });
+      setShowCreditsDialog(true);
       return;
     }
     
     toast({
       title: "Credits Used",
-      description: "10 credits used for AI Event Generation",
+      description: `${CREDIT_COST_EVENTS} credits used for AI Event Generation`,
     });
 
     setIsGenerating(true);
@@ -182,12 +182,46 @@ export const WritingStyleStep = ({
             <Sparkles className="mr-2 h-4 w-4" />
           )}
           {isGenerating ? "Generating..." : "Generate Events with AI"}
+          {!isGenerating && (
+            <Badge variant="secondary" className="ml-2 text-xs">
+              <Coins className="w-3 h-3 mr-1" />
+              {CREDIT_COST_EVENTS}
+            </Badge>
+          )}
         </Button>
         <Button variant="outline" onClick={addEvent}>
           <Plus className="mr-2 h-4 w-4" />
           Add Manually
         </Button>
       </div>
+
+      <InsufficientCreditsDialog
+        open={showCreditsDialog}
+        onOpenChange={setShowCreditsDialog}
+        required={CREDIT_COST_EVENTS}
+        current={credits}
+        action="AI Event Generation"
+        onBuyCredits={() => {
+          // Open buy credits modal via Header
+          const headerButton = document.querySelector('[data-buy-credits]');
+          if (headerButton) {
+            (headerButton as HTMLElement).click();
+          } else {
+            // Fallback: navigate or show toast
+            toast({
+              title: "Buy Credits",
+              description: "Click the credits button in the header to purchase more credits.",
+            });
+          }
+        }}
+        onContinueWithout={() => {
+          // User can continue by adding events manually
+          toast({
+            title: "Continue Without AI",
+            description: "You can add events manually using the 'Add Manually' button.",
+          });
+        }}
+      />
 
       {/* Events List */}
       {events.length > 0 && (

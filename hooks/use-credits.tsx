@@ -30,6 +30,8 @@ export const useCredits = create<CreditsState>((set, get) => ({
   },
   
   deductCredits: async (amount: number, action: string) => {
+    // Always fetch fresh credits from server before checking
+    await get().fetchCredits();
     const currentCredits = get().credits;
     
     if (currentCredits < amount) {
@@ -46,6 +48,10 @@ export const useCredits = create<CreditsState>((set, get) => ({
       
       if (!response.ok) {
         const error = await response.json();
+        // Update credits from error response if available
+        if (error.credits !== undefined) {
+          set({ credits: error.credits });
+        }
         throw new Error(error.error || 'Failed to deduct credits');
       }
       
@@ -54,6 +60,8 @@ export const useCredits = create<CreditsState>((set, get) => ({
       return true;
     } catch (error: any) {
       console.error('Failed to deduct credits:', error);
+      // Refresh credits to ensure we have latest
+      await get().fetchCredits();
       return false;
     }
   },

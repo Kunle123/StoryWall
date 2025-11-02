@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Eye, Pencil, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Eye, Pencil, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
+import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 
 const themeColors = [
   { name: "Blue", value: "#3B82F6" },
@@ -28,6 +30,8 @@ interface GenerateImagesStepProps {
   themeColor: string;
 }
 
+const CREDIT_COST_IMAGE = 5;
+
 export const GenerateImagesStep = ({
   events,
   setEvents,
@@ -38,7 +42,8 @@ export const GenerateImagesStep = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
-  const { deductCredits } = useCredits();
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
+  const { deductCredits, credits } = useCredits();
 
   const handleSaveEdit = () => {
     if (editingEvent) {
@@ -55,7 +60,7 @@ export const GenerateImagesStep = ({
 
   const handleGenerateImages = async () => {
     const eventCount = events.length;
-    const totalCost = eventCount * 5;
+    const totalCost = eventCount * CREDIT_COST_IMAGE;
     
     // Deduct credits before generating
     const creditsDeducted = await deductCredits(
@@ -63,11 +68,7 @@ export const GenerateImagesStep = ({
       `AI Image Generation for ${eventCount} events`
     );
     if (!creditsDeducted) {
-      toast({
-        title: "Insufficient Credits",
-        description: `You need ${totalCost} credits for AI Image Generation. Click the credits button to purchase more.`,
-        variant: "destructive",
-      });
+      setShowCreditsDialog(true);
       return;
     }
 
@@ -166,7 +167,7 @@ export const GenerateImagesStep = ({
       <div className="space-y-4">
         <Button
           onClick={handleGenerateImages}
-          disabled={allGenerated || isGenerating}
+          disabled={allGenerated || isGenerating || events.length === 0}
           size="lg"
           className="w-full"
         >
@@ -176,6 +177,12 @@ export const GenerateImagesStep = ({
             <Sparkles className="mr-2 h-5 w-5" />
           )}
           {isGenerating ? "Generating Images..." : "Generate All Images"}
+          {!isGenerating && events.length > 0 && (
+            <Badge variant="secondary" className="ml-2 text-xs">
+              <Coins className="w-3 h-3 mr-1" />
+              {events.length * CREDIT_COST_IMAGE}
+            </Badge>
+          )}
         </Button>
 
         {isGenerating && (
@@ -298,6 +305,31 @@ export const GenerateImagesStep = ({
           )}
         </DialogContent>
       </Dialog>
+
+      <InsufficientCreditsDialog
+        open={showCreditsDialog}
+        onOpenChange={setShowCreditsDialog}
+        required={events.length * CREDIT_COST_IMAGE}
+        current={credits}
+        action={`AI Image Generation for ${events.length} events`}
+        onBuyCredits={() => {
+          const headerButton = document.querySelector('[data-buy-credits]');
+          if (headerButton) {
+            (headerButton as HTMLElement).click();
+          } else {
+            toast({
+              title: "Buy Credits",
+              description: "Click the credits button in the header to purchase more credits.",
+            });
+          }
+        }}
+        onContinueWithout={() => {
+          toast({
+            title: "Continue Without AI",
+            description: "You can skip image generation and save your timeline. Images can be added later.",
+          });
+        }}
+      />
     </div>
   );
 };

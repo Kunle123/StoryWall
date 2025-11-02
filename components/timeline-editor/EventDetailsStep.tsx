@@ -1,11 +1,13 @@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useCredits } from "@/hooks/use-credits";
+import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -14,11 +16,15 @@ interface EventDetailsStepProps {
   writingStyle: string;
 }
 
+const CREDIT_COST_DESCRIPTION = 2;
+
 export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const { deductCredits } = useCredits();
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
+  const [dialogContext, setDialogContext] = useState<{ required: number; action: string; onContinue?: () => void } | null>(null);
+  const { deductCredits, credits } = useCredits();
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -31,13 +37,10 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     if (!event) return;
 
     // Deduct credits before generating
-    const creditsDeducted = await deductCredits(2, "AI Description Generation");
+    const creditsDeducted = await deductCredits(CREDIT_COST_DESCRIPTION, "AI Description Generation");
     if (!creditsDeducted) {
-      toast({
-        title: "Insufficient Credits",
-        description: "You need 2 credits for AI Description Generation. Click the credits button to purchase more.",
-        variant: "destructive",
-      });
+      setDialogContext({ required: CREDIT_COST_DESCRIPTION, action: "AI Description Generation" });
+      setShowCreditsDialog(true);
       return;
     }
 
@@ -98,7 +101,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     }
 
     const eventsWithoutDescriptions = events.filter(e => !e.description).length;
-    const totalCost = eventsWithoutDescriptions * 2;
+    const totalCost = eventsWithoutDescriptions * CREDIT_COST_DESCRIPTION;
     
     // Deduct credits before generating
     const creditsDeducted = await deductCredits(
@@ -106,11 +109,17 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       `AI Description Generation for ${eventsWithoutDescriptions} events`
     );
     if (!creditsDeducted) {
-      toast({
-        title: "Insufficient Credits",
-        description: `You need ${totalCost} credits for AI Description Generation. Click the credits button to purchase more.`,
-        variant: "destructive",
+      setDialogContext({ 
+        required: totalCost, 
+        action: `AI Description Generation for ${eventsWithoutDescriptions} events`,
+        onContinue: () => {
+          toast({
+            title: "Continue Without AI",
+            description: "You can manually add descriptions to events.",
+          });
+        }
       });
+      setShowCreditsDialog(true);
       return;
     }
 
@@ -176,7 +185,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         </p>
         <Button
           onClick={generateAllDescriptions}
-          disabled={isGeneratingAll}
+          disabled={isGeneratingAll || events.length === 0}
           size="lg"
           className="w-full"
         >
@@ -186,6 +195,12 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
             <Sparkles className="mr-2 h-5 w-5" />
           )}
           {isGeneratingAll ? "Generating All..." : "Generate All Descriptions with AI"}
+          {!isGeneratingAll && events.length > 0 && (
+            <Badge variant="secondary" className="ml-2 text-xs">
+              <Coins className="w-3 h-3 mr-1" />
+              {events.filter(e => !e.description).length * CREDIT_COST_DESCRIPTION}
+            </Badge>
+          )}
         </Button>
       </div>
 
@@ -209,6 +224,12 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
                   <Sparkles className="mr-2 h-3 w-3" />
                 )}
                 {generatingId === event.id ? "Generating..." : "Generate with AI"}
+                {generatingId !== event.id && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    <Coins className="w-2 h-2 mr-1" />
+                    {CREDIT_COST_DESCRIPTION}
+                  </Badge>
+                )}
               </Button>
             </div>
             <Textarea
@@ -221,6 +242,28 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           </div>
         ))}
       </div>
+
+      {dialogContext && (
+        <InsufficientCreditsDialog
+          open={showCreditsDialog}
+          onOpenChange={setShowCreditsDialog}
+          required={dialogContext.required}
+          current={credits}
+          action={dialogContext.action}
+          onBuyCredits={() => {
+            const headerButton = document.querySelector('[data-buy-credits]');
+            if (headerButton) {
+              (headerButton as HTMLElement).click();
+            } else {
+              toast({
+                title: "Buy Credits",
+                description: "Click the credits button in the header to purchase more credits.",
+              });
+            }
+          }}
+          onContinueWithout={dialogContext.onContinue}
+        />
+      )}
     </div>
   );
 };

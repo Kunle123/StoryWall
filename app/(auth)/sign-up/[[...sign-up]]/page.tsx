@@ -17,7 +17,12 @@ export default function SignUpPage() {
   }
   return (
     <div className="min-h-screen grid place-items-center p-6">
-      <SignUp routing="hash" />
+      <SignUp 
+        routing="path"
+        path="/sign-up"
+        signInUrl="/sign-in"
+        fallbackRedirectUrl="/discover"
+      />
     </div>
   );
 }

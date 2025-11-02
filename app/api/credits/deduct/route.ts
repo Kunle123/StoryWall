@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db/prisma';
+import { getOrCreateUser } from '@/lib/db/users';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json(
@@ -25,29 +26,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find or create user
-    let user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+    // Get or create user (auto-creates if doesn't exist)
+    const user = await getOrCreateUser(userId);
+
+    // Get full user to check credits
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { credits: true },
     });
 
-    if (!user) {
-      // User doesn't exist - return error but allow frontend to handle gracefully
+    if (!fullUser) {
       return NextResponse.json(
-        { 
-          error: 'User not found',
-          credits: 0,
-          message: 'Please complete your profile first'
-        },
+        { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Check if user has enough credits
-    if (user.credits < amount) {
+    if (fullUser.credits < amount) {
       return NextResponse.json(
         { 
           error: 'Insufficient credits',
-          credits: user.credits,
+          credits: fullUser.credits,
           required: amount
         },
         { status: 400 }

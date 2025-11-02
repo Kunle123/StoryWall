@@ -25,8 +25,8 @@ This document explains how to set up environment variables for the StoryWall app
 - `CLERK_SECRET_KEY` - Your Clerk secret key
 - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
 - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
-- `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/discover`
-- `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/discover`
+
+**Note:** Redirect URLs are configured in components using `fallbackRedirectUrl` prop, so `NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` are not needed.
 
 ### Image Upload (Cloudinary)
 - `CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name

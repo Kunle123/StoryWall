@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db/prisma';
+import { getOrCreateUser } from '@/lib/db/users';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
     
     // Safely try to get user ID from Clerk
     try {
-      const authResult = auth();
+      const authResult = await auth();
       userId = authResult?.userId || null;
     } catch (authError: any) {
       // Clerk might not be configured or might throw an error
@@ -25,17 +26,8 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      // Find user by Clerk ID
-      const user = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { credits: true },
-      });
-
-      if (!user) {
-        // User doesn't exist yet - return default credits
-        return NextResponse.json({ credits: 100 });
-      }
-
+      // Get or create user (auto-creates if doesn't exist)
+      const user = await getOrCreateUser(userId);
       return NextResponse.json({ credits: user.credits ?? 100 });
     } catch (dbError: any) {
       // If database query fails, return default credits
