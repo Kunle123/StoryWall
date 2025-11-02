@@ -18,6 +18,26 @@ const TimelinePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
+  const [centeredEvent, setCenteredEvent] = useState<TimelineEvent | null>(null);
+  
+  // Format the centered event date
+  const formatSelectedDate = (event: TimelineEvent | null) => {
+    if (!event) return undefined;
+    
+    if (event.day && event.month) {
+      return new Date(event.year, event.month - 1, event.day).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } else if (event.month) {
+      return new Date(event.year, event.month - 1).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric'
+      });
+    }
+    return event.year.toString();
+  };
 
 
   useEffect(() => {
@@ -87,7 +107,7 @@ const TimelinePage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <SubMenuBar title={timeline.title} />
+      <SubMenuBar title={timeline.title} selectedDate={formatSelectedDate(centeredEvent)} />
       <Toaster />
       <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
         <Timeline 
@@ -95,6 +115,7 @@ const TimelinePage = () => {
           pixelsPerYear={30} 
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          onCenteredEventChange={setCenteredEvent}
         />
       </main>
       <BottomMenuBar 

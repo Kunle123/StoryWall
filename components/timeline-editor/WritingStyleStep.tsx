@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useCredits } from "@/hooks/use-credits";
 
 export interface TimelineEvent {
   id: string;
@@ -42,6 +43,7 @@ export const WritingStyleStep = ({
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const { deductCredits } = useCredits();
 
   const handleGenerateEvents = async () => {
     if (!timelineDescription || !timelineName) {
@@ -52,6 +54,22 @@ export const WritingStyleStep = ({
       });
       return;
     }
+
+    // Deduct credits before generating
+    const creditsDeducted = await deductCredits(10, "AI Event Generation");
+    if (!creditsDeducted) {
+      toast({
+        title: "Insufficient Credits",
+        description: "You need 10 credits for AI Event Generation. Click the credits button to purchase more.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Credits Used",
+      description: "10 credits used for AI Event Generation",
+    });
 
     setIsGenerating(true);
     try {

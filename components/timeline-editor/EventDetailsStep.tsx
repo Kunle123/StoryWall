@@ -5,6 +5,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useCredits } from "@/hooks/use-credits";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -17,6 +18,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const { deductCredits } = useCredits();
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -27,6 +29,17 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
   const generateDescription = async (id: string) => {
     const event = events.find((e) => e.id === id);
     if (!event) return;
+
+    // Deduct credits before generating
+    const creditsDeducted = await deductCredits(2, "AI Description Generation");
+    if (!creditsDeducted) {
+      toast({
+        title: "Insufficient Credits",
+        description: "You need 2 credits for AI Description Generation. Click the credits button to purchase more.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setGeneratingId(id);
     try {
@@ -79,6 +92,23 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       toast({
         title: "No events",
         description: "Please add events first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const eventsWithoutDescriptions = events.filter(e => !e.description).length;
+    const totalCost = eventsWithoutDescriptions * 2;
+    
+    // Deduct credits before generating
+    const creditsDeducted = await deductCredits(
+      totalCost, 
+      `AI Description Generation for ${eventsWithoutDescriptions} events`
+    );
+    if (!creditsDeducted) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${totalCost} credits for AI Description Generation. Click the credits button to purchase more.`,
         variant: "destructive",
       });
       return;

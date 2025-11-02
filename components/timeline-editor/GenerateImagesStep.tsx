@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits } from "@/hooks/use-credits";
 
 const themeColors = [
   { name: "Blue", value: "#3B82F6" },
@@ -37,6 +38,7 @@ export const GenerateImagesStep = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
+  const { deductCredits } = useCredits();
 
   const handleSaveEdit = () => {
     if (editingEvent) {
@@ -52,6 +54,23 @@ export const GenerateImagesStep = ({
   };
 
   const handleGenerateImages = async () => {
+    const eventCount = events.length;
+    const totalCost = eventCount * 5;
+    
+    // Deduct credits before generating
+    const creditsDeducted = await deductCredits(
+      totalCost, 
+      `AI Image Generation for ${eventCount} events`
+    );
+    if (!creditsDeducted) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${totalCost} credits for AI Image Generation. Click the credits button to purchase more.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
     setProgress(0);
     

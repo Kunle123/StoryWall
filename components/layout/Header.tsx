@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User } from "lucide-react";
+import { User, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoryWallIcon } from "@/components/StoryWallIcon";
+import { useCredits } from "@/hooks/use-credits";
+import { BuyCreditsModal } from "@/components/BuyCreditsModal";
 
 export const Header = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
+  const { credits, fetchCredits } = useCredits();
+
+  useEffect(() => {
+    fetchCredits();
+  }, [fetchCredits]);
 
   useEffect(() => {
     let scrollableContainers: Element[] = [];
@@ -83,19 +91,33 @@ export const Header = () => {
           <span className="font-display font-bold text-xl text-foreground">StoryWall</span>
         </Link>
 
-        <Button
-          variant="ghost"
-          // @ts-ignore - Type inference issue with class-variance-authority
-          size="icon"
-          className="h-8 w-8 rounded-full"
-          // @ts-ignore - Type inference issue with asChild prop
-          asChild
-        >
-          <Link href="/profile">
-            <User className="w-4 h-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5"
+            onClick={() => setShowBuyCredits(true)}
+          >
+            <Coins className="w-4 h-4" />
+            <span className="font-semibold">{credits}</span>
+          </Button>
+          
+          <Button
+            variant="ghost"
+            // @ts-ignore - Type inference issue with class-variance-authority
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            // @ts-ignore - Type inference issue with asChild prop
+            asChild
+          >
+            <Link href="/profile">
+              <User className="w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
+      
+      <BuyCreditsModal open={showBuyCredits} onOpenChange={setShowBuyCredits} />
     </header>
   );
 };

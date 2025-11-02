@@ -16,6 +16,7 @@ model User {
   username  String   @unique @db.VarChar(50)
   email     String   @unique @db.VarChar(255)
   avatarUrl String?  @map("avatar_url")
+  credits   Int      @default(100) @map("credits")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
