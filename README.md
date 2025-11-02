@@ -20,7 +20,15 @@ Collaborative timeline platform - "Wikipedia for timelines". This repository con
 npm install
 ```
 
-2. Create `.env.local` and add the required variables (see spec).
+2. Create `.env.local` from `.env.example` and add your API keys:
+   ```bash
+   cp .env.example .env.local
+   ```
+   Then edit `.env.local` and add your actual API keys:
+   - `OPENAI_API_KEY` - Get from https://platform.openai.com/api-keys
+   - `CLOUDINARY_*` - Get from your Cloudinary dashboard
+   - `CLERK_*` - Get from your Clerk dashboard
+   - `DATABASE_URL` - Your PostgreSQL connection string
 
 3. Run the dev server
 ```bash
