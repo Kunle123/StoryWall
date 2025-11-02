@@ -134,15 +134,15 @@ export async function POST(request: NextRequest) {
       imagePrompts = imagePrompts.slice(0, events.length);
     }
     
-    const response: { descriptions: string[]; imagePrompts?: string[] } = {
+    const responseData: { descriptions: string[]; imagePrompts?: string[] } = {
       descriptions: descriptions.slice(0, events.length)
     };
     
     if (imagePrompts) {
-      response.imagePrompts = imagePrompts;
+      responseData.imagePrompts = imagePrompts;
     }
     
-    return NextResponse.json(response);
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('Error generating descriptions:', error);
     return NextResponse.json(
