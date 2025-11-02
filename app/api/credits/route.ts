@@ -6,7 +6,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth();
+    let userId: string | null = null;
+    
+    // Safely try to get user ID from Clerk
+    try {
+      const authResult = auth();
+      userId = authResult?.userId || null;
+    } catch (authError: any) {
+      // Clerk might not be configured or might throw an error
+      // Log but continue with userId as null
+      console.warn('Clerk auth error (non-fatal):', authError?.message || 'Clerk not configured');
+      userId = null;
+    }
     
     if (!userId) {
       // If no user, return default credits (for unauthenticated users)
@@ -32,7 +43,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ credits: 100 });
     }
   } catch (error: any) {
-    console.error('Error fetching credits:', error);
+    console.error('Unexpected error fetching credits:', error);
     // Always return a valid response even on error
     return NextResponse.json({ credits: 100 });
   }
