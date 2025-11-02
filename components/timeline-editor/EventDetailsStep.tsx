@@ -14,11 +14,13 @@ interface EventDetailsStepProps {
   setEvents: (events: TimelineEvent[]) => void;
   timelineDescription: string;
   writingStyle: string;
+  imageStyle?: string; // Optional - if provided, generate image prompts too
+  themeColor?: string; // Optional - if provided, include in image prompts
 }
 
 const CREDIT_COST_DESCRIPTION = 2;
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle, imageStyle, themeColor }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           events: [{ year: event.year, title: event.title }],
           timelineDescription,
           writingStyle,
+          ...(imageStyle && { imageStyle, themeColor }), // Include if available
         }),
       });
 
@@ -73,7 +76,19 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         throw new Error("No description was generated");
       }
 
-      updateEventDescription(id, data.descriptions[0] || "");
+      // Update event with description and image prompt (if available)
+      const eventIndex = events.findIndex((e) => e.id === id);
+      if (eventIndex !== -1) {
+        const updatedEvents = [...events];
+        updatedEvents[eventIndex] = {
+          ...updatedEvents[eventIndex],
+          description: data.descriptions[0] || "",
+          imagePrompt: data.imagePrompts?.[0] || updatedEvents[eventIndex].imagePrompt,
+        };
+        setEvents(updatedEvents);
+      } else {
+        updateEventDescription(id, data.descriptions[0] || "");
+      }
       toast({
         title: "Success!",
         description: "Description generated",
@@ -132,6 +147,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           events: events.map(e => ({ year: e.year, title: e.title })),
           timelineDescription,
           writingStyle,
+          ...(imageStyle && { imageStyle, themeColor }), // Include if available for image prompt generation
         }),
       });
 
@@ -156,6 +172,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         events.map((e, idx) => ({
           ...e,
           description: data.descriptions[idx] || e.description,
+          imagePrompt: data.imagePrompts?.[idx] || e.imagePrompt, // Store AI-generated image prompts
         }))
       );
       toast({

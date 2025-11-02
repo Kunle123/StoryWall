@@ -14,6 +14,7 @@ export interface TimelineEvent {
   title: string;
   description?: string;
   imageUrl?: string;
+  imagePrompt?: string; // AI-generated prompt optimized for image generation
 }
 
 interface WritingStyleStepProps {

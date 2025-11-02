@@ -273,6 +273,8 @@ const TimelineEditor = () => {
                   setEvents={setEvents}
                   timelineDescription={timelineDescription}
                   writingStyle={writingStyle}
+                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                  themeColor={themeColor} // Pass if already selected
                 />
               )}
               {currentStep === 4 && (
@@ -305,31 +307,31 @@ const TimelineEditor = () => {
               </Button>
               {currentStep === 5 ? (
                 <div className="flex gap-3">
-                  <Button
-                    variant="outline"
+                <Button 
+                  variant="outline"
                     onClick={handlePreviewTimeline}
                     disabled={!canProceed()}
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
+                >
+                  <Eye className="mr-2 h-4 w-4" />
                     Preview Timeline
-                  </Button>
-                  <Button
+                </Button>
+                <Button 
                     onClick={handleSaveTimeline}
                     disabled={!canProceed() || isSaving}
-                  >
-                    {isSaving ? (
-                      <>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
+                >
+                  {isSaving ? (
+                    <>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
                         Save Timeline
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
+                    </>
+                  )}
+                </Button>
+                  </div>
+                ) : (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -338,7 +340,7 @@ const TimelineEditor = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
-            </div>
+                  </div>
           </>
         )}
       </main>

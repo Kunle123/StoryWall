@@ -18,12 +18,21 @@ export const useCredits = create<CreditsState>((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await fetch('/api/credits');
+      const data = await response.json();
+      
       if (response.ok) {
-        const data = await response.json();
+        if (data.error) {
+          console.error('[Credits] API returned error:', data.error, data.message);
+          // Still set credits to 100 as fallback, but log the error
+        }
         set({ credits: data.credits || 100 });
+      } else {
+        console.error('[Credits] Failed to fetch credits:', response.status, data);
+        // Keep current credits on error
       }
     } catch (error) {
-      console.error('Failed to fetch credits:', error);
+      console.error('[Credits] Network error fetching credits:', error);
+      // Keep current credits on network error
     } finally {
       set({ isLoading: false });
     }

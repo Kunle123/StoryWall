@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle the event
+    // NOTE: Only process checkout.session.completed to avoid duplicate credit additions
+    // Stripe fires both checkout.session.completed AND payment_intent.succeeded for the same payment
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
       
@@ -61,12 +63,18 @@ export async function POST(request: NextRequest) {
       const credits = parseInt(session.metadata?.credits || '0', 10);
 
       if (!userId || !credits) {
-        console.error('Missing userId or credits in session metadata', { userId, credits });
+        console.error('[Webhook] Missing userId or credits in session metadata', { userId, credits });
         return NextResponse.json({ received: true });
       }
 
       // Get or create user (auto-creates if doesn't exist)
       const user = await getOrCreateUser(userId);
+
+      // Get current credits before update (for logging)
+      const currentUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { credits: true },
+      });
 
       // Add credits to user
       await prisma.user.update({
@@ -78,29 +86,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`Added ${credits} credits to user ${user.id} (Clerk: ${userId})`);
+      const newCredits = (currentUser?.credits || 0) + credits;
+      console.log(`[Webhook] Added ${credits} credits to user ${user.id} (Clerk: ${userId}). New balance: ${newCredits}`);
     } else if (event.type === 'payment_intent.succeeded') {
-      // Fallback: try to get credits from payment intent metadata
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      
-      const userId = paymentIntent.metadata?.userId;
-      const credits = parseInt(paymentIntent.metadata?.credits || '0', 10);
-
-      if (userId && credits) {
-        // Get or create user (auto-creates if doesn't exist)
-        const user = await getOrCreateUser(userId);
-        
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            credits: {
-              increment: credits,
-            },
-          },
-        });
-
-        console.log(`Added ${credits} credits to user ${user.id} via payment_intent`);
-      }
+      // IGNORE: This event is fired after checkout.session.completed
+      // Processing it would cause duplicate credit additions
+      // Only using checkout.session.completed to ensure credits are added exactly once
+      console.log('[Webhook] payment_intent.succeeded received but ignored (credits already processed via checkout.session.completed)');
     }
 
     return NextResponse.json({ received: true });

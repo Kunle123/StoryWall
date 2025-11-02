@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Get or create user (auto-creates if doesn't exist)
     const user = await getOrCreateUser(userId);
+    console.log(`[Deduct API] User ID: ${user.id}, attempting to deduct ${amount} credits`);
 
     // Get full user to check credits
     const fullUser = await prisma.user.findUnique({
@@ -36,18 +37,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (!fullUser) {
+      console.error(`[Deduct API] User ${user.id} not found in database`);
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found', credits: 0 },
         { status: 404 }
       );
     }
 
+    console.log(`[Deduct API] User has ${fullUser.credits} credits, required: ${amount}`);
+
     if (fullUser.credits < amount) {
+      console.warn(`[Deduct API] Insufficient credits: ${fullUser.credits} < ${amount}`);
       return NextResponse.json(
         { 
           error: 'Insufficient credits',
           credits: fullUser.credits,
-          required: amount
+          required: amount,
+          available: fullUser.credits
         },
         { status: 400 }
       );

@@ -18,12 +18,15 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
 
   // User doesn't exist - get info from Clerk and create
   try {
-    let clerkUser;
+    let clerkUser = null;
+    
+    // Try to get Clerk user info (this might fail in API routes, so wrap in try-catch)
     try {
       clerkUser = await currentUser();
-    } catch (error) {
-      // In webhook contexts, currentUser() might not be available
-      // Create a minimal user record
+    } catch (error: any) {
+      // In API routes, currentUser() might not work properly
+      // This is okay - we'll create a minimal user record
+      console.log(`[getOrCreateUser] Could not fetch Clerk user info: ${error.message || 'Not available in this context'}`);
       clerkUser = null;
     }
 
@@ -36,14 +39,38 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
                     clerkUser.firstName?.toLowerCase() || 
                     'user';
       email = clerkUser.emailAddresses[0]?.emailAddress || email;
+    } else {
+      // Use a portion of the Clerk ID for username
+      baseUsername = `user${clerkUserId.slice(-6)}`;
     }
     
-    // Ensure username is unique
+    // Ensure username is unique (check existing users)
     let username = baseUsername;
     let counter = 1;
-    while (await prisma.user.findUnique({ where: { username } })) {
+    let existingUser = await prisma.user.findUnique({ where: { username } });
+    while (existingUser) {
       username = `${baseUsername}${counter}`;
+      existingUser = await prisma.user.findUnique({ where: { username } });
       counter++;
+      if (counter > 1000) {
+        // Safety check to avoid infinite loop
+        username = `user${Date.now()}`;
+        break;
+      }
+    }
+
+    // Ensure email is unique too
+    let finalEmail = email;
+    counter = 1;
+    existingUser = await prisma.user.findUnique({ where: { email: finalEmail } });
+    while (existingUser) {
+      finalEmail = `${baseUsername}${counter}@placeholder.com`;
+      existingUser = await prisma.user.findUnique({ where: { email: finalEmail } });
+      counter++;
+      if (counter > 1000) {
+        finalEmail = `user${Date.now()}@placeholder.com`;
+        break;
+      }
     }
 
     // Create user
@@ -51,18 +78,47 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
       data: {
         clerkId: clerkUserId,
         username,
-        email,
+        email: finalEmail,
         avatarUrl: clerkUser?.imageUrl || undefined,
         credits: 100, // Default starting credits
       },
       select: { id: true, credits: true },
     });
 
-    console.log(`Created new user in database: ${user.id} (Clerk: ${clerkUserId})`);
+    console.log(`[getOrCreateUser] Created new user in database: ${user.id} (Clerk: ${clerkUserId}, username: ${username})`);
     return user;
   } catch (error: any) {
-    console.error('Error creating user:', error);
-    throw new Error('Failed to create user account');
+    console.error('[getOrCreateUser] Error creating user:', error);
+    console.error('[getOrCreateUser] Error code:', error.code);
+    console.error('[getOrCreateUser] Error message:', error.message);
+    console.error('[getOrCreateUser] Error meta:', error.meta);
+    
+    // Provide helpful error message for permission issues
+    if (error.code === 'P1000' || error.message?.includes('denied access') || error.message?.includes('permission denied')) {
+      const errorMsg = 'Database permission error. Please check your DATABASE_URL:\n' +
+        '1. For local: Use postgresql://admin@localhost:5432/storywall\n' +
+        '2. For Railway: Get connection string from Railway dashboard\n' +
+        '3. Make sure the user has proper permissions on the database';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+    
+    // Handle unique constraint violations
+    if (error.code === 'P2002') {
+      console.error('[getOrCreateUser] Unique constraint violation:', error.meta);
+      // Try to find existing user (race condition)
+      const existingUser = await prisma.user.findUnique({
+        where: { clerkId: clerkUserId },
+        select: { id: true, credits: true },
+      });
+      if (existingUser) {
+        console.log('[getOrCreateUser] User was created by another request, returning existing user');
+        return existingUser;
+      }
+      throw new Error(`Failed to create user: ${error.meta?.target || 'duplicate entry'}`);
+    }
+    
+    throw new Error(`Failed to create user account: ${error.message || 'Unknown error'}`);
   }
 }
 

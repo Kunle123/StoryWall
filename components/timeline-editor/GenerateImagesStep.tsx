@@ -80,7 +80,12 @@ export const GenerateImagesStep = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          events: events.map(e => ({ title: e.title, description: e.description || "" })),
+          events: events.map(e => ({ 
+            title: e.title, 
+            description: e.description || "",
+            year: e.year,
+            imagePrompt: e.imagePrompt, // Include AI-generated prompts if available
+          })),
           imageStyle,
           themeColor,
         }),

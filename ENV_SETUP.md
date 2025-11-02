@@ -33,13 +33,23 @@ This document explains how to set up environment variables for the StoryWall app
 - `CLOUDINARY_API_KEY` - Your Cloudinary API key
 - `CLOUDINARY_API_SECRET` - Your Cloudinary API secret
 
-### AI Features (OpenAI)
+### AI Features
+
+**OpenAI (for text generation):**
 - `OPENAI_API_KEY` - Your OpenAI API key
   - Get from: https://platform.openai.com/api-keys
   - Used for:
     - Generating timeline events (`/api/ai/generate-events`)
     - Generating event descriptions (`/api/ai/generate-descriptions`)
-    - Generating images (`/api/ai/generate-images` using DALL-E 3)
+
+**Flux (for image generation):**
+- `REPLICATE_API_TOKEN` - Your Replicate API token
+  - Get from: https://replicate.com/account/api-tokens
+  - Create account at: https://replicate.com
+  - Used for:
+    - Generating images (`/api/ai/generate-images` using Flux via Replicate)
+  - Pricing: ~$0.001 per image (much cheaper than DALL-E 3)
+  - Better quality and more flexible for historical content
 
 ## Railway Deployment
 
@@ -56,7 +66,8 @@ To add environment variables in Railway:
 
 ### Important Variables for Railway:
 - `DATABASE_URL` - Automatically set by Railway when you add a PostgreSQL database
-- `OPENAI_API_KEY` - Add manually with your OpenAI API key
+- `OPENAI_API_KEY` - Add manually with your OpenAI API key (for text generation)
+- `REPLICATE_API_TOKEN` - Add manually with your Replicate API token (for image generation)
 - `CLOUDINARY_*` - Add manually with your Cloudinary credentials
 - `CLERK_*` - Add manually with your Clerk credentials
 
