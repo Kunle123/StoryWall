@@ -66,10 +66,17 @@ export const GenerateImagesStep = ({
         }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate images");
+        const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMsg);
       }
 
       if (!data.images || data.images.length === 0) {

@@ -62,10 +62,18 @@ export const WritingStyleStep = ({
         }),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // If response is not JSON, get text
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to generate events");
+        const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMsg);
       }
 
       if (!data.events || data.events.length === 0) {

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',
@@ -70,9 +70,10 @@ export async function POST(request: NextRequest) {
         errorData = { message: errorText };
       }
       console.error('OpenAI API error:', errorData);
+      const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
       return NextResponse.json(
-        { error: 'Failed to generate events from OpenAI API', details: errorData.message || errorData.error?.message || 'Unknown error' },
-        { status: response.status }
+        { error: 'Failed to generate events from OpenAI API', details: errorMessage },
+        { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
       );
     }
 
