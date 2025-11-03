@@ -26,6 +26,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   const [dialogContext, setDialogContext] = useState<{ required: number; action: string; onContinue?: () => void } | null>(null);
+  const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
   const { deductCredits, credits } = useCredits();
 
   const updateEventDescription = (id: string, description: string) => {
@@ -175,6 +176,8 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           imagePrompt: data.imagePrompts?.[idx] || e.imagePrompt, // Store AI-generated image prompts
         }))
       );
+      // Mark all events as generated
+      setGeneratedEventIds(new Set(events.map(e => e.id)));
       toast({
         title: "Success!",
         description: `Generated descriptions for ${events.length} events`,
@@ -195,14 +198,14 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 2: Add Event Details
+          Step 3: Add Event Details
         </h2>
         <p className="text-muted-foreground mb-6">
           Add detailed descriptions for each timeline event
         </p>
         <Button
           onClick={generateAllDescriptions}
-          disabled={isGeneratingAll || events.length === 0}
+          disabled={isGeneratingAll || events.length === 0 || generatedEventIds.size === events.length}
           size="lg"
           className="w-full"
         >
@@ -211,50 +214,26 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           ) : (
             <Sparkles className="mr-2 h-5 w-5" />
           )}
-          {isGeneratingAll ? "Generating All..." : "Generate All Descriptions with AI"}
-          {!isGeneratingAll && events.length > 0 && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              <Coins className="w-3 h-3 mr-1" />
-              {events.filter(e => !e.description).length * CREDIT_COST_DESCRIPTION}
-            </Badge>
-          )}
+          {isGeneratingAll ? "Generating All..." : "Generate Descriptions with AI"}
         </Button>
+        <p className="text-sm text-muted-foreground text-center mt-2">
+          or type your descriptions in the boxes below
+        </p>
       </div>
 
       <div className="space-y-6">
         {events.map((event) => (
           <div key={event.id} className="space-y-3 p-4 border rounded-lg bg-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <Label className="text-base font-semibold">{event.title}</Label>
-                <p className="text-sm text-muted-foreground">{event.year}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generateDescription(event.id)}
-                disabled={generatingId === event.id}
-              >
-                {generatingId === event.id ? (
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 h-3 w-3" />
-                )}
-                {generatingId === event.id ? "Generating..." : "Generate with AI"}
-                {generatingId !== event.id && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    <Coins className="w-2 h-2 mr-1" />
-                    {CREDIT_COST_DESCRIPTION}
-                  </Badge>
-                )}
-              </Button>
+            <div>
+              <Label className="text-base font-semibold">{event.title}</Label>
+              <p className="text-sm text-muted-foreground">{event.year}</p>
             </div>
             <Textarea
               placeholder="Add a detailed description for this event..."
               value={event.description || ""}
               onChange={(e) => updateEventDescription(event.id, e.target.value)}
               rows={4}
-              className="resize-none min-h-[100px]"
+              className="resize-none"
             />
           </div>
         ))}

@@ -99,8 +99,15 @@ const TimelineEditor = () => {
     { number: 5, title: "Generate Images" },
   ];
 
+  // Scroll to top on step change (matching design)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   const handleNext = () => {
-    if (currentStep < 5) setCurrentStep(currentStep + 1);
+    if (currentStep < 5) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
   const handleBack = () => {

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Sparkles, Loader2, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -109,6 +110,7 @@ export const WritingStyleStep = ({
       }));
 
       setEvents(generatedEvents);
+      setHasGenerated(true); // Disable button after generation
       toast({
         title: "Success!",
         description: `Generated ${generatedEvents.length} events`,
@@ -155,7 +157,7 @@ export const WritingStyleStep = ({
 
       {/* Writing Style Selection */}
       <div>
-        <Label className="text-base mb-3 block">Select Writing Style</Label>
+        <Label className="text-base mb-3 block">1. Select Writing Style</Label>
         <div className="flex flex-wrap gap-2">
           {writingStyles.map((style) => (
             <Badge
@@ -168,32 +170,45 @@ export const WritingStyleStep = ({
             </Badge>
           ))}
         </div>
+        <div className="mt-4">
+          <Label className="text-sm mb-2 block">Or enter a custom style</Label>
+          <Textarea
+            placeholder="e.g., in the style of Jack Bauer from the television series 24"
+            value={customStyle}
+            onChange={(e) => setCustomStyle(e.target.value)}
+            rows={2}
+            className="resize-none"
+          />
+        </div>
       </div>
 
       {/* AI Generate Button */}
-      <div className="flex gap-2">
-        <Button
-          onClick={handleGenerateEvents}
-          disabled={!writingStyle || isGenerating}
-          className="flex-1"
-        >
-          {isGenerating ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="mr-2 h-4 w-4" />
-          )}
-          {isGenerating ? "Generating..." : "Generate Events with AI"}
-          {!isGenerating && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              <Coins className="w-3 h-3 mr-1" />
-              {CREDIT_COST_EVENTS}
-            </Badge>
-          )}
-        </Button>
-        <Button variant="outline" onClick={addEvent}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Manually
-        </Button>
+      <div>
+        <Label className="text-base mb-3 block">2. Generate with AI or Add Events Manually</Label>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleGenerateEvents}
+            disabled={(!writingStyle && !customStyle) || isGenerating || hasGenerated}
+            className="flex-1"
+          >
+            {isGenerating ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            {isGenerating ? "Generating..." : hasGenerated ? "Events Generated" : "Generate with AI"}
+            {!isGenerating && !hasGenerated && (
+              <Badge variant="secondary" className="ml-2 text-xs">
+                <Coins className="w-3 h-3 mr-1" />
+                {CREDIT_COST_EVENTS}
+              </Badge>
+            )}
+          </Button>
+          <Button variant="outline" onClick={addEvent}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Manually
+          </Button>
+        </div>
       </div>
 
       <InsufficientCreditsDialog

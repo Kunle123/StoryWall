@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, TrendingUp, Clock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines } from "@/lib/api/client";
 
 interface TimelineDisplay {
@@ -105,13 +106,26 @@ const Discover = () => {
           </div>
         </div>
 
-        {/* Trending Section */}
-        <section className="mt-6">
-          <div className="flex items-center gap-2 px-4 mb-3">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            <h2 className="font-display font-bold text-xl">Trending Now</h2>
-            <span className="text-sm text-muted-foreground">({trendingTimelines.length} timelines)</span>
-          </div>
+        {/* Tab Bar */}
+        <Tabs defaultValue="trending" className="mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="trending" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Trending
+            </TabsTrigger>
+            <TabsTrigger value="recent" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Recent
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trending" className="mt-6">
+            <section>
+              <div className="flex items-center gap-2 px-4 mb-3">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <h2 className="font-display font-bold text-xl">Trending Now</h2>
+                <span className="text-sm text-muted-foreground">({trendingTimelines.length} timelines)</span>
+              </div>
           <div>
             {trendingTimelines.map((timeline, index) => (
               <div key={timeline.id}>
@@ -141,16 +155,17 @@ const Discover = () => {
                 )}
               </div>
             ))}
-          </div>
-        </section>
+            </div>
+          </section>
+          </TabsContent>
 
-        {/* Recent Section */}
-        <section className="mt-8">
-          <div className="flex items-center gap-2 px-4 mb-3">
-            <Clock className="w-5 h-5 text-accent" />
-            <h2 className="font-display font-bold text-xl">Recently Added</h2>
-            <span className="text-sm text-muted-foreground">({recentTimelines.length} timelines)</span>
-          </div>
+          <TabsContent value="recent" className="mt-6">
+            <section>
+              <div className="flex items-center gap-2 px-4 mb-3">
+                <Clock className="w-5 h-5 text-accent" />
+                <h2 className="font-display font-bold text-xl">Recently Added</h2>
+                <span className="text-sm text-muted-foreground">({recentTimelines.length} timelines)</span>
+              </div>
           <div>
             {recentTimelines.map((timeline, index) => (
               <div key={timeline.id}>
@@ -180,8 +195,10 @@ const Discover = () => {
                 )}
               </div>
             ))}
-          </div>
-        </section>
+            </div>
+          </section>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

@@ -1,5 +1,10 @@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Pipette } from "lucide-react";
+import { useState } from "react";
 
 interface ImageStyleStepProps {
   imageStyle: string;
@@ -36,6 +41,9 @@ export const ImageStyleStep = ({
   themeColor,
   setThemeColor 
 }: ImageStyleStepProps) => {
+  const [customStyle, setCustomStyle] = useState("");
+  const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,6 +70,16 @@ export const ImageStyleStep = ({
               </Badge>
             ))}
           </div>
+          <div className="mt-4">
+            <Label className="text-sm mb-2 block">Or describe your own style</Label>
+            <Textarea
+              placeholder="e.g., in a comic book hero style"
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              rows={2}
+              className="resize-none"
+            />
+          </div>
         </div>
 
         <div>
@@ -69,7 +87,7 @@ export const ImageStyleStep = ({
           <p className="text-sm text-muted-foreground mb-3">
             Select a dominant color theme for the generated images
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {themeColors.map((color) => (
               <Badge
                 key={color.name}
@@ -84,6 +102,28 @@ export const ImageStyleStep = ({
                 {color.name}
               </Badge>
             ))}
+          </div>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label className="text-sm mb-2 block">Custom Color</Label>
+              <Input
+                type="color"
+                value={customColor}
+                onChange={(e) => {
+                  setCustomColor(e.target.value);
+                  setThemeColor(e.target.value);
+                }}
+                className="h-10 w-full cursor-pointer"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setThemeColor(customColor)}
+              className="h-10"
+            >
+              <Pipette className="mr-2 h-4 w-4" />
+              Apply Color
+            </Button>
           </div>
         </div>
       </div>

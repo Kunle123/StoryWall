@@ -401,37 +401,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             />
           )}
 
-          {/* Square markers with overlap counts - Hidden but clickable */}
-          {markerGroups.map((group, idx) => {
-            const isSelected = group.events.some(e => e.id === selectedEventId);
-            const isCentered = group.events.some(e => e.id === centeredCardId);
-            const firstEvent = group.events[0];
-            const showCount = group.events.length > 1;
-            
-            return (
-              <div
-                key={`marker-${idx}`}
-                className="absolute left-1/2 -translate-x-1/2 z-30"
-                style={{ 
-                  top: `${group.position}%`,
-                  marginLeft: '-14px'
-                }}
-              >
-                {/* Larger touch target wrapper */}
-                <div
-                  onClick={() => handleMarkerClick(group.events[0].id)}
-                  className="absolute left-0 -translate-y-1/2 cursor-pointer p-3"
-                >
-                  {/* Marker - visible when centered, otherwise invisible */}
-                  <div
-                    className={`w-[5px] h-[5px] rounded-full transition-opacity duration-300 bg-primary ${
-                      isCentered ? 'opacity-100' : 'opacity-0 hover:opacity-100'
-                    }`}
-                  />
-                </div>
-              </div>
-            );
-          })}
+          {/* Markers removed per design requirements */}
         </div>
       </div>
     </div>
