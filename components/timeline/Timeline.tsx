@@ -320,19 +320,23 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
           {sortedEvents.map((event, index) => {
             const isSelected = selectedEventId === event.id;
             const formatDate = () => {
+              const formatYear = (y: number) => {
+                if (y < 0) return `${Math.abs(y)} BC`;
+                if (y === 0) return '1 AD';
+                if (y <= 999) return `${y} AD`;
+                return y.toString();
+              };
+              
               if (event.day && event.month) {
-                return new Date(event.year, event.month - 1, event.day).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric',
-                  year: 'numeric'
-                });
+                const date = new Date(event.year, event.month - 1, event.day);
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                return `${monthName} ${event.day}, ${formatYear(event.year)}`;
               } else if (event.month) {
-                return new Date(event.year, event.month - 1).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  year: 'numeric'
-                });
+                const date = new Date(event.year, event.month - 1);
+                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                return `${monthName} ${formatYear(event.year)}`;
               }
-              return event.year.toString();
+              return formatYear(event.year);
             };
             
             return (

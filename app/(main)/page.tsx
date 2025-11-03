@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
+import { formatEventDate } from "@/lib/utils/dateFormat";
 
 const Index = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -18,20 +19,7 @@ const Index = () => {
   // Format the centered event date
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
-    
-    if (event.day && event.month) {
-      return new Date(event.year, event.month - 1, event.day).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } else if (event.month) {
-      return new Date(event.year, event.month - 1).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric'
-      });
-    }
-    return event.year.toString();
+    return formatEventDate(event.year, event.month, event.day);
   };
 
   

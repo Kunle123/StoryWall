@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
 
 /**
  * Generate images for timeline events using Flux (via Replicate)
@@ -91,6 +92,16 @@ function buildImagePrompt(
     // Use AI-generated prompt as base, but enhance it
     prompt = event.imagePrompt;
     
+    // Check for famous people and make safe
+    if (containsFamousPerson(prompt) || containsFamousPerson(event.title)) {
+      prompt = makePromptSafeForFamousPeople(prompt, imageStyle);
+      // Use safer style for famous people
+      const safeStyle = getSafeStyleForFamousPeople(imageStyle);
+      if (safeStyle !== imageStyle && !prompt.toLowerCase().includes(safeStyle.toLowerCase())) {
+        prompt = `${safeStyle} style: ${prompt}`;
+      }
+    }
+    
     // Ensure it includes style and color context if not already present
     if (!prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
       prompt = `${imageStyle} style illustration: ${prompt}`;
@@ -101,7 +112,18 @@ function buildImagePrompt(
     const title = event.title;
     const description = event.description ? `. ${event.description.substring(0, 150)}` : '';
     
-    prompt = `${imageStyle} style historical illustration${yearContext}: ${title}${description}`;
+    let basePrompt = `${imageStyle} style historical illustration${yearContext}: ${title}${description}`;
+    
+    // Check for famous people and make safe
+    if (containsFamousPerson(title) || containsFamousPerson(description)) {
+      basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
+      const safeStyle = getSafeStyleForFamousPeople(imageStyle);
+      if (safeStyle !== imageStyle) {
+        basePrompt = basePrompt.replace(new RegExp(imageStyle, 'gi'), safeStyle);
+      }
+    }
+    
+    prompt = basePrompt;
   }
   
   // Add prominent color integration
@@ -196,24 +218,19 @@ export async function POST(request: NextRequest) {
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
-    // Use Flux via Replicate for image generation
-    const images: string[] = [];
+    // PARALLEL GENERATION: Start all predictions at once for faster processing
+    console.log(`[Flux] Starting parallel generation for ${events.length} images...`);
     
-    // Generate images for each event using Flux
-    for (const event of events) {
+    // Step 1: Create all predictions in parallel
+    const predictionPromises = events.map(async (event, index) => {
       try {
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
         
         // Log the prompt being sent (for debugging)
-        console.log(`[Flux] Generating image for "${event.title}"`);
-        console.log(`[Flux] Using AI prompt: ${!!event.imagePrompt}`);
-        console.log(`[Flux] Prompt (${prompt.length} chars):`, prompt);
-        console.log(`[Flux] Style: ${imageStyle}, Theme color: ${themeColor}`);
-
+        console.log(`[Flux] Creating prediction ${index + 1}/${events.length} for "${event.title}"`);
+        
         // Create prediction via Replicate
-        // Note: Replicate API format uses 'version' field with model identifier
-        // For flux-dev, we need to get the latest version hash or use the model directly
         const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
           method: 'POST',
           headers: {
@@ -221,7 +238,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            version: fluxVersion, // Use the resolved version hash
+            version: fluxVersion,
             input: {
               prompt: prompt,
               aspect_ratio: '1:1', // Square images for timeline (1024x1024)
@@ -240,43 +257,56 @@ export async function POST(request: NextRequest) {
             errorData = { detail: errorText };
           }
           
-          // Provide helpful error message
           const errorMsg = errorData.detail || errorData.message || errorText;
           console.error(`[Flux] Replicate API error for "${event.title}":`, errorMsg);
           
-          // If version format is wrong, provide helpful hint
-          if (errorMsg.includes('version') || errorMsg.includes('model')) {
-            throw new Error(`Replicate API error: ${errorMsg}. Make sure REPLICATE_API_TOKEN is valid and Flux model is accessible.`);
-          }
-          
-          throw new Error(`Replicate API error: ${errorMsg}`);
+          return { index, error: new Error(`Replicate API error: ${errorMsg}`), event };
         }
 
         const prediction = await createResponse.json();
         
         if (!prediction.id) {
-          throw new Error('No prediction ID returned from Replicate');
+          return { index, error: new Error('No prediction ID returned from Replicate'), event };
         }
 
-        // Wait for prediction to complete
-        const imageUrl = await waitForPrediction(prediction.id, replicateApiKey);
-        
-        if (!imageUrl) {
-          throw new Error('No image URL returned from prediction');
-        }
-
-        images.push(imageUrl);
-        console.log(`[Flux] Successfully generated image for "${event.title}"`);
-        
+        return { index, predictionId: prediction.id, event };
       } catch (error: any) {
-        console.error(`[Flux] Error generating image for event "${event.title}":`, error);
-        
-        // Push null for failed images to maintain array index alignment
-        // Frontend should handle missing images gracefully
-        images.push(null as any);
-        console.warn(`[Flux] Skipping image generation for "${event.title}" due to error: ${error.message || 'Unknown error'}`);
+        console.error(`[Flux] Error creating prediction for "${event.title}":`, error);
+        return { index, error, event };
       }
-    }
+    });
+
+    // Wait for all predictions to be created
+    const predictionResults = await Promise.all(predictionPromises);
+    console.log(`[Flux] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
+    
+    // Step 2: Poll all predictions in parallel
+    const imagePromises = predictionResults.map(async (result) => {
+      if (result.error || !result.predictionId) {
+        return { index: result.index, imageUrl: null, error: result.error };
+      }
+
+      try {
+        const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
+        console.log(`[Flux] Completed image ${result.index + 1}/${events.length} for "${result.event.title}"`);
+        return { index: result.index, imageUrl, error: null };
+      } catch (error: any) {
+        console.error(`[Flux] Error waiting for prediction "${result.event.title}":`, error);
+        return { index: result.index, imageUrl: null, error };
+      }
+    });
+
+    // Wait for all images to complete
+    const imageResults = await Promise.all(imagePromises);
+    
+    // Step 3: Assemble results in correct order
+    const images: (string | null)[] = new Array(events.length).fill(null);
+    imageResults.forEach((result) => {
+      images[result.index] = result.imageUrl;
+    });
+    
+    const successfulCount = images.filter(img => img !== null).length;
+    console.log(`[Flux] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
     
     // Filter out null values and check if we have any successful images
     const successfulImages = images.filter(img => img !== null);

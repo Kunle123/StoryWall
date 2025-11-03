@@ -125,6 +125,11 @@ const TimelineEditor = () => {
   const handleSaveTimeline = async () => {
     setIsSaving(true);
     try {
+      console.log('[Timeline Save] Starting timeline creation...', { 
+        title: timelineName, 
+        eventCount: events.length 
+      });
+
       // Create timeline
       const timelineResult = await createTimeline({
         title: timelineName,
@@ -134,28 +139,70 @@ const TimelineEditor = () => {
         is_collaborative: false,
       });
 
+      console.log('[Timeline Save] Timeline creation result:', timelineResult);
+
       if (timelineResult.error || !timelineResult.data) {
-        throw new Error(timelineResult.error || "Failed to create timeline");
+        const errorMsg = timelineResult.error || "Failed to create timeline";
+        console.error('[Timeline Save] Timeline creation failed:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       const timelineId = timelineResult.data.id;
+      console.log('[Timeline Save] Timeline created successfully, ID:', timelineId);
 
       // Create all events
+      const eventResults = [];
       for (const event of events) {
-        const dateStr = `${event.year}-01-01`; // Default to January 1st
+        try {
+          // Format date properly: use month/day if available, otherwise default to Jan 1
+          const month = (event as any).month && (event as any).month >= 1 && (event as any).month <= 12 ? (event as any).month : 1;
+          const day = (event as any).day && (event as any).day >= 1 && (event as any).day <= 31 ? (event as any).day : 1;
+          const dateStr = `${event.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        await createEvent(timelineId, {
-          title: event.title,
-          description: event.description,
+          const eventResult = await createEvent(timelineId, {
+            title: event.title,
+            description: event.description || "",
         date: dateStr,
-          image_url: event.imageUrl,
-      });
+            image_url: event.imageUrl || undefined,
+          });
+
+          eventResults.push({ success: true, event: event.title });
+        } catch (eventError: any) {
+          console.error(`Failed to create event "${event.title}":`, eventError);
+          eventResults.push({ 
+            success: false, 
+            event: event.title, 
+            error: eventError.message || 'Unknown error' 
+          });
+        }
       }
 
+      // Check if any events failed
+      const failedEvents = eventResults.filter(r => !r.success);
+      const successfulEvents = eventResults.filter(r => r.success);
+      
+      console.log(`[Timeline Save] Events summary: ${successfulEvents.length} successful, ${failedEvents.length} failed`);
+      
+      if (failedEvents.length > 0) {
+        console.warn('[Timeline Save] Failed events:', failedEvents);
+        toast({
+          title: "Warning",
+          description: `Timeline created but ${failedEvents.length} event(s) failed to save.`,
+          variant: "destructive",
+        });
+      }
+
+      if (successfulEvents.length === events.length) {
       toast({
         title: "Success!",
-        description: "Timeline saved successfully",
-      });
+          description: "Timeline saved successfully",
+        });
+      } else {
+        toast({
+          title: "Partially Saved",
+          description: `Timeline created with ${successfulEvents.length}/${events.length} events saved.`,
+        });
+      }
 
       // Clear saved state since timeline is saved
       localStorage.removeItem(STORAGE_KEY);
@@ -165,10 +212,16 @@ const TimelineEditor = () => {
         router.push(`/timeline/${timelineId}`);
       }, 1000);
     } catch (error: any) {
-      console.error("Error saving timeline:", error);
+      console.error("[Timeline Save] Error saving timeline:", error);
+      console.error("[Timeline Save] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to save timeline. Please try again.",
+        description: error.message || "Failed to save timeline. Please check the console for details.",
         variant: "destructive",
       });
       setIsSaving(false);

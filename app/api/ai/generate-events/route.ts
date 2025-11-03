@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 2000,
+        // Optimize: ~100 tokens per event + structure overhead
+        // Cap at reasonable max to prevent slow responses
+        max_tokens: Math.min(3000, (maxEvents * 100) + 500),
       }),
     });
 

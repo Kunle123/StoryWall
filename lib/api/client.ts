@@ -63,20 +63,34 @@ export async function createTimeline(timelineData: {
   is_collaborative?: boolean;
 }): Promise<ApiResponse<any>> {
   try {
+    console.log('[API] Creating timeline:', timelineData);
+    
     const response = await fetch('/api/timelines', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(timelineData),
     });
 
+    console.log('[API] Timeline creation response status:', response.status);
+
     if (!response.ok) {
-      const error = await response.json();
+      const errorText = await response.text();
+      let error;
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        error = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      console.error('[API] Timeline creation failed:', error);
       return { error: error.error || 'Failed to create timeline' };
     }
 
     const data = await response.json();
+    console.log('[API] Timeline created successfully:', data);
     return { data };
   } catch (error: any) {
+    console.error('[API] Timeline creation exception:', error);
     return { error: error.message || 'Failed to create timeline' };
   }
 }

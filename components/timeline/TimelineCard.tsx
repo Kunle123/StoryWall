@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
 import { Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { formatEventDate } from "@/lib/utils/dateFormat";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -20,20 +21,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
   const router = useRouter();
   
   const formatDate = (year: number, month?: number, day?: number) => {
-    if (day && month) {
-      return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    }
-    if (month) {
-      return new Date(year, month - 1).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-      });
-    }
-    return year.toString();
+    return formatEventDate(year, month, day);
   };
 
   return (
