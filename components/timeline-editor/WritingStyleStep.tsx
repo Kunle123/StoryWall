@@ -21,6 +21,8 @@ export interface TimelineEvent {
 interface WritingStyleStepProps {
   writingStyle: string;
   setWritingStyle: (style: string) => void;
+  customStyle: string;
+  setCustomStyle: (style: string) => void;
   events: TimelineEvent[];
   setEvents: (events: TimelineEvent[]) => void;
   timelineDescription?: string;
@@ -41,6 +43,8 @@ const CREDIT_COST_EVENTS = 10;
 export const WritingStyleStep = ({
   writingStyle,
   setWritingStyle,
+  customStyle,
+  setCustomStyle,
   events,
   setEvents,
   timelineDescription = "",
@@ -48,7 +52,6 @@ export const WritingStyleStep = ({
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [customStyle, setCustomStyle] = useState("");
   const [hasGenerated, setHasGenerated] = useState(false);
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   const { deductCredits, credits } = useCredits();

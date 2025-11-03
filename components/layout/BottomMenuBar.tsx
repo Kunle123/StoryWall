@@ -14,26 +14,43 @@ export const BottomMenuBar = ({ viewMode, onViewModeChange }: BottomMenuBarProps
   const { toast } = useToast();
   const router = useRouter();
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: "Timeline",
-        text: "Check out this timeline",
-        url: url,
-      }).catch(() => {
-        navigator.clipboard.writeText(url);
+    const title = document.title || "Timeline";
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: `Check out this timeline: ${title}`,
+          url: url,
+        });
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied!",
           description: "Timeline link copied to clipboard",
         });
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      toast({
-        title: "Link copied!",
-        description: "Timeline link copied to clipboard",
-      });
+      }
+    } catch (error: any) {
+      // User cancelled share or error occurred
+      if (error.name !== 'AbortError') {
+        // Try clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: "Link copied!",
+            description: "Timeline link copied to clipboard",
+          });
+        } catch (clipboardError) {
+          toast({
+            title: "Failed to share",
+            description: "Please try copying the link manually",
+            variant: "destructive",
+          });
+        }
+      }
     }
   };
 

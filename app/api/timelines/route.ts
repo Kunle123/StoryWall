@@ -67,12 +67,32 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const isPublic = searchParams.get('is_public');
     const creatorId = searchParams.get('creator_id');
+    const mine = searchParams.get('mine') === 'true'; // Special parameter to get current user's timelines
+
+    let finalCreatorId = creatorId;
+
+    // If "mine=true", get current user's database ID and filter by it
+    if (mine) {
+      try {
+        const { userId } = await auth();
+        if (userId) {
+          const user = await getOrCreateUser(userId);
+          finalCreatorId = user.id;
+        } else {
+          // Not authenticated, return empty array
+          return NextResponse.json([]);
+        }
+      } catch (authError) {
+        // Auth error, return empty array
+        return NextResponse.json([]);
+      }
+    }
 
     const timelines = await listTimelines({
       limit,
       offset,
       isPublic: isPublic ? isPublic === 'true' : undefined,
-      creatorId: creatorId || undefined,
+      creatorId: finalCreatorId || undefined,
     });
 
     return NextResponse.json(timelines || []);

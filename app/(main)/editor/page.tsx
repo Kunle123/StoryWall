@@ -27,6 +27,7 @@ const TimelineEditor = () => {
   const [timelineName, setTimelineName] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
   const [writingStyle, setWritingStyle] = useState("");
+  const [customStyle, setCustomStyle] = useState("");
   const [imageStyle, setImageStyle] = useState("");
   const [themeColor, setThemeColor] = useState("");
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -42,6 +43,7 @@ const TimelineEditor = () => {
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
         setWritingStyle(state.writingStyle || "");
+        setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "");
         setThemeColor(state.themeColor || "");
         setEvents(state.events || []);
@@ -58,13 +60,14 @@ const TimelineEditor = () => {
       timelineName,
       timelineDescription,
       writingStyle,
+      customStyle,
       imageStyle,
       themeColor,
       events,
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, writingStyle, imageStyle, themeColor, events, currentStep]);
+  }, [timelineName, timelineDescription, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -119,7 +122,7 @@ const TimelineEditor = () => {
       case 1:
         return timelineName && timelineDescription;
       case 2:
-        return writingStyle && events.length > 0 && events.every(e => e.title);
+        return (writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
       case 3:
         return events.every(e => e.description);
       case 4:
@@ -321,6 +324,8 @@ const TimelineEditor = () => {
                 <WritingStyleStep
                   writingStyle={writingStyle}
                   setWritingStyle={setWritingStyle}
+                  customStyle={customStyle}
+                  setCustomStyle={setCustomStyle}
                   events={events}
                   setEvents={setEvents}
                   timelineDescription={timelineDescription}

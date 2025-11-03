@@ -13,6 +13,7 @@ export async function fetchTimelines(options?: {
   offset?: number;
   is_public?: boolean;
   creator_id?: string;
+  mine?: boolean; // Fetch current user's timelines
 }): Promise<ApiResponse<any[]>> {
   try {
     const params = new URLSearchParams();
@@ -20,6 +21,7 @@ export async function fetchTimelines(options?: {
     if (options?.offset) params.append('offset', options.offset.toString());
     if (options?.is_public !== undefined) params.append('is_public', options.is_public.toString());
     if (options?.creator_id) params.append('creator_id', options.creator_id);
+    if (options?.mine) params.append('mine', 'true');
 
     const url = `/api/timelines${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await fetch(url);
