@@ -128,10 +128,12 @@ export async function POST(request: NextRequest) {
     if (imageStyle && content.imagePrompts && Array.isArray(content.imagePrompts)) {
       imagePrompts = content.imagePrompts.map((prompt: any) => String(prompt || ''));
       // Ensure we have the same number of image prompts as events
-      while (imagePrompts.length < events.length) {
-        imagePrompts.push('');
+      if (imagePrompts) {
+        while (imagePrompts.length < events.length) {
+          imagePrompts.push('');
+        }
+        imagePrompts = imagePrompts.slice(0, events.length);
       }
-      imagePrompts = imagePrompts.slice(0, events.length);
     }
     
     const responseData: { descriptions: string[]; imagePrompts?: string[] } = {
