@@ -48,6 +48,8 @@ export const WritingStyleStep = ({
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [customStyle, setCustomStyle] = useState("");
+  const [hasGenerated, setHasGenerated] = useState(false);
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   const { deductCredits, credits } = useCredits();
 
@@ -187,7 +189,13 @@ export const WritingStyleStep = ({
         <Label className="text-base mb-3 block">2. Generate with AI or Add Events Manually</Label>
         <div className="flex gap-2">
           <Button
-            onClick={handleGenerateEvents}
+            onClick={() => {
+              // If customStyle is set but writingStyle is not, set it
+              if (customStyle && !writingStyle) {
+                setWritingStyle(customStyle);
+              }
+              handleGenerateEvents();
+            }}
             disabled={(!writingStyle && !customStyle) || isGenerating || hasGenerated}
             className="flex-1"
           >
