@@ -9,6 +9,7 @@ import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate } from "@/lib/utils/dateFormat";
+import { CommentsSection } from "@/components/timeline/CommentsSection";
 
 const TimelinePage = () => {
   const params = useParams();
@@ -105,6 +106,9 @@ const TimelinePage = () => {
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
         />
+        <div className="mt-12 pb-8">
+          <CommentsSection timelineId={timeline.id || timelineId} />
+        </div>
       </main>
       <BottomMenuBar 
         viewMode={viewMode}

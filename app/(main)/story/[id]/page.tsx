@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle } from "lucide-react";
 import { fetchEventById } from "@/lib/api/client";
-import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { useState, useEffect } from "react";
 
 const Story = () => {
@@ -56,23 +55,9 @@ const Story = () => {
     }
   }, [params.id]);
 
-  // Mock comments data
-  const mockComments = [
-    {
-      id: "1",
-      author: "TimelineEnthusiast",
-      content: "This is such an important moment in history! Thanks for documenting this.",
-      timestamp: "2 hours ago",
-      likes: 12,
-    },
-    {
-      id: "2", 
-      author: "HistoryBuff",
-      content: "Great details on this event. Would love to see more like this.",
-      timestamp: "5 hours ago",
-      likes: 8,
-    },
-  ];
+  // Comments are now stored at the timeline level, not individual events
+  // Individual event pages don't have their own comments
+  const comments: any[] = [];
 
   if (loading) {
     return (
@@ -240,7 +225,7 @@ const Story = () => {
               className="gap-2 h-auto p-0 text-muted-foreground hover:text-primary transition-colors"
             >
               <MessageCircle className="w-[18px] h-[18px]" />
-              <span className="text-[13px]">{mockComments.length}</span>
+              <span className="text-[13px]">0</span>
             </Button>
             <Button 
               variant="ghost" 
@@ -253,10 +238,8 @@ const Story = () => {
             </Button>
           </div>
 
-          {/* Comments Section */}
-          <div className="pt-0">
-            <CommentsSection comments={mockComments} />
-          </div>
+          {/* Comments are at timeline level, not event level */}
+          {/* Comments section removed - users should comment on the timeline, not individual events */}
         </Card>
       </main>
     </div>

@@ -101,6 +101,30 @@ export async function deleteTimeline(id: string, userId: string): Promise<void> 
     throw new Error('Unauthorized');
   }
 
+  // Fetch all events with images before deletion
+  const events = await prisma.event.findMany({
+    where: { timelineId: id },
+    select: { imageUrl: true },
+  });
+
+  // Extract image URLs
+  const imageUrls = events
+    .map(event => event.imageUrl)
+    .filter((url): url is string => url !== null && url !== undefined);
+
+  // Delete images from Cloudinary if any exist
+  if (imageUrls.length > 0) {
+    try {
+      const { deleteImagesFromCloudinary } = await import('@/lib/utils/imageCleanup');
+      const deletedCount = await deleteImagesFromCloudinary(imageUrls);
+      console.log(`[Delete Timeline] Deleted ${deletedCount}/${imageUrls.length} images from Cloudinary`);
+    } catch (error: any) {
+      // Log error but don't fail the deletion - we still want to delete the timeline
+      console.error('[Delete Timeline] Error deleting images from Cloudinary:', error);
+    }
+  }
+
+  // Delete the timeline (this will cascade delete events, comments, likes, etc.)
   await prisma.timeline.delete({
     where: { id },
   });

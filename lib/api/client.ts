@@ -57,6 +57,23 @@ export async function fetchTimelineById(id: string): Promise<ApiResponse<any>> {
   }
 }
 
+export async function deleteTimeline(id: string): Promise<ApiResponse<void>> {
+  try {
+    const response = await fetch(`/api/timelines/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to delete timeline' };
+    }
+
+    return { data: undefined };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to delete timeline' };
+  }
+}
+
 export async function createTimeline(timelineData: {
   title: string;
   description?: string;
@@ -259,5 +276,153 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
     image: apiEvent.image_url,
     video: undefined, // Not in API yet
   };
+}
+
+// Comment API calls
+export interface Comment {
+  id: string;
+  timeline_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+  };
+  likes_count?: number;
+}
+
+export async function fetchCommentsByTimelineId(timelineId: string): Promise<ApiResponse<Comment[]>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/comments`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch comments' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch comments' };
+  }
+}
+
+export async function createComment(timelineId: string, content: string): Promise<ApiResponse<Comment>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to create comment' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to create comment' };
+  }
+}
+
+export async function updateComment(timelineId: string, commentId: string, content: string): Promise<ApiResponse<Comment>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/comments`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment_id: commentId, content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to update comment' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update comment' };
+  }
+}
+
+export async function deleteComment(timelineId: string, commentId: string): Promise<ApiResponse<void>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/comments?comment_id=${commentId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to delete comment' };
+    }
+
+    return { data: undefined };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to delete comment' };
+  }
+}
+
+// Like API calls
+export interface LikeStatus {
+  timeline_id: string;
+  likes_count: number;
+  user_liked: boolean;
+}
+
+export async function fetchLikeStatus(timelineId: string): Promise<ApiResponse<LikeStatus>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/likes`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch like status' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch like status' };
+  }
+}
+
+export async function likeTimeline(timelineId: string): Promise<ApiResponse<{ message: string; liked: boolean; likes_count: number }>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/likes`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to like timeline' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to like timeline' };
+  }
+}
+
+export async function unlikeTimeline(timelineId: string): Promise<ApiResponse<{ message: string; liked: boolean; likes_count: number }>> {
+  try {
+    const response = await fetch(`/api/timelines/${timelineId}/likes`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to unlike timeline' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to unlike timeline' };
+  }
 }
 

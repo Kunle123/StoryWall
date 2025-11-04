@@ -103,6 +103,18 @@ export async function deleteEvent(id: string, userId: string): Promise<void> {
     throw new Error('Unauthorized');
   }
 
+  // Delete image from Cloudinary if it exists
+  if (event.imageUrl) {
+    try {
+      const { deleteImageFromCloudinary } = await import('@/lib/utils/imageCleanup');
+      await deleteImageFromCloudinary(event.imageUrl);
+      console.log(`[Delete Event] Deleted image from Cloudinary for event ${id}`);
+    } catch (error: any) {
+      // Log error but don't fail the deletion - we still want to delete the event
+      console.error('[Delete Event] Error deleting image from Cloudinary:', error);
+    }
+  }
+
   await prisma.event.delete({
     where: { id },
   });

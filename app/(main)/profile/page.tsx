@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { fetchTimelines } from "@/lib/api/client";
+import { fetchTimelines, deleteTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface Timeline {
@@ -30,6 +30,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [userTimelines, setUserTimelines] = useState<Timeline[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingTimelineId, setDeletingTimelineId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadUserTimelines() {
@@ -235,18 +236,43 @@ const Profile = () => {
                       variant="outline"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      disabled={deletingTimelineId === timeline.id}
                       onClick={async () => {
                         if (confirm(`Delete "${timeline.title}"? This action cannot be undone.`)) {
-                          // TODO: Implement delete functionality
-                          toast({
-                            title: "Delete Timeline",
-                            description: "Delete functionality will be implemented soon.",
-                          });
+                          setDeletingTimelineId(timeline.id);
+                          try {
+                            const result = await deleteTimeline(timeline.id);
+                            
+                            if (result.error) {
+                              toast({
+                                title: "Error",
+                                description: result.error,
+                                variant: "destructive",
+                              });
+                            } else {
+                              // Remove timeline from local state
+                              setUserTimelines(userTimelines.filter(t => t.id !== timeline.id));
+                              
+                              toast({
+                                title: "Timeline Deleted",
+                                description: `"${timeline.title}" has been deleted successfully.`,
+                              });
+                            }
+                          } catch (error: any) {
+                            console.error('Failed to delete timeline:', error);
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to delete timeline. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setDeletingTimelineId(null);
+                          }
                         }
                       }}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
+                      <Trash2 className={`w-4 h-4 mr-2 ${deletingTimelineId === timeline.id ? 'animate-spin' : ''}`} />
+                      {deletingTimelineId === timeline.id ? 'Deleting...' : 'Delete'}
                     </Button>
                   </div>
                 </div>

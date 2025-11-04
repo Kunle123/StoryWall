@@ -21,31 +21,35 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  timelines     Timeline[]       @relation("TimelineCreator")
-  events        Event[]
+  timelines      Timeline[]     @relation("TimelineCreator")
+  events         Event[]
   collaborations Collaborator[]
+  comments       Comment[]
+  likes          Like[]
 
   @@map("users")
 }
 
 model Timeline {
-  id                String        @id @default(uuid())
-  title             String        @db.VarChar(255)
+  id                String   @id @default(uuid())
+  title             String   @db.VarChar(255)
   description       String?
-  slug              String        @unique @db.VarChar(255)
-  creatorId         String        @map("creator_id")
-  visualizationType String        @default("horizontal") @map("visualization_type") @db.VarChar(50)
-  isPublic          Boolean       @default(true) @map("is_public")
-  isCollaborative   Boolean       @default(false) @map("is_collaborative")
-  viewCount         Int           @default(0) @map("view_count")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
+  slug              String   @unique @db.VarChar(255)
+  creatorId         String   @map("creator_id")
+  visualizationType String   @default("horizontal") @map("visualization_type") @db.VarChar(50)
+  isPublic          Boolean  @default(true) @map("is_public")
+  isCollaborative   Boolean  @default(false) @map("is_collaborative")
+  viewCount         Int      @default(0) @map("view_count")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   // Relations
-  creator      User          @relation("TimelineCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  events       Event[]
-  categories   Category[]
+  creator       User           @relation("TimelineCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  events        Event[]
+  categories    Category[]
   collaborators Collaborator[]
+  comments      Comment[]
+  likes         Like[]
 
   @@index([slug])
   @@index([creatorId])
@@ -54,25 +58,25 @@ model Timeline {
 }
 
 model Event {
-  id          String    @id @default(uuid())
-  timelineId  String    @map("timeline_id")
-  title       String    @db.VarChar(255)
-  description String?
-  date        DateTime  @db.Date
-  endDate     DateTime?  @map("end_date") @db.Date
-  imageUrl    String?   @map("image_url")
-  locationLat Decimal?  @map("location_lat") @db.Decimal(10, 8)
-  locationLng Decimal?  @map("location_lng") @db.Decimal(11, 8)
-  locationName String?  @map("location_name") @db.VarChar(255)
-  category    String?   @db.VarChar(100)
-  links       String[]  @db.Text
-  createdBy   String?   @map("created_by")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(uuid())
+  timelineId   String    @map("timeline_id")
+  title        String    @db.VarChar(255)
+  description  String?
+  date         DateTime  @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  imageUrl     String?   @map("image_url")
+  locationLat  Decimal?  @map("location_lat") @db.Decimal(10, 8)
+  locationLng  Decimal?  @map("location_lng") @db.Decimal(11, 8)
+  locationName String?   @map("location_name") @db.VarChar(255)
+  category     String?   @db.VarChar(100)
+  links        String[]  @db.Text
+  createdBy    String?   @map("created_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  timeline  Timeline  @relation(fields: [timelineId], references: [id], onDelete: Cascade)
-  creator   User?     @relation(fields: [createdBy], references: [id])
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  creator  User?    @relation(fields: [createdBy], references: [id])
 
   @@index([timelineId])
   @@index([date])
@@ -110,3 +114,42 @@ model Collaborator {
   @@map("collaborators")
 }
 
+model Comment {
+  id         String   @id @default(uuid())
+  timelineId String   @map("timeline_id")
+  userId     String   @map("user_id")
+  content    String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    Like[]
+
+  @@index([timelineId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Like {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  timelineId String?  @map("timeline_id")
+  commentId  String?  @map("comment_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeline Timeline? @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  comment  Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  // Unique constraints: a user can only like a timeline once, or a comment once
+  // Note: Application-level validation should ensure only one of timelineId or commentId is set
+  @@unique([userId, timelineId])
+  @@unique([userId, commentId])
+  @@index([userId])
+  @@index([timelineId])
+  @@index([commentId])
+  @@map("likes")
+}

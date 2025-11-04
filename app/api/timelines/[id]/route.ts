@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
-
-// Note: Auth is currently disabled. Uncomment when Clerk is configured.
-// import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
+import { getOrCreateUser } from '@/lib/db/users';
 
 // Helper to check if a string is a UUID
 function isUUID(str: string): boolean {
@@ -47,13 +46,12 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    // const { userId } = auth();
-    // if (!userId) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // For now, use the test user ID until auth is set up
-    const placeholderUserId = process.env.TEST_USER_ID || '4b499a69-c3f1-48ee-a938-305cce4c19e8';
+    const user = await getOrCreateUser(userId);
 
     const body = await request.json();
     const { title, description, visualization_type, is_public, is_collaborative } = body;
@@ -65,7 +63,7 @@ export async function PATCH(
     if (is_public !== undefined) updates.is_public = is_public;
     if (is_collaborative !== undefined) updates.is_collaborative = is_collaborative;
 
-    const timeline = await updateTimeline(params.id, placeholderUserId, updates);
+    const timeline = await updateTimeline(params.id, user.id, updates);
 
     return NextResponse.json(timeline);
   } catch (error: any) {
@@ -91,15 +89,14 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // const { userId } = auth();
-    // if (!userId) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // For now, use the test user ID until auth is set up
-    const placeholderUserId = process.env.TEST_USER_ID || '4b499a69-c3f1-48ee-a938-305cce4c19e8';
+    const user = await getOrCreateUser(userId);
 
-    await deleteTimeline(params.id, placeholderUserId);
+    await deleteTimeline(params.id, user.id);
 
     return NextResponse.json({ message: 'Timeline deleted successfully' });
   } catch (error: any) {

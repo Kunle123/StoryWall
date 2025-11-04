@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
+import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 
 /**
  * Generate images for timeline events using Flux (via Replicate)
@@ -176,7 +177,42 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
     const prediction = await response.json();
 
     if (prediction.status === 'succeeded') {
-      return prediction.output?.[0] || null;
+      // Log the raw output for debugging
+      console.log(`[Flux] Prediction output type: ${typeof prediction.output}, value:`, JSON.stringify(prediction.output).substring(0, 200));
+      
+      // Handle different output formats from Replicate
+      let imageUrl: string | null = null;
+      
+      if (Array.isArray(prediction.output)) {
+        // Standard format: array of URLs
+        imageUrl = prediction.output[0] || null;
+      } else if (typeof prediction.output === 'string') {
+        // Sometimes output is a direct string URL
+        imageUrl = prediction.output;
+      } else if (prediction.output?.url) {
+        // Sometimes output is an object with a url property
+        imageUrl = prediction.output.url;
+      }
+      
+      // Validate that we have a proper URL
+      if (imageUrl) {
+        // Ensure it's a full URL (starts with http:// or https://)
+        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+          console.error(`[Flux] Invalid URL format from Replicate: ${imageUrl}`);
+          // Try to construct a full URL if it's a relative path
+          if (imageUrl.startsWith('/')) {
+            console.warn(`[Flux] Received relative path, cannot resolve: ${imageUrl}`);
+            return null;
+          }
+          return null;
+        }
+        
+        console.log(`[Flux] Successfully received image URL: ${imageUrl.substring(0, 100)}...`);
+        return imageUrl;
+      }
+      
+      console.error(`[Flux] No valid image URL found in prediction output:`, JSON.stringify(prediction.output));
+      return null;
     }
 
     if (prediction.status === 'failed' || prediction.status === 'canceled') {
@@ -289,7 +325,7 @@ export async function POST(request: NextRequest) {
 
       try {
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
-        console.log(`[Flux] Completed image ${result.index + 1}/${events.length} for "${result.event.title}"`);
+        console.log(`[Flux] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
         return { index: result.index, imageUrl, error: null };
       } catch (error: any) {
         console.error(`[Flux] Error waiting for prediction "${result.event.title}":`, error);
@@ -319,11 +355,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Step 4: Persist all images to Cloudinary (if configured)
+    // This ensures images are permanently stored and won't expire from Replicate
+    console.log(`[Flux] Persisting ${successfulImages.length} images to Cloudinary...`);
+    const persistedImages = await persistImagesToCloudinary(images);
+    
     // Log summary
+    const persistedCount = persistedImages.filter(img => img !== null && img.includes('res.cloudinary.com')).length;
     console.log(`[Flux] Generated ${successfulImages.length} of ${events.length} images successfully`);
+    if (persistedCount > 0) {
+      console.log(`[Flux] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
+    }
     
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
-    return NextResponse.json({ images });
+    // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
+    return NextResponse.json({ images: persistedImages });
   } catch (error: any) {
     console.error('[Flux] Error generating images:', error);
     return NextResponse.json(

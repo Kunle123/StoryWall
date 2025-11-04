@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send } from "lucide-react";
+import { fetchCommentsByTimelineId, createComment, Comment } from "@/lib/api/client";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
-interface Comment {
+interface DisplayComment {
   id: string;
   author: string;
   avatar?: string;
@@ -16,20 +19,93 @@ interface Comment {
 }
 
 interface CommentsSectionProps {
-  comments?: Comment[];
-  onAddComment?: (content: string) => void;
+  timelineId: string;
 }
 
-export const CommentsSection = ({ 
-  comments = [],
-  onAddComment 
-}: CommentsSectionProps) => {
+export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
+  const [comments, setComments] = useState<DisplayComment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const { toast } = useToast();
 
-  const handleSubmit = () => {
-    if (newComment.trim() && onAddComment) {
-      onAddComment(newComment);
-      setNewComment("");
+  // Fetch comments on mount
+  useEffect(() => {
+    async function loadComments() {
+      try {
+        setLoading(true);
+        const result = await fetchCommentsByTimelineId(timelineId);
+        if (result.error) {
+          toast({
+            title: "Error",
+            description: result.error,
+            variant: "destructive",
+          });
+        } else if (result.data) {
+          const displayComments: DisplayComment[] = result.data.map((comment: Comment) => ({
+            id: comment.id,
+            author: comment.user?.username || "Anonymous",
+            avatar: comment.user?.avatar_url,
+            content: comment.content,
+            timestamp: formatDistanceToNow(new Date(comment.created_at), { addSuffix: true }),
+            likes: comment.likes_count || 0,
+          }));
+          setComments(displayComments);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to load comments",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (timelineId) {
+      loadComments();
+    }
+  }, [timelineId, toast]);
+
+  const handleSubmit = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      setSubmitting(true);
+      const result = await createComment(timelineId, newComment.trim());
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.data) {
+        // Add the new comment to the list
+        const newDisplayComment: DisplayComment = {
+          id: result.data.id,
+          author: result.data.user?.username || "Anonymous",
+          avatar: result.data.user?.avatar_url,
+          content: result.data.content,
+          timestamp: formatDistanceToNow(new Date(result.data.created_at), { addSuffix: true }),
+          likes: result.data.likes_count || 0,
+        };
+        setComments([newDisplayComment, ...comments]);
+        setNewComment("");
+        toast({
+          title: "Success",
+          description: "Comment posted successfully",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to post comment",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -59,10 +135,10 @@ export const CommentsSection = ({
             <Button 
               size="sm" 
               onClick={handleSubmit}
-              disabled={!newComment.trim()}
+              disabled={!newComment.trim() || submitting}
             >
               <Send className="w-3.5 h-3.5 mr-1.5" />
-              Post
+              {submitting ? "Posting..." : "Post"}
             </Button>
           </div>
         </div>
@@ -70,7 +146,11 @@ export const CommentsSection = ({
 
       {/* Comments list */}
       <div className="space-y-4">
-        {comments.length === 0 ? (
+        {loading ? (
+          <p className="text-center text-muted-foreground py-8">
+            Loading comments...
+          </p>
+        ) : comments.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             No comments yet. Be the first to comment!
           </p>
