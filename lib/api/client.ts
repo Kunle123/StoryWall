@@ -57,6 +57,32 @@ export async function fetchTimelineById(id: string): Promise<ApiResponse<any>> {
   }
 }
 
+export async function updateTimeline(id: string, updates: {
+  title?: string;
+  description?: string;
+  visualization_type?: 'horizontal' | 'vertical' | 'grid';
+  is_public?: boolean;
+  is_collaborative?: boolean;
+}): Promise<ApiResponse<any>> {
+  try {
+    const response = await fetch(`/api/timelines/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to update timeline' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update timeline' };
+  }
+}
+
 export async function deleteTimeline(id: string): Promise<ApiResponse<void>> {
   try {
     const response = await fetch(`/api/timelines/${id}`, {
@@ -319,13 +345,29 @@ export async function createComment(timelineId: string, content: string): Promis
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      return { error: error.error || 'Failed to create comment' };
+      let errorMessage = 'Failed to create comment';
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (response.status === 404) {
+          errorMessage = 'Timeline not found';
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      return { error: errorMessage };
     }
 
     const data = await response.json();
     return { data };
   } catch (error: any) {
+    console.error('[API] Exception creating comment:', error);
     return { error: error.message || 'Failed to create comment' };
   }
 }

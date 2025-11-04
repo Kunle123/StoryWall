@@ -26,6 +26,7 @@ const TimelineEditor = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [timelineName, setTimelineName] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true); // Default to public so timelines appear in discover
   const [writingStyle, setWritingStyle] = useState("");
   const [customStyle, setCustomStyle] = useState("");
   const [imageStyle, setImageStyle] = useState("");
@@ -42,6 +43,7 @@ const TimelineEditor = () => {
         const state = JSON.parse(saved);
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
+        setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "");
@@ -59,6 +61,7 @@ const TimelineEditor = () => {
     const state = {
       timelineName,
       timelineDescription,
+      isPublic,
       writingStyle,
       customStyle,
       imageStyle,
@@ -67,7 +70,7 @@ const TimelineEditor = () => {
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -145,7 +148,7 @@ const TimelineEditor = () => {
         title: timelineName,
         description: timelineDescription,
         visualization_type: "vertical",
-        is_public: false,
+        is_public: isPublic,
         is_collaborative: false,
       });
 
@@ -318,6 +321,8 @@ const TimelineEditor = () => {
                   setTimelineName={setTimelineName}
                   timelineDescription={timelineDescription}
                   setTimelineDescription={setTimelineDescription}
+                  isPublic={isPublic}
+                  setIsPublic={setIsPublic}
                 />
               )}
               {currentStep === 2 && (
