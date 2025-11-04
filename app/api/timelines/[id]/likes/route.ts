@@ -120,6 +120,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Declare timeline outside try block so it's accessible in catch
+  let timeline;
+  
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -129,7 +132,6 @@ export async function DELETE(
     const user = await getOrCreateUser(userId);
 
     // Try to find timeline by ID or slug
-    let timeline;
     if (isUUID(params.id)) {
       timeline = await getTimelineById(params.id);
     } else {
