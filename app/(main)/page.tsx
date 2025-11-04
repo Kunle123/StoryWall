@@ -6,6 +6,7 @@ import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEve
 import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
+import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 
@@ -15,12 +16,53 @@ const Index = () => {
   const [timelineTitle, setTimelineTitle] = useState("Interactive Timeline");
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
   const [centeredEvent, setCenteredEvent] = useState<TimelineEvent | null>(null);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
   // Format the centered event date
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
     return formatEventDate(event.year, event.month, event.day);
   };
+
+  // Get preceding and following events
+  const getPrecedingEvent = () => {
+    if (!centeredEvent) return null;
+    const currentIndex = events.findIndex(e => e.id === centeredEvent.id);
+    return currentIndex > 0 ? events[currentIndex - 1] : null;
+  };
+
+  const getFollowingEvent = () => {
+    if (!centeredEvent) return null;
+    const currentIndex = events.findIndex(e => e.id === centeredEvent.id);
+    return currentIndex < events.length - 1 ? events[currentIndex + 1] : null;
+  };
+
+  // Calculate timeline position as percentage
+  const getTimelinePosition = () => {
+    if (!centeredEvent || events.length === 0) return 0.5;
+    const currentIndex = events.findIndex(e => e.id === centeredEvent.id);
+    return events.length > 1 ? currentIndex / (events.length - 1) : 0.5;
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        setShowHeader(false);
+      } else {
+        // Scrolling up
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   
   useEffect(() => {
@@ -74,9 +116,26 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      {events.length > 0 && <SubMenuBar title={timelineTitle} selectedDate={formatSelectedDate(centeredEvent)} />}
+      {events.length > 0 && (
+        <>
+          <SubMenuBar 
+            title={timelineTitle} 
+            selectedDate={formatSelectedDate(centeredEvent)}
+            precedingDate={formatSelectedDate(getPrecedingEvent())}
+            followingDate={formatSelectedDate(getFollowingEvent())}
+            timelinePosition={getTimelinePosition()}
+            headerVisible={showHeader}
+          />
+          <FloatingTimelineWidget
+            selectedDate={formatSelectedDate(centeredEvent)}
+            precedingDate={formatSelectedDate(getPrecedingEvent())}
+            followingDate={formatSelectedDate(getFollowingEvent())}
+            timelinePosition={getTimelinePosition()}
+          />
+        </>
+      )}
       <Toaster />
-      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+      <main className="container mx-auto px-3 pt-[56px] pb-20 max-w-6xl">
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">No timelines available. Create one to get started!</p>
