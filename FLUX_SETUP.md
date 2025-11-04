@@ -5,7 +5,8 @@ This guide explains how to set up Flux (via Replicate) for AI image generation i
 ## Why Flux?
 
 - ✅ **Higher quality** - Better prompt adherence and more accurate historical depictions
-- ✅ **Much cheaper** - ~$0.001 per image (vs $0.04 for DALL-E 3)
+- ✅ **Cheaper than DALL-E 3** - Flux Dev is ~$0.025-0.030 per image (vs $0.04 for DALL-E 3)
+- ✅ **Much cheaper option available** - Flux Schnell is only $0.003 per image (13x cheaper than Dev!)
 - ✅ **More flexible** - Better handles historical content without strict content policy restrictions
 - ✅ **Better for timelines** - More accurate period details and historical context
 
@@ -56,16 +57,34 @@ Try generating images in the timeline editor. You should see logs like:
 
 ## Pricing
 
-- **Per image:** ~$0.0005-0.001 (less than 1 cent!)
-- **10 images:** ~$0.01 (1 cent)
-- **100 images:** ~$0.10 (10 cents)
+**Current Pricing (as of 2024):**
+
+### Flux Dev (currently used):
+- **Per image:** ~$0.025-0.030 (2.5-3 cents per image)
+- **10 images:** ~$0.25-0.30 (25-30 cents)
+- **20 images:** ~$0.50-0.60 (50-60 cents)
+- **100 images:** ~$2.50-3.00
+
+### Flux Schnell (much cheaper alternative):
+- **Per image:** ~$0.003 (0.3 cents per image!)
+- **10 images:** ~$0.03 (3 cents)
+- **20 images:** ~$0.06 (6 cents) - This is close to your 1p target!
+- **100 images:** ~$0.30 (30 cents)
+
+**Note:** Pricing may vary by model version and can change. Check current pricing at:
+- Flux Dev: https://replicate.com/black-forest-labs/flux-dev
+- Flux Schnell: https://replicate.com/black-forest-labs/flux-schnell
+
+**Recommendation:** Consider switching to `flux-schnell` for ~10x cost savings. It's faster and cheaper, though Dev may have slightly better quality.
 
 Compare to DALL-E 3:
-- **10 images:** $0.40 (40x more expensive!)
+- **10 images:** $0.40 (DALL-E 3 is ~1.6x more expensive than Flux Dev)
+- **Flux Schnell:** 10 images = $0.03 (13x cheaper than DALL-E 3!)
 
 ## Model Used
 
-- **Model:** Flux Dev (`black-forest-labs/flux-dev`)
+- **Current Model:** Flux Dev (`black-forest-labs/flux-dev`)
+- **Alternative (cheaper):** Flux Schnell (`black-forest-labs/flux-schnell`) - $0.003 per image
 - **Resolution:** 1024x1024 (square)
 - **Format:** PNG
 - **Quality:** 90%

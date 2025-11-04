@@ -42,8 +42,9 @@ const COLOR_NAMES: Record<string, string> = {
 };
 
 // Flux model on Replicate
-// Using flux-dev - better prompt adherence for historical content
-const FLUX_MODEL_NAME = "black-forest-labs/flux-dev";
+// Using flux-schnell - much cheaper ($0.003 vs $0.025 per image) and faster
+// Still high quality, just optimized for speed and cost
+const FLUX_MODEL_NAME = "black-forest-labs/flux-schnell";
 
 // Helper to get latest version of a model
 async function getLatestModelVersion(modelName: string, replicateApiKey: string): Promise<string> {
