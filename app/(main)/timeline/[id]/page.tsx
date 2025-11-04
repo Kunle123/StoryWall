@@ -66,6 +66,19 @@ const TimelinePage = () => {
     }
   }, [timelineId]);
 
+  // Scroll to comments section if hash is present
+  useEffect(() => {
+    if (!loading && window.location.hash === '#comments') {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const commentsElement = document.getElementById('comments');
+        if (commentsElement) {
+          commentsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [loading]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -106,7 +119,7 @@ const TimelinePage = () => {
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
         />
-        <div className="mt-12 pb-8">
+        <div id="comments" className="mt-12 pb-8 scroll-mt-24">
           <CommentsSection timelineId={timeline.id || timelineId} />
         </div>
       </main>

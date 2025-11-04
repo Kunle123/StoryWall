@@ -2,11 +2,13 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
+import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { fetchEventById, fetchEventsByTimelineId } from "@/lib/api/client";
+import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId } from "@/lib/api/client";
 import { formatEventDate } from "@/lib/utils/dateFormat";
+import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 
 const Story = () => {
@@ -19,8 +21,10 @@ const Story = () => {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [commentCount, setCommentCount] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const { toast } = useToast();
   
   const minSwipeDistance = 50;
   
@@ -61,14 +65,27 @@ const Story = () => {
             if (eventsResult.data) {
               const transformed = eventsResult.data.map((e: any) => {
                 const d = new Date(e.date);
+                const year = d.getFullYear();
+                const month = d.getMonth() + 1;
+                const day = d.getDate();
+                
+                // Check if date is Jan 1 - likely a placeholder for year-only dates
+                const isPlaceholderDate = month === 1 && day === 1;
+                
                 return {
                   id: e.id,
-                  year: d.getFullYear(),
-                  month: d.getMonth() + 1,
-                  day: d.getDate(),
+                  year: year,
+                  month: isPlaceholderDate ? undefined : month,
+                  day: isPlaceholderDate ? undefined : day,
                 };
               });
               setAllEvents(transformed);
+            }
+            
+            // Load comment count for the timeline
+            const commentsResult = await fetchCommentsByTimelineId(result.data.timeline_id);
+            if (commentsResult.data) {
+              setCommentCount(commentsResult.data.length);
             }
           }
         } else {
@@ -121,9 +138,61 @@ const Story = () => {
     if (hasPrev) router.push(`/story/${allEvents[currentIndex - 1].id}`);
   };
 
-  // Comments are now stored at the timeline level, not individual events
-  // Individual event pages don't have their own comments
-  const comments: any[] = [];
+  const handleCommentClick = () => {
+    // Navigate to timeline page with comments section
+    if (event?.timeline_id) {
+      router.push(`/timeline/${event.timeline_id}#comments`);
+    } else {
+      toast({
+        title: "Unable to navigate",
+        description: "Timeline information not available",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/story/${params.id}`;
+    const title = event?.title || "StoryWall Event";
+    const text = event?.description ? `${event.title}: ${event.description}` : event?.title || "Check out this timeline event on StoryWall";
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url,
+        });
+        setShares(shares + 1);
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link copied!",
+          description: "Event link copied to clipboard",
+        });
+        setShares(shares + 1);
+      }
+    } catch (error: any) {
+      // User cancelled share or error occurred
+      if (error.name !== 'AbortError') {
+        // Try clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: "Link copied!",
+            description: "Event link copied to clipboard",
+          });
+        } catch (clipboardError) {
+          toast({
+            title: "Failed to share",
+            description: "Please try copying the link manually",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -164,9 +233,25 @@ const Story = () => {
     return formatEventDate(year, month, day);
   };
 
+  // Widget data - calculate dates for FloatingTimelineWidget
+  const selectedDate = event ? formatDate(event.year, event.month, event.day) : undefined;
+  const precedingEvent = hasPrev && allEvents.length > 0 ? allEvents[currentIndex - 1] : null;
+  const followingEvent = hasNext && allEvents.length > 0 ? allEvents[currentIndex + 1] : null;
+  const precedingDate = precedingEvent ? formatDate(precedingEvent.year, precedingEvent.month, precedingEvent.day) : undefined;
+  const followingDate = followingEvent ? formatDate(followingEvent.year, followingEvent.month, followingEvent.day) : undefined;
+  const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {event && allEvents.length > 0 && (
+        <FloatingTimelineWidget 
+          selectedDate={selectedDate}
+          precedingDate={precedingDate}
+          followingDate={followingDate}
+          timelinePosition={timelinePosition}
+        />
+      )}
 
       <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
         <div className="flex items-center justify-between mb-6">
@@ -301,15 +386,17 @@ const Story = () => {
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm" 
               className="gap-2 h-auto p-0 text-muted-foreground hover:text-primary transition-colors"
+              onClick={handleCommentClick}
             >
               <MessageCircle className="w-[18px] h-[18px]" />
-              <span className="text-sm">0</span>
+              <span className="text-sm">{commentCount}</span>
             </Button>
             <Button 
               variant="ghost" 
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm" 
               className="gap-2 h-auto p-0 text-muted-foreground hover:text-green-600 transition-colors"
+              onClick={handleShare}
             >
               <Share2 className="w-[18px] h-[18px]" />
               <span className="text-sm">{shares}</span>
