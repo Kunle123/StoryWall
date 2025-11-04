@@ -48,11 +48,15 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a timeline event generator. Generate up to ${maxEvents} historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Events should be chronologically ordered and relevant to the timeline description.`,
+            content: `You are a timeline event generator. Generate up to ${maxEvents} historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+
+IMPORTANT: Only include month and day if the exact date is historically known and significant (e.g., "September 11, 2001" for 9/11). For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates for well-known specific dates like 9/11, D-Day (June 6, 1944), etc.
+
+Events should be chronologically ordered and relevant to the timeline description.`,
           },
           {
             role: 'user',
-            content: `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} relevant events. Return as JSON: { "events": [{ "year": 1939, "month": 9, "day": 1, "title": "Event Title" }, ...] }`,
+            content: `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} relevant events. Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`,
           },
         ],
         response_format: { type: 'json_object' },

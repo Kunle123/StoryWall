@@ -291,11 +291,21 @@ export async function getOrCreatePortfolioTimeline(): Promise<ApiResponse<any>> 
 // Helper function to transform API event to TimelineEvent format
 export function transformApiEventToTimelineEvent(apiEvent: any) {
   const date = new Date(apiEvent.date);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  
+  // Check if date is Jan 1 - likely a placeholder for year-only dates
+  // Only include month/day if the date is NOT Jan 1 (or if explicitly provided)
+  const isPlaceholderDate = month === 1 && day === 1;
+  
   return {
     id: apiEvent.id,
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
+    year: year,
+    // Only include month/day if it's not a placeholder date (Jan 1)
+    // This way, year-only events won't show "Jan 1" unless it's actually Jan 1
+    month: isPlaceholderDate ? undefined : month,
+    day: isPlaceholderDate ? undefined : day,
     title: apiEvent.title,
     description: apiEvent.description,
     category: apiEvent.category,

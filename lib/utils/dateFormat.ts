@@ -36,7 +36,18 @@ export function formatYearWithAD(year: number, alwaysShowAD: boolean = false): s
 }
 
 /**
+ * Check if a date string represents a placeholder date (Jan 1) for year-only events
+ * Returns true if the date is likely a placeholder, false if it's a real date
+ */
+export function isPlaceholderDate(dateStr: string): boolean {
+  // If date ends with -01-01, it's likely a placeholder for year-only dates
+  // Real Jan 1 events are rare, so this heuristic works for most cases
+  return dateStr.endsWith('-01-01');
+}
+
+/**
  * Format a complete date with AD notation
+ * Only shows month/day if they are actually known (not placeholder)
  */
 export function formatEventDate(
   year: number, 
@@ -46,19 +57,51 @@ export function formatEventDate(
 ): string {
   const yearStr = formatYearWithAD(year, alwaysShowAD);
   
+  // Only show day if month is also provided (both must be known)
   if (day && month) {
     const date = new Date(year, month - 1, day);
     const monthName = date.toLocaleDateString("en-US", { month: "short" });
     return `${monthName} ${day}, ${yearStr}`;
   }
   
+  // Only show month if it's provided (month is known)
   if (month) {
     const date = new Date(year, month - 1);
     const monthName = date.toLocaleDateString("en-US", { month: "short" });
     return `${monthName} ${yearStr}`;
   }
   
+  // Year only (month/day not known or are placeholder)
   return yearStr;
+}
+
+/**
+ * Format a date from ISO string, detecting placeholder dates
+ */
+export function formatEventDateFromISO(
+  dateStr: string,
+  alwaysShowAD: boolean = false
+): string {
+  try {
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    // If date is Jan 1, treat as placeholder (year-only)
+    // Exception: don't treat as placeholder if it's clearly a New Year's event
+    // For now, we'll treat all Jan 1 as placeholder - real Jan 1 events are rare
+    const isPlaceholder = month === 1 && day === 1;
+    
+    return formatEventDate(
+      year,
+      isPlaceholder ? undefined : month,
+      isPlaceholder ? undefined : day,
+      alwaysShowAD
+    );
+  } catch {
+    return dateStr;
+  }
 }
 
 /**

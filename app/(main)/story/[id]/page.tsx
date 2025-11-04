@@ -4,8 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle } from "lucide-react";
-import { fetchEventById } from "@/lib/api/client";
+import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchEventById, fetchEventsByTimelineId } from "@/lib/api/client";
+import { formatEventDate } from "@/lib/utils/dateFormat";
 import { useState, useEffect } from "react";
 
 const Story = () => {
@@ -17,6 +18,11 @@ const Story = () => {
   const [shares, setShares] = useState(64);
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [allEvents, setAllEvents] = useState<any[]>([]);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  const minSwipeDistance = 50;
   
   useEffect(() => {
     async function loadEvent() {
@@ -28,17 +34,43 @@ const Story = () => {
         if (result.data) {
           // Transform API event to display format
           const date = new Date(result.data.date);
-          setEvent({
+          const year = date.getFullYear();
+          const month = date.getMonth() + 1;
+          const day = date.getDate();
+          
+          // Check if date is Jan 1 - likely a placeholder for year-only dates
+          const isPlaceholderDate = month === 1 && day === 1;
+          
+          const transformedEvent = {
             id: result.data.id,
             title: result.data.title,
             description: result.data.description,
-            year: date.getFullYear(),
-            month: date.getMonth() + 1,
-            day: date.getDate(),
+            year: year,
+            month: isPlaceholderDate ? undefined : month,
+            day: isPlaceholderDate ? undefined : day,
             category: result.data.category,
             image: result.data.image_url,
             video: undefined,
-          });
+            timeline_id: result.data.timeline_id,
+          };
+          setEvent(transformedEvent);
+          
+          // Load all events from the same timeline for navigation
+          if (result.data.timeline_id) {
+            const eventsResult = await fetchEventsByTimelineId(result.data.timeline_id);
+            if (eventsResult.data) {
+              const transformed = eventsResult.data.map((e: any) => {
+                const d = new Date(e.date);
+                return {
+                  id: e.id,
+                  year: d.getFullYear(),
+                  month: d.getMonth() + 1,
+                  day: d.getDate(),
+                };
+              });
+              setAllEvents(transformed);
+            }
+          }
         } else {
           setEvent(null);
         }
@@ -54,6 +86,40 @@ const Story = () => {
       loadEvent();
     }
   }, [params.id]);
+  
+  const currentIndex = allEvents.findIndex(e => e.id === event?.id);
+  const hasNext = currentIndex >= 0 && currentIndex < allEvents.length - 1;
+  const hasPrev = currentIndex > 0;
+  
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe && hasNext) {
+      router.push(`/story/${allEvents[currentIndex + 1].id}`);
+    }
+    if (isRightSwipe && hasPrev) {
+      router.push(`/story/${allEvents[currentIndex - 1].id}`);
+    }
+  };
+  
+  const goToNext = () => {
+    if (hasNext) router.push(`/story/${allEvents[currentIndex + 1].id}`);
+  };
+  
+  const goToPrev = () => {
+    if (hasPrev) router.push(`/story/${allEvents[currentIndex - 1].id}`);
+  };
 
   // Comments are now stored at the timeline level, not individual events
   // Individual event pages don't have their own comments
@@ -86,8 +152,8 @@ const Story = () => {
             Back to Timeline
           </Button>
           <Card className="p-8 text-center">
-            <h2 className="text-2xl font-bold mb-2">Event Not Found</h2>
-            <p className="text-muted-foreground">This timeline event does not exist.</p>
+            <h2 className="text-xl font-bold font-display mb-2">Event Not Found</h2>
+            <p className="text-sm text-muted-foreground">This timeline event does not exist.</p>
           </Card>
         </main>
       </div>
@@ -95,20 +161,7 @@ const Story = () => {
   }
 
   const formatDate = (year: number, month?: number, day?: number) => {
-    if (day && month) {
-      return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-    }
-    if (month) {
-      return new Date(year, month - 1).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-      });
-    }
-    return year.toString();
+    return formatEventDate(year, month, day);
   };
 
   return (
@@ -116,17 +169,42 @@ const Story = () => {
       <Header />
 
       <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
-        <Button
-          variant="ghost"
-          className="mb-6 gap-2"
-          onClick={() => router.push("/")}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Timeline
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            className="gap-2"
+            onClick={() => router.push("/")}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Timeline
+          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToPrev}
+              disabled={!hasPrev}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={goToNext}
+              disabled={!hasNext}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
 
         {/* Single Unified Card */}
-        <Card className="p-6">
+        <Card 
+          className="p-6"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           {/* User Profile and Follow Button at Top */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -134,8 +212,8 @@ const Story = () => {
                 <span className="text-sm font-semibold text-primary">TC</span>
               </div>
               <div>
-                <p className="text-[15px] font-bold leading-tight">Timeline Creator</p>
-                <p className="text-[13px] text-muted-foreground">@historian</p>
+                <p className="text-base font-bold leading-tight">Timeline Creator</p>
+                <p className="text-sm text-muted-foreground">@historian</p>
               </div>
             </div>
             <Button
@@ -172,24 +250,24 @@ const Story = () => {
             </div>
           )}
           
-          <h1 className="text-[23px] font-bold mb-3 leading-[28px]">{event.title}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display mb-3">{event.title}</h1>
 
           {event.description && (
-            <p className="text-[15px] leading-[20px] mb-3">
+            <p className="text-base mb-3">
               {event.description}
             </p>
           )}
 
           {/* Date and Category */}
           <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
-            <span className="text-[15px] text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {formatDate(event.year, event.month, event.day)}
             </span>
             {event.category && (
               <>
                 <span className="text-muted-foreground">·</span>
                 <span
-                  className={`text-[13px] px-2 py-0.5 rounded-full font-medium ${
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     event.category === "vehicle"
                       ? "bg-primary/10 text-primary"
                       : event.category === "crisis"
@@ -216,7 +294,7 @@ const Story = () => {
               }}
             >
               <Heart className={`w-[18px] h-[18px] ${isLiked ? "fill-current" : ""}`} />
-              <span className="text-[13px]">{likes}</span>
+              <span className="text-sm">{likes}</span>
             </Button>
             <Button 
               variant="ghost" 
@@ -225,7 +303,7 @@ const Story = () => {
               className="gap-2 h-auto p-0 text-muted-foreground hover:text-primary transition-colors"
             >
               <MessageCircle className="w-[18px] h-[18px]" />
-              <span className="text-[13px]">0</span>
+              <span className="text-sm">0</span>
             </Button>
             <Button 
               variant="ghost" 
@@ -234,7 +312,7 @@ const Story = () => {
               className="gap-2 h-auto p-0 text-muted-foreground hover:text-green-600 transition-colors"
             >
               <Share2 className="w-[18px] h-[18px]" />
-              <span className="text-[13px]">{shares}</span>
+              <span className="text-sm">{shares}</span>
             </Button>
           </div>
 
