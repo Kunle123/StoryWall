@@ -2,7 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Globe, Lock } from "lucide-react";
+import { Globe, Lock, BookOpen, Sparkles } from "lucide-react";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -11,6 +11,8 @@ interface TimelineInfoStepProps {
   setTimelineDescription: (description: string) => void;
   isPublic: boolean;
   setIsPublic: (isPublic: boolean) => void;
+  isFactual: boolean;
+  setIsFactual: (isFactual: boolean) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -20,6 +22,8 @@ export const TimelineInfoStep = ({
   setTimelineDescription,
   isPublic,
   setIsPublic,
+  isFactual,
+  setIsFactual,
 }: TimelineInfoStepProps) => {
   return (
     <div className="space-y-6">
@@ -61,6 +65,46 @@ export const TimelineInfoStep = ({
           <p className="text-sm text-muted-foreground mt-2">
             AI will generate up to 20 events based on your timeline description
           </p>
+        </div>
+
+        <div className="pt-4 border-t border-border">
+          <Label className="text-base mb-3 block">Timeline Type</Label>
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setIsFactual(true)}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                isFactual
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-background hover:border-border/80'
+              }`}
+            >
+              <BookOpen className="w-5 h-5" />
+              <div className="text-left">
+                <div className="font-semibold">Factual</div>
+                <div className="text-sm text-muted-foreground">
+                  Historical events, real facts
+                </div>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsFactual(false)}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                !isFactual
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-background hover:border-border/80'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              <div className="text-left">
+                <div className="font-semibold">Fictional</div>
+                <div className="text-sm text-muted-foreground">
+                  Creative stories, narratives
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="pt-4 border-t border-border">

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *   timelineDescription: string
  *   timelineName: string
  *   maxEvents: number (default: 20)
+ *   isFactual: boolean (default: true) - true for factual/historical events, false for fictional/creative timelines
  * }
  * 
  * Response:
@@ -18,7 +19,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { timelineDescription, timelineName, maxEvents = 20 } = body;
+    const { timelineDescription, timelineName, maxEvents = 20, isFactual = true } = body;
 
     if (!timelineDescription || !timelineName) {
       return NextResponse.json(
@@ -48,19 +49,39 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a timeline event generator. Generate up to ${maxEvents} historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+            content: isFactual 
+              ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+
+CRITICAL ACCURACY REQUIREMENTS:
+- Only generate events that are FACTUALLY VERIFIED and well-documented
+- Do NOT invent, speculate, or make up events that you are not certain about
+- If you are unsure about specific dates or details, omit them rather than guessing
+- For recent or obscure topics, be extra cautious and only include information you are confident is accurate
+- If the topic is too recent or not well-documented, generate fewer events rather than inaccurate ones
 
 IMPORTANT: Only include month and day if the exact date is historically known and significant (e.g., "September 11, 2001" for 9/11). For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates for well-known specific dates like 9/11, D-Day (June 6, 1944), etc.
 
-Events should be chronologically ordered and relevant to the timeline description.`,
+Events should be chronologically ordered and relevant to the timeline description.`
+              : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+
+CREATIVE GUIDELINES:
+- Generate imaginative, compelling events that fit the narrative theme
+- Create events that build upon each other to tell a coherent story
+- Use creative freedom to develop interesting plot points and developments
+- Events should be chronologically ordered and relevant to the timeline description
+- Feel free to include specific dates when they enhance the narrative
+
+IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`,
           },
           {
             role: 'user',
-            content: `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} relevant events. Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`,
+            content: isFactual
+              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} FACTUALLY ACCURATE events. Only include events you are certain are correct based on verified historical information. If you are unsure about any details, omit them rather than guessing. Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
+              : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`,
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7,
+        temperature: isFactual ? 0.3 : 0.8, // Lower temperature for factual, higher for creative/fictional
         // Optimize: ~100 tokens per event + structure overhead
         // Cap at reasonable max to prevent slow responses
         max_tokens: Math.min(3000, (maxEvents * 100) + 500),

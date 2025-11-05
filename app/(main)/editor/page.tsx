@@ -27,6 +27,7 @@ const TimelineEditor = () => {
   const [timelineName, setTimelineName] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true); // Default to public so timelines appear in discover
+  const [isFactual, setIsFactual] = useState(true); // Default to factual timelines
   const [writingStyle, setWritingStyle] = useState("");
   const [customStyle, setCustomStyle] = useState("");
   const [imageStyle, setImageStyle] = useState("");
@@ -44,6 +45,7 @@ const TimelineEditor = () => {
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
         setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
+        setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "");
@@ -62,6 +64,7 @@ const TimelineEditor = () => {
       timelineName,
       timelineDescription,
       isPublic,
+      isFactual,
       writingStyle,
       customStyle,
       imageStyle,
@@ -70,7 +73,7 @@ const TimelineEditor = () => {
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, isPublic, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -329,6 +332,8 @@ const TimelineEditor = () => {
                   setTimelineDescription={setTimelineDescription}
                   isPublic={isPublic}
                   setIsPublic={setIsPublic}
+                  isFactual={isFactual}
+                  setIsFactual={setIsFactual}
                 />
               )}
               {currentStep === 2 && (
@@ -341,6 +346,7 @@ const TimelineEditor = () => {
                   setEvents={setEvents}
                   timelineDescription={timelineDescription}
                   timelineName={timelineName}
+                  isFactual={isFactual}
                 />
               )}
               {currentStep === 3 && (

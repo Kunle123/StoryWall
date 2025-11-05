@@ -27,6 +27,7 @@ interface WritingStyleStepProps {
   setEvents: (events: TimelineEvent[]) => void;
   timelineDescription?: string;
   timelineName?: string;
+  isFactual?: boolean;
 }
 
 const writingStyles = [
@@ -49,6 +50,7 @@ export const WritingStyleStep = ({
   setEvents,
   timelineDescription = "",
   timelineName = "",
+  isFactual = true,
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -87,6 +89,7 @@ export const WritingStyleStep = ({
           timelineDescription,
           timelineName,
           maxEvents: 20,
+          isFactual,
         }),
       });
 
@@ -220,6 +223,17 @@ export const WritingStyleStep = ({
             Add Manually
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          {isFactual ? (
+            <>
+              <strong>Note:</strong> AI-generated events may contain inaccuracies. Please verify and edit events after generation, especially for recent or obscure topics.
+            </>
+          ) : (
+            <>
+              <strong>Note:</strong> AI will generate creative fictional events based on your timeline description. You can edit or add events manually.
+            </>
+          )}
+        </p>
       </div>
 
       <InsufficientCreditsDialog
