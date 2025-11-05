@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { TimelineCard } from "./TimelineCard";
+import { TimelineCardSkeleton } from "./TimelineCardSkeleton";
 
 export interface TimelineEvent {
   id: string;
@@ -90,7 +91,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     
     // Get the card and scroll container
     const cardElement = cardRefs.current.get(eventId);
-    const scrollContainer = cardElement?.closest('.overflow-y-auto');
+    const scrollContainer = scrollContainerRef.current;
     
     if (cardElement && scrollContainer) {
       // Get positions
@@ -116,10 +117,16 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   useEffect(() => {
     if (viewMode !== "vertical") return;
 
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = scrollContainerRef.current;
     let scrollTimeout: NodeJS.Timeout;
 
     const handleScroll = () => {
+      if (scrollContainer && onScroll) {
+        const currentScrollTop = scrollContainer.scrollTop;
+        onScroll(currentScrollTop, lastScrollTopRef.current);
+        lastScrollTopRef.current = currentScrollTop;
+      }
+      
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         setSelectedEventId(null);
@@ -139,7 +146,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       }
       clearTimeout(scrollTimeout);
     };
-  }, [viewMode, onSelectedEventChange]);
+  }, [viewMode, onScroll, onSelectedEventChange]);
 
   // Track visible cards using IntersectionObserver
   useEffect(() => {
@@ -213,7 +220,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     };
 
     // Find centered card on scroll and call onScroll callback
-    const scrollContainer = document.querySelector('.overflow-y-auto');
+    const scrollContainer = scrollContainerRef.current;
     const handleScroll = () => {
       findCenteredCard();
       if (onScroll && scrollContainer) {
@@ -291,11 +298,11 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             if (decadeEvents.length === 0) return null;
 
             return (
-              <div key={decade} className="border rounded-lg p-4 bg-card">
-                <h3 className="text-lg font-semibold mb-3">{decade}s</h3>
-                <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory">
+              <div key={decade} className="border rounded-lg p-3 md:p-4 bg-card">
+                <h3 className="text-base md:text-lg font-semibold mb-2 md:mb-3">{decade}s</h3>
+                <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
                   {decadeEvents.map((event, idx) => (
-                    <div key={event.id} className="snap-start flex-shrink-0 w-72">
+                    <div key={event.id} className="snap-start flex-shrink-0 w-[85vw] sm:w-72">
                       <TimelineCard event={event} side={idx % 2 === 0 ? "left" : "right"} />
                     </div>
                   ))}
@@ -331,9 +338,18 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   return (
     <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
       {/* Scrollable cards area - Left side with date margin */}
-      <div className="flex-1 overflow-y-auto h-full pr-1 md:pr-0 scrollbar-hide">
-        <div className="space-y-0.5 pt-0 pb-0 ml-10 mr-1 md:mr-0">
-          {sortedEvents.map((event, index) => {
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto h-full scrollbar-hide">
+        <div className="space-y-0.5 pt-0 pb-0 ml-0 md:ml-10 mr-0">
+          {isLoading ? (
+            <>
+              <TimelineCardSkeleton />
+              <TimelineCardSkeleton />
+              <TimelineCardSkeleton />
+              <TimelineCardSkeleton />
+              <TimelineCardSkeleton />
+            </>
+          ) : (
+            sortedEvents.map((event, index) => {
             const isSelected = selectedEventId === event.id;
             const formatDate = () => {
               const formatYear = (y: number) => {
@@ -356,7 +372,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             };
             
             return (
-              <div key={`card-wrapper-${event.id}`}>
+              <div key={`card-wrapper-${event.id}`} className="max-w-2xl mx-auto">
                 <div
                   ref={(el) => {
                     if (el) {
@@ -368,8 +384,8 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                   data-card-id={event.id}
                   className="relative"
                 >
-                  {/* Date in left margin */}
-                  <div className="absolute -left-10 top-6 w-8 text-right">
+                  {/* Date in left margin - hidden on mobile, shown on md+ */}
+                  <div className="hidden md:block absolute -left-10 top-6 w-8 text-right">
                     <span className="text-sm font-semibold text-muted-foreground">
                       {formatDate()}
                     </span>
@@ -394,12 +410,25 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                 )}
               </div>
             );
-          })}
+          })
+          )}
+          
+          {/* Load more trigger */}
+          {!isLoading && hasMore && (
+            <div ref={loadMoreRef} className="py-4">
+              {isLoadingMore && (
+                <div className="space-y-0.5">
+                  <TimelineCardSkeleton />
+                  <TimelineCardSkeleton />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Vertical Timeline - Fixed right side */}
-      <div className="absolute md:relative right-[-6px] h-[calc(100%-3.5rem)] w-3 flex-shrink-0 pt-0 pb-0 z-10">
+      {/* Vertical Timeline - Hidden on mobile, shown on md+ */}
+      <div className="hidden md:block absolute md:relative right-[-6px] h-[calc(100%-3.5rem)] w-3 flex-shrink-0 pt-0 pb-0 z-10">
         {/* Timeline container with line, outline, and markers */}
         <div className="relative h-full flex items-center justify-center">
           {/* Main vertical line - 8px, centered */}

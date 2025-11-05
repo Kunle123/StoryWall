@@ -48,6 +48,11 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         />
       )}
       <div className="space-y-3">
+        {/* Date - shown on mobile, hidden on desktop (where it's in margin) */}
+        <div className="text-xs font-medium text-muted-foreground md:hidden">
+          {formatDate(event.year, event.month, event.day)}
+        </div>
+        
         {/* Title */}
         <h3 className="font-semibold text-[15px] leading-tight text-orange-500">{event.title}</h3>
 
