@@ -278,13 +278,13 @@ const Profile = () => {
                               <>
                                 <Globe className="w-3 h-3" />
                                 Public
-                              </>
-                            ) : (
-                              <>
+                          </>
+                        ) : (
+                          <>
                                 <Lock className="w-3 h-3" />
                                 Private
-                              </>
-                            )}
+                          </>
+                        )}
                           </Badge>
                         </Button>
                       </div>
@@ -332,44 +332,44 @@ const Profile = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
+                      onClick={async () => {
                 if (!timelineToDelete) return;
                 
                 setDeletingTimelineId(timelineToDelete);
                 setDeleteDialogOpen(false);
                 
-                try {
+                          try {
                   console.log('[Profile] Deleting timeline:', timelineToDelete);
                   const result = await deleteTimeline(timelineToDelete);
-                  
-                  if (result.error) {
+                            
+                            if (result.error) {
                     console.error('[Profile] Delete error:', result.error);
-                    toast({
-                      title: "Error",
-                      description: result.error,
-                      variant: "destructive",
-                    });
-                  } else {
-                    // Remove timeline from local state
+                              toast({
+                                title: "Error",
+                                description: result.error,
+                                variant: "destructive",
+                              });
+                            } else {
+                              // Remove timeline from local state
                     setUserTimelines(prev => prev.filter(t => t.id !== timelineToDelete));
-                    
-                    toast({
+                              
+                              toast({
                       title: "Timeline deleted",
                       description: "Your timeline has been permanently deleted",
-                    });
-                  }
-                } catch (error: any) {
+                              });
+                            }
+                          } catch (error: any) {
                   console.error('[Profile] Failed to delete timeline:', error);
-                  toast({
-                    title: "Error",
-                    description: error.message || "Failed to delete timeline. Please try again.",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setDeletingTimelineId(null);
+                            toast({
+                              title: "Error",
+                              description: error.message || "Failed to delete timeline. Please try again.",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setDeletingTimelineId(null);
                   setTimelineToDelete(null);
-                }
-              }}
+                        }
+                      }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete

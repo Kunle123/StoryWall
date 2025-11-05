@@ -105,7 +105,7 @@ const Story = () => {
       loadEvent();
     }
   }, [params.id]);
-  
+
   const currentIndex = allEvents.findIndex(e => e.id === event?.id);
   const hasNext = currentIndex >= 0 && currentIndex < allEvents.length - 1;
   const hasPrev = currentIndex > 0;
@@ -289,14 +289,14 @@ const Story = () => {
           onTouchEnd={onTouchEnd}
         >
           {/* Back Button Above Profile */}
-          <Button
-            variant="ghost"
+        <Button
+          variant="ghost"
             className="mb-4 gap-2 -ml-2 text-muted-foreground hover:text-foreground"
-            onClick={() => router.push("/")}
-          >
-            <ArrowLeft className="w-4 h-4" />
+          onClick={() => router.push("/")}
+        >
+          <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back</span>
-          </Button>
+        </Button>
 
           {/* User Profile and Follow Button */}
           <div className="flex items-center justify-between mb-4">

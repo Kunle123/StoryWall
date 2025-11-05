@@ -8,81 +8,56 @@ import { StoryWallIcon } from "@/components/StoryWallIcon";
 import { useCredits } from "@/hooks/use-credits";
 import { BuyCreditsModal } from "@/components/BuyCreditsModal";
 
-export const Header = () => {
+interface HeaderProps {
+  isVisible?: boolean; // Controlled visibility from parent (for timeline pages)
+}
+
+export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) => {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { credits, fetchCredits } = useCredits();
+
+  // Use controlled visibility if provided, otherwise use internal state
+  const headerVisible = controlledVisibility !== undefined ? controlledVisibility : isVisible;
 
   useEffect(() => {
     fetchCredits();
   }, [fetchCredits]);
 
   useEffect(() => {
-    let scrollableContainers: Element[] = [];
-    let containerScrollPositions = new Map<Element, number>();
+    // Only handle window scroll if visibility is not controlled by parent
+    if (controlledVisibility !== undefined) {
+      return; // Parent controls visibility
+    }
 
-    const handleScroll = (scrollY: number, previousScrollY: number) => {
-      const scrollDirection = scrollY > previousScrollY ? 'down' : 'up';
-      
-      if (scrollDirection === 'down' && scrollY > 80) {
-        setIsVisible(false);
-      } else {
-        setIsVisible(true);
-      }
-      
-      setLastScrollY(scrollY);
-    };
-
-    // Handle window scroll (for pages without timeline)
     const handleWindowScroll = () => {
       const currentScrollY = window.scrollY;
-      handleScroll(currentScrollY, lastScrollY);
-    };
-
-    // Handle scrollable container scroll (for timeline view)
-    const handleContainerScroll = (event: Event) => {
-      const target = event.target as HTMLElement;
-      if (!target) return;
       
-      const previousScrollY = containerScrollPositions.get(target) || 0;
-      const currentScrollY = target.scrollTop;
-      containerScrollPositions.set(target, currentScrollY);
-      
-      handleScroll(currentScrollY, previousScrollY);
-    };
-
-    // Find all scrollable containers with overflow-y-auto (timeline containers)
-    const findScrollableContainers = () => {
-      const containers = document.querySelectorAll('.overflow-y-auto');
-      containers.forEach((container) => {
-        if (!scrollableContainers.includes(container)) {
-          scrollableContainers.push(container);
-          containerScrollPositions.set(container, container.scrollTop);
-          container.addEventListener('scroll', handleContainerScroll, { passive: true });
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        if (isVisible) {
+          setIsVisible(false);
         }
-      });
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        if (!isVisible) {
+          setIsVisible(true);
+        }
+      }
+      
+      setLastScrollY(currentScrollY);
     };
 
-    // Initial find and periodic check for dynamically added containers
-    findScrollableContainers();
-    const containerCheckInterval = setInterval(findScrollableContainers, 500);
-
-    // Listen to window scroll (fallback for non-timeline pages)
     window.addEventListener('scroll', handleWindowScroll, { passive: true });
 
     return () => {
       window.removeEventListener('scroll', handleWindowScroll);
-      scrollableContainers.forEach((container) => {
-        container.removeEventListener('scroll', handleContainerScroll);
-      });
-      clearInterval(containerCheckInterval);
-      containerScrollPositions.clear();
     };
-  }, [lastScrollY]);
+  }, [lastScrollY, isVisible, controlledVisibility]);
 
   return (
-    <header className={`fixed top-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ease-in-out ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container mx-auto px-3 h-12 flex items-center justify-between max-w-4xl">
         <Link href="/discover" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">

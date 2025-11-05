@@ -46,33 +46,19 @@ const Index = () => {
   };
 
   const handleTimelineScroll = (scrollTop: number, lastScrollTop: number) => {
-    if (scrollTop > lastScrollTop && scrollTop > 50) {
-      // Scrolling down
-      setShowHeader(false);
-    } else {
-      // Scrolling up
-      setShowHeader(true);
-    }
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        // Scrolling down
+    // Use requestAnimationFrame to batch state updates and prevent flickering
+    requestAnimationFrame(() => {
+      if (scrollTop > lastScrollTop && scrollTop > 50) {
+        // Scrolling down - hide header
         setShowHeader(false);
-      } else {
-        // Scrolling up
+      } else if (scrollTop < lastScrollTop) {
+        // Scrolling up - show header
         setShowHeader(true);
       }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+      // Update lastScrollY for next comparison
+      setLastScrollY(scrollTop);
+    });
+  };
 
   
   useEffect(() => {
@@ -125,7 +111,7 @@ const Index = () => {
   
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header isVisible={showHeader} />
       {events.length > 0 && (
         <>
           <SubMenuBar 
@@ -145,7 +131,9 @@ const Index = () => {
         </>
       )}
       <Toaster />
-      <main className="container mx-auto px-0 md:px-3 pt-[56px] pb-20 max-w-6xl">
+      <main className={`container mx-auto px-0 md:px-3 pb-20 max-w-6xl transition-all duration-300 ${
+        showHeader ? 'pt-[56px]' : 'pt-[44px]'
+      }`}>
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">No timelines available. Create one to get started!</p>

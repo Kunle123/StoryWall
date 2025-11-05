@@ -137,13 +137,13 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
 
   // If not signed in, show sign-in prompt instead of comments
   if (!isSignedIn) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-border">
-          <MessageCircle className="w-5 h-5 text-primary" />
-          <h3 className="font-display font-semibold text-lg">
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <MessageCircle className="w-5 h-5 text-primary" />
+        <h3 className="font-display font-semibold text-lg">
             Comments
-          </h3>
+        </h3>
         </div>
         <div className="p-6 border border-border rounded-lg bg-muted/30 text-center">
           <MessageCircle className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
