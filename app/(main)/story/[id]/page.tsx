@@ -278,7 +278,7 @@ const Story = () => {
       <main className="container mx-auto px-4 pt-4 pb-8 max-w-4xl">
         {/* Single Unified Card */}
         <Card 
-          key={params.id}
+          key={String(Array.isArray(params.id) ? params.id[0] : params.id)}
           className={`p-8 transition-all duration-300 ${
             slideDirection === 'left' ? 'animate-slide-out-left' : 
             slideDirection === 'right' ? 'animate-slide-out-right' : 
