@@ -24,6 +24,8 @@ const Story = () => {
   const [commentCount, setCommentCount] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const { toast } = useToast();
   
   const minSwipeDistance = 50;
@@ -131,12 +133,31 @@ const Story = () => {
   };
   
   const goToNext = () => {
-    if (hasNext) router.push(`/story/${allEvents[currentIndex + 1].id}`);
+    if (hasNext) {
+      setSlideDirection('left');
+      setTimeout(() => router.push(`/story/${allEvents[currentIndex + 1].id}`), 50);
+    }
   };
   
   const goToPrev = () => {
-    if (hasPrev) router.push(`/story/${allEvents[currentIndex - 1].id}`);
+    if (hasPrev) {
+      setSlideDirection('right');
+      setTimeout(() => router.push(`/story/${allEvents[currentIndex - 1].id}`), 50);
+    }
   };
+
+  useEffect(() => {
+    setSlideDirection(null);
+  }, [params.id]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleCommentClick = () => {
     // Navigate to timeline page with comments section
@@ -250,47 +271,34 @@ const Story = () => {
           precedingDate={precedingDate}
           followingDate={followingDate}
           timelinePosition={timelinePosition}
+          collapsed={isScrolled}
         />
       )}
 
-      <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="ghost"
-            className="gap-2"
-            onClick={() => router.push("/")}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Timeline
-          </Button>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToPrev}
-              disabled={!hasPrev}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={goToNext}
-              disabled={!hasNext}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
+      <main className="container mx-auto px-4 pt-4 pb-8 max-w-4xl">
         {/* Single Unified Card */}
         <Card 
-          className="p-6"
+          key={params.id}
+          className={`p-8 transition-all duration-300 ${
+            slideDirection === 'left' ? 'animate-slide-out-left' : 
+            slideDirection === 'right' ? 'animate-slide-out-right' : 
+            'animate-slide-in'
+          }`}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {/* User Profile and Follow Button at Top */}
+          {/* Back Button Above Profile */}
+          <Button
+            variant="ghost"
+            className="mb-4 gap-2 -ml-2 text-muted-foreground hover:text-foreground"
+            onClick={() => router.push("/")}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back</span>
+          </Button>
+
+          {/* User Profile and Follow Button */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">

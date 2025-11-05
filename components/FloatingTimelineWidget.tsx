@@ -5,13 +5,15 @@ interface FloatingTimelineWidgetProps {
   precedingDate?: string;
   followingDate?: string;
   timelinePosition?: number;
+  collapsed?: boolean;
 }
 
 export const FloatingTimelineWidget = ({ 
   selectedDate, 
   precedingDate, 
   followingDate, 
-  timelinePosition = 0.5 
+  timelinePosition = 0.5,
+  collapsed = false
 }: FloatingTimelineWidgetProps) => {
   // Calculate arc angles rotated 2° clockwise from 90° anti-clockwise (from -266° to +90°)
   const startAngle = -266;
@@ -41,10 +43,14 @@ export const FloatingTimelineWidget = ({
   const currentArcLength = (Math.abs(currentAngle - startAngle) * Math.PI * radius) / 180;
 
   return (
-    <div className="fixed bottom-20 left-4 z-50 bg-background/80 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-border">
-      <div className="w-28 h-28 rounded-full bg-muted/30 flex items-center justify-center relative overflow-hidden">
+    <div className={`fixed bottom-20 z-50 bg-background/50 backdrop-blur-md rounded-2xl shadow-lg border border-border transition-all duration-500 ease-in-out ${
+      collapsed ? 'left-[-60px] p-1.5 opacity-70 hover:left-2 hover:opacity-100' : 'left-4 p-3'
+    }`}>
+      <div className={`rounded-full bg-muted/30 flex items-center justify-center relative overflow-hidden transition-all duration-500 ${
+        collapsed ? 'w-16 h-16' : 'w-28 h-28'
+      }`}>
         {/* SVG Timeline Arc */}
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 112 112">
+        <svg className="absolute inset-0 w-full h-full transition-opacity duration-500" viewBox="0 0 112 112" style={{ opacity: collapsed ? 0.8 : 1 }}>
           {/* Background arc */}
           <path
             d={arcPath}
@@ -68,25 +74,29 @@ export const FloatingTimelineWidget = ({
           />
         </svg>
         
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-10 overflow-hidden">
-          {precedingDate && (
+        <div className={`absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-10 overflow-hidden transition-all duration-500 ${
+          collapsed ? 'scale-75' : 'scale-100'
+        }`}>
+          {!collapsed && precedingDate && (
             <div 
               key={`prev-${precedingDate}`}
-              className="text-[13px] font-medium text-foreground/40 text-center leading-tight"
+              className="text-[13px] font-medium text-foreground/40 text-center leading-tight animate-slideFromTop"
             >
               {precedingDate.split(',')[0]}
             </div>
           )}
           <div 
             key={`current-${selectedDate}`}
-            className="text-[15px] font-semibold text-foreground text-center leading-tight"
+            className={`font-semibold text-foreground text-center leading-tight animate-slideFromBottom transition-all duration-500 ${
+              collapsed ? 'text-[11px]' : 'text-[15px]'
+            }`}
           >
             {selectedDate?.split(',')[0] || 'Timeline'}
           </div>
-          {followingDate && (
+          {!collapsed && followingDate && (
             <div 
               key={`next-${followingDate}`}
-              className="text-[13px] font-medium text-foreground/40 text-center leading-tight"
+              className="text-[13px] font-medium text-foreground/40 text-center leading-tight animate-slideFromBottom"
             >
               {followingDate.split(',')[0]}
             </div>

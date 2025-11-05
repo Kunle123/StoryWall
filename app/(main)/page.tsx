@@ -45,6 +45,16 @@ const Index = () => {
     return events.length > 1 ? currentIndex / (events.length - 1) : 0.5;
   };
 
+  const handleTimelineScroll = (scrollTop: number, lastScrollTop: number) => {
+    if (scrollTop > lastScrollTop && scrollTop > 50) {
+      // Scrolling down
+      setShowHeader(false);
+    } else {
+      // Scrolling up
+      setShowHeader(true);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -135,7 +145,7 @@ const Index = () => {
         </>
       )}
       <Toaster />
-      <main className="container mx-auto px-3 pt-[56px] pb-20 max-w-6xl">
+      <main className="container mx-auto px-0 md:px-3 pt-[56px] pb-20 max-w-6xl">
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">No timelines available. Create one to get started!</p>
@@ -147,6 +157,8 @@ const Index = () => {
             viewMode={viewMode} 
             onViewModeChange={setViewMode}
             onCenteredEventChange={setCenteredEvent}
+            onScroll={handleTimelineScroll}
+            isLoading={loading}
           />
         )}
       </main>

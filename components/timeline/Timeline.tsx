@@ -23,9 +23,14 @@ interface TimelineProps {
   onViewModeChange?: (mode: "vertical" | "hybrid") => void;
   onSelectedEventChange?: (event: TimelineEvent | null) => void;
   onCenteredEventChange?: (event: TimelineEvent | null) => void;
+  onScroll?: (scrollTop: number, lastScrollTop: number) => void;
+  isLoading?: boolean;
+  loadMoreRef?: React.RefObject<HTMLDivElement>;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange }: TimelineProps) => {
+export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false }: TimelineProps) => {
   const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -34,6 +39,8 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   const [centeredCardId, setCenteredCardId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastScrollTopRef = useRef(0);
 
   // Sort events by date
   const sortedEvents = [...events].sort((a, b) => {
@@ -205,10 +212,19 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       }
     };
 
-    // Find centered card on scroll
+    // Find centered card on scroll and call onScroll callback
     const scrollContainer = document.querySelector('.overflow-y-auto');
+    const handleScroll = () => {
+      findCenteredCard();
+      if (onScroll && scrollContainer) {
+        const currentScrollTop = scrollContainer.scrollTop;
+        onScroll(currentScrollTop, lastScrollTopRef.current);
+        lastScrollTopRef.current = currentScrollTop;
+      }
+    };
+
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', findCenteredCard);
+      scrollContainer.addEventListener('scroll', handleScroll);
       // Use requestAnimationFrame to avoid calling during render
       requestAnimationFrame(() => {
         findCenteredCard();
@@ -217,7 +233,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
 
     return () => {
       if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', findCenteredCard);
+        scrollContainer.removeEventListener('scroll', handleScroll);
       }
     };
     // Remove onCenteredEventChange from dependencies to prevent infinite loop
