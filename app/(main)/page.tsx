@@ -5,8 +5,7 @@ import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelines, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
-import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
-import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 
@@ -122,22 +121,6 @@ const Index = () => {
             timelinePosition={getTimelinePosition()}
             headerVisible={showHeader}
           />
-          <FloatingTimelineWidget
-            selectedDate={formatSelectedDate(centeredEvent)}
-            precedingDate={formatSelectedDate(getPrecedingEvent())}
-            followingDate={formatSelectedDate(getFollowingEvent())}
-            timelinePosition={getTimelinePosition()}
-            startDate={(() => {
-              if (!events || events.length === 0) return undefined as unknown as Date | undefined;
-              const times = events.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime());
-              return new Date(Math.min(...times));
-            })()}
-            endDate={(() => {
-              if (!events || events.length === 0) return undefined as unknown as Date | undefined;
-              const times = events.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime());
-              return new Date(Math.max(...times));
-            })()}
-          />
         </>
       )}
       <Toaster />
@@ -160,10 +143,18 @@ const Index = () => {
           />
         )}
       </main>
-      <BottomMenuBar 
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      {events.length > 0 && (() => {
+        const startDate = events.length > 0 ? new Date(Math.min(...events.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
+        const endDate = events.length > 0 ? new Date(Math.max(...events.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+        return (
+          <ExperimentalBottomMenuBar
+            selectedDate={formatSelectedDate(centeredEvent)}
+            timelinePosition={getTimelinePosition()}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        );
+      })()}
     </div>
   );
 };

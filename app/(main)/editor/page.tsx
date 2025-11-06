@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
-import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Eye, Save } from "lucide-react";
@@ -395,33 +395,33 @@ const TimelineEditor = () => {
               </Button>
               {currentStep === 5 ? (
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <Button 
-                    variant="outline"
+                <Button 
+                  variant="outline"
                     onClick={handlePreviewTimeline}
                     disabled={!canProceed()}
                     className="flex-1 sm:flex-initial"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
+                >
+                  <Eye className="mr-2 h-4 w-4" />
                     Preview Timeline
-                  </Button>
-                  <Button 
+                </Button>
+                <Button 
                     onClick={handleSaveTimeline}
                     disabled={!canProceed() || isSaving}
                     className="flex-1 sm:flex-initial"
-                  >
-                    {isSaving ? (
-                      <>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
+                >
+                  {isSaving ? (
+                    <>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
                         Save Timeline
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
+                    </>
+                  )}
+                </Button>
+                  </div>
+                ) : (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
@@ -431,12 +431,12 @@ const TimelineEditor = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
-            </div>
+                  </div>
           </>
         )}
       </main>
 
-      <BottomMenuBar />
+      <ExperimentalBottomMenuBar />
     </div>
   );
 };

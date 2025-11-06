@@ -1,4 +1,4 @@
-import { User, Coins } from "lucide-react";
+import { User, Coins, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -46,6 +46,15 @@ export const Header = ({ onVisibilityChange }: HeaderProps = {}) => {
         </Link>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => navigate("/timeline-editor")}
+          >
+            <Plus className="w-5 h-5" />
+          </Button>
+          
           <Button
             variant="outline"
             size="sm"

@@ -5,7 +5,7 @@ import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchEventsByTimelineId, fetchTimelines, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
-import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { Loader2 } from "lucide-react";
 import { formatEventDate } from "@/lib/utils/dateFormat";
@@ -90,10 +90,40 @@ const UKWarsPage = () => {
           />
         )}
       </main>
-      <BottomMenuBar 
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      {events.length > 0 && (() => {
+        const startDate = events.length > 0 ? new Date(Math.min(...events.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
+        const endDate = events.length > 0 ? new Date(Math.max(...events.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+        const timelinePosition = (() => {
+          if (!centeredEvent || events.length < 2) return 0.5;
+          const sortedEvts = [...events].sort((a, b) => {
+            const dateA = new Date(a.year, (a.month || 1) - 1, a.day || 1).getTime();
+            const dateB = new Date(b.year, (b.month || 1) - 1, b.day || 1).getTime();
+            return dateA - dateB;
+          });
+          const eventDate = new Date(centeredEvent.year, (centeredEvent.month || 1) - 1, centeredEvent.day || 1).getTime();
+          const idx = sortedEvts.findIndex((e: TimelineEvent) => {
+            const eDate = new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
+            return eDate === eventDate;
+          });
+          if (idx >= 0 && sortedEvts.length > 1) {
+            return idx / (sortedEvts.length - 1);
+          }
+          if (startDate && endDate && eventDate) {
+            const totalSpan = endDate.getTime() - startDate.getTime();
+            const position = (eventDate - startDate.getTime()) / totalSpan;
+            return Math.min(Math.max(position, 0), 1);
+          }
+          return 0.5;
+        })();
+        return (
+          <ExperimentalBottomMenuBar
+            selectedDate={formatSelectedDate(centeredEvent)}
+            timelinePosition={timelinePosition}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        );
+      })()}
     </div>
   );
 };

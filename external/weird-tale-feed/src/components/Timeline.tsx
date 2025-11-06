@@ -31,9 +31,10 @@ interface TimelineProps {
   isLoadingMore?: boolean;
   hasMore?: boolean;
   allEvents?: TimelineEvent[]; // Full timeline for calculating date range
+  hideFloatingWidget?: boolean; // Hide the floating widget
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false, allEvents }: TimelineProps) => {
+export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false, allEvents, hideFloatingWidget = false }: TimelineProps) => {
   const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -383,7 +384,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   return (
     <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
       {/* Floating Timeline Widget */}
-      {viewMode === "vertical" && sortedEvents.length > 0 && (
+      {!hideFloatingWidget && viewMode === "vertical" && sortedEvents.length > 0 && (
         <FloatingTimelineWidget
           selectedDate={selectedDate}
           precedingDate={precedingDate}

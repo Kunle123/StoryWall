@@ -97,16 +97,16 @@ export const WritingStyleStep = ({
       let response;
       try {
         response = await fetch("/api/ai/generate-events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            timelineDescription,
-            timelineName,
-            maxEvents: 20,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timelineDescription,
+          timelineName,
+          maxEvents: 20,
             isFactual,
-          }),
+        }),
           signal: controller.signal,
-        });
+      });
         clearTimeout(timeoutId);
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
