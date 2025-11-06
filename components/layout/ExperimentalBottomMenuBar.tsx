@@ -188,7 +188,7 @@ export const ExperimentalBottomMenuBar = ({
                 Z
               `}
               fill="hsl(var(--background))"
-              fillOpacity="0.95"
+              fillOpacity="0.5"
               stroke="hsl(var(--border))"
               strokeWidth="1"
               strokeOpacity="0.5"
@@ -207,14 +207,14 @@ export const ExperimentalBottomMenuBar = ({
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
             {/* Left button with date */}
-            <div className="flex items-center gap-2 flex-1 justify-end" style={{ marginRight: '-20px' }}>
+            <div className="flex items-center gap-2 flex-1 justify-end" style={{ marginRight: 'calc(-20px - 10%)' }}>
               <Button 
                 variant="ghost" 
                 size="icon"
                 className="h-12 w-12"
                 onClick={() => router.push("/")}
               >
-                <Home className="w-7 h-7" />
+                <Home className="w-10 h-10" />
               </Button>
               {formattedStartDate && (
                 <div className="text-xs text-muted-foreground font-medium">
@@ -227,7 +227,7 @@ export const ExperimentalBottomMenuBar = ({
             <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
 
             {/* Right button with date */}
-            <div className="flex items-center gap-2 flex-1" style={{ marginLeft: '-20px' }}>
+            <div className="flex items-center gap-2 flex-1" style={{ marginLeft: 'calc(-20px - 10%)' }}>
               {formattedEndDate && (
                 <div className="text-xs text-muted-foreground font-medium">
                   {formattedEndDate}
@@ -239,7 +239,7 @@ export const ExperimentalBottomMenuBar = ({
                 className="h-12 w-12"
                 onClick={handleShare}
               >
-                <Share2 className="w-7 h-7" />
+                <Share2 className="w-10 h-10" />
               </Button>
             </div>
           </div>
