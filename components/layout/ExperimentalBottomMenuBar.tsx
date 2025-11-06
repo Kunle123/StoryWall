@@ -124,10 +124,10 @@ export const ExperimentalBottomMenuBar = ({
   // Tab bar height - 40px
   const tabBarHeight = 40;
   
-  // Center position: 20px from bottom of tab bar + recess radius
-  // Center = 20px + recess radius = 20px + (dial radius + 10px) = 30px + dial radius
+  // Center position: 20px from bottom of tab bar (as per sketch: G2 = 20px)
+  // The center of both dial and recess should be at 20px from bottom
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = 20 + recessRadius; // 20px from bottom + recess radius
+  const centerYFromBottom = 20; // 20px from bottom of tab bar
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
@@ -236,9 +236,8 @@ export const ExperimentalBottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center at midpoint of screen, 20px + recess radius from bottom of tab bar
-            // Center = 20px + recess radius = 20px + (dial radius + 10px) = 30px + dial radius
-            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 20px + recess radius from bottom
+            // Dial center at midpoint of screen, 20px from bottom of tab bar
+            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 20px from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
