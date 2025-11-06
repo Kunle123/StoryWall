@@ -159,9 +159,15 @@ export const ExperimentalBottomMenuBar = ({
   const svgTotalHeight = tabBarHeight + svgExtraHeight;
   
   // Center Y in SVG coordinates (from top of SVG)
-  // SVG extends svgExtraHeight above tab bar, so center Y = svgExtraHeight + (tabBarHeight - (centerYFromBottom - tabBarHeight))
-  // Simplified: center Y = svgTotalHeight - centerYFromBottom
+  // SVG extends svgExtraHeight above tab bar, so center Y = svgTotalHeight - centerYFromBottom
   const centerYInSVG = svgTotalHeight - centerYFromBottom;
+  
+  // Calculate screen center and arc endpoints
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const screenCenterX = screenWidth / 2;
+  const arcLeftX = screenCenterX - recessRadius;
+  const arcRightX = screenCenterX + recessRadius;
+  const tabBarTopY = svgTotalHeight - tabBarHeight;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
@@ -176,14 +182,15 @@ export const ExperimentalBottomMenuBar = ({
               </filter>
             </defs>
             {/* Tab bar shape with circular cutout - using path */}
+            {/* Path: rectangle with circular cutout at top center */}
             <path
-              d={`M 0,${svgTotalHeight} L 0,${svgTotalHeight - tabBarHeight} L 50%,${svgTotalHeight - tabBarHeight} L 50%,${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 50%,${centerYInSVG + recessRadius} L 50%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight} Z`}
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="hsl(var(--background) / 0.95)"
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
             />
             {/* Border path */}
             <path
-              d={`M 0,${svgTotalHeight} L 0,${svgTotalHeight - tabBarHeight} L 50%,${svgTotalHeight - tabBarHeight} L 50%,${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 50%,${centerYInSVG + recessRadius} L 50%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight} Z`}
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
