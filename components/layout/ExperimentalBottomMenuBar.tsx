@@ -183,15 +183,15 @@ export const ExperimentalBottomMenuBar = ({
             </defs>
             {/* Tab bar shape with circular cutout - using path */}
             {/* Path: rectangle with circular cutout at center position (above tab bar) */}
-            {/* The arc creates the circular recess, positioned at centerYInSVG */}
+            {/* The path goes around the circle to create the cutout */}
             <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${centerYInSVG - recessRadius} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} A ${recessRadius},${recessRadius} 0 0 1 ${screenCenterX},${centerYInSVG} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="hsl(var(--background) / 0.95)"
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
             />
             {/* Border path */}
             <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${centerYInSVG - recessRadius} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} A ${recessRadius},${recessRadius} 0 0 1 ${screenCenterX},${centerYInSVG} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
