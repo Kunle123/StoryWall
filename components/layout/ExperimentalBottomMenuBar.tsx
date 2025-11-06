@@ -116,18 +116,20 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 10px gap between dial edge and recess edge (5px on each side)
-  const recessGap = 10; // Total gap = 10px (5px on each side)
-  const recessSize = dialSize + recessGap; // dialSize + 10px
+  // Calculate recess size: 20px gap between dial edge and recess edge (10px on each side)
+  // Center = 30px + dialRadius = 20px + recessRadius
+  // This means: 30 + dialRadius = 20 + (dialRadius + gap/2)
+  // So: 30 = 20 + gap/2, therefore gap = 20px total (10px on each side)
+  const recessGap = 20; // Total gap = 20px (10px on each side)
+  const recessSize = dialSize + recessGap; // dialSize + 20px
   const recessRadius = recessSize / 2;
   
   // Tab bar height - 40px
   const tabBarHeight = 40;
   
-  // Center position: 20px from bottom of tab bar (as per sketch: G2 = 20px)
-  // The center of both dial and recess should be at 20px from bottom
+  // Center position: 30px + dialRadius = 20px + recessRadius
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = 20; // 20px from bottom of tab bar
+  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius from bottom
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
@@ -236,8 +238,9 @@ export const ExperimentalBottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center at midpoint of screen, 20px from bottom of tab bar
-            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 20px from bottom
+            // Dial center at midpoint of screen, 30px + dialRadius from bottom
+            // This equals 20px + recessRadius, making dial and recess concentric
+            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 30px + dialRadius from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
