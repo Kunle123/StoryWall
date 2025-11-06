@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using gpt-4o-mini for cost optimization with excellent instruction following
+        model: 'gpt-4o', // Using gpt-4o for better accuracy and factual correctness
         messages: [
           {
             role: 'system',
@@ -97,7 +97,7 @@ Generate as many accurate events as you can based on your knowledge. Return as J
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: isFactual ? 0.3 : 0.7, // Lower temperature for factual accuracy, higher for creativity
+        temperature: isFactual ? 0.1 : 0.7, // Very low temperature for factual accuracy (reduce hallucination)
         max_tokens: Math.min(3000, (maxEvents * 100) + 500), // ~100 tokens per event + structure overhead
       }),
     });
