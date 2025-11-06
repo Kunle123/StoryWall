@@ -142,6 +142,21 @@ export const ExperimentalBottomMenuBar = ({
     recessRadius,
     centerYFromBottom,
     tabBarHeight,
+    'dial bottom position': 30,
+    'dial top position': 30 + dialSize,
+    'center from bottom': centerYFromBottom,
+    'recess bottom from bottom': centerYFromBottom - recessRadius,
+    'should be 20': centerYFromBottom - recessRadius === 20
+  });
+  
+  // Debug logging
+  console.log('ExperimentalBottomMenuBar calculations:', {
+    dialSize,
+    dialRadius,
+    recessSize,
+    recessRadius,
+    centerYFromBottom,
+    tabBarHeight,
     'dial bottom': 30,
     'dial top': 30 + dialSize,
     'recess bottom from viewport': centerYFromBottom - recessRadius,
