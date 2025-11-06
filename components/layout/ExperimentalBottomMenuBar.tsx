@@ -160,45 +160,38 @@ export const ExperimentalBottomMenuBar = ({
       <div className="relative overflow-visible" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess - recess contained within 40px height */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* SVG path that draws tab bar with circular cutout */}
+          {/* Tab bar with circular cutout at top center */}
           <svg 
-            className="absolute bottom-0 left-0 w-full h-full pointer-events-none"
+            className="absolute bottom-0 left-0 w-full pointer-events-none"
             style={{ height: `${tabBarHeight}px` }}
             viewBox={`0 0 ${screenWidth} ${tabBarHeight}`}
             preserveAspectRatio="none"
           >
-            <defs>
-              {/* Path for tab bar with circular cutout
-                  The cutout is centered at centerYInSVG from the top of the tab bar
-                  We draw the tab bar rectangle and subtract the circular cutout */}
-              <path 
-                id={`tabBarPath-${maskId}`}
-                d={`M 0 ${tabBarHeight} L 0 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z M ${screenCenterX} ${centerYInSVG} m -${recessRadius},0 a ${recessRadius},${recessRadius} 0 1,1 ${recessRadius * 2},0 a ${recessRadius},${recessRadius} 0 1,1 -${recessRadius * 2},0 Z`}
-                fillRule="evenodd"
-              />
-            </defs>
-            {/* Tab bar background using the path */}
-            <use 
-              href={`#tabBarPath-${maskId}`}
-              fill="hsl(var(--background))"
-              opacity="0.95"
-            />
-            {/* Border line at top, with cutout for recess */}
+            {/* Draw tab bar shape with circular arc cutout at top */}
             <path
-              d={`M 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0`}
+              d={`
+                M 0 ${tabBarHeight}
+                L 0 0
+                L ${screenCenterX - recessRadius} 0
+                A ${recessRadius} ${recessRadius} 0 0 0 ${screenCenterX + recessRadius} 0
+                L ${screenWidth} 0
+                L ${screenWidth} ${tabBarHeight}
+                Z
+              `}
+              fill="hsl(var(--background))"
+              fillOpacity="0.95"
               stroke="hsl(var(--border))"
               strokeWidth="1"
-              fill="none"
-              opacity="0.5"
+              strokeOpacity="0.5"
             />
           </svg>
           
-          {/* Backdrop blur layer using clip-path */}
+          {/* Backdrop blur layer with same cutout shape */}
           <div 
-            className="absolute bottom-0 left-0 right-0 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            className="absolute bottom-0 left-0 right-0 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-none"
             style={{ 
               height: `${tabBarHeight}px`,
-              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
+              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 0 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
             }}
           />
           
