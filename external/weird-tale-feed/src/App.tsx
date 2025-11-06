@@ -12,6 +12,7 @@ import CardEditor from "./pages/CardEditor";
 import Portfolio from "./pages/Portfolio";
 import Discover from "./pages/Discover";
 import TimelineEditor from "./pages/TimelineEditor";
+import ExperimentalTimeline from "./pages/ExperimentalTimeline";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/discover" element={<Discover />} />
+          <Route path="/experimental" element={<ExperimentalTimeline />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/story/:id" element={<Story />} />
           <Route path="/profile" element={<Profile />} />
