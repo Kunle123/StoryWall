@@ -378,51 +378,55 @@ const TimelineEditor = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex justify-between">
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
               <Button
                 variant="outline"
                 onClick={handleBack}
                 disabled={currentStep === 1}
+                className="w-full sm:w-auto"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
               {currentStep === 5 ? (
-                <div className="flex gap-3">
-                <Button 
-                  variant="outline"
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <Button 
+                    variant="outline"
                     onClick={handlePreviewTimeline}
                     disabled={!canProceed()}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
+                    className="flex-1 sm:flex-initial"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
                     Preview Timeline
-                </Button>
-                <Button 
+                  </Button>
+                  <Button 
                     onClick={handleSaveTimeline}
                     disabled={!canProceed() || isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
+                    className="flex-1 sm:flex-initial"
+                  >
+                    {isSaving ? (
+                      <>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
                         Save Timeline
-                    </>
-                  )}
-                </Button>
-                  </div>
-                ) : (
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   onClick={handleNext}
                   disabled={!canProceed()}
+                  className="w-full sm:w-auto"
                 >
                   Next
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
-                  </div>
+            </div>
           </>
         )}
       </main>

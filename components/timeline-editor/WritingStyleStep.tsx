@@ -193,7 +193,7 @@ export const WritingStyleStep = ({
       {/* AI Generate Button */}
       <div>
         <Label className="text-base mb-3 block">2. Generate with AI or Add Events Manually</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={() => {
               // If customStyle is set but writingStyle is not, set it
@@ -203,7 +203,7 @@ export const WritingStyleStep = ({
               handleGenerateEvents();
             }}
             disabled={(!writingStyle && !customStyle) || isGenerating || hasGenerated}
-            className="flex-1"
+            className="flex-1 w-full sm:w-auto"
           >
             {isGenerating ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -218,7 +218,7 @@ export const WritingStyleStep = ({
               </Badge>
             )}
           </Button>
-          <Button variant="outline" onClick={addEvent}>
+          <Button variant="outline" onClick={addEvent} className="w-full sm:w-auto sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Add Manually
           </Button>
@@ -226,7 +226,7 @@ export const WritingStyleStep = ({
         <p className="text-xs text-muted-foreground mt-2">
           {isFactual ? (
             <>
-              <strong>Note:</strong> AI-generated events may contain inaccuracies. Please verify and edit events after generation, especially for recent or obscure topics.
+              <strong>Warning:</strong> AI-generated events may contain inaccuracies, especially for recent events (2023-present). The AI has limited knowledge of current events and may hallucinate. <strong>For recent news, campaigns, or current events, we strongly recommend adding events manually</strong> rather than relying on AI generation. Always verify and edit events after generation.
             </>
           ) : (
             <>

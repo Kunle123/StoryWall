@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // AI integration with OpenAI GPT-4
+    // AI integration with OpenAI GPT-5
+    // Using Chat Completions API (can also use Responses API for better CoT support)
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo',
+        model: 'gpt-5-mini', // Using GPT-5-mini for cost optimization with excellent instruction following
         messages: [
           {
             role: 'system',
@@ -53,11 +54,20 @@ export async function POST(request: NextRequest) {
               ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
 
 CRITICAL ACCURACY REQUIREMENTS:
-- Only generate events that are FACTUALLY VERIFIED and well-documented
+- Only generate events that are FACTUALLY VERIFIED and well-documented in reliable sources
 - Do NOT invent, speculate, or make up events that you are not certain about
 - If you are unsure about specific dates or details, omit them rather than guessing
 - For recent or obscure topics, be extra cautious and only include information you are confident is accurate
-- If the topic is too recent or not well-documented, generate fewer events rather than inaccurate ones
+
+EXTREME CAUTION FOR RECENT EVENTS (2023-PRESENT):
+- Your training data may not include recent events or may be outdated
+- For events from 2023 to present day, you MUST be extremely conservative
+- If you are uncertain about ANY recent events, return an "events" array with VERY FEW events (1-3) or an empty array if completely uncertain
+- DO NOT generate events about recent news, campaigns, or current events unless you are 100% certain of the exact details
+- If the topic involves recent political campaigns, elections, or current events, strongly prefer returning fewer accurate events over many inaccurate ones
+- When in doubt about recent events, return an empty array or a minimal set of only the most well-documented events
+
+For topics that are too recent or not well-documented, it is better to return an empty array or very few events than to generate inaccurate information.
 
 IMPORTANT: Only include month and day if the exact date is historically known and significant (e.g., "September 11, 2001" for 9/11). For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates for well-known specific dates like 9/11, D-Day (June 6, 1944), etc.
 
@@ -76,12 +86,18 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
           {
             role: 'user',
             content: isFactual
-              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} FACTUALLY ACCURATE events. Only include events you are certain are correct based on verified historical information. If you are unsure about any details, omit them rather than guessing. Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
+              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} FACTUALLY ACCURATE events. Only include events you are certain are correct based on verified historical information. If you are unsure about any details, omit them rather than guessing. 
+
+CRITICAL: If this timeline involves events from 2023 to present day, you MUST be extremely conservative. Your knowledge may be outdated or incomplete for recent events. If you are uncertain about recent events, return very few events (1-3) or an empty array. DO NOT make up or guess recent events, campaigns, elections, or current news. It is better to return no events than inaccurate ones.
+
+Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
               : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`,
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: isFactual ? 0.3 : 0.8, // Lower temperature for factual, higher for creative/fictional
+        // GPT-5 doesn't support temperature - use reasoning_effort and verbosity instead
+        reasoning_effort: isFactual ? 'minimal' : 'low', // Minimal for factual accuracy (faster), low for creative tasks
+        verbosity: 'low', // Low verbosity for concise JSON responses
         // Optimize: ~100 tokens per event + structure overhead
         // Cap at reasonable max to prevent slow responses
         max_tokens: Math.min(3000, (maxEvents * 100) + 500),

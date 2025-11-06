@@ -239,16 +239,6 @@ export const GenerateImagesStep = ({
               </div>
             ))}
           </div>
-
-          <div className="flex gap-4">
-            <Button variant="outline" size="lg" className="flex-1">
-              <Eye className="mr-2 h-5 w-5" />
-              Preview Timeline
-            </Button>
-            <Button variant="default" size="lg" className="flex-1">
-              Save Timeline
-            </Button>
-          </div>
         </div>
       )}
 
