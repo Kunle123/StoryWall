@@ -123,6 +123,11 @@ export const ExperimentalBottomMenuBar = ({
   
   // Tab bar height - standard 44px
   const tabBarHeight = 44;
+  
+  // Center position: dial radius + 10px from bottom of tab bar
+  // This places the center vertically above the tab bar
+  const dialRadius = dialSize / 2;
+  const centerYFromBottom = dialRadius + 10; // Center is dial radius + 10px from bottom
 
   // Calculate SVG path for tab bar with circular recess
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -157,11 +162,11 @@ export const ExperimentalBottomMenuBar = ({
             <defs>
               <mask id={maskId}>
                 <rect width="100%" height="100%" fill="white" />
-                {/* Circular cutout at top center - black means transparent */}
-                {/* Recess center is at top edge of tab bar (cy="0"), coincident with dial center */}
+                {/* Circular cutout - center at midpoint of screen, dial radius + 10px from bottom */}
+                {/* Recess center is coincident with dial center */}
                 <circle 
                   cx="50%" 
-                  cy="0" 
+                  cy={`${centerYFromBottom}px`}
                   r={recessRadius} 
                   fill="black"
                 />
@@ -234,9 +239,9 @@ export const ExperimentalBottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center aligns with recess center (both at top edge of tab bar, cy="0")
-            // This positions dial center at top edge, so dial extends above tab bar
-            bottom: `${tabBarHeight - dialSize / 2}px`, // Dial center at top edge of tab bar
+            // Dial center at midpoint of screen, dial radius + 10px from bottom of tab bar
+            // This positions center vertically above the tab bar
+            bottom: `${centerYFromBottom - dialRadius}px`, // Center at dial radius + 10px from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
