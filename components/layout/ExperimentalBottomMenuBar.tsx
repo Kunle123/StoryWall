@@ -142,14 +142,22 @@ export const ExperimentalBottomMenuBar = ({
   // SVG height matches tab bar height (40px), with y=0 at top, y=40 at bottom
   const svgTotalHeight = tabBarHeight;
   
-  // Center Y in SVG coordinates (from top of SVG, which is top of tab bar)
-  // SVG: y=0 at top, y=40 at bottom
-  // Viewport: bottom of tab bar = 0, top of tab bar = 40px from bottom
-  // Center is at centerYFromBottom from bottom of viewport
-  // In SVG coordinates: centerYInSVG = tabBarHeight - (centerYFromBottom - 0) = 40 - centerYFromBottom
-  // If center is above tab bar (centerYFromBottom > 40), centerYInSVG will be negative
-  // We need the center position for the circle, even if it's outside the SVG bounds
-  const centerYInSVG = tabBarHeight - centerYFromBottom;
+  // Calculate where the recess circle intersects the top of the tab bar (y=0 in SVG)
+  // The recess center is at centerYFromBottom = 90px from viewport bottom
+  // In SVG coordinates: centerYInSVG = tabBarHeight - centerYFromBottom = 40 - 90 = -50
+  // The circle has radius recessRadius = 70px, centered at (screenCenterX, -50)
+  // At y=0 (top of tab bar), we need to find the x-coordinates where the circle intersects
+  // Circle equation: (x - cx)^2 + (y - cy)^2 = r^2
+  // At y=0: (x - screenCenterX)^2 + (0 - (-50))^2 = 70^2
+  // (x - screenCenterX)^2 + 2500 = 4900
+  // (x - screenCenterX)^2 = 2400
+  // x - screenCenterX = ±sqrt(2400) = ±48.99
+  const centerYInSVG = tabBarHeight - centerYFromBottom; // -50
+  const yIntersect = 0; // Top of tab bar
+  const distanceFromCenter = Math.abs(centerYInSVG - yIntersect); // 50
+  const horizontalOffset = Math.sqrt(Math.max(0, recessRadius * recessRadius - distanceFromCenter * distanceFromCenter));
+  const arcLeftX = screenCenterX - horizontalOffset;
+  const arcRightX = screenCenterX + horizontalOffset;
   
   // Calculate screen center and arc endpoints
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -173,8 +181,8 @@ export const ExperimentalBottomMenuBar = ({
               d={`
                 M 0 ${tabBarHeight}
                 L 0 0
-                L ${screenCenterX - recessRadius} 0
-                A ${recessRadius} ${recessRadius} 0 0 0 ${screenCenterX + recessRadius} 0
+                L ${arcLeftX} 0
+                A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0
                 L ${screenWidth} 0
                 L ${screenWidth} ${tabBarHeight}
                 Z
@@ -192,7 +200,7 @@ export const ExperimentalBottomMenuBar = ({
             className="absolute bottom-0 left-0 right-0 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-none"
             style={{ 
               height: `${tabBarHeight}px`,
-              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 0 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
+              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${arcLeftX} 0 A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
             }}
           />
           
