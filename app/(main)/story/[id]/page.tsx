@@ -374,42 +374,7 @@ const Story = () => {
             )}
           </div>
 
-          {/* Social Actions */}
-          <div className="flex items-center gap-12 py-3 border-b border-border">
-            <Button
-              variant="ghost"
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm"
-              className={`gap-2 h-auto p-0 hover:text-pink-600 transition-colors ${isLiked ? "text-pink-600" : "text-muted-foreground"}`}
-              onClick={() => {
-                setIsLiked(!isLiked);
-                setLikes(isLiked ? likes - 1 : likes + 1);
-              }}
-            >
-              <Heart className={`w-[18px] h-[18px] ${isLiked ? "fill-current" : ""}`} />
-              <span className="text-sm">{likes}</span>
-            </Button>
-            <Button 
-              variant="ghost" 
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm" 
-              className="gap-2 h-auto p-0 text-muted-foreground hover:text-primary transition-colors"
-              onClick={handleCommentClick}
-            >
-              <MessageCircle className="w-[18px] h-[18px]" />
-              <span className="text-sm">{commentCount}</span>
-            </Button>
-            <Button 
-              variant="ghost" 
-              // @ts-ignore - Type inference issue with class-variance-authority
-              size="sm" 
-              className="gap-2 h-auto p-0 text-muted-foreground hover:text-green-600 transition-colors"
-              onClick={handleShare}
-            >
-              <Share2 className="w-[18px] h-[18px]" />
-              <span className="text-sm">{shares}</span>
-            </Button>
-          </div>
+          {/* Social actions removed per updated design */}
 
           {/* Comments are at timeline level, not event level */}
           {/* Comments section removed - users should comment on the timeline, not individual events */}
