@@ -144,32 +144,50 @@ export const BottomMenuBar = ({
     Z
   `;
 
+  // Generate unique mask ID
+  const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight + dialVerticalOffset}px` }}>
-        {/* Rectangular tab bar with circular recess using SVG */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight + recessRadius}px` }}>
+        {/* Rectangular tab bar with circular recess using SVG mask */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
+          {/* SVG mask for circular cutout */}
           <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
             <defs>
-              <filter id="backdrop-blur">
-                <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
-              </filter>
+              <mask id={maskId}>
+                <rect width="100%" height="100%" fill="white" />
+                {/* Circular cutout at top center - black means transparent */}
+                <circle 
+                  cx="50%" 
+                  cy="0" 
+                  r={recessRadius} 
+                  fill="black"
+                />
+              </mask>
             </defs>
-            <path
-              d={tabBarPath}
+            {/* Background with mask applied */}
+            <rect 
+              width="100%" 
+              height="100%" 
               fill="hsl(var(--background) / 0.95)"
-              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
+              mask={`url(#${maskId})`}
+              className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
             />
-            <path
-              d={tabBarPath}
+            {/* Border with mask applied */}
+            <rect 
+              width="100%" 
+              height="100%" 
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
+              mask={`url(#${maskId})`}
+              className="rounded-t-3xl"
             />
           </svg>
           
           {/* Content */}
-          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px` }}>
+          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10">
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
