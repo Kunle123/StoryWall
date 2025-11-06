@@ -129,26 +129,6 @@ export const ExperimentalBottomMenuBar = ({
   const dialRadius = dialSize / 2;
   const centerYFromBottom = tabBarHeight + dialRadius + 20; // 44px (top of tab bar) + dialRadius + 20px
 
-  // Calculate SVG path for tab bar with circular recess
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const screenCenterX = screenWidth / 2;
-  const leftStart = screenCenterX - recessRadius;
-  const rightEnd = screenCenterX + recessRadius;
-  const cornerRadius = 24; // Rounded top corners
-  
-  // SVG path: rectangle with circular cutout at top center
-  const tabBarPath = `
-    M 0,${tabBarHeight}
-    L 0,${cornerRadius}
-    Q 0,0 ${cornerRadius},0
-    L ${leftStart},0
-    A ${recessRadius},${recessRadius} 0 0 1 ${rightEnd},0
-    L ${screenWidth - cornerRadius},0
-    Q ${screenWidth},0 ${screenWidth},${cornerRadius}
-    L ${screenWidth},${tabBarHeight}
-    Z
-  `;
-
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
