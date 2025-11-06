@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
+import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock } from "lucide-react";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchTimelines, deleteTimeline, updateTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,12 +39,19 @@ const Profile = () => {
   const router = useRouter();
   const { isSignedIn, user } = useUser();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [userTimelines, setUserTimelines] = useState<Timeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingTimelineId, setDeletingTimelineId] = useState<string | null>(null);
   const [updatingTimelineId, setUpdatingTimelineId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [timelineToDelete, setTimelineToDelete] = useState<string | null>(null);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     async function loadUserTimelines() {
@@ -152,6 +160,18 @@ const Profile = () => {
                 title="Create New Timeline"
               >
                 <Plus className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                title="Toggle Dark Mode"
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun className="w-4 h-4" />
+                ) : (
+                  <Moon className="w-4 h-4" />
+                )}
               </Button>
               <Button
                 variant="outline"

@@ -318,6 +318,8 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
 export interface Comment {
   id: string;
   timeline_id: string;
+  event_id?: string;
+  parent_id?: string;
   user_id: string;
   content: string;
   created_at: string;
@@ -328,6 +330,7 @@ export interface Comment {
     avatar_url?: string;
   };
   likes_count?: number;
+  replies?: Comment[];
 }
 
 export async function fetchCommentsByTimelineId(timelineId: string): Promise<ApiResponse<Comment[]>> {
@@ -346,12 +349,12 @@ export async function fetchCommentsByTimelineId(timelineId: string): Promise<Api
   }
 }
 
-export async function createComment(timelineId: string, content: string): Promise<ApiResponse<Comment>> {
+export async function createComment(timelineId: string, content: string, parentId?: string): Promise<ApiResponse<Comment>> {
   try {
     const response = await fetch(`/api/timelines/${timelineId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, parent_id: parentId }),
     });
 
     if (!response.ok) {
@@ -416,6 +419,58 @@ export async function deleteComment(timelineId: string, commentId: string): Prom
     return { data: undefined };
   } catch (error: any) {
     return { error: error.message || 'Failed to delete comment' };
+  }
+}
+
+// Event comment API calls
+export async function fetchCommentsByEventId(eventId: string): Promise<ApiResponse<Comment[]>> {
+  try {
+    const response = await fetch(`/api/events/${eventId}/comments`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch comments' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch comments' };
+  }
+}
+
+export async function createEventComment(eventId: string, content: string, parentId?: string): Promise<ApiResponse<Comment>> {
+  try {
+    const response = await fetch(`/api/events/${eventId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, parent_id: parentId }),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to create comment';
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (response.status === 404) {
+          errorMessage = 'Event not found';
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    console.error('[API] Exception creating event comment:', error);
+    return { error: error.message || 'Failed to create comment' };
   }
 }
 

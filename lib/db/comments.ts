@@ -3,6 +3,8 @@ import { prisma } from './prisma';
 export interface Comment {
   id: string;
   timeline_id: string;
+  event_id?: string;
+  parent_id?: string;
   user_id: string;
   content: string;
   created_at: string;
@@ -13,10 +15,13 @@ export interface Comment {
     avatar_url?: string;
   };
   likes_count?: number;
+  replies?: Comment[];
 }
 
 export interface CreateCommentInput {
   timeline_id: string;
+  event_id?: string;
+  parent_id?: string;
   user_id: string;
   content: string;
 }
@@ -25,6 +30,8 @@ export async function createComment(input: CreateCommentInput): Promise<Comment>
   const comment = await prisma.comment.create({
     data: {
       timelineId: input.timeline_id,
+      eventId: input.event_id || null,
+      parentId: input.parent_id || null,
       userId: input.user_id,
       content: input.content,
     },
@@ -37,6 +44,19 @@ export async function createComment(input: CreateCommentInput): Promise<Comment>
         },
       },
       likes: true,
+      replies: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          likes: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   });
 
@@ -45,7 +65,10 @@ export async function createComment(input: CreateCommentInput): Promise<Comment>
 
 export async function getCommentsByTimelineId(timelineId: string): Promise<Comment[]> {
   const comments = await prisma.comment.findMany({
-    where: { timelineId },
+    where: { 
+      timelineId,
+      parentId: null, // Only top-level comments
+    },
     include: {
       user: {
         select: {
@@ -55,6 +78,54 @@ export async function getCommentsByTimelineId(timelineId: string): Promise<Comme
         },
       },
       likes: true,
+      replies: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          likes: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return comments.map(transformComment);
+}
+
+export async function getCommentsByEventId(eventId: string): Promise<Comment[]> {
+  const comments = await prisma.comment.findMany({
+    where: { 
+      eventId,
+      parentId: null, // Only top-level comments
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          avatarUrl: true,
+        },
+      },
+      likes: true,
+      replies: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarUrl: true,
+            },
+          },
+          likes: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -135,6 +206,8 @@ function transformComment(comment: any): Comment {
   return {
     id: comment.id,
     timeline_id: comment.timelineId,
+    event_id: comment.eventId || undefined,
+    parent_id: comment.parentId || undefined,
     user_id: comment.userId,
     content: comment.content,
     created_at: comment.createdAt.toISOString(),
@@ -147,6 +220,7 @@ function transformComment(comment: any): Comment {
         }
       : undefined,
     likes_count: comment.likes ? comment.likes.length : 0,
+    replies: comment.replies ? comment.replies.map(transformComment) : undefined,
   };
 }
 

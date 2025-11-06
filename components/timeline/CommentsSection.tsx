@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send, Heart } from "lucide-react";
-import { fetchCommentsByTimelineId, createComment, Comment } from "@/lib/api/client";
+import { fetchCommentsByTimelineId, fetchCommentsByEventId, createComment, createEventComment, Comment } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,19 +18,24 @@ interface DisplayComment {
   content: string;
   timestamp: string;
   likes: number;
+  parentId?: string;
+  replies?: DisplayComment[];
 }
 
 interface CommentsSectionProps {
-  timelineId: string;
+  timelineId?: string;
+  eventId?: string;
 }
 
-export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
+export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) => {
   const router = useRouter();
   const { isSignedIn, user } = useUser();
   const [comments, setComments] = useState<DisplayComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
   const { toast } = useToast();
 
   // Fetch comments on mount (only if signed in)
@@ -44,7 +49,12 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
 
       try {
         setLoading(true);
-        const result = await fetchCommentsByTimelineId(timelineId);
+        const result = eventId 
+          ? await fetchCommentsByEventId(eventId)
+          : timelineId 
+          ? await fetchCommentsByTimelineId(timelineId)
+          : { error: 'No timeline or event ID provided' };
+          
         if (result.error) {
           // Don't show toast for errors, just log
           console.error('[Comments] Failed to load:', result.error);
@@ -56,6 +66,16 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
             content: comment.content,
             timestamp: formatDistanceToNow(new Date(comment.created_at), { addSuffix: true }),
             likes: comment.likes_count || 0,
+            parentId: comment.parent_id,
+            replies: comment.replies?.map((reply: Comment) => ({
+              id: reply.id,
+              author: reply.user?.username || "Anonymous",
+              avatar: reply.user?.avatar_url,
+              content: reply.content,
+              timestamp: formatDistanceToNow(new Date(reply.created_at), { addSuffix: true }),
+              likes: reply.likes_count || 0,
+              parentId: reply.parent_id,
+            })) || [],
           }));
           setComments(displayComments);
         }
@@ -66,10 +86,10 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
       }
     }
 
-    if (timelineId) {
+    if (timelineId || eventId) {
       loadComments();
     }
-  }, [timelineId, isSignedIn]);
+  }, [timelineId, eventId, isSignedIn]);
 
   const handleSubmit = async () => {
     if (!newComment.trim()) return;
@@ -87,8 +107,15 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
 
     try {
       setSubmitting(true);
-      console.log('[Comments] Submitting comment:', { timelineId, contentLength: newComment.trim().length });
-      const result = await createComment(timelineId, newComment.trim());
+      const content = replyingTo ? replyContent.trim() : newComment.trim();
+      const parentId = replyingTo || undefined;
+      
+      console.log('[Comments] Submitting comment:', { timelineId, eventId, parentId, contentLength: content.length });
+      const result = eventId
+        ? await createEventComment(eventId, content, parentId)
+        : timelineId
+        ? await createComment(timelineId, content, parentId)
+        : { error: 'No timeline or event ID provided' };
       
       console.log('[Comments] Comment result:', result);
       
@@ -116,11 +143,22 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
           timestamp: formatDistanceToNow(new Date(result.data.created_at), { addSuffix: true }),
           likes: result.data.likes_count || 0,
         };
-        setComments([newDisplayComment, ...comments]);
-        setNewComment("");
+        if (replyingTo) {
+          // Add reply to the parent comment
+          setComments(comments.map(c => 
+            c.id === replyingTo 
+              ? { ...c, replies: [...(c.replies || []), newDisplayComment] }
+              : c
+          ));
+          setReplyContent("");
+          setReplyingTo(null);
+        } else {
+          setComments([newDisplayComment, ...comments]);
+          setNewComment("");
+        }
         toast({
           title: "Success",
-          description: "Comment posted successfully",
+          description: replyingTo ? "Reply posted successfully" : "Comment posted successfully",
         });
       }
     } catch (error: any) {
@@ -234,10 +272,76 @@ export const CommentsSection = ({ timelineId }: CommentsSectionProps) => {
                     variant="ghost"
                     size="sm"
                     className="h-auto p-0 text-[13px] text-muted-foreground hover:text-primary transition-colors"
+                    onClick={() => setReplyingTo(comment.id)}
                   >
                     Reply
                   </Button>
                 </div>
+                {/* Reply input (shown when replying to this comment) */}
+                {replyingTo === comment.id && (
+                  <div className="mt-3 ml-12 flex gap-2">
+                    <Textarea
+                      placeholder={`Reply to ${comment.author}...`}
+                      value={replyContent}
+                      onChange={(e) => setReplyContent(e.target.value)}
+                      className="min-h-[80px] resize-none text-[15px]"
+                    />
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSubmit}
+                        disabled={!replyContent.trim() || submitting}
+                        className="rounded-full h-9 px-4 text-[15px] font-bold"
+                      >
+                        {submitting ? "Posting..." : "Reply"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setReplyingTo(null);
+                          setReplyContent("");
+                        }}
+                        className="h-9 px-4 text-[13px]"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {/* Replies */}
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="mt-3 ml-12 space-y-3 border-l-2 border-border pl-4">
+                    {comment.replies.map((reply) => (
+                      <div key={reply.id} className="flex gap-3">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarImage src={reply.avatar} />
+                          <AvatarFallback className="text-xs">{reply.author[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="font-bold text-[14px]">{reply.author}</span>
+                            <span className="text-[14px] text-muted-foreground">·</span>
+                            <span className="text-[14px] text-muted-foreground">
+                              {reply.timestamp}
+                            </span>
+                          </div>
+                          <p className="text-[14px] leading-[18px] mb-2">{reply.content}</p>
+                          <div className="flex items-center gap-8">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 gap-2 text-muted-foreground hover:text-pink-600 transition-colors"
+                            >
+                              <Heart className="w-[16px] h-[16px]" />
+                              <span className="text-[12px]">{reply.likes}</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))

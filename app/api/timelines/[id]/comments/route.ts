@@ -65,7 +65,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content } = body;
+    const { content, parent_id } = body;
 
     if (!content || typeof content !== 'string' || content.trim().length === 0) {
       return NextResponse.json(
@@ -76,6 +76,7 @@ export async function POST(
 
     const comment = await createComment({
       timeline_id: timeline.id,
+      parent_id: parent_id || undefined,
       user_id: user.id,
       content: content.trim(),
     });

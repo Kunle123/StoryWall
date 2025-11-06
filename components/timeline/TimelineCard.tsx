@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
@@ -19,6 +20,28 @@ interface TimelineCardProps {
 
 export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false }: TimelineCardProps) => {
   const router = useRouter();
+  const [stats, setStats] = useState({ likes: 0, comments: 0, shares: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+  
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch(`/api/events/${event.id}/stats`);
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch event stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    }
+    
+    if (event.id) {
+      fetchStats();
+    }
+  }, [event.id]);
   
   const formatDate = (year: number, month?: number, day?: number) => {
     return formatEventDate(year, month, day);
@@ -92,24 +115,26 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 hover:bg-muted"
+              className="h-8 px-2 hover:bg-muted gap-1"
               onClick={(e) => {
                 e.stopPropagation();
                 // Handle like action
               }}
             >
               <Heart className="w-4 h-4" />
+              {!loadingStats && <span className="text-xs text-muted-foreground">{stats.likes}</span>}
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 hover:bg-muted"
+              className="h-8 px-2 hover:bg-muted gap-1"
               onClick={(e) => {
                 e.stopPropagation();
                 // Handle comment action
               }}
             >
               <MessageCircle className="w-4 h-4" />
+              {!loadingStats && <span className="text-xs text-muted-foreground">{stats.comments}</span>}
             </Button>
             <Button
               variant="ghost"
@@ -126,13 +151,14 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 px-2 hover:bg-muted"
+            className="h-8 px-2 hover:bg-muted gap-1"
             onClick={(e) => {
               e.stopPropagation();
               // Handle share action
             }}
           >
             <Share2 className="w-4 h-4" />
+            {!loadingStats && <span className="text-xs text-muted-foreground">{stats.shares}</span>}
           </Button>
         </div>
       </div>
