@@ -143,9 +143,13 @@ export const ExperimentalBottomMenuBar = ({
   const svgTotalHeight = tabBarHeight;
   
   // Center Y in SVG coordinates (from top of SVG, which is top of tab bar)
-  // Center is centerYFromBottom from bottom, so from top it's: tabBarHeight - centerYFromBottom
-  // But if centerYFromBottom > tabBarHeight, the center is below the tab bar (which is fine for dial positioning)
-  const centerYInSVG = Math.max(0, tabBarHeight - centerYFromBottom);
+  // SVG: y=0 at top, y=40 at bottom
+  // Viewport: bottom of tab bar = 0, top of tab bar = 40px from bottom
+  // Center is at centerYFromBottom from bottom of viewport
+  // In SVG coordinates: centerYInSVG = tabBarHeight - (centerYFromBottom - 0) = 40 - centerYFromBottom
+  // If center is above tab bar (centerYFromBottom > 40), centerYInSVG will be negative
+  // We need the center position for the circle, even if it's outside the SVG bounds
+  const centerYInSVG = tabBarHeight - centerYFromBottom;
   
   // Calculate screen center and arc endpoints
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
