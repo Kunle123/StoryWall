@@ -116,22 +116,21 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 10px gap between dial edge and recess edge (5px on each side)
-  // recessRadius = dialRadius + 5px (since gap = 10px total, 5px on each side)
-  const recessGap = 10; // Total gap = 10px (5px on each side)
-  const recessSize = dialSize + recessGap; // dialSize + 10px
-  const recessRadius = recessSize / 2; // dialRadius + 5px
+  // Calculate recess size: 20px gap across diameter = 10px gap in radius
+  // recessRadius = dialRadius + 10px (since gap across diameter = 20px)
+  const recessGap = 20; // Gap across diameter = 20px (10px gap in radius on each side)
+  const recessSize = dialSize + recessGap; // dialSize + 20px
+  const recessRadius = recessSize / 2; // dialRadius + 10px
   
   // Tab bar height - 40px
   const tabBarHeight = 40;
   
   // Center position: 30px + dialRadius = 20px + recessRadius
-  // Since recessRadius = dialRadius + 5px, we have:
-  // 30 + dialRadius = 20 + (dialRadius + 5)
-  // 30 = 25 (this doesn't work, so we need to adjust)
-  // Actually: center = 20px + recessRadius = 20px + (dialRadius + 5px) = 25px + dialRadius
+  // Since recessRadius = dialRadius + 10px, we have:
+  // 30 + dialRadius = 20 + (dialRadius + 10)
+  // 30 = 30 ✓
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = 20 + recessRadius; // 20px + recess radius = 25px + dialRadius
+  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius = 20px + recess radius
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
@@ -241,7 +240,8 @@ export const ExperimentalBottomMenuBar = ({
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
             // Dial center at midpoint of screen, 30px + dialRadius from bottom
-            // This equals 20px + recessRadius, making dial and recess concentric
+            // This equals 20px + recessRadius (since recessRadius = dialRadius + 10px)
+            // Making dial and recess concentric
             bottom: `${centerYFromBottom - dialRadius}px`, // Center at 30px + dialRadius from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
