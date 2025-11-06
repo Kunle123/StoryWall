@@ -155,19 +155,35 @@ export const ExperimentalBottomMenuBar = ({
         {/* Rectangular tab bar with circular recess - using SVG path to draw shape with cutout */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
           <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
-            {/* Tab bar shape with circular cutout - path goes around the circle */}
-            <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${screenCenterX - recessRadius},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX + recessRadius},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
+            <defs>
+              <clipPath id={`clip-${maskId}`}>
+                {/* Rectangle covering tab bar area */}
+                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} />
+                {/* Circle to cut out - subtracts from rectangle */}
+                <circle cx={`${screenCenterX}`} cy={`${centerYInSVG}`} r={recessRadius} />
+              </clipPath>
+            </defs>
+            {/* Tab bar background with clipPath to create cutout */}
+            <rect 
+              width="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgTotalHeight - tabBarHeight}px`}
               fill="hsl(var(--background) / 0.95)"
+              clipPath={`url(#clip-${maskId})`}
+              fillRule="evenodd"
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
             />
-            {/* Border path */}
-            <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${screenCenterX - recessRadius},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX + recessRadius},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
-              fill="none"
-              stroke="hsl(var(--border) / 0.5)"
-              strokeWidth="1"
-            />
+            {/* Border - draw manually around the cutout */}
+            <g clipPath={`url(#clip-${maskId})`}>
+              <rect 
+                width="100%" 
+                height={`${tabBarHeight}px`}
+                y={`${svgTotalHeight - tabBarHeight}px`}
+                fill="none"
+                stroke="hsl(var(--border) / 0.5)"
+                strokeWidth="1"
+              />
+            </g>
           </svg>
           
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
