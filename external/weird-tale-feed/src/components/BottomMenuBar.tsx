@@ -80,7 +80,7 @@ export const BottomMenuBar = ({
   
   const toRadians = (deg: number) => (deg * Math.PI) / 180;
   
-  // Dynamic radius based on 20% of viewport width (min 40px, max 80px)
+  // Dynamic radius based on 20% of viewport width (min 80px, max 120px)
   const getDialSize = () => {
     if (typeof window !== 'undefined') {
       const vw20 = window.innerWidth * 0.2;
@@ -112,31 +112,48 @@ export const BottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate padding - 12px gap above and below dial
-  const verticalPadding = 12;
-  const dialTopPosition = verticalPadding;
-  const contentTopPadding = dialTopPosition + dialSize + verticalPadding;
+  // Calculate recess size (slightly larger than dial)
+  const recessPadding = 8; // Gap between dial and recess edge
+  const recessSize = dialSize + (recessPadding * 2);
+  const recessRadius = recessSize / 2;
   
-  // Create curved top edge following dial contour
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const screenCenterX = screenWidth / 2;
-  const cutoutRadius = dialSize / 2 + verticalPadding; // Radius including padding
-  const flatHeight = contentTopPadding + 56; // Total height of the bar
-  const curveDepth = cutoutRadius * 2; // How high the curve goes
-  
-  // Calculate points for the curve - it should curve UP around the dial
-  const leftCurveStart = screenCenterX - cutoutRadius;
-  const rightCurveEnd = screenCenterX + cutoutRadius;
-  const curveTop = flatHeight - curveDepth; // Top of the hump
-  
-  // SVG path: start bottom-left, go up to flat edge, curve UP around dial, continue flat, then down right side
-  const clipPathValue = `path('M 0,${flatHeight} L 0,${flatHeight - 56} L ${leftCurveStart},${flatHeight - 56} A ${cutoutRadius},${cutoutRadius} 0 0 0 ${rightCurveEnd},${flatHeight - 56} L ${screenWidth},${flatHeight - 56} L ${screenWidth},${flatHeight} Z')`;
-  
+  // Tab bar height
+  const tabBarHeight = 64;
+  const dialVerticalOffset = 12; // How much dial extends above tab bar
+
+  // Generate unique mask ID to avoid conflicts
+  const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="relative" style={{ height: '110px', paddingTop: `${dialTopPosition}px` }}>
-        <div className="container mx-auto px-4 h-full flex flex-col items-center justify-end max-w-4xl pb-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50 rounded-t-3xl">
-          <div className="w-full flex items-center justify-between gap-4 relative">
+      <div className="relative" style={{ height: `${tabBarHeight + dialVerticalOffset}px` }}>
+        {/* Rectangular tab bar with circular recess */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
+          {/* Background with circular cutout using SVG mask */}
+          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none', zIndex: 0 }}>
+            <defs>
+              <mask id={maskId}>
+                <rect width="100%" height="100%" fill="white" />
+                {/* Circular cutout at top center */}
+                <circle 
+                  cx="50%" 
+                  cy="0" 
+                  r={recessRadius} 
+                  fill="black"
+                />
+              </mask>
+            </defs>
+            <rect 
+              width="100%" 
+              height="100%" 
+              fill="hsl(var(--background) / 0.95)" 
+              mask={`url(#${maskId})`}
+            />
+          </svg>
+          {/* Border overlay */}
+          <div className="absolute inset-0 border-t border-border/50" style={{ mask: `url(#${maskId})` }} />
+          {/* Content */}
+          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
@@ -154,66 +171,9 @@ export const BottomMenuBar = ({
               )}
             </div>
 
-            {/* Center dial widget */}
-            <div 
-              className="rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
-              style={{ 
-                width: `${dialSize}px`, 
-                height: `${dialSize}px`,
-                minWidth: `${dialSize}px`,
-                minHeight: `${dialSize}px`
-              }}
-            >
-              <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
-                {/* Background arc */}
-                <path
-                  d={arcPath}
-                  fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-                {/* Active arc */}
-                <path
-                  d={arcPath}
-                  fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeDasharray={totalArcLength}
-                  strokeDashoffset={totalArcLength - currentArcLength}
-                  style={{
-                    transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                    filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))'
-                  }}
-                />
-              </svg>
-              
-              {/* Horizontal rectangle inside dial (slightly above center) */}
-              <div 
-                className="absolute z-10 bg-foreground/20 border border-foreground/30 rounded-sm"
-                style={{
-                  width: `${dialSize * 0.55}px`,
-                  height: `${dialSize * 0.14}px`,
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -65%)', // Slightly above center
-                }}
-              />
-              
-              {/* Date text below the rectangle */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2" style={{ paddingTop: `${dialSize * 0.15}px` }}>
-                <div className="text-sm font-bold text-foreground text-center leading-tight">
-                  {selectedDate || 'Timeline'}
-                </div>
-                {dateRange && (
-                  <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                    {dateRange}
-                  </div>
-                )}
-              </div>
-            </div>
-          
+            {/* Spacer for center dial area */}
+            <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
+
             {/* Right button with date */}
             <div className="flex items-center gap-2 flex-1">
               {formattedEndDate && (
@@ -230,6 +190,67 @@ export const BottomMenuBar = ({
                 <Share2 className="w-7 h-7" />
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* Center dial widget - positioned in the recess */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
+          style={{ 
+            width: `${dialSize}px`, 
+            height: `${dialSize}px`,
+            bottom: `${tabBarHeight - recessRadius}px`, // Position so dial center aligns with recess center
+            minWidth: `${dialSize}px`,
+            minHeight: `${dialSize}px`
+          }}
+        >
+          <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
+            {/* Background arc */}
+            <path
+              d={arcPath}
+              fill="none"
+              stroke="hsl(var(--muted))"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            {/* Active arc */}
+            <path
+              d={arcPath}
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={totalArcLength}
+              strokeDashoffset={totalArcLength - currentArcLength}
+              style={{
+                transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))'
+              }}
+            />
+          </svg>
+          
+          {/* Horizontal rectangle inside dial (slightly above center) */}
+          <div 
+            className="absolute z-10 bg-foreground/20 border border-foreground/30 rounded-sm"
+            style={{
+              width: `${dialSize * 0.55}px`,
+              height: `${dialSize * 0.14}px`,
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -65%)', // Slightly above center
+            }}
+          />
+          
+          {/* Date text below the rectangle */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2" style={{ paddingTop: `${dialSize * 0.15}px` }}>
+            <div className="text-sm font-bold text-foreground text-center leading-tight">
+              {selectedDate || 'Timeline'}
+            </div>
+            {dateRange && (
+              <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                {dateRange}
+              </div>
+            )}
           </div>
         </div>
       </div>
