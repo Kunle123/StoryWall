@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using gpt-4o for better accuracy and factual correctness
+        model: 'gpt-5-mini-2025-08-07', // GPT-5 mini snapshot
         messages: [
           {
             role: 'system',
@@ -104,8 +104,10 @@ Generate a comprehensive timeline with all major events you know about this topi
           },
         ],
         response_format: { type: 'json_object' },
-        temperature: isFactual ? 0.1 : 0.7, // Very low temperature for factual accuracy (reduce hallucination)
-        max_tokens: Math.min(3000, (maxEvents * 100) + 500), // ~100 tokens per event + structure overhead
+        // GPT-5 parameters
+        reasoning_effort: isFactual ? 'minimal' : 'low',
+        verbosity: 'low',
+        max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
       }),
     });
 
