@@ -286,7 +286,7 @@ export const ExperimentalBottomMenuBar = ({
               
               {/* Horizontal rectangle inside dial (slightly above center) */}
               <div 
-                className="absolute z-10 bg-foreground/20 border border-foreground/30 rounded-sm"
+                className="absolute z-10 border border-foreground/30 rounded-sm"
                 style={{
                   width: `${dialSize * 0.55}px`,
                   height: `${dialSize * 0.14}px`,
