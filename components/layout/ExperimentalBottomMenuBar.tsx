@@ -116,13 +116,13 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size (slightly larger than dial)
-  const recessPadding = 8; // Gap between dial and recess edge
-  const recessSize = dialSize + (recessPadding * 2);
+  // Calculate recess size: 5px gap on each side = 10px total diameter difference
+  const recessGap = 5; // Gap between dial edge and recess edge
+  const recessSize = dialSize + (recessGap * 2); // 5px gap on each side
   const recessRadius = recessSize / 2;
   
-  // Tab bar height - normal height, dial sits within it
-  const tabBarHeight = 64;
+  // Tab bar height - standard 44px
+  const tabBarHeight = 44;
 
   // Calculate SVG path for tab bar with circular recess
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
@@ -158,7 +158,7 @@ export const ExperimentalBottomMenuBar = ({
               <mask id={maskId}>
                 <rect width="100%" height="100%" fill="white" />
                 {/* Circular cutout at top center - black means transparent */}
-                {/* Recess center is at top edge of tab bar (cy="0") */}
+                {/* Recess center is at top edge of tab bar (cy="0"), coincident with dial center */}
                 <circle 
                   cx="50%" 
                   cy="0" 
@@ -228,14 +228,14 @@ export const ExperimentalBottomMenuBar = ({
           </div>
         </div>
 
-        {/* Center dial widget - positioned in the recess, concentric with recess center */}
+        {/* Center dial widget - positioned so its center is coincident with recess center */}
         <div 
           className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Position dial so its center aligns with recess center (at top edge of tab bar)
-            // Recess center is at cy="0" (top of tab bar), dial center should be at same point
+            // Dial center aligns with recess center (both at top edge of tab bar, cy="0")
+            // This positions dial center at top edge, so dial extends above tab bar
             bottom: `${tabBarHeight - dialSize / 2}px`, // Dial center at top edge of tab bar
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
