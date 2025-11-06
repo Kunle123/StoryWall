@@ -152,43 +152,45 @@ export const ExperimentalBottomMenuBar = ({
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Calculate center Y position in SVG coordinates (from top of SVG)
-  // SVG is 44px tall, center should be dialRadius + 10px from bottom
-  // So center Y = tabBarHeight - centerYFromBottom = 44 - (dialRadius + 10)
-  const centerYInSVG = tabBarHeight - centerYFromBottom;
+  // SVG needs to be tall enough to include the recess that extends above the tab bar
+  // Center is at dialRadius + 10px from bottom, so SVG height needs to accommodate this
+  const svgHeight = Math.max(tabBarHeight, centerYFromBottom + recessRadius);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess using SVG mask */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* SVG mask for circular cutout */}
-          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgHeight}px` }}>
+          {/* SVG mask for circular cutout - extends above tab bar to include recess */}
+          <svg className="absolute inset-0 w-full" style={{ height: `${svgHeight}px`, pointerEvents: 'none' }}>
             <defs>
               <mask id={maskId}>
-                <rect width="100%" height="100%" fill="white" />
+                {/* White rectangle covers tab bar area */}
+                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgHeight - tabBarHeight}px`} fill="white" />
                 {/* Circular cutout - center at midpoint of screen, dial radius + 10px from bottom */}
                 {/* Recess center is coincident with dial center */}
                 <circle 
                   cx="50%" 
-                  cy={`${centerYInSVG}px`}
+                  cy={`${svgHeight - centerYFromBottom}px`}
                   r={recessRadius} 
                   fill="black"
                 />
               </mask>
             </defs>
-            {/* Background with mask applied */}
+            {/* Background with mask applied - only on tab bar portion */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgHeight - tabBarHeight}px`}
               fill="hsl(var(--background) / 0.95)"
               mask={`url(#${maskId})`}
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
             />
-            {/* Border with mask applied */}
+            {/* Border with mask applied - only on tab bar portion */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgHeight - tabBarHeight}px`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
