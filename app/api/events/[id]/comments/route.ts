@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { createComment, getCommentsByEventId } from '@/lib/db/comments';
 import { getEventById } from '@/lib/db/events';
-import { isUUID } from '@/lib/utils/uuid';
 
 // GET /api/events/[id]/comments - Get all comments for an event
 export async function GET(
