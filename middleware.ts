@@ -10,7 +10,6 @@ const isPublicRoute = createRouteMatcher([
   '/explore',
   '/timeline(.*)',
   '/story(.*)',
-  '/uk-wars',
   '/api(.*)', // All API routes are public (they handle auth internally)
 ]);
 
