@@ -166,42 +166,27 @@ export const ExperimentalBottomMenuBar = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess using SVG mask */}
+        {/* Rectangular tab bar with circular recess using SVG path */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
-          {/* SVG to create tab bar with circular cutout using mask - extends above tab bar */}
+          {/* SVG to draw tab bar shape with circular cutout */}
           <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
             <defs>
-              <mask id={maskId}>
-                {/* White rectangle = visible tab bar area (bottom portion) */}
-                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} fill="white" />
-                {/* Black circle = transparent cutout (recess) */}
-                <circle 
-                  cx="50%" 
-                  cy={`${centerYInSVG}px`}
-                  r={recessRadius} 
-                  fill="black"
-                />
-              </mask>
+              <filter id={`backdrop-${maskId}`}>
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+              </filter>
             </defs>
-            {/* Tab bar background with mask applied - cutout will be transparent */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
+            {/* Tab bar shape with circular cutout - using path */}
+            <path
+              d={`M 0,${svgTotalHeight} L 0,${svgTotalHeight - tabBarHeight} L 50%,${svgTotalHeight - tabBarHeight} L 50%,${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 50%,${centerYInSVG + recessRadius} L 50%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight} Z`}
               fill="hsl(var(--background) / 0.95)"
-              mask={`url(#${maskId})`}
-              className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
+              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
             />
-            {/* Border with mask applied */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
+            {/* Border path */}
+            <path
+              d={`M 0,${svgTotalHeight} L 0,${svgTotalHeight - tabBarHeight} L 50%,${svgTotalHeight - tabBarHeight} L 50%,${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 50%,${centerYInSVG + recessRadius} L 50%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight - tabBarHeight} L 100%,${svgTotalHeight} Z`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
-              mask={`url(#${maskId})`}
-              className="rounded-t-3xl"
             />
           </svg>
           
