@@ -172,31 +172,19 @@ export const ExperimentalBottomMenuBar = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess using SVG path */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
-          {/* SVG to draw tab bar shape with circular cutout */}
-          <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
-            <defs>
-              <filter id={`backdrop-${maskId}`}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
-              </filter>
-            </defs>
-            {/* Tab bar shape with circular cutout - using path */}
-            {/* Path: rectangle with circular cutout at center position (above tab bar) */}
-            {/* The path goes around the circle to create the cutout */}
-            <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} A ${recessRadius},${recessRadius} 0 0 1 ${screenCenterX},${centerYInSVG} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
-              fill="hsl(var(--background) / 0.95)"
-              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
-            />
-            {/* Border path */}
-            <path
-              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${arcLeftX},${tabBarTopY} L ${arcLeftX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} A ${recessRadius},${recessRadius} 0 0 1 ${screenCenterX},${centerYInSVG} A ${recessRadius},${recessRadius} 0 0 1 ${arcRightX},${Math.max(tabBarTopY, centerYInSVG - recessRadius)} L ${arcRightX},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
-              fill="none"
-              stroke="hsl(var(--border) / 0.5)"
-              strokeWidth="1"
-            />
-          </svg>
+        {/* Rectangular tab bar with circular recess using background + SVG mask */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50 rounded-t-3xl"
+          style={{ 
+            height: `${tabBarHeight}px`,
+            maskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+            WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+            maskSize: '100% 100%',
+            WebkitMaskSize: '100% 100%',
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat'
+          }}
+        >
           
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
