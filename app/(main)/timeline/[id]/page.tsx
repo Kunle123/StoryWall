@@ -6,6 +6,7 @@ import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
+import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
 import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate } from "@/lib/utils/dateFormat";
@@ -111,6 +112,31 @@ const TimelinePage = () => {
       <Header />
       <SubMenuBar title={timeline.title} selectedDate={formatSelectedDate(centeredEvent)} />
       <Toaster />
+      {(() => {
+        const evts = (events.length > 0 ? events : (timeline.events || [])).map((e: any) => ({
+          year: e.year,
+          month: e.month,
+          day: e.day,
+        }));
+        const hasAny = evts.length > 0;
+        const startDate = hasAny ? new Date(Math.min(...evts.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
+        const endDate = hasAny ? new Date(Math.max(...evts.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+        return hasAny ? (
+          <FloatingTimelineWidget
+            selectedDate={formatSelectedDate(centeredEvent)}
+            precedingDate={undefined}
+            followingDate={undefined}
+            timelinePosition={(() => {
+              if (!centeredEvent || evts.length < 2) return 0.5;
+              const idx = evts.findIndex(e => e.year === centeredEvent.year && e.month === centeredEvent.month && e.day === centeredEvent.day);
+              return idx >= 0 ? idx / (evts.length - 1) : 0.5;
+            })()}
+            collapsed={false}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        ) : null;
+      })()}
       <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
         <Timeline 
           events={events.length > 0 ? events : timeline.events || []} 

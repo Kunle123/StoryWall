@@ -62,7 +62,7 @@ export const FloatingTimelineWidget = ({
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
   return (
-    <div className={`fixed bottom-[61px] z-50 bg-background/50 backdrop-blur-md rounded-2xl shadow-lg border border-border transition-all duration-500 ease-in-out ${
+    <div className={`fixed bottom-[49px] z-50 bg-background/50 backdrop-blur-md rounded-2xl shadow-lg border border-border transition-all duration-500 ease-in-out ${
       collapsed ? 'left-[-60px] p-1.5 opacity-70 hover:left-2 hover:opacity-100' : 'left-4 p-3'
     }`}>
       <div className="flex flex-col items-center gap-2">

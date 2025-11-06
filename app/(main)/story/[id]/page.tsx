@@ -316,7 +316,7 @@ const Story = () => {
           </Button>
 
           {/* User Profile and Follow Button */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 pr-16">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-sm font-semibold text-primary">TC</span>

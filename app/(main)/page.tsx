@@ -127,6 +127,16 @@ const Index = () => {
             precedingDate={formatSelectedDate(getPrecedingEvent())}
             followingDate={formatSelectedDate(getFollowingEvent())}
             timelinePosition={getTimelinePosition()}
+            startDate={(() => {
+              if (!events || events.length === 0) return undefined as unknown as Date | undefined;
+              const times = events.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime());
+              return new Date(Math.min(...times));
+            })()}
+            endDate={(() => {
+              if (!events || events.length === 0) return undefined as unknown as Date | undefined;
+              const times = events.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime());
+              return new Date(Math.max(...times));
+            })()}
           />
         </>
       )}
