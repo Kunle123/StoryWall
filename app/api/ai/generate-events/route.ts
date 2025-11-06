@@ -47,7 +47,11 @@ export async function POST(request: NextRequest) {
 
     // Build prompts once
     const systemPrompt = isFactual 
-      ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+      ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
+
+If you use web search, you MUST include a top-level "sources" array with 3-5 reputable news or official sources used (objects with { name: string, url: string }).
+- Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
+- Prefer AP, Reuters, PBS, official election sites, and major newspapers.
 
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
@@ -71,7 +75,7 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
     const userPrompt = isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent election-night result (date and result) and victory announcement if they occurred. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). 
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -84,7 +88,7 @@ For political campaigns, elections, or public figures: include ALL major events 
 
 Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
+Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...] }`
       : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
@@ -257,6 +261,20 @@ Generate a comprehensive timeline with all major events you know about this topi
     });
     
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
+
+    // Normalize and validate sources if provided (require article-level URLs, not bare domains)
+    let normalizedSources: any[] | undefined = undefined;
+    if (Array.isArray(content.sources)) {
+      const isArticleUrl = (url: string) => /^https?:\/\/[^\/]+\/.+/.test(url);
+      normalizedSources = content.sources
+        .map((s: any) => {
+          if (typeof s === 'string') return { name: '', url: s };
+          return { name: String(s?.name || ''), url: String(s?.url || '') };
+        })
+        .filter((s: any) => s.url && isArticleUrl(s.url))
+        .slice(0, 10);
+      console.log('[GenerateEvents API] Sources (filtered):', normalizedSources.map((s: any) => s.url));
+    }
     
     // If all events were filtered out, return the mapped events anyway (with defaults)
     if (events.length === 0 && mappedEvents.length > 0) {
@@ -283,7 +301,12 @@ Generate a comprehensive timeline with all major events you know about this topi
     
     console.log('[GenerateEvents API] Successfully generated events:', events.length);
     
-    return NextResponse.json({ events: events.slice(0, maxEvents) });
+    // Include sources in response if provided
+    const responsePayload: any = { events: events.slice(0, maxEvents) };
+    if (normalizedSources && normalizedSources.length > 0) {
+      responsePayload.sources = normalizedSources;
+    }
+    return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('[GenerateEvents API] Error generating events:', error);
     console.error('[GenerateEvents API] Error details:', {
