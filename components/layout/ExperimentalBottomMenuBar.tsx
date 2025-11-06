@@ -95,12 +95,12 @@ export const ExperimentalBottomMenuBar = ({
   
   const dialSize = getDialSize();
   const radius = dialSize / 2 - 6;
-  const centerX = dialSize / 2;
-  const centerY = dialSize / 2;
+  const dialCenterX = dialSize / 2;
+  const dialCenterY = dialSize / 2;
   
   const polarToCartesian = (angle: number) => ({
-    x: centerX + radius * Math.cos(toRadians(angle)),
-    y: centerY + radius * Math.sin(toRadians(angle))
+    x: dialCenterX + radius * Math.cos(toRadians(angle)),
+    y: dialCenterY + radius * Math.sin(toRadians(angle))
   });
   
   const start = polarToCartesian(startAngle);
@@ -127,9 +127,9 @@ export const ExperimentalBottomMenuBar = ({
 
   // Calculate SVG path for tab bar with circular recess
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const centerX = screenWidth / 2;
-  const leftStart = centerX - recessRadius;
-  const rightEnd = centerX + recessRadius;
+  const screenCenterX = screenWidth / 2;
+  const leftStart = screenCenterX - recessRadius;
+  const rightEnd = screenCenterX + recessRadius;
   const cornerRadius = 24; // Rounded top corners
   
   // SVG path: rectangle with circular cutout at top center
