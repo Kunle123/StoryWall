@@ -86,8 +86,9 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           variant: "destructive",
         });
       } else if (result.data) {
-        setUserLiked(result.data.liked);
-        setStats(prev => ({ ...prev, likes: result.data.likes_count }));
+        const resultData = result.data;
+        setUserLiked(resultData.liked);
+        setStats(prev => ({ ...prev, likes: resultData.likes_count }));
       }
     } catch (error: any) {
       toast({
