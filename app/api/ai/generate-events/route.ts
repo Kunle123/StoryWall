@@ -88,11 +88,18 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
             content: isFactual
               ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
 
-For political campaigns, elections, or public figures: include events like announcements, filing deadlines, primaries, debates, elections, results, and other major milestones.
+For political campaigns, elections, or public figures: include ALL major events such as:
+- Announcement of candidacy (with specific date if known)
+- Filing deadlines or official declarations
+- Primary elections (dates and results)
+- Debates and major campaign events
+- General election dates
+- Election results and victory announcements
+- Inauguration or assumption of office dates
 
-If you know the specific date, include month and day. If you only know the year, include only the year. Do not guess dates you're uncertain about.
+Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-Generate as many accurate events as you can based on your knowledge. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
+Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
               : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`,
           },
         ],
