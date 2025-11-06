@@ -60,7 +60,7 @@ export async function POST(
     }
 
     const comment = await createComment({
-      timeline_id: event.timelineId,
+      timeline_id: event.timeline_id,
       event_id: event.id,
       parent_id: parent_id || undefined,
       user_id: user.id,
