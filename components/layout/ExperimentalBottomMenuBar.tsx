@@ -211,9 +211,9 @@ export const ExperimentalBottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center at midpoint of screen, dial radius + 10px from bottom of tab bar
-            // This positions center vertically above the tab bar
-            bottom: `${centerYFromBottom - dialRadius}px`, // Center at dial radius + 10px from bottom
+            // Dial center at midpoint of screen, 20px + recess radius from bottom of tab bar
+            // Center = 20px + recess radius = 20px + (dial radius + 10px) = 30px + dial radius
+            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 20px + recess radius from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
