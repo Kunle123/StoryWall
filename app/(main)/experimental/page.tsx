@@ -15,6 +15,7 @@ const ExperimentalTimeline = () => {
   const [timelinePosition, setTimelinePosition] = useState(0);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timelineTitle, setTimelineTitle] = useState("Experimental Timeline");
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(20);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
