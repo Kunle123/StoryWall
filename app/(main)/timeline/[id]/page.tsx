@@ -119,8 +119,12 @@ const TimelinePage = () => {
           day: e.day,
         }));
         const hasAny = evts.length > 0;
-        const startDate = hasAny ? new Date(Math.min(...evts.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
-        const endDate = hasAny ? new Date(Math.max(...evts.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+        const startDate = hasAny ? new Date(Math.min(
+          ...evts.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime())
+        )) : undefined;
+        const endDate = hasAny ? new Date(Math.max(
+          ...evts.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime())
+        )) : undefined;
         return hasAny ? (
           <FloatingTimelineWidget
             selectedDate={formatSelectedDate(centeredEvent)}
