@@ -107,18 +107,13 @@ const ExperimentalTimeline = () => {
   const precedingEvent = currentIndex > 0 ? sortedEvents[currentIndex - 1] : null;
   const followingEvent = currentIndex < sortedEvents.length - 1 ? sortedEvents[currentIndex + 1] : null;
 
-  // Calculate start and end dates from sorted events (matching Timeline component logic)
+  // Calculate start and end dates from sorted events (matching Timeline component logic exactly)
   const earliestEvent = sortedEvents[0];
   const latestEvent = sortedEvents[sortedEvents.length - 1];
   
-  // Use same date calculation as Timeline component
+  // Use exact same date calculation as Timeline component (line 57-58)
   const startDate = earliestEvent ? new Date(earliestEvent.year, earliestEvent.month || 0, earliestEvent.day || 1) : undefined;
-  // For endDate, if month/day missing, use last day of year for proper span calculation
-  const endDate = latestEvent ? new Date(
-    latestEvent.year, 
-    latestEvent.month || 11, // December if missing
-    latestEvent.day || (latestEvent.month ? new Date(latestEvent.year, latestEvent.month, 0).getDate() : 31) // Last day of month, or Dec 31 if no month
-  ) : undefined;
+  const endDate = latestEvent ? new Date(latestEvent.year, latestEvent.month || 0, latestEvent.day || 1) : undefined;
   
   const totalTimeSpan = startDate && endDate ? endDate.getTime() - startDate.getTime() : 0;
 
