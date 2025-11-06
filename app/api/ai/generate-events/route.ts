@@ -49,6 +49,12 @@ export async function POST(request: NextRequest) {
     const systemPrompt = isFactual 
       ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
 
+Additionally, when people are mentioned (e.g., candidates, public officials), include an optional top-level "image_references" array with 3-8 high-quality reference image links (objects with { name: string, url: string }). Prefer:
+- Official portraits or headshots (campaign or government sites)
+- Wikimedia Commons pages for the person
+- Major newspapers’ article image pages (if durable)
+Avoid low-quality or generic stock links.
+
 If you use web search, you MUST include a top-level "sources" array with 3-5 reputable news or official sources used (objects with { name: string, url: string }).
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
 - Prefer AP, Reuters, PBS, official election sites, and major newspapers.
@@ -75,7 +81,7 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
     const userPrompt = isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent election-night result (date and result) and victory announcement if they occurred. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). 
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent election-night result (date and result) and victory announcement if they occurred. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available.
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -88,7 +94,7 @@ For political campaigns, elections, or public figures: include ALL major events 
 
 Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...] }`
+Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
       : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
@@ -264,6 +270,7 @@ Generate a comprehensive timeline with all major events you know about this topi
 
     // Normalize and validate sources if provided (require article-level URLs, not bare domains)
     let normalizedSources: any[] | undefined = undefined;
+    let normalizedImageRefs: any[] | undefined = undefined;
     if (Array.isArray(content.sources)) {
       const isArticleUrl = (url: string) => /^https?:\/\/[^\/]+\/.+/.test(url);
       normalizedSources = content.sources
@@ -274,6 +281,17 @@ Generate a comprehensive timeline with all major events you know about this topi
         .filter((s: any) => s.url && isArticleUrl(s.url))
         .slice(0, 10);
       console.log('[GenerateEvents API] Sources (filtered):', normalizedSources.map((s: any) => s.url));
+    }
+    if (Array.isArray(content.image_references)) {
+      const isUrl = (url: string) => /^https?:\/\//.test(url);
+      normalizedImageRefs = content.image_references
+        .map((s: any) => {
+          if (typeof s === 'string') return { name: '', url: s };
+          return { name: String(s?.name || ''), url: String(s?.url || '') };
+        })
+        .filter((s: any) => s.url && isUrl(s.url))
+        .slice(0, 12);
+      console.log('[GenerateEvents API] Image references (filtered):', normalizedImageRefs.map((s: any) => s.url));
     }
     
     // If all events were filtered out, return the mapped events anyway (with defaults)
@@ -305,6 +323,9 @@ Generate a comprehensive timeline with all major events you know about this topi
     const responsePayload: any = { events: events.slice(0, maxEvents) };
     if (normalizedSources && normalizedSources.length > 0) {
       responsePayload.sources = normalizedSources;
+    }
+    if (normalizedImageRefs && normalizedImageRefs.length > 0) {
+      responsePayload.imageReferences = normalizedImageRefs;
     }
     return NextResponse.json(responsePayload);
   } catch (error: any) {
