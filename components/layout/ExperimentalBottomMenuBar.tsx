@@ -116,11 +116,11 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 20px gap across diameter = 10px gap in radius
-  // recessRadius = dialRadius + 10px (since gap across diameter = 20px)
-  const recessGap = 20; // Gap across diameter = 20px (10px gap in radius on each side)
-  const recessSize = dialSize + recessGap; // dialSize + 20px
-  const recessRadius = recessSize / 2; // dialRadius + 10px
+  // Calculate recess size: 20px gap across the diameter
+  // dialSize is the diameter, so recess diameter = dialSize + 20px
+  const recessGap = 20; // Gap across diameter = 20px
+  const recessSize = dialSize + recessGap; // Recess diameter = dialSize + 20px
+  const recessRadius = recessSize / 2; // Recess radius = (dialSize + 20) / 2 = dialRadius + 10px
   
   // Tab bar height - 40px
   const tabBarHeight = 40;
