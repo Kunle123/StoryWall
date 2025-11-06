@@ -156,8 +156,8 @@ export const ExperimentalBottomMenuBar = ({
   const screenCenterX = screenWidth / 2;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="relative" style={{ height: `${tabBarHeight}px` }}>
+    <div className="fixed bottom-0 left-0 right-0 z-40 overflow-visible">
+      <div className="relative overflow-visible" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess - recess contained within 40px height */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
           {/* SVG path that draws tab bar with circular cutout */}
@@ -252,9 +252,12 @@ export const ExperimentalBottomMenuBar = ({
             // Dial center at midpoint of screen, 30px + dialRadius from bottom
             // This equals 20px + recessRadius (since recessRadius = dialRadius + 10px)
             // Making dial and recess concentric
-            // Position dial so its lowest point is 30px from bottom
-            // If center is at (30 + dialRadius) from bottom, then bottom of dial = center - dialRadius = 30px
-            bottom: `${30}px`, // Lowest point of dial at 30px from bottom
+            // Position dial so its lowest point is 30px from viewport bottom
+            // Dial is positioned relative to the tab bar container (40px tall at viewport bottom)
+            // To get dial bottom at 30px from viewport bottom: bottom = 30 - 0 = 30px
+            // But we need to position relative to parent, so: bottom = 30 - (viewport bottom - parent bottom)
+            // Since parent is at viewport bottom, dial bottom relative to parent = 30px
+            bottom: `30px`, // Lowest point of dial at 30px from viewport bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
