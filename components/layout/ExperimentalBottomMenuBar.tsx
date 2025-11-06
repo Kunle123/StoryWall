@@ -199,8 +199,8 @@ export const ExperimentalBottomMenuBar = ({
             />
           </svg>
           
-          {/* Content */}
-          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10">
+          {/* Content - positioned at bottom of SVG, height matches tab bar */}
+          <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
