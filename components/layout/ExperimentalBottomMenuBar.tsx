@@ -154,37 +154,21 @@ export const ExperimentalBottomMenuBar = ({
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess - using SVG path to draw shape with cutout */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
-          <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
-            <defs>
-              <clipPath id={`clip-${maskId}`}>
-                {/* Rectangle covering tab bar area */}
-                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} />
-                {/* Circle to cut out - subtracts from rectangle */}
-                <circle cx={`${screenCenterX}`} cy={`${centerYInSVG}`} r={recessRadius} />
-              </clipPath>
-            </defs>
-            {/* Tab bar background with clipPath to create cutout */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
-              fill="hsl(var(--background) / 0.95)"
-              clipPath={`url(#clip-${maskId})`}
-              fillRule="evenodd"
-              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
-            />
-            {/* Border - draw manually around the cutout */}
-            <g clipPath={`url(#clip-${maskId})`}>
-              <rect 
-                width="100%" 
-                height={`${tabBarHeight}px`}
-                y={`${svgTotalHeight - tabBarHeight}px`}
-                fill="none"
-                stroke="hsl(var(--border) / 0.5)"
-                strokeWidth="1"
-              />
-            </g>
-          </svg>
+          {/* Background div with mask to create visible cutout */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50"
+            style={{ 
+              height: `${tabBarHeight}px`,
+              maskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+              WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+              maskSize: '100% 100%',
+              WebkitMaskSize: '100% 100%',
+              maskRepeat: 'no-repeat',
+              WebkitMaskRepeat: 'no-repeat',
+              maskPosition: 'center bottom',
+              WebkitMaskPosition: 'center bottom'
+            }}
+          />
           
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
