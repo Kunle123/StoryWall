@@ -156,9 +156,10 @@ export const ExperimentalBottomMenuBar = ({
   const screenCenterX = screenWidth / 2;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 overflow-visible">
-      <div className="relative overflow-visible" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess - recess contained within 40px height */}
+    <div className="fixed bottom-0 left-0 right-0 z-40">
+      {/* Container for both dial and tab bar */}
+      <div className="relative">
+        {/* Tab bar with circular recess at top center */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
           {/* Tab bar with circular cutout at top center */}
           <svg 
@@ -236,24 +237,18 @@ export const ExperimentalBottomMenuBar = ({
           </div>
         </div>
 
-        {/* Center dial widget - positioned so its center is coincident with recess center */}
+        {/* Floating dial widget - floats above tab bar, center aligned with recess */}
         <div 
           className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center at midpoint of screen, 30px + dialRadius from bottom
-            // This equals 20px + recessRadius (since recessRadius = dialRadius + 10px)
-            // Making dial and recess concentric
-            // Position dial so its lowest point is 30px from viewport bottom
-            // Dial is positioned relative to the tab bar container (40px tall at viewport bottom)
-            // To get dial bottom at 30px from viewport bottom: bottom = 30 - 0 = 30px
-            // But we need to position relative to parent, so: bottom = 30 - (viewport bottom - parent bottom)
-            // Since parent is at viewport bottom, dial bottom relative to parent = 30px
-            bottom: `30px`, // Lowest point of dial at 30px from viewport bottom
+            // Position dial floating above tab bar
+            // Dial bottom at 30px from viewport bottom
+            bottom: `30px`,
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
-            zIndex: 20
+            zIndex: 50
           }}
         >
               <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
