@@ -142,6 +142,10 @@ export const ExperimentalBottomMenuBar = ({
   // SVG height matches tab bar height (40px), with y=0 at top, y=40 at bottom
   const svgTotalHeight = tabBarHeight;
   
+  // Calculate screen center first
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const screenCenterX = screenWidth / 2;
+  
   // Calculate where the recess circle intersects the top of the tab bar (y=0 in SVG)
   // The recess center is at centerYFromBottom = 90px from viewport bottom
   // In SVG coordinates: centerYInSVG = tabBarHeight - centerYFromBottom = 40 - 90 = -50
@@ -158,10 +162,6 @@ export const ExperimentalBottomMenuBar = ({
   const horizontalOffset = Math.sqrt(Math.max(0, recessRadius * recessRadius - distanceFromCenter * distanceFromCenter));
   const arcLeftX = screenCenterX - horizontalOffset;
   const arcRightX = screenCenterX + horizontalOffset;
-  
-  // Calculate screen center and arc endpoints
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const screenCenterX = screenWidth / 2;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
