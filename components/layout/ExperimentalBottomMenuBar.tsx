@@ -124,10 +124,10 @@ export const ExperimentalBottomMenuBar = ({
   // Tab bar height - standard 44px
   const tabBarHeight = 44;
   
-  // Center position: dial radius + 10px from bottom of tab bar, then raised by 20px
-  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 10px - 20px from viewport bottom
+  // Center position: dial radius + 20px from bottom of tab bar
+  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 20px from viewport bottom
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = tabBarHeight + dialRadius + 10 - 20; // 44px (top of tab bar) + dialRadius + 10px - 20px (raised by 20px)
+  const centerYFromBottom = tabBarHeight + dialRadius + 20; // 44px (top of tab bar) + dialRadius + 20px
 
   // Calculate SVG path for tab bar with circular recess
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
