@@ -24,12 +24,16 @@ const ExperimentalTimeline = () => {
     const loadTimeline = async () => {
       try {
         setLoading(true);
-        const timelines = await fetchTimelines();
-        if (timelines && timelines.length > 0) {
-          const timelineId = timelines[0].id;
-          const eventsData = await fetchEventsByTimelineId(timelineId);
-          const transformedEvents = eventsData.map(transformApiEventToTimelineEvent);
-          setEvents(transformedEvents);
+        const timelinesResult = await fetchTimelines();
+        if (timelinesResult.data && timelinesResult.data.length > 0) {
+          const firstTimeline = timelinesResult.data[0];
+          const timelineId = firstTimeline.id;
+          setTimelineTitle(firstTimeline.title || "Experimental Timeline");
+          const eventsResult = await fetchEventsByTimelineId(timelineId);
+          if (eventsResult.data) {
+            const transformedEvents = eventsResult.data.map(transformApiEventToTimelineEvent);
+            setEvents(transformedEvents);
+          }
         }
       } catch (error) {
         console.error("Error loading timeline:", error);
