@@ -98,9 +98,10 @@ Only include month and day for events with historically significant specific dat
         // GPT-5 doesn't support temperature - use reasoning_effort and verbosity instead
         reasoning_effort: isFactual ? 'minimal' : 'low', // Minimal for factual accuracy (faster), low for creative tasks
         verbosity: 'low', // Low verbosity for concise JSON responses
+        // GPT-5 uses max_completion_tokens instead of max_tokens
         // Optimize: ~100 tokens per event + structure overhead
         // Cap at reasonable max to prevent slow responses
-        max_tokens: Math.min(3000, (maxEvents * 100) + 500),
+        max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
       }),
     });
 
