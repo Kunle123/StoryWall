@@ -116,15 +116,61 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate padding - 12px gap above and below dial
-  const verticalPadding = 12;
-  const dialTopPosition = verticalPadding;
+  // Calculate recess size (slightly larger than dial)
+  const recessPadding = 8; // Gap between dial and recess edge
+  const recessSize = dialSize + (recessPadding * 2);
+  const recessRadius = recessSize / 2;
+  
+  // Tab bar height
+  const tabBarHeight = 64;
+  const dialVerticalOffset = 12; // How much dial extends above tab bar
+
+  // Calculate SVG path for tab bar with circular recess
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const centerX = screenWidth / 2;
+  const leftStart = centerX - recessRadius;
+  const rightEnd = centerX + recessRadius;
+  const cornerRadius = 24; // Rounded top corners
+  
+  // SVG path: rectangle with circular cutout at top center
+  const tabBarPath = `
+    M 0,${tabBarHeight}
+    L 0,${cornerRadius}
+    Q 0,0 ${cornerRadius},0
+    L ${leftStart},0
+    A ${recessRadius},${recessRadius} 0 0 1 ${rightEnd},0
+    L ${screenWidth - cornerRadius},0
+    Q ${screenWidth},0 ${screenWidth},${cornerRadius}
+    L ${screenWidth},${tabBarHeight}
+    Z
+  `;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="relative" style={{ height: '110px', paddingTop: `${dialTopPosition}px` }}>
-        <div className="container mx-auto px-4 h-full flex flex-col items-center justify-end max-w-4xl pb-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50 rounded-t-3xl">
-          <div className="w-full flex items-center justify-between gap-4 relative">
+      <div className="relative" style={{ height: `${tabBarHeight + dialVerticalOffset}px` }}>
+        {/* Rectangular tab bar with circular recess using SVG */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight + recessRadius}px` }}>
+          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+            <defs>
+              <filter id="backdrop-blur">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+              </filter>
+            </defs>
+            <path
+              d={tabBarPath}
+              fill="hsl(var(--background) / 0.95)"
+              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            />
+            <path
+              d={tabBarPath}
+              fill="none"
+              stroke="hsl(var(--border) / 0.5)"
+              strokeWidth="1"
+            />
+          </svg>
+          
+          {/* Content */}
+          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px` }}>
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
@@ -142,16 +188,40 @@ export const ExperimentalBottomMenuBar = ({
               )}
             </div>
 
-            {/* Center dial widget */}
-            <div 
-              className="rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
-              style={{ 
-                width: `${dialSize}px`, 
-                height: `${dialSize}px`,
-                minWidth: `${dialSize}px`,
-                minHeight: `${dialSize}px`
-              }}
-            >
+            {/* Spacer for center dial area */}
+            <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
+
+            {/* Right button with date */}
+            <div className="flex items-center gap-2 flex-1">
+              {formattedEndDate && (
+                <div className="text-xs text-muted-foreground font-medium">
+                  {formattedEndDate}
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-12 w-12"
+                onClick={handleShare}
+              >
+                <Share2 className="w-7 h-7" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Center dial widget - positioned in the recess */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
+          style={{ 
+            width: `${dialSize}px`, 
+            height: `${dialSize}px`,
+            bottom: `${tabBarHeight - recessRadius + recessPadding}px`, // Position dial in the recess
+            minWidth: `${dialSize}px`,
+            minHeight: `${dialSize}px`,
+            zIndex: 20
+          }}
+        >
               <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
                 {/* Background arc */}
                 <path
@@ -201,25 +271,6 @@ export const ExperimentalBottomMenuBar = ({
                 )}
               </div>
             </div>
-          
-            {/* Right button with date */}
-            <div className="flex items-center gap-2 flex-1">
-              {formattedEndDate && (
-                <div className="text-xs text-muted-foreground font-medium">
-                  {formattedEndDate}
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12"
-                onClick={handleShare}
-              >
-                <Share2 className="w-7 h-7" />
-              </Button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
