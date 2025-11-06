@@ -116,6 +116,9 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
+  // Calculate dial radius first (dialSize is diameter)
+  const dialRadius = dialSize / 2;
+  
   // Calculate recess size: 20px gap across the diameter
   // dialSize is the diameter, so recess diameter = dialSize + 20px
   const recessGap = 20; // Gap across diameter = 20px
@@ -125,23 +128,11 @@ export const ExperimentalBottomMenuBar = ({
   // Tab bar height - 40px
   const tabBarHeight = 40;
   
-  // Center position: 30px + dialRadius = 20px + recessRadius
-  // Since recessRadius = dialRadius + 10px, we have:
-  // 30 + dialRadius = 20 + (dialRadius + 10)
-  // 30 = 30 ✓
-  // The recess must be contained within the 40px tab bar
-  // Top of recess = center - recessRadius
-  // Bottom of recess = center + recessRadius
-  // For the recess to fit: center - recessRadius >= 0 AND center + recessRadius <= 40
-  // With center = 20 + recessRadius: top = 20, bottom = 20 + 2*recessRadius
-  // For bottom <= 40: 20 + 2*recessRadius <= 40, so recessRadius <= 10
-  // But recessRadius = dialRadius + 10, so dialRadius <= 0, which is impossible!
-  // 
-  // Actually, the user specified: center = 30px + dialRadius = 20px + recessRadius
-  // This means the center can be above the tab bar (which is fine - the dial extends above)
-  // But the recess cutout in the tab bar should show the part of the circle that intersects the tab bar
-  const dialRadius = dialSize / 2;
-  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius = 20px + recess radius
+  // Center position: The lowest point of the dial should be 30px above the bottom of the tab bar
+  // Lowest point = center - dialRadius = 30px from bottom
+  // Therefore: center = 30px + dialRadius from bottom
+  // This also equals: 20px + recessRadius (since recessRadius = dialRadius + 10px)
+  const centerYFromBottom = 30 + dialRadius; // Center at 30px + dialRadius from bottom
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
@@ -257,7 +248,9 @@ export const ExperimentalBottomMenuBar = ({
             // Dial center at midpoint of screen, 30px + dialRadius from bottom
             // This equals 20px + recessRadius (since recessRadius = dialRadius + 10px)
             // Making dial and recess concentric
-            bottom: `${centerYFromBottom - dialRadius}px`, // Center at 30px + dialRadius from bottom
+            // Position dial so its lowest point is 30px from bottom
+            // If center is at (30 + dialRadius) from bottom, then bottom of dial = center - dialRadius = 30px
+            bottom: `${30}px`, // Lowest point of dial at 30px from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
