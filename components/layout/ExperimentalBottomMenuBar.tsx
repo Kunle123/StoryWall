@@ -152,27 +152,32 @@ export const ExperimentalBottomMenuBar = ({
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Calculate center Y position relative to tab bar top (SVG coordinates)
-  // centerYFromBottom is from viewport bottom, tab bar top is at tabBarHeight from bottom
-  // So center Y in SVG (from top) = tabBarHeight - (centerYFromBottom - tabBarHeight) = 2*tabBarHeight - centerYFromBottom
-  // But actually, if center is above tab bar, centerYRelativeToTabBarTop will be negative
-  const centerYRelativeToTabBarTop = tabBarHeight - centerYFromBottom;
+  // SVG needs to extend above tab bar to include the recess
+  // Center is at centerYFromBottom from viewport bottom
+  // Tab bar is 44px tall, so if center is above tab bar, we need extra height
+  const svgExtraHeight = Math.max(0, centerYFromBottom - tabBarHeight + recessRadius);
+  const svgTotalHeight = tabBarHeight + svgExtraHeight;
+  
+  // Center Y in SVG coordinates (from top of SVG)
+  // SVG extends svgExtraHeight above tab bar, so center Y = svgExtraHeight + (tabBarHeight - (centerYFromBottom - tabBarHeight))
+  // Simplified: center Y = svgTotalHeight - centerYFromBottom
+  const centerYInSVG = svgTotalHeight - centerYFromBottom;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess using SVG mask */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* SVG to create tab bar with circular cutout using mask */}
-          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
+          {/* SVG to create tab bar with circular cutout using mask - extends above tab bar */}
+          <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
             <defs>
               <mask id={maskId}>
-                {/* White rectangle = visible tab bar */}
-                <rect width="100%" height="100%" fill="white" />
+                {/* White rectangle = visible tab bar area (bottom portion) */}
+                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} fill="white" />
                 {/* Black circle = transparent cutout (recess) */}
                 <circle 
                   cx="50%" 
-                  cy={`${centerYRelativeToTabBarTop}px`}
+                  cy={`${centerYInSVG}px`}
                   r={recessRadius} 
                   fill="black"
                 />
@@ -181,7 +186,8 @@ export const ExperimentalBottomMenuBar = ({
             {/* Tab bar background with mask applied - cutout will be transparent */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgTotalHeight - tabBarHeight}px`}
               fill="hsl(var(--background) / 0.95)"
               mask={`url(#${maskId})`}
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
@@ -189,7 +195,8 @@ export const ExperimentalBottomMenuBar = ({
             {/* Border with mask applied */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgTotalHeight - tabBarHeight}px`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
