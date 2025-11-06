@@ -1,3 +1,4 @@
+lets not set up auth yet unless  you think we need to we don't want the complecity of sign in when we are debugging
 # StoryWall MVP - Technical Design Specification for Cursor
 
 ## Project Overview
