@@ -152,6 +152,11 @@ export const ExperimentalBottomMenuBar = ({
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Calculate center Y position in SVG coordinates (from top of SVG)
+  // SVG is 44px tall, center should be dialRadius + 10px from bottom
+  // So center Y = tabBarHeight - centerYFromBottom = 44 - (dialRadius + 10)
+  const centerYInSVG = tabBarHeight - centerYFromBottom;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
@@ -166,7 +171,7 @@ export const ExperimentalBottomMenuBar = ({
                 {/* Recess center is coincident with dial center */}
                 <circle 
                   cx="50%" 
-                  cy={`${centerYFromBottom}px`}
+                  cy={`${centerYInSVG}px`}
                   r={recessRadius} 
                   fill="black"
                 />
