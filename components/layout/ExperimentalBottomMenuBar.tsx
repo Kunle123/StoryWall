@@ -129,20 +129,28 @@ export const ExperimentalBottomMenuBar = ({
   // Since recessRadius = dialRadius + 10px, we have:
   // 30 + dialRadius = 20 + (dialRadius + 10)
   // 30 = 30 ✓
+  // But the recess must be contained within the 40px tab bar
+  // Top of recess = center - recessRadius = (30 + dialRadius) - (dialRadius + 10) = 20px from bottom ✓
+  // Bottom of recess = center + recessRadius = (30 + dialRadius) + (dialRadius + 10) = 40 + 2*dialRadius
+  // This extends beyond the tab bar! So we need to constrain it.
+  // Actually, the center should be at 20px + recessRadius from bottom, which ensures top of recess is at 20px
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius = 20px + recess radius
+  // Center = 20px + recessRadius ensures top of recess is at 20px from bottom
+  // This equals 30px + dialRadius when recessRadius = dialRadius + 10
+  const centerYFromBottom = 20 + recessRadius; // 20px + recess radius = 30px + dial radius
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
   // Recess is contained within the 40px tab bar
   // Center is at centerYFromBottom from bottom of tab bar
-  // SVG height matches tab bar height (40px)
+  // SVG height matches tab bar height (40px), with y=0 at top, y=40 at bottom
   const svgTotalHeight = tabBarHeight;
   
   // Center Y in SVG coordinates (from top of SVG, which is top of tab bar)
   // Center is centerYFromBottom from bottom, so from top it's: tabBarHeight - centerYFromBottom
-  const centerYInSVG = tabBarHeight - centerYFromBottom;
+  // But if centerYFromBottom > tabBarHeight, the center is below the tab bar (which is fine for dial positioning)
+  const centerYInSVG = Math.max(0, tabBarHeight - centerYFromBottom);
   
   // Calculate screen center and arc endpoints
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
