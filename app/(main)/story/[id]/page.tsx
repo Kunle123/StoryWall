@@ -217,7 +217,6 @@ const Story = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading event...</p>
@@ -230,15 +229,14 @@ const Story = () => {
   if (!event) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
         <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
           <Button
             variant="ghost"
             className="mb-6 gap-2"
             onClick={() => router.push("/")}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Timeline
+            <X className="w-4 h-4" />
+            Close
           </Button>
           <Card className="p-8 text-center">
             <h2 className="text-xl font-bold font-display mb-2">Event Not Found</h2>
