@@ -28,6 +28,7 @@ interface WritingStyleStepProps {
   timelineDescription?: string;
   timelineName?: string;
   isFactual?: boolean;
+  setImageReferences?: (refs: Array<{ name: string; url: string }>) => void;
 }
 
 const writingStyles = [
@@ -51,6 +52,7 @@ export const WritingStyleStep = ({
   timelineDescription = "",
   timelineName = "",
   isFactual = true,
+  setImageReferences,
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -154,6 +156,13 @@ export const WritingStyleStep = ({
       }));
 
       setEvents(generatedEvents);
+      if (setImageReferences && Array.isArray(data.imageReferences)) {
+        setImageReferences(
+          data.imageReferences
+            .filter((r: any) => r && r.url)
+            .map((r: any) => ({ name: String(r.name || ''), url: String(r.url) }))
+        );
+      }
       setHasGenerated(true); // Disable button after generation
       toast({
         title: "Success!",

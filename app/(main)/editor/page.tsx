@@ -33,6 +33,7 @@ const TimelineEditor = () => {
   const [imageStyle, setImageStyle] = useState("");
   const [themeColor, setThemeColor] = useState("");
   const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -51,6 +52,7 @@ const TimelineEditor = () => {
         setImageStyle(state.imageStyle || "");
         setThemeColor(state.themeColor || "");
         setEvents(state.events || []);
+        setImageReferences(state.imageReferences || []);
         setCurrentStep(state.currentStep || 1);
       } catch (e) {
         console.error('Failed to load saved state:', e);
@@ -70,10 +72,11 @@ const TimelineEditor = () => {
       imageStyle,
       themeColor,
       events,
+      imageReferences,
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, isPublic, isFactual, writingStyle, customStyle, imageStyle, themeColor, events, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -347,6 +350,7 @@ const TimelineEditor = () => {
                   timelineDescription={timelineDescription}
                   timelineName={timelineName}
                   isFactual={isFactual}
+                  setImageReferences={setImageReferences}
                 />
               )}
               {currentStep === 3 && (
@@ -373,6 +377,7 @@ const TimelineEditor = () => {
                   setEvents={setEvents}
                   imageStyle={imageStyle}
                   themeColor={themeColor}
+                  imageReferences={imageReferences}
                 />
               )}
             </Card>

@@ -10,6 +10,7 @@ import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
  *   events: Array<{ title: string, description: string, year?: number, imagePrompt?: string }>
  *   imageStyle: string
  *   themeColor: string (hex color)
+ *   imageReferences?: Array<{ name: string, url: string }>
  * }
  * 
  * Response:
@@ -83,7 +84,8 @@ function buildImagePrompt(
   event: { title: string; description?: string; year?: number; imagePrompt?: string },
   imageStyle: string,
   themeColor: string,
-  styleVisualLanguage: string
+  styleVisualLanguage: string,
+  imageReferences?: Array<{ name: string; url: string }>
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
@@ -152,6 +154,12 @@ function buildImagePrompt(
   
   // Ensure consistent composition guidance
   prompt += `. Balanced composition, centered focal point, timeline-appropriate visual narrative`;
+  
+  // If we have high-quality reference image links, include a brief guidance line
+  if (imageReferences && imageReferences.length > 0) {
+    const topRefs = imageReferences.slice(0, 3).map(r => r.url).join(', ');
+    prompt += `. Reference images (for likeness/styling only): ${topRefs}`;
+  }
   
   // Flux handles longer prompts well, but keep it reasonable
   return prompt.substring(0, 900);
@@ -230,7 +238,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6' } = body;
+    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [] } = body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -262,7 +270,7 @@ export async function POST(request: NextRequest) {
     const predictionPromises = events.map(async (event, index) => {
       try {
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
-        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
+        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage, imageReferences);
         
         // Log the prompt being sent (for debugging)
         console.log(`[Flux] Creating prediction ${index + 1}/${events.length} for "${event.title}"`);

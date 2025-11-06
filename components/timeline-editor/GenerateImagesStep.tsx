@@ -28,6 +28,7 @@ interface GenerateImagesStepProps {
   setEvents: (events: TimelineEvent[]) => void;
   imageStyle: string;
   themeColor: string;
+  imageReferences?: Array<{ name: string; url: string }>;
 }
 
 const CREDIT_COST_IMAGE = 5;
@@ -37,6 +38,7 @@ export const GenerateImagesStep = ({
   setEvents,
   imageStyle,
   themeColor,
+  imageReferences = [],
 }: GenerateImagesStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -88,6 +90,7 @@ export const GenerateImagesStep = ({
           })),
           imageStyle,
           themeColor,
+          imageReferences,
         }),
       });
 
