@@ -121,9 +121,9 @@ export const BottomMenuBar = ({
   const tabBarHeight = 44;
   
   // Center position: dial radius + 10px from bottom of tab bar
-  // This places the center vertically above the tab bar
+  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 10px from viewport bottom
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = dialRadius + 10; // Center is dial radius + 10px from bottom
+  const centerYFromBottom = tabBarHeight + dialRadius + 10; // 44px (top of tab bar) + dialRadius + 10px
 
   // SVG needs to be tall enough to include the recess that extends above the tab bar
   // Center is at dialRadius + 10px from bottom, so SVG height needs to accommodate this
