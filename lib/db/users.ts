@@ -122,3 +122,65 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   }
 }
 
+/**
+ * Get user by Clerk ID with full profile information
+ */
+export async function getUserByClerkId(clerkUserId: string) {
+  return await prisma.user.findUnique({
+    where: { clerkId: clerkUserId },
+    select: {
+      id: true,
+      clerkId: true,
+      username: true,
+      email: true,
+      avatarUrl: true,
+      credits: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+/**
+ * Update user profile (username and/or avatarUrl)
+ */
+export async function updateUserProfile(
+  clerkUserId: string,
+  updates: {
+    username?: string;
+    avatarUrl?: string;
+  }
+) {
+  // Check if username is being updated and if it's already taken
+  if (updates.username) {
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        username: updates.username,
+        clerkId: { not: clerkUserId }, // Exclude current user
+      },
+    });
+    
+    if (existingUser) {
+      throw new Error('Username is already taken');
+    }
+  }
+
+  return await prisma.user.update({
+    where: { clerkId: clerkUserId },
+    data: {
+      ...(updates.username && { username: updates.username }),
+      ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
+    },
+    select: {
+      id: true,
+      clerkId: true,
+      username: true,
+      email: true,
+      avatarUrl: true,
+      credits: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+

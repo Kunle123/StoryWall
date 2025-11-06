@@ -592,3 +592,56 @@ export async function unlikeEvent(eventId: string): Promise<ApiResponse<{ messag
   }
 }
 
+// User Profile API calls
+export interface UserProfile {
+  id: string;
+  clerk_id: string;
+  username: string;
+  email: string;
+  avatar_url?: string;
+  credits: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchUserProfile(): Promise<ApiResponse<UserProfile>> {
+  try {
+    const response = await fetch('/api/user/profile');
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch profile' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch profile' };
+  }
+}
+
+export async function updateUserProfile(updates: {
+  username?: string;
+  avatar_url?: string;
+}): Promise<ApiResponse<UserProfile>> {
+  try {
+    const response = await fetch('/api/user/profile', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to update profile' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to update profile' };
+  }
+}
+

@@ -176,6 +176,8 @@ const Profile = () => {
               <Button
                 variant="outline"
                 size="icon"
+                onClick={() => router.push("/settings")}
+                title="Settings"
               >
                 <Settings className="w-4 h-4" />
               </Button>
