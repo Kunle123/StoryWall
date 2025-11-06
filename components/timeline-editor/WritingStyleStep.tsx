@@ -136,7 +136,13 @@ export const WritingStyleStep = ({
 
       if (!data.events || data.events.length === 0) {
         console.warn('[GenerateEvents] No events in response:', data);
-        throw new Error("No events were generated. The AI may have been uncertain about the topic.");
+        
+        // Check if there's an error message in the response
+        if (data.error) {
+          throw new Error(data.error + (data.details ? ` ${data.details}` : ''));
+        }
+        
+        throw new Error("No events were generated. The AI may have been uncertain about the topic. Please try again or provide more details in your timeline description.");
       }
 
       console.log('[GenerateEvents] Successfully parsed events:', data.events.length);

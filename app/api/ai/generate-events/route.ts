@@ -131,23 +131,99 @@ Only include month and day for events with historically significant specific dat
 
     const data = await response.json();
     
+    console.log('[GenerateEvents API] OpenAI API response structure:', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasFirstChoice: !!data.choices?.[0],
+      hasMessage: !!data.choices?.[0]?.message,
+      messageContentLength: data.choices?.[0]?.message?.content?.length,
+    });
+    
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('[GenerateEvents API] Invalid OpenAI response structure:', data);
       throw new Error('Invalid response format from OpenAI');
     }
     
-    const content = JSON.parse(data.choices[0].message.content);
+    let content;
+    try {
+      content = JSON.parse(data.choices[0].message.content);
+    } catch (parseError: any) {
+      console.error('[GenerateEvents API] Failed to parse OpenAI message content:', {
+        content: data.choices[0].message.content,
+        error: parseError.message,
+      });
+      throw new Error('Failed to parse OpenAI response content');
+    }
+    
+    console.log('[GenerateEvents API] Raw OpenAI response content:', JSON.stringify(content, null, 2));
     
     // Ensure the response has the correct format
     if (!content.events || !Array.isArray(content.events)) {
+      console.error('[GenerateEvents API] Invalid events format:', {
+        hasEvents: !!content.events,
+        isArray: Array.isArray(content.events),
+        contentKeys: Object.keys(content),
+      });
       throw new Error('Invalid events format in OpenAI response');
     }
     
-    const events = content.events.map((event: any) => ({
-      year: parseInt(event.year) || new Date().getFullYear(),
-      month: event.month ? parseInt(event.month) : undefined,
-      day: event.day ? parseInt(event.day) : undefined,
-      title: String(event.title || 'Untitled Event'),
-    })).filter((event: any) => event.year && event.title);
+    console.log('[GenerateEvents API] Raw events from OpenAI:', content.events.length);
+    
+    // Map events with better validation
+    const mappedEvents = content.events.map((event: any, index: number) => {
+      const year = parseInt(event.year);
+      const title = String(event.title || '').trim();
+      
+      console.log(`[GenerateEvents API] Event ${index + 1}:`, {
+        rawYear: event.year,
+        parsedYear: year,
+        rawTitle: event.title,
+        parsedTitle: title,
+        hasMonth: !!event.month,
+        hasDay: !!event.day,
+      });
+      
+      return {
+        year: year || new Date().getFullYear(),
+        month: event.month ? parseInt(event.month) : undefined,
+        day: event.day ? parseInt(event.day) : undefined,
+        title: title || `Event ${index + 1}`,
+      };
+    });
+    
+    // Filter out only events that are completely invalid (no year AND no title)
+    const events = mappedEvents.filter((event: any) => {
+      const isValid = event.year && event.title && event.title !== 'Untitled Event';
+      if (!isValid) {
+        console.warn('[GenerateEvents API] Filtered out invalid event:', event);
+      }
+      return isValid;
+    });
+    
+    console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
+    
+    // If all events were filtered out, return the mapped events anyway (with defaults)
+    if (events.length === 0 && mappedEvents.length > 0) {
+      console.warn('[GenerateEvents API] All events filtered out, using mapped events with defaults');
+      const fallbackEvents = mappedEvents.map((e: any) => ({
+        year: e.year || new Date().getFullYear(),
+        month: e.month,
+        day: e.day,
+        title: e.title || 'Untitled Event',
+      }));
+      return NextResponse.json({ events: fallbackEvents.slice(0, maxEvents) });
+    }
+    
+    if (events.length === 0) {
+      console.error('[GenerateEvents API] No valid events after processing. Raw content:', content);
+      return NextResponse.json(
+        { 
+          error: 'No events were generated. Please try again or provide more details in your timeline description.',
+          details: 'The AI may have been uncertain about the topic or the response format was invalid.'
+        },
+        { status: 200 } // Return 200 but with error message so frontend can handle gracefully
+      );
+    }
     
     console.log('[GenerateEvents API] Successfully generated events:', events.length);
     
