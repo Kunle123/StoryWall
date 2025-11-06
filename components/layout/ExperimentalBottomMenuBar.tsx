@@ -195,9 +195,9 @@ export const ExperimentalBottomMenuBar = ({
             />
           </svg>
           
-          {/* Backdrop blur layer with same cutout shape */}
+          {/* Backdrop blur layer with same cutout shape (no background, just blur effect) */}
           <div 
-            className="absolute bottom-0 left-0 right-0 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-none"
+            className="absolute bottom-0 left-0 right-0 backdrop-blur pointer-events-none"
             style={{ 
               height: `${tabBarHeight}px`,
               clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${arcLeftX} 0 A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
