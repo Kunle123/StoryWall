@@ -124,10 +124,10 @@ export const ExperimentalBottomMenuBar = ({
   // Tab bar height - standard 44px
   const tabBarHeight = 44;
   
-  // Center position: dial radius + 20px from bottom of tab bar
-  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 20px from viewport bottom
+  // Center position: dial radius + 40px from bottom of tab bar
+  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 40px from viewport bottom
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = tabBarHeight + dialRadius + 20; // 44px (top of tab bar) + dialRadius + 20px
+  const centerYFromBottom = tabBarHeight + dialRadius + 40; // 44px (top of tab bar) + dialRadius + 40px
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
