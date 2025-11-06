@@ -59,9 +59,12 @@ If you use web search, you MUST include a top-level "sources" array with 3-5 rep
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
 - Prefer AP, Reuters, PBS, official election sites, and major newspapers.
 
+RECENCY REQUIREMENT:
+- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results), you MUST include them via web search. Do not omit recent decisive outcomes when sources confirm them.
+
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
-- Use your training data (and web search if available) to provide accurate events for the requested topic
+- Use your training data and web search to provide accurate events for the requested topic
 - If you are unsure about specific dates, use only the year (do not guess month/day)
 - For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
 - Generate as many accurate events as you can, up to the requested maximum
@@ -81,7 +84,7 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
     const userPrompt = isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent election-night result (date and result) and victory announcement if they occurred. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available.
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent 48-hour developments (e.g., election-night result and victory announcement) when relevant. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available.
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -119,7 +122,7 @@ Generate a comprehensive timeline with all major events you know about this topi
             ],
             response_format: { type: 'json_object' },
             tools: [{ type: 'web_search' }],
-            reasoning_effort: 'minimal',
+            reasoning_effort: 'low',
             verbosity: 'low',
             max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
           }),
@@ -144,15 +147,29 @@ Generate a comprehensive timeline with all major events you know about this topi
           }
         } else {
           const errText = await resp.text();
-          console.warn('[GenerateEvents API] Responses API failed, falling back to chat completions:', errText);
+          console.warn('[GenerateEvents API] Responses API failed (web_search required for factual):', errText);
+          return NextResponse.json(
+            { error: 'Web search failed for factual generation', details: errText },
+            { status: 502 }
+          );
         }
       } catch (e) {
-        console.warn('[GenerateEvents API] Responses API error, falling back to chat completions:', (e as any)?.message);
+        console.warn('[GenerateEvents API] Responses API error (web_search required):', (e as any)?.message);
+        return NextResponse.json(
+          { error: 'Web search error for factual generation', details: (e as any)?.message || 'Unknown error' },
+          { status: 502 }
+        );
       }
     }
 
-    // Fallback or if not using web search: Chat Completions API
+    // If not using web search (fictional) or content not set
     if (!contentText) {
+      if (isFactual) {
+        return NextResponse.json(
+          { error: 'No content from web search for factual generation', details: 'Responses API returned no content' },
+          { status: 502 }
+        );
+      }
       console.log('[GenerateEvents API] Using Chat Completions API');
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -167,7 +184,7 @@ Generate a comprehensive timeline with all major events you know about this topi
             { role: 'user', content: userPrompt },
           ],
           response_format: { type: 'json_object' },
-          reasoning_effort: isFactual ? 'minimal' : 'low',
+          reasoning_effort: isFactual ? 'low' : 'low',
           verbosity: 'low',
           max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
         }),
