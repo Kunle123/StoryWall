@@ -3,7 +3,8 @@ import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFam
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 
 /**
- * Generate images for timeline events using Flux (via Replicate)
+ * Generate images for timeline events using SDXL + IP-Adapter (via Replicate)
+ * Supports direct reference image input for better style/likeness matching
  * 
  * Request Body:
  * {
@@ -43,10 +44,29 @@ const COLOR_NAMES: Record<string, string> = {
   '#14B8A6': 'teal',
 };
 
-// Flux model on Replicate
-// Using flux-schnell - much cheaper ($0.003 vs $0.025 per image) and faster
-// Still high quality, just optimized for speed and cost
-const FLUX_MODEL_NAME = "black-forest-labs/flux-schnell";
+// SDXL + IP-Adapter model on Replicate
+// Using IP-Adapter SDXL model for direct reference image input support
+// Cost: ~$0.028 per image (more expensive than Flux, but better reference control)
+// Alternative: lucataco/ip-adapter-sdxl-face (~$0.095) for better face matching
+const IP_ADAPTER_SDXL_MODEL_NAME = "chigozienri/ip_adapter-sdxl"; // Supports text + image input
+
+// Helper to download reference image from URL and convert to base64
+async function downloadReferenceImage(imageUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.warn(`[SDXL] Failed to download reference image: ${imageUrl}`);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const mimeType = response.headers.get('content-type') || 'image/jpeg';
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    console.error(`[SDXL] Error downloading reference image ${imageUrl}:`, error);
+    return null;
+  }
+}
 
 // Helper to get latest version of a model
 async function getLatestModelVersion(modelName: string, replicateApiKey: string): Promise<string> {
@@ -155,13 +175,10 @@ function buildImagePrompt(
   // Ensure consistent composition guidance
   prompt += `. Balanced composition, centered focal point, timeline-appropriate visual narrative`;
   
-  // If we have high-quality reference image links, include a brief guidance line
-  if (imageReferences && imageReferences.length > 0) {
-    const topRefs = imageReferences.slice(0, 3).map(r => r.url).join(', ');
-    prompt += `. Reference images (for likeness/styling only): ${topRefs}`;
-  }
+  // Note: Reference images are now handled separately via direct image input
+  // Don't include URLs in prompt when using IP-Adapter
   
-  // Flux handles longer prompts well, but keep it reasonable
+  // SDXL handles longer prompts well, but keep it reasonable
   return prompt.substring(0, 900);
 }
 
@@ -206,20 +223,20 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
       if (imageUrl) {
         // Ensure it's a full URL (starts with http:// or https://)
         if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-          console.error(`[Flux] Invalid URL format from Replicate: ${imageUrl}`);
+          console.error(`[SDXL] Invalid URL format from Replicate: ${imageUrl}`);
           // Try to construct a full URL if it's a relative path
           if (imageUrl.startsWith('/')) {
-            console.warn(`[Flux] Received relative path, cannot resolve: ${imageUrl}`);
+            console.warn(`[SDXL] Received relative path, cannot resolve: ${imageUrl}`);
             return null;
           }
           return null;
         }
         
-        console.log(`[Flux] Successfully received image URL: ${imageUrl.substring(0, 100)}...`);
+        console.log(`[SDXL] Successfully received image URL: ${imageUrl.substring(0, 100)}...`);
         return imageUrl;
       }
       
-      console.error(`[Flux] No valid image URL found in prediction output:`, JSON.stringify(prediction.output));
+      console.error(`[SDXL] No valid image URL found in prediction output:`, JSON.stringify(prediction.output));
       return null;
     }
 
@@ -256,24 +273,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the latest Flux model version
-    const fluxVersion = await getLatestModelVersion(FLUX_MODEL_NAME, replicateApiKey);
-    console.log(`[Flux] Using model version: ${fluxVersion}`);
+    // Get the latest IP-Adapter SDXL model version
+    const ipAdapterVersion = await getLatestModelVersion(IP_ADAPTER_SDXL_MODEL_NAME, replicateApiKey);
+    console.log(`[SDXL+IP-Adapter] Using model version: ${ipAdapterVersion}`);
 
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
+    // Download reference images if available (one per event, or use first available)
+    const referenceImagePromises = imageReferences && imageReferences.length > 0
+      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => downloadReferenceImage(ref.url))
+      : [];
+    const downloadedReferences = await Promise.all(referenceImagePromises);
+    console.log(`[SDXL] Downloaded ${downloadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images`);
+    
     // PARALLEL GENERATION: Start all predictions at once for faster processing
-    console.log(`[Flux] Starting parallel generation for ${events.length} images...`);
+    console.log(`[SDXL] Starting parallel generation for ${events.length} images...`);
     
     // Step 1: Create all predictions in parallel
     const predictionPromises = events.map(async (event, index) => {
       try {
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
-        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage, imageReferences);
+        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
+        
+        // Get reference image for this event (use first available, or cycle through if multiple events)
+        const referenceImage = downloadedReferences[index] || downloadedReferences[0] || null;
         
         // Log the prompt being sent (for debugging)
-        console.log(`[Flux] Creating prediction ${index + 1}/${events.length} for "${event.title}"`);
+        console.log(`[SDXL] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
+        
+        // Build input for IP-Adapter SDXL
+        const input: any = {
+          prompt: prompt,
+          num_outputs: 1,
+          guidance_scale: 7.5,
+          num_inference_steps: 30,
+        };
+        
+        // Add reference image if available (for IP-Adapter style/likeness)
+        if (referenceImage) {
+          input.image = referenceImage;
+          input.scale = 0.7; // IP-Adapter scale: how much to follow reference (0-1)
+        }
         
         // Create prediction via Replicate
         const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
@@ -283,13 +324,8 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            version: fluxVersion,
-            input: {
-              prompt: prompt,
-              aspect_ratio: '1:1', // Square images for timeline (1024x1024)
-              output_format: 'png',
-              output_quality: 90,
-            },
+            version: ipAdapterVersion,
+            input: input,
           }),
         });
 
@@ -303,7 +339,7 @@ export async function POST(request: NextRequest) {
           }
           
           const errorMsg = errorData.detail || errorData.message || errorText;
-          console.error(`[Flux] Replicate API error for "${event.title}":`, errorMsg);
+          console.error(`[SDXL] Replicate API error for "${event.title}":`, errorMsg);
           
           return { index, error: new Error(`Replicate API error: ${errorMsg}`), event };
         }
@@ -316,14 +352,14 @@ export async function POST(request: NextRequest) {
 
         return { index, predictionId: prediction.id, event };
       } catch (error: any) {
-        console.error(`[Flux] Error creating prediction for "${event.title}":`, error);
+        console.error(`[SDXL] Error creating prediction for "${event.title}":`, error);
         return { index, error, event };
       }
     });
 
     // Wait for all predictions to be created
     const predictionResults = await Promise.all(predictionPromises);
-    console.log(`[Flux] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
+    console.log(`[SDXL] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
     
     // Step 2: Poll all predictions in parallel
     const imagePromises = predictionResults.map(async (result) => {
@@ -333,10 +369,10 @@ export async function POST(request: NextRequest) {
 
       try {
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
-        console.log(`[Flux] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
+        console.log(`[SDXL] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
         return { index: result.index, imageUrl, error: null };
       } catch (error: any) {
-        console.error(`[Flux] Error waiting for prediction "${result.event.title}":`, error);
+        console.error(`[SDXL] Error waiting for prediction "${result.event.title}":`, error);
         return { index: result.index, imageUrl: null, error };
       }
     });
@@ -351,7 +387,7 @@ export async function POST(request: NextRequest) {
     });
     
     const successfulCount = images.filter(img => img !== null).length;
-    console.log(`[Flux] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
+    console.log(`[SDXL] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
     
     // Filter out null values and check if we have any successful images
     const successfulImages = images.filter(img => img !== null);
@@ -365,21 +401,21 @@ export async function POST(request: NextRequest) {
     
     // Step 4: Persist all images to Cloudinary (if configured)
     // This ensures images are permanently stored and won't expire from Replicate
-    console.log(`[Flux] Persisting ${successfulImages.length} images to Cloudinary...`);
+    console.log(`[SDXL] Persisting ${successfulImages.length} images to Cloudinary...`);
     const persistedImages = await persistImagesToCloudinary(images);
     
     // Log summary
     const persistedCount = persistedImages.filter(img => img !== null && img.includes('res.cloudinary.com')).length;
-    console.log(`[Flux] Generated ${successfulImages.length} of ${events.length} images successfully`);
+    console.log(`[SDXL] Generated ${successfulImages.length} of ${events.length} images successfully`);
     if (persistedCount > 0) {
-      console.log(`[Flux] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
+      console.log(`[SDXL] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
     }
     
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
     // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
     return NextResponse.json({ images: persistedImages });
   } catch (error: any) {
-    console.error('[Flux] Error generating images:', error);
+    console.error('[SDXL] Error generating images:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate images' },
       { status: 500 }
