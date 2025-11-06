@@ -152,21 +152,49 @@ export const ExperimentalBottomMenuBar = ({
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
-  // SVG needs to be tall enough to include the recess that extends above the tab bar
-  // Center is at dialRadius + 10px from bottom, so SVG height needs to accommodate this
-  const svgHeight = Math.max(tabBarHeight, centerYFromBottom + recessRadius);
+  // Calculate center Y position relative to tab bar (from top of tab bar)
+  // centerYFromBottom is from viewport bottom, tab bar is at bottom, so:
+  // center Y relative to tab bar top = centerYFromBottom - tabBarHeight
+  const centerYRelativeToTabBar = centerYFromBottom - tabBarHeight;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess using clip-path */}
-        <div 
-          className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50 rounded-t-3xl"
-          style={{ 
-            height: `${tabBarHeight}px`,
-            clipPath: `path('M 0,${tabBarHeight} L 0,0 L 50%,0 L 50%,${svgHeight - centerYFromBottom - recessRadius} A ${recessRadius},${recessRadius} 0 0 1 50%,${svgHeight - centerYFromBottom + recessRadius} L 50%,0 L 100%,0 L 100%,${tabBarHeight} Z')`
-          }}
-        >
+        {/* Rectangular tab bar with circular recess using SVG */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px`, overflow: 'visible' }}>
+          {/* SVG to create tab bar with circular cutout */}
+          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+            <defs>
+              <clipPath id={maskId}>
+                {/* Rectangle covering tab bar */}
+                <rect width="100%" height="100%" />
+                {/* Circular cutout - center at midpoint, positioned above tab bar */}
+                <circle 
+                  cx="50%" 
+                  cy={`${-centerYRelativeToTabBar}px`}
+                  r={recessRadius} 
+                />
+              </clipPath>
+            </defs>
+            {/* Tab bar background with clip-path applied */}
+            <rect 
+              width="100%" 
+              height="100%" 
+              fill="hsl(var(--background) / 0.95)"
+              clipPath={`url(#${maskId})`}
+              className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
+            />
+            {/* Border with clip-path applied */}
+            <rect 
+              width="100%" 
+              height="100%" 
+              fill="none"
+              stroke="hsl(var(--border) / 0.5)"
+              strokeWidth="1"
+              clipPath={`url(#${maskId})`}
+              className="rounded-t-3xl"
+            />
+          </svg>
           
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
