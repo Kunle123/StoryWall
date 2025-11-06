@@ -207,7 +207,7 @@ export const ExperimentalBottomMenuBar = ({
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
             {/* Left button with date */}
-            <div className="flex items-center gap-2 flex-1 justify-end" style={{ marginRight: 'calc(-20px - 10%)' }}>
+            <div className="flex items-center gap-2 flex-1 justify-end" style={{ marginRight: 'calc(-20px + 20%)' }}>
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -227,7 +227,7 @@ export const ExperimentalBottomMenuBar = ({
             <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
 
             {/* Right button with date */}
-            <div className="flex items-center gap-2 flex-1" style={{ marginLeft: 'calc(-20px - 10%)' }}>
+            <div className="flex items-center gap-2 flex-1" style={{ marginLeft: 'calc(-20px + 20%)' }}>
               {formattedEndDate && (
                 <div className="text-xs text-muted-foreground font-medium">
                   {formattedEndDate}
