@@ -45,26 +45,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // AI integration with OpenAI GPT-5
-    // Using Chat Completions API (can also use Responses API for better CoT support)
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-mini-2025-08-07', // GPT-5 mini snapshot
-        messages: [
-          {
-            role: 'system',
-            content: isFactual 
-              ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+    // Build prompts once
+    const systemPrompt = isFactual 
+      ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
 
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
-- Use your training data to provide accurate events for the requested topic
-- If you have knowledge about the topic, generate events based on that knowledge
+- Use your training data (and web search if available) to provide accurate events for the requested topic
 - If you are unsure about specific dates, use only the year (do not guess month/day)
 - For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
 - Generate as many accurate events as you can, up to the requested maximum
@@ -72,7 +59,7 @@ ACCURACY REQUIREMENTS:
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
-              : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+      : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
@@ -81,12 +68,10 @@ CREATIVE GUIDELINES:
 - Events should be chronologically ordered and relevant to the timeline description
 - Feel free to include specific dates when they enhance the narrative
 
-IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`,
-          },
-          {
-            role: 'user',
-            content: isFactual
-              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
+IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
+
+    const userPrompt = isFactual
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (if available) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -100,54 +85,127 @@ For political campaigns, elections, or public figures: include ALL major events 
 Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
 Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
-              : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`,
-          },
-        ],
-        response_format: { type: 'json_object' },
-        // GPT-5 parameters
-        reasoning_effort: isFactual ? 'minimal' : 'low',
-        verbosity: 'low',
-        max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
-      }),
-    });
+      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
+    // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
+    let response;
+    let contentText: string | null = null;
+    const useWebSearch = !!isFactual;
+
+    if (useWebSearch) {
       try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
+        console.log('[GenerateEvents API] Using Responses API with web_search tool');
+        const resp = await fetch('https://api.openai.com/v1/responses', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${aiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5-mini-2025-08-07',
+            input: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            response_format: { type: 'json_object' },
+            tools: [{ type: 'web_search' }],
+            reasoning_effort: 'minimal',
+            verbosity: 'low',
+            max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
+          }),
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          // Prefer convenient field when available
+          if (typeof data.output_text === 'string') {
+            contentText = data.output_text;
+          } else if (Array.isArray(data.output)) {
+            // Find assistant message content text
+            for (const item of data.output) {
+              if (item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)) {
+                const textPart = item.content.find((c: any) => typeof c.text === 'string');
+                if (textPart) {
+                  contentText = textPart.text;
+                  break;
+                }
+              }
+            }
+          }
+        } else {
+          const errText = await resp.text();
+          console.warn('[GenerateEvents API] Responses API failed, falling back to chat completions:', errText);
+        }
+      } catch (e) {
+        console.warn('[GenerateEvents API] Responses API error, falling back to chat completions:', (e as any)?.message);
       }
-      console.error('OpenAI API error:', errorData);
-      const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
-      return NextResponse.json(
-        { error: 'Failed to generate events from OpenAI API', details: errorMessage },
-        { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
-      );
     }
 
-    const data = await response.json();
-    
-    console.log('[GenerateEvents API] OpenAI API response structure:', {
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length,
-      hasFirstChoice: !!data.choices?.[0],
-      hasMessage: !!data.choices?.[0]?.message,
-      messageContentLength: data.choices?.[0]?.message?.content?.length,
-    });
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('[GenerateEvents API] Invalid OpenAI response structure:', data);
-      throw new Error('Invalid response format from OpenAI');
+    // Fallback or if not using web search: Chat Completions API
+    if (!contentText) {
+      console.log('[GenerateEvents API] Using Chat Completions API');
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${aiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5-mini-2025-08-07',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          response_format: { type: 'json_object' },
+          reasoning_effort: isFactual ? 'minimal' : 'low',
+          verbosity: 'low',
+          max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        console.error('OpenAI API error:', errorData);
+        const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
+        return NextResponse.json(
+          { error: 'Failed to generate events from OpenAI API', details: errorMessage },
+          { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
+        );
+      }
+
+      const data = await response.json();
+      
+      console.log('[GenerateEvents API] OpenAI API response structure:', {
+        hasChoices: !!data.choices,
+        choicesLength: data.choices?.length,
+        hasFirstChoice: !!data.choices?.[0],
+        hasMessage: !!data.choices?.[0]?.message,
+        messageContentLength: data.choices?.[0]?.message?.content?.length,
+      });
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('[GenerateEvents API] Invalid OpenAI response structure:', data);
+        throw new Error('Invalid response format from OpenAI');
+      }
+      contentText = data.choices[0].message.content;
     }
-    
+
+    if (!contentText || typeof contentText !== 'string') {
+      throw new Error('Empty assistant response');
+    }
+
     let content;
     try {
-      content = JSON.parse(data.choices[0].message.content);
+      content = JSON.parse(contentText);
     } catch (parseError: any) {
       console.error('[GenerateEvents API] Failed to parse OpenAI message content:', {
-        content: data.choices[0].message.content,
+        content: contentText,
         error: parseError.message,
       });
       throw new Error('Failed to parse OpenAI response content');
