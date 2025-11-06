@@ -6,8 +6,7 @@ import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
-import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
-import { BottomMenuBar } from "@/components/layout/BottomMenuBar";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
@@ -112,6 +111,18 @@ const TimelinePage = () => {
       <Header />
       <SubMenuBar title={timeline.title} selectedDate={formatSelectedDate(centeredEvent)} />
       <Toaster />
+      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+        <Timeline 
+          events={events.length > 0 ? events : timeline.events || []} 
+          pixelsPerYear={30} 
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onCenteredEventChange={setCenteredEvent}
+        />
+        <div id="comments" className="mt-12 pb-8 scroll-mt-24">
+          <CommentsSection timelineId={timeline.id || timelineId} />
+        </div>
+      </main>
       {(() => {
         const evts = (events.length > 0 ? events : (timeline.events || [])).map((e: any) => ({
           year: e.year,
@@ -125,40 +136,37 @@ const TimelinePage = () => {
         const endDate = hasAny ? new Date(Math.max(
           ...evts.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime())
         )) : undefined;
-        return hasAny ? (
-          <FloatingTimelineWidget
+        const timelinePosition = (() => {
+          if (!centeredEvent || evts.length < 2) return 0.5;
+          const sortedEvts = [...evts].sort((a, b) => {
+            const dateA = new Date(a.year, (a.month || 1) - 1, a.day || 1).getTime();
+            const dateB = new Date(b.year, (b.month || 1) - 1, b.day || 1).getTime();
+            return dateA - dateB;
+          });
+          const eventDate = new Date(centeredEvent.year, (centeredEvent.month || 1) - 1, centeredEvent.day || 1).getTime();
+          const idx = sortedEvts.findIndex((e: { year: number; month?: number; day?: number }) => {
+            const eDate = new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
+            return eDate === eventDate;
+          });
+          if (idx >= 0 && sortedEvts.length > 1) {
+            return idx / (sortedEvts.length - 1);
+          }
+          if (startDate && endDate && eventDate) {
+            const totalSpan = endDate.getTime() - startDate.getTime();
+            const position = (eventDate - startDate.getTime()) / totalSpan;
+            return Math.min(Math.max(position, 0), 1);
+          }
+          return 0.5;
+        })();
+        return (
+          <ExperimentalBottomMenuBar
             selectedDate={formatSelectedDate(centeredEvent)}
-            precedingDate={undefined}
-            followingDate={undefined}
-            timelinePosition={(() => {
-              if (!centeredEvent || evts.length < 2) return 0.5;
-              const idx = evts.findIndex((e: { year: number; month?: number; day?: number }) => (
-                e.year === centeredEvent.year && e.month === centeredEvent.month && e.day === centeredEvent.day
-              ));
-              return idx >= 0 ? idx / (evts.length - 1) : 0.5;
-            })()}
-            collapsed={false}
+            timelinePosition={timelinePosition}
             startDate={startDate}
             endDate={endDate}
           />
-        ) : null;
+        );
       })()}
-      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
-        <Timeline 
-          events={events.length > 0 ? events : timeline.events || []} 
-          pixelsPerYear={30} 
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onCenteredEventChange={setCenteredEvent}
-        />
-        <div id="comments" className="mt-12 pb-8 scroll-mt-24">
-          <CommentsSection timelineId={timeline.id || timelineId} />
-        </div>
-      </main>
-      <BottomMenuBar 
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
     </div>
   );
 };

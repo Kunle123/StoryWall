@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -251,27 +251,15 @@ const Story = () => {
     return formatEventDate(year, month, day);
   };
 
-  // Widget data - calculate dates for FloatingTimelineWidget
+  // Widget data - calculate dates for ExperimentalBottomMenuBar
   const selectedDate = event ? formatDate(event.year, event.month, event.day) : undefined;
-  const precedingEvent = hasPrev && allEvents.length > 0 ? allEvents[currentIndex - 1] : null;
-  const followingEvent = hasNext && allEvents.length > 0 ? allEvents[currentIndex + 1] : null;
-  const precedingDate = precedingEvent ? formatDate(precedingEvent.year, precedingEvent.month, precedingEvent.day) : undefined;
-  const followingDate = followingEvent ? formatDate(followingEvent.year, followingEvent.month, followingEvent.day) : undefined;
   const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
+
+  const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
+  const endDate = allEvents.length > 0 ? new Date(Math.max(...allEvents.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
 
   return (
     <div className="min-h-screen bg-background">
-      {event && allEvents.length > 0 && (
-        <FloatingTimelineWidget 
-          selectedDate={selectedDate}
-          precedingDate={precedingDate}
-          followingDate={followingDate}
-          timelinePosition={timelinePosition}
-          collapsed={isScrolled}
-          startDate={allEvents.length ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined}
-          endDate={allEvents.length ? new Date(Math.max(...allEvents.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined}
-        />
-      )}
 
       <main className="container mx-auto px-0 md:px-4 pt-4 pb-8 max-w-4xl">
         {/* Single Unified Card */}
@@ -306,14 +294,14 @@ const Story = () => {
             <ChevronRight className="w-6 h-6" />
           </Button>
           {/* Close Button */}
-          <Button
-            variant="ghost"
+        <Button
+          variant="ghost"
             size="icon"
             className="absolute top-2 right-2 z-20 h-8 w-8 rounded-full hover:bg-muted"
-            onClick={() => router.push("/")}
-          >
+          onClick={() => router.push("/")}
+        >
             <X className="w-5 h-5" />
-          </Button>
+        </Button>
 
           {/* User Profile and Follow Button */}
           <div className="flex items-center justify-between mb-4 pr-16">
@@ -397,6 +385,14 @@ const Story = () => {
           {/* Comments section removed - users should comment on the timeline, not individual events */}
         </Card>
       </main>
+      {event && allEvents.length > 0 && (
+        <ExperimentalBottomMenuBar
+          selectedDate={selectedDate}
+          timelinePosition={timelinePosition}
+          startDate={startDate}
+          endDate={endDate}
+        />
+      )}
     </div>
   );
 };
