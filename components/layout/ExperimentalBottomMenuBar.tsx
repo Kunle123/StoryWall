@@ -116,20 +116,22 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 20px gap between dial edge and recess edge (10px on each side)
-  // Center = 30px + dialRadius = 20px + recessRadius
-  // This means: 30 + dialRadius = 20 + (dialRadius + gap/2)
-  // So: 30 = 20 + gap/2, therefore gap = 20px total (10px on each side)
-  const recessGap = 20; // Total gap = 20px (10px on each side)
-  const recessSize = dialSize + recessGap; // dialSize + 20px
-  const recessRadius = recessSize / 2;
+  // Calculate recess size: 10px gap between dial edge and recess edge (5px on each side)
+  // recessRadius = dialRadius + 5px (since gap = 10px total, 5px on each side)
+  const recessGap = 10; // Total gap = 10px (5px on each side)
+  const recessSize = dialSize + recessGap; // dialSize + 10px
+  const recessRadius = recessSize / 2; // dialRadius + 5px
   
   // Tab bar height - 40px
   const tabBarHeight = 40;
   
   // Center position: 30px + dialRadius = 20px + recessRadius
+  // Since recessRadius = dialRadius + 5px, we have:
+  // 30 + dialRadius = 20 + (dialRadius + 5)
+  // 30 = 25 (this doesn't work, so we need to adjust)
+  // Actually: center = 20px + recessRadius = 20px + (dialRadius + 5px) = 25px + dialRadius
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius from bottom
+  const centerYFromBottom = 20 + recessRadius; // 20px + recess radius = 25px + dialRadius
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
