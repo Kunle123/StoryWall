@@ -298,7 +298,13 @@ const Story = () => {
           variant="ghost"
             size="icon"
             className="absolute top-2 right-2 z-20 h-8 w-8 rounded-full hover:bg-muted"
-          onClick={() => router.push("/")}
+          onClick={() => {
+            if (event?.timeline_id) {
+              router.push(`/timeline/${event.timeline_id}`);
+            } else {
+              router.push("/");
+            }
+          }}
         >
             <X className="w-5 h-5" />
         </Button>
