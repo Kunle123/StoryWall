@@ -43,8 +43,9 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         if (isSignedIn) {
           const likeStatus = await fetchEventLikeStatus(event.id);
           if (likeStatus.data) {
-            setUserLiked(likeStatus.data.user_liked);
-            setStats(prev => ({ ...prev, likes: likeStatus.data.likes_count }));
+            const likeData = likeStatus.data;
+            setUserLiked(likeData.user_liked);
+            setStats(prev => ({ ...prev, likes: likeData.likes_count }));
           }
         }
       } catch (error) {
