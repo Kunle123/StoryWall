@@ -132,7 +132,9 @@ const TimelinePage = () => {
             followingDate={undefined}
             timelinePosition={(() => {
               if (!centeredEvent || evts.length < 2) return 0.5;
-              const idx = evts.findIndex(e => e.year === centeredEvent.year && e.month === centeredEvent.month && e.day === centeredEvent.day);
+              const idx = evts.findIndex((e: { year: number; month?: number; day?: number }) => (
+                e.year === centeredEvent.year && e.month === centeredEvent.month && e.day === centeredEvent.day
+              ));
               return idx >= 0 ? idx / (evts.length - 1) : 0.5;
             })()}
             collapsed={false}
