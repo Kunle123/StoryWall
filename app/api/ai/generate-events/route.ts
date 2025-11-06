@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { timelineDescription, timelineName, maxEvents = 20, isFactual = true } = body;
+    
+    console.log('[GenerateEvents API] Request received:', {
+      timelineName,
+      descriptionLength: timelineDescription?.length,
+      maxEvents,
+      isFactual,
+      userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    });
 
     if (!timelineDescription || !timelineName) {
       return NextResponse.json(
@@ -141,11 +149,23 @@ Only include month and day for events with historically significant specific dat
       title: String(event.title || 'Untitled Event'),
     })).filter((event: any) => event.year && event.title);
     
+    console.log('[GenerateEvents API] Successfully generated events:', events.length);
+    
     return NextResponse.json({ events: events.slice(0, maxEvents) });
   } catch (error: any) {
-    console.error('Error generating events:', error);
+    console.error('[GenerateEvents API] Error generating events:', error);
+    console.error('[GenerateEvents API] Error details:', {
+      message: error.message,
+      stack: error.stack?.substring(0, 200),
+      name: error.name,
+    });
+    
+    // Return detailed error for debugging
     return NextResponse.json(
-      { error: error.message || 'Failed to generate events' },
+      { 
+        error: error.message || 'Failed to generate events',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

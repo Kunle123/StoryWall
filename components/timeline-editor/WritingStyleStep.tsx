@@ -82,34 +82,64 @@ export const WritingStyleStep = ({
 
     setIsGenerating(true);
     try {
-      const response = await fetch("/api/ai/generate-events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timelineDescription,
-          timelineName,
-          maxEvents: 20,
-          isFactual,
-        }),
+      console.log('[GenerateEvents] Starting generation:', { 
+        timelineName, 
+        descriptionLength: timelineDescription?.length,
+        isFactual 
       });
-
-      let data;
+      
+      // Create AbortController for timeout handling (important for mobile networks)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      let response;
       try {
-        data = await response.json();
+        response = await fetch("/api/ai/generate-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            timelineDescription,
+            timelineName,
+            maxEvents: 20,
+            isFactual,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error("Request timed out. Please check your connection and try again.");
+        }
+        throw fetchError;
+      }
+      
+      console.log('[GenerateEvents] Response status:', response.status, response.statusText);
+
+      // Read response body once - can't read it twice
+      const responseText = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(responseText);
       } catch (parseError) {
-        // If response is not JSON, get text
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+        // If response is not JSON, use the text as error message
+        console.error('[GenerateEvents] Failed to parse JSON response:', responseText);
+        throw new Error(responseText || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       if (!response.ok) {
-        const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
+        const errorMsg = data?.error || data?.details || data?.message || `HTTP ${response.status}: ${response.statusText}`;
+        console.error('[GenerateEvents] API error:', { status: response.status, data, errorMsg });
         throw new Error(errorMsg);
       }
 
       if (!data.events || data.events.length === 0) {
-        throw new Error("No events were generated");
+        console.warn('[GenerateEvents] No events in response:', data);
+        throw new Error("No events were generated. The AI may have been uncertain about the topic.");
       }
+
+      console.log('[GenerateEvents] Successfully parsed events:', data.events.length);
 
       const generatedEvents: TimelineEvent[] = data.events.map((e: any, idx: number) => ({
         id: `event-${Date.now()}-${idx}`,
@@ -124,10 +154,24 @@ export const WritingStyleStep = ({
         description: `Generated ${generatedEvents.length} events`,
       });
     } catch (error: any) {
-      console.error("Error generating events:", error);
+      console.error("[GenerateEvents] Error generating events:", error);
+      console.error("[GenerateEvents] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+      
+      // More detailed error message for mobile debugging
+      let errorMessage = error.message || "Failed to generate events";
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      } else if (errorMessage.includes("OPENAI_API_KEY")) {
+        errorMessage = "API key not configured. Please contact support.";
+      }
+      
       toast({
         title: "Failed to generate events",
-        description: error.message || "Please check your OpenAI API key configuration and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
