@@ -54,29 +54,22 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-mini', // Using GPT-5-mini for cost optimization with excellent instruction following
+        model: 'gpt-4o-mini', // Using gpt-4o-mini for cost optimization with excellent instruction following
         messages: [
           {
             role: 'system',
             content: isFactual 
               ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
 
-CRITICAL ACCURACY REQUIREMENTS:
-- Only generate events that are FACTUALLY VERIFIED and well-documented in reliable sources
-- Do NOT invent, speculate, or make up events that you are not certain about
-- If you are unsure about specific dates or details, omit them rather than guessing
-- For recent or obscure topics, be extra cautious and only include information you are confident is accurate
+ACCURACY REQUIREMENTS:
+- Generate events based on your knowledge of factual, well-documented information
+- Use your training data to provide accurate events for the requested topic
+- If you have knowledge about the topic, generate events based on that knowledge
+- If you are unsure about specific dates, use only the year (do not guess month/day)
+- For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
+- Generate as many accurate events as you can, up to the requested maximum
 
-GUIDELINES FOR RECENT EVENTS (2023-PRESENT):
-- Your training data may not include recent events or may be outdated
-- For well-known public figures, campaigns, or widely reported events, generate events based on what is commonly known and documented
-- If the topic is a public figure or widely covered event, try to generate at least 3-5 well-documented events that are commonly known
-- Only return an empty array if the topic is completely unknown, unknowable, or if you have absolutely no knowledge about it
-- For public political campaigns, elections, or public figures, include major milestones like: announcement dates (if known), primary dates, election dates, major campaign events, results, etc.
-- If specific dates are uncertain, use only the year
-- PREFER generating fewer accurate events (3-5) over returning an empty array for known topics
-
-IMPORTANT: Only include month and day if the exact date is historically known and significant (e.g., "September 11, 2001" for 9/11). For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates for well-known specific dates like 9/11, D-Day (June 6, 1944), etc.
+IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
               : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
@@ -93,24 +86,19 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
           {
             role: 'user',
             content: isFactual
-              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} FACTUALLY ACCURATE events. Only include events you are certain are correct based on verified historical information. If you are unsure about any details, omit them rather than guessing. 
+              ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
 
-For this timeline, generate events based on what is commonly known and documented. If this is a well-known public figure, campaign, or widely reported topic, include major milestones and key events that are publicly documented. Try to generate at least 3-5 events if the topic is known to you. Only return an empty array if you have absolutely no knowledge about this topic.
+For political campaigns, elections, or public figures: include events like announcements, filing deadlines, primaries, debates, elections, results, and other major milestones.
 
-For recent events (2023-present), use only the year if specific dates are uncertain. DO NOT make up specific dates or events you're not confident about, but DO try to generate events for well-known topics.
+If you know the specific date, include month and day. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-Only include month and day for events with historically significant specific dates (like 9/11/2001, D-Day 6/6/1944). For most events, only include the year. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
+Generate as many accurate events as you can based on your knowledge. Return as JSON: { "events": [{ "year": 2001, "month": 9, "day": 11, "title": "9/11 Attacks" }, { "year": 1945, "title": "End of World War II" }, ...] }`
               : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`,
           },
         ],
         response_format: { type: 'json_object' },
-        // GPT-5 doesn't support temperature - use reasoning_effort and verbosity instead
-        reasoning_effort: isFactual ? 'low' : 'low', // Low reasoning for better recall and less empty responses
-        verbosity: 'low', // Low verbosity for concise JSON responses
-        // GPT-5 uses max_completion_tokens instead of max_tokens
-        // Optimize: ~100 tokens per event + structure overhead
-        // Cap at reasonable max to prevent slow responses
-        max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
+        temperature: isFactual ? 0.3 : 0.7, // Lower temperature for factual accuracy, higher for creativity
+        max_tokens: Math.min(3000, (maxEvents * 100) + 500), // ~100 tokens per event + structure overhead
       }),
     });
 
