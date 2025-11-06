@@ -269,8 +269,8 @@ Generate a comprehensive timeline with all major events you know about this topi
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
 
     // Normalize and validate sources if provided (require article-level URLs, not bare domains)
-    let normalizedSources: any[] | undefined = undefined;
-    let normalizedImageRefs: any[] | undefined = undefined;
+    let normalizedSources: any[] = [];
+    let normalizedImageRefs: any[] = [];
     if (Array.isArray(content.sources)) {
       const isArticleUrl = (url: string) => /^https?:\/\/[^\/]+\/.+/.test(url);
       normalizedSources = content.sources
@@ -280,7 +280,9 @@ Generate a comprehensive timeline with all major events you know about this topi
         })
         .filter((s: any) => s.url && isArticleUrl(s.url))
         .slice(0, 10);
-      console.log('[GenerateEvents API] Sources (filtered):', normalizedSources.map((s: any) => s.url));
+      if (normalizedSources.length > 0) {
+        console.log('[GenerateEvents API] Sources (filtered):', normalizedSources.map((s: any) => s.url));
+      }
     }
     if (Array.isArray(content.image_references)) {
       const isUrl = (url: string) => /^https?:\/\//.test(url);
@@ -291,7 +293,9 @@ Generate a comprehensive timeline with all major events you know about this topi
         })
         .filter((s: any) => s.url && isUrl(s.url))
         .slice(0, 12);
-      console.log('[GenerateEvents API] Image references (filtered):', normalizedImageRefs.map((s: any) => s.url));
+      if (normalizedImageRefs.length > 0) {
+        console.log('[GenerateEvents API] Image references (filtered):', normalizedImageRefs.map((s: any) => s.url));
+      }
     }
     
     // If all events were filtered out, return the mapped events anyway (with defaults)
@@ -321,10 +325,10 @@ Generate a comprehensive timeline with all major events you know about this topi
     
     // Include sources in response if provided
     const responsePayload: any = { events: events.slice(0, maxEvents) };
-    if (normalizedSources && normalizedSources.length > 0) {
+    if (normalizedSources.length > 0) {
       responsePayload.sources = normalizedSources;
     }
-    if (normalizedImageRefs && normalizedImageRefs.length > 0) {
+    if (normalizedImageRefs.length > 0) {
       responsePayload.imageReferences = normalizedImageRefs;
     }
     return NextResponse.json(responsePayload);
