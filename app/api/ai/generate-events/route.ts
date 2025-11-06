@@ -120,7 +120,6 @@ Generate a comprehensive timeline with all major events you know about this topi
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt },
             ],
-            response_format: { type: 'json_object' },
             tools: [{ type: 'web_search' }],
             reasoning_effort: 'low',
             verbosity: 'low',
@@ -172,41 +171,41 @@ Generate a comprehensive timeline with all major events you know about this topi
       }
       console.log('[GenerateEvents API] Using Chat Completions API');
       response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${aiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${aiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
           model: 'gpt-5-mini-2025-08-07',
-          messages: [
+        messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
-          ],
-          response_format: { type: 'json_object' },
+        ],
+        response_format: { type: 'json_object' },
           reasoning_effort: isFactual ? 'low' : 'low',
           verbosity: 'low',
           max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { message: errorText };
-        }
-        console.error('OpenAI API error:', errorData);
-        const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
-        return NextResponse.json(
-          { error: 'Failed to generate events from OpenAI API', details: errorMessage },
-          { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
-        );
-      }
+      }),
+    });
 
-      const data = await response.json();
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      console.error('OpenAI API error:', errorData);
+      const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
+      return NextResponse.json(
+        { error: 'Failed to generate events from OpenAI API', details: errorMessage },
+        { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
+      );
+    }
+
+    const data = await response.json();
       
       console.log('[GenerateEvents API] OpenAI API response structure:', {
         hasChoices: !!data.choices,
@@ -215,11 +214,11 @@ Generate a comprehensive timeline with all major events you know about this topi
         hasMessage: !!data.choices?.[0]?.message,
         messageContentLength: data.choices?.[0]?.message?.content?.length,
       });
-      
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
         console.error('[GenerateEvents API] Invalid OpenAI response structure:', data);
-        throw new Error('Invalid response format from OpenAI');
-      }
+      throw new Error('Invalid response format from OpenAI');
+    }
       contentText = data.choices[0].message.content;
     }
 
@@ -268,8 +267,8 @@ Generate a comprehensive timeline with all major events you know about this topi
       
       return {
         year: year || new Date().getFullYear(),
-        month: event.month ? parseInt(event.month) : undefined,
-        day: event.day ? parseInt(event.day) : undefined,
+      month: event.month ? parseInt(event.month) : undefined,
+      day: event.day ? parseInt(event.day) : undefined,
         title: title || `Event ${index + 1}`,
       };
     });

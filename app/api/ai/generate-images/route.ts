@@ -3,8 +3,8 @@ import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFam
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 
 /**
- * Generate images for timeline events using SDXL + IP-Adapter (via Replicate)
- * Supports direct reference image input for better style/likeness matching
+ * Generate images for timeline events using SDXL (via Replicate)
+ * Supports image-to-image generation with reference images
  * 
  * Request Body:
  * {
@@ -44,11 +44,11 @@ const COLOR_NAMES: Record<string, string> = {
   '#14B8A6': 'teal',
 };
 
-// SDXL + IP-Adapter model on Replicate
-// Using IP-Adapter SDXL model for direct reference image input support
-// Cost: ~$0.028 per image (more expensive than Flux, but better reference control)
-// Alternative: lucataco/ip-adapter-sdxl-face (~$0.095) for better face matching
-const IP_ADAPTER_SDXL_MODEL_NAME = "chigozienri/ip_adapter-sdxl"; // Supports text + image input
+// SDXL model on Replicate
+// Using Stability AI's SDXL model with image-to-image support
+// Cost: ~$0.0048 per image (much cheaper than IP-Adapter, ~6x cost reduction)
+// Supports text-to-image and image-to-image generation
+const SDXL_MODEL_NAME = "stability-ai/sdxl"; // Supports text + image input
 
 // Helper to download reference image from URL and convert to base64
 async function downloadReferenceImage(imageUrl: string): Promise<string | null> {
@@ -176,7 +176,7 @@ function buildImagePrompt(
   prompt += `. Balanced composition, centered focal point, timeline-appropriate visual narrative`;
   
   // Note: Reference images are now handled separately via direct image input
-  // Don't include URLs in prompt when using IP-Adapter
+  // Don't include URLs in prompt when using image-to-image
   
   // SDXL handles longer prompts well, but keep it reasonable
   return prompt.substring(0, 900);
@@ -273,9 +273,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the latest IP-Adapter SDXL model version
-    const ipAdapterVersion = await getLatestModelVersion(IP_ADAPTER_SDXL_MODEL_NAME, replicateApiKey);
-    console.log(`[SDXL+IP-Adapter] Using model version: ${ipAdapterVersion}`);
+    // Get the latest SDXL model version
+    const sdxlVersion = await getLatestModelVersion(SDXL_MODEL_NAME, replicateApiKey);
+    console.log(`[SDXL] Using model version: ${sdxlVersion}`);
 
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
         // Log the prompt being sent (for debugging)
         console.log(`[SDXL] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
         
-        // Build input for IP-Adapter SDXL
+        // Build input for SDXL
         const input: any = {
           prompt: prompt,
           num_outputs: 1,
@@ -310,10 +310,10 @@ export async function POST(request: NextRequest) {
           num_inference_steps: 30,
         };
         
-        // Add reference image if available (for IP-Adapter style/likeness)
+        // Add reference image if available (for image-to-image transformation)
         if (referenceImage) {
           input.image = referenceImage;
-          input.scale = 0.7; // IP-Adapter scale: how much to follow reference (0-1)
+          input.prompt_strength = 0.8; // How strongly the prompt transforms the input image (0-1)
         }
         
         // Create prediction via Replicate
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            version: ipAdapterVersion,
+            version: sdxlVersion,
             input: input,
           }),
         });
