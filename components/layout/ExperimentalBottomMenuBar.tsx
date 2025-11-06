@@ -152,35 +152,21 @@ export const ExperimentalBottomMenuBar = ({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess using SVG mask */}
+        {/* Rectangular tab bar with circular recess - using SVG path to draw shape with cutout */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
-          {/* SVG with mask to create visible recess */}
           <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
-            <defs>
-              <mask id={maskId}>
-                {/* White = visible, Black = transparent (cutout) */}
-                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} fill="white" />
-                <circle cx={`${screenCenterX}`} cy={`${centerYInSVG}`} r={recessRadius} fill="black" />
-              </mask>
-            </defs>
-            {/* Tab bar background with mask - creates visible cutout */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
+            {/* Tab bar shape with circular cutout - path goes around the circle */}
+            <path
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${screenCenterX - recessRadius},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX + recessRadius},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="hsl(var(--background) / 0.95)"
-              mask={`url(#${maskId})`}
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
             />
-            {/* Border with mask */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
+            {/* Border path */}
+            <path
+              d={`M 0,${svgTotalHeight} L 0,${tabBarTopY} L ${screenCenterX - recessRadius},${tabBarTopY} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX},${centerYInSVG - recessRadius} A ${recessRadius},${recessRadius} 0 0 0 ${screenCenterX + recessRadius},${tabBarTopY} L ${screenWidth},${tabBarTopY} L ${screenWidth},${svgTotalHeight} Z`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
-              mask={`url(#${maskId})`}
             />
           </svg>
           
