@@ -116,57 +116,51 @@ export const ExperimentalBottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 5px gap on each side = 10px total diameter difference
-  const recessGap = 5; // Gap between dial edge and recess edge
-  const recessSize = dialSize + (recessGap * 2); // 5px gap on each side
+  // Calculate recess size: 10px gap between dial edge and recess edge (5px on each side)
+  const recessGap = 10; // Total gap = 10px (5px on each side)
+  const recessSize = dialSize + recessGap; // dialSize + 10px
   const recessRadius = recessSize / 2;
   
-  // Tab bar height - standard 44px
-  const tabBarHeight = 44;
+  // Tab bar height - 40px
+  const tabBarHeight = 40;
   
-  // Center position: dial radius + 40px from bottom of tab bar
-  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 40px from viewport bottom
+  // Center position: 20px from bottom of tab bar + recess radius
+  // Center = 20px + recess radius = 20px + (dial radius + 10px) = 30px + dial radius
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = tabBarHeight + dialRadius + 40; // 44px (top of tab bar) + dialRadius + 40px
+  const centerYFromBottom = 20 + recessRadius; // 20px from bottom + recess radius
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
-  // SVG needs to extend above tab bar to include the recess
-  // Center is at centerYFromBottom from viewport bottom
-  // Tab bar is 44px tall, so if center is above tab bar, we need extra height
-  const svgExtraHeight = Math.max(0, centerYFromBottom - tabBarHeight + recessRadius);
-  const svgTotalHeight = tabBarHeight + svgExtraHeight;
+  // Recess is contained within the 40px tab bar
+  // Center is at centerYFromBottom from bottom of tab bar
+  // SVG height matches tab bar height (40px)
+  const svgTotalHeight = tabBarHeight;
   
-  // Center Y in SVG coordinates (from top of SVG)
-  // SVG extends svgExtraHeight above tab bar, so center Y = svgTotalHeight - centerYFromBottom
-  const centerYInSVG = svgTotalHeight - centerYFromBottom;
+  // Center Y in SVG coordinates (from top of SVG, which is top of tab bar)
+  // Center is centerYFromBottom from bottom, so from top it's: tabBarHeight - centerYFromBottom
+  const centerYInSVG = tabBarHeight - centerYFromBottom;
   
   // Calculate screen center and arc endpoints
   const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
   const screenCenterX = screenWidth / 2;
-  const arcLeftX = screenCenterX - recessRadius;
-  const arcRightX = screenCenterX + recessRadius;
-  const tabBarTopY = svgTotalHeight - tabBarHeight;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess - using SVG path to draw shape with cutout */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
+        {/* Rectangular tab bar with circular recess - recess contained within 40px height */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
           {/* Background div with mask to create visible cutout */}
           <div 
             className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50"
             style={{ 
               height: `${tabBarHeight}px`,
-              maskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
-              WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${svgTotalHeight}'><rect width='100%' height='${tabBarHeight}' y='${svgTotalHeight - tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+              maskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${tabBarHeight}'><rect width='100%' height='${tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
+              WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${tabBarHeight}'><rect width='100%' height='${tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
               maskSize: '100% 100%',
               WebkitMaskSize: '100% 100%',
               maskRepeat: 'no-repeat',
-              WebkitMaskRepeat: 'no-repeat',
-              maskPosition: 'center bottom',
-              WebkitMaskPosition: 'center bottom'
+              WebkitMaskRepeat: 'no-repeat'
             }}
           />
           
