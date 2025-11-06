@@ -1,11 +1,10 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { Header } from "@/components/layout/Header";
 import { FloatingTimelineWidget } from "@/components/FloatingTimelineWidget";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Tag, ArrowLeft, Heart, Share2, UserPlus, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Tag, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId } from "@/lib/api/client";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
@@ -264,7 +263,6 @@ const Story = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       {event && allEvents.length > 0 && (
         <FloatingTimelineWidget 
           selectedDate={selectedDate}
@@ -272,14 +270,16 @@ const Story = () => {
           followingDate={followingDate}
           timelinePosition={timelinePosition}
           collapsed={isScrolled}
+          startDate={allEvents.length ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined}
+          endDate={allEvents.length ? new Date(Math.max(...allEvents.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined}
         />
       )}
 
-      <main className="container mx-auto px-4 pt-4 pb-8 max-w-4xl">
+      <main className="container mx-auto px-0 md:px-4 pt-4 pb-8 max-w-4xl">
         {/* Single Unified Card */}
         <Card 
           key={String(Array.isArray(params.id) ? params.id[0] : params.id)}
-          className={`p-8 transition-all duration-300 ${
+          className={`relative p-6 md:p-8 rounded-none md:rounded-lg transition-all duration-300 ${
             slideDirection === 'left' ? 'animate-slide-out-left' : 
             slideDirection === 'right' ? 'animate-slide-out-right' : 
             'animate-slide-in'
@@ -288,15 +288,34 @@ const Story = () => {
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {/* Back Button Above Profile */}
-        <Button
-          variant="ghost"
-            className="mb-4 gap-2 -ml-2 text-muted-foreground hover:text-foreground"
-          onClick={() => router.push("/")}
-        >
-          <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
-        </Button>
+          {/* Navigation buttons for tablet and desktop */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-lg hover:bg-background disabled:opacity-30"
+            onClick={goToPrev}
+            disabled={!hasPrev}
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-10 h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm border border-border shadow-lg hover:bg-background disabled:opacity-30"
+            onClick={goToNext}
+            disabled={!hasNext}
+          >
+            <ChevronRight className="w-6 h-6" />
+          </Button>
+          {/* Close Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 z-20 h-8 w-8 rounded-full hover:bg-muted"
+            onClick={() => router.push("/")}
+          >
+            <X className="w-5 h-5" />
+          </Button>
 
           {/* User Profile and Follow Button */}
           <div className="flex items-center justify-between mb-4">

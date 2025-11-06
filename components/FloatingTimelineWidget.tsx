@@ -6,6 +6,8 @@ interface FloatingTimelineWidgetProps {
   followingDate?: string;
   timelinePosition?: number;
   collapsed?: boolean;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export const FloatingTimelineWidget = ({ 
@@ -13,8 +15,21 @@ export const FloatingTimelineWidget = ({
   precedingDate, 
   followingDate, 
   timelinePosition = 0.5,
-  collapsed = false
+  collapsed = false,
+  startDate,
+  endDate
 }: FloatingTimelineWidgetProps) => {
+  const formatDateRange = (start: Date, end: Date): string => {
+    const diffMs = end.getTime() - start.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMonths = Math.floor(diffDays / 30);
+    const diffYears = Math.floor(diffDays / 365);
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 30) return `${diffDays}d`;
+    if (diffMonths < 12) return `${diffMonths}mo`;
+    return `${diffYears}y`;
+  };
   // Calculate arc angles rotated 2° clockwise from 90° anti-clockwise (from -266° to +90°)
   const startAngle = -266;
   const endAngle = 90;
@@ -42,10 +57,15 @@ export const FloatingTimelineWidget = ({
   const totalArcLength = (Math.abs(totalRange) * Math.PI * radius) / 180;
   const currentArcLength = (Math.abs(currentAngle - startAngle) * Math.PI * radius) / 180;
 
+  const dateRange = startDate && endDate ? formatDateRange(startDate, endDate) : null;
+  const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
+  const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
+
   return (
-    <div className={`fixed bottom-20 z-50 bg-background/50 backdrop-blur-md rounded-2xl shadow-lg border border-border transition-all duration-500 ease-in-out ${
+    <div className={`fixed bottom-[61px] z-50 bg-background/50 backdrop-blur-md rounded-2xl shadow-lg border border-border transition-all duration-500 ease-in-out ${
       collapsed ? 'left-[-60px] p-1.5 opacity-70 hover:left-2 hover:opacity-100' : 'left-4 p-3'
     }`}>
+      <div className="flex flex-col items-center gap-2">
       <div className={`rounded-full bg-muted/30 flex items-center justify-center relative overflow-hidden transition-all duration-500 ${
         collapsed ? 'w-16 h-16' : 'w-28 h-28'
       }`}>
@@ -102,6 +122,17 @@ export const FloatingTimelineWidget = ({
             </div>
           )}
         </div>
+      </div>
+      {/* Start and End Dates */}
+      {!collapsed && formattedStartDate && formattedEndDate && (
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground font-medium mt-1">
+          <span>{formattedStartDate}</span>
+          <span>·</span>
+          <span>{dateRange}</span>
+          <span>·</span>
+          <span>{formattedEndDate}</span>
+        </div>
+      )}
       </div>
     </div>
   );
