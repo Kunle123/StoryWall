@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
 import { Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEventDate } from "@/lib/utils/dateFormat";
+import { fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -20,8 +23,12 @@ interface TimelineCardProps {
 
 export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false }: TimelineCardProps) => {
   const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { toast } = useToast();
   const [stats, setStats] = useState({ likes: 0, comments: 0, shares: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [userLiked, setUserLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
   
   useEffect(() => {
     async function fetchStats() {
@@ -30,6 +37,15 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         if (response.ok) {
           const data = await response.json();
           setStats(data);
+        }
+        
+        // Fetch like status if signed in
+        if (isSignedIn) {
+          const likeStatus = await fetchEventLikeStatus(event.id);
+          if (likeStatus.data) {
+            setUserLiked(likeStatus.data.user_liked);
+            setStats(prev => ({ ...prev, likes: likeStatus.data.likes_count }));
+          }
         }
       } catch (error) {
         console.error('Failed to fetch event stats:', error);
@@ -41,7 +57,47 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
     if (event.id) {
       fetchStats();
     }
-  }, [event.id]);
+  }, [event.id, isSignedIn]);
+  
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isSignedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like events",
+        variant: "destructive",
+      });
+      router.push("/auth");
+      return;
+    }
+    
+    try {
+      setLiking(true);
+      const result = userLiked 
+        ? await unlikeEvent(event.id)
+        : await likeEvent(event.id);
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.data) {
+        setUserLiked(result.data.liked);
+        setStats(prev => ({ ...prev, likes: result.data.likes_count }));
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle like",
+        variant: "destructive",
+      });
+    } finally {
+      setLiking(false);
+    }
+  };
   
   const formatDate = (year: number, month?: number, day?: number) => {
     return formatEventDate(year, month, day);
@@ -115,13 +171,11 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 hover:bg-muted gap-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Handle like action
-              }}
+              className={`h-8 px-2 hover:bg-muted gap-1 ${userLiked ? 'text-pink-600' : ''}`}
+              onClick={handleLike}
+              disabled={liking}
             >
-              <Heart className="w-4 h-4" />
+              <Heart className={`w-4 h-4 ${userLiked ? 'fill-current' : ''}`} />
               {!loadingStats && <span className="text-xs text-muted-foreground">{stats.likes}</span>}
             </Button>
             <Button

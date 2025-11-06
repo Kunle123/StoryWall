@@ -1,11 +1,12 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Tag, ChevronLeft, ChevronRight, X } from "lucide-react";
-import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId } from "@/lib/api/client";
+import { Calendar, Tag, ChevronLeft, ChevronRight, X, Heart } from "lucide-react";
+import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -14,10 +15,12 @@ import { CommentsSection } from "@/components/timeline/CommentsSection";
 const Story = () => {
   const params = useParams();
   const router = useRouter();
+  const { isSignedIn } = useUser();
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [likes, setLikes] = useState(248);
-  const [shares, setShares] = useState(64);
+  const [likes, setLikes] = useState(0);
+  const [shares, setShares] = useState(0);
+  const [liking, setLiking] = useState(false);
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<any[]>([]);
@@ -90,6 +93,22 @@ const Story = () => {
               setCommentCount(commentsResult.data.length);
             }
           }
+          
+          // Fetch like status and stats
+          if (isSignedIn) {
+            const likeStatus = await fetchEventLikeStatus(transformedEvent.id);
+            if (likeStatus.data) {
+              setIsLiked(likeStatus.data.user_liked);
+              setLikes(likeStatus.data.likes_count);
+            }
+          } else {
+            // Fetch stats without like status
+            const statsResponse = await fetch(`/api/events/${transformedEvent.id}/stats`);
+            if (statsResponse.ok) {
+              const stats = await statsResponse.json();
+              setLikes(stats.likes || 0);
+            }
+          }
         } else {
           setEvent(null);
         }
@@ -104,7 +123,7 @@ const Story = () => {
     if (params.id) {
       loadEvent();
     }
-  }, [params.id]);
+  }, [params.id, isSignedIn]);
 
   const currentIndex = allEvents.findIndex(e => e.id === event?.id);
   const hasNext = currentIndex >= 0 && currentIndex < allEvents.length - 1;
@@ -171,6 +190,46 @@ const Story = () => {
       }, 100);
     }
   }, [event]);
+
+  const handleLike = async () => {
+    if (!isSignedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like events",
+        variant: "destructive",
+      });
+      router.push("/auth");
+      return;
+    }
+    
+    if (!event) return;
+    
+    try {
+      setLiking(true);
+      const result = isLiked 
+        ? await unlikeEvent(event.id)
+        : await likeEvent(event.id);
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else if (result.data) {
+        setIsLiked(result.data.liked);
+        setLikes(result.data.likes_count);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to toggle like",
+        variant: "destructive",
+      });
+    } finally {
+      setLiking(false);
+    }
+  };
 
   const handleCommentClick = () => {
     // Navigate to timeline page with comments section
@@ -399,7 +458,19 @@ const Story = () => {
             )}
           </div>
 
-          {/* Social actions removed per updated design */}
+          {/* Like Button */}
+          <div className="flex items-center gap-4 mb-4 pb-4 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`gap-2 h-auto p-0 hover:text-pink-600 transition-colors ${isLiked ? "text-pink-600" : "text-muted-foreground"}`}
+              onClick={handleLike}
+              disabled={liking}
+            >
+              <Heart className={`w-[18px] h-[18px] ${isLiked ? "fill-current" : ""}`} />
+              <span className="text-sm">{likes}</span>
+            </Button>
+          </div>
 
           {/* Comments Section */}
           <div id="comments" className="mt-6 pt-6 border-t border-border scroll-mt-24">

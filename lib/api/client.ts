@@ -533,3 +533,62 @@ export async function unlikeTimeline(timelineId: string): Promise<ApiResponse<{ 
   }
 }
 
+// Event like API calls
+export interface EventLikeStatus {
+  event_id: string;
+  likes_count: number;
+  user_liked: boolean;
+}
+
+export async function fetchEventLikeStatus(eventId: string): Promise<ApiResponse<EventLikeStatus>> {
+  try {
+    const response = await fetch(`/api/events/${eventId}/likes`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch like status' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch like status' };
+  }
+}
+
+export async function likeEvent(eventId: string): Promise<ApiResponse<{ message: string; liked: boolean; likes_count: number }>> {
+  try {
+    const response = await fetch(`/api/events/${eventId}/likes`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to like event' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to like event' };
+  }
+}
+
+export async function unlikeEvent(eventId: string): Promise<ApiResponse<{ message: string; liked: boolean; likes_count: number }>> {
+  try {
+    const response = await fetch(`/api/events/${eventId}/likes`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to unlike event' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to unlike event' };
+  }
+}
+

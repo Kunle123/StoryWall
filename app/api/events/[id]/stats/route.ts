@@ -24,12 +24,10 @@ export async function GET(
       return total + 1 + (comment.replies?.length || 0);
     }, 0);
 
-    // Get likes count for the event (likes on comments for this event)
+    // Get likes count for the event (direct likes on the event)
     const likesCount = await prisma.like.count({
       where: {
-        comment: {
-          eventId: event.id,
-        },
+        eventId: event.id,
       },
     });
 

@@ -78,6 +78,7 @@ model Event {
   timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
   creator  User?    @relation(fields: [createdBy], references: [id])
   comments Comment[]
+  likes    Like[]
 
   @@index([timelineId])
   @@index([date])
@@ -144,20 +145,24 @@ model Like {
   id         String   @id @default(uuid())
   userId     String   @map("user_id")
   timelineId String?  @map("timeline_id")
+  eventId    String?  @map("event_id")
   commentId  String?  @map("comment_id")
   createdAt  DateTime @default(now()) @map("created_at")
 
   // Relations
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   timeline Timeline? @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  event    Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   comment  Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
-  // Unique constraints: a user can only like a timeline once, or a comment once
-  // Note: Application-level validation should ensure only one of timelineId or commentId is set
+  // Unique constraints: a user can only like a timeline once, an event once, or a comment once
+  // Note: Application-level validation should ensure only one of timelineId, eventId, or commentId is set
   @@unique([userId, timelineId])
+  @@unique([userId, eventId])
   @@unique([userId, commentId])
   @@index([userId])
   @@index([timelineId])
+  @@index([eventId])
   @@index([commentId])
   @@map("likes")
 }
