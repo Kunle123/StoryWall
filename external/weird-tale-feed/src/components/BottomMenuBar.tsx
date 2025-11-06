@@ -119,29 +119,15 @@ export const BottomMenuBar = ({
   
   // Tab bar height - standard 44px
   const tabBarHeight = 44;
-
-  // Generate unique mask ID to avoid conflicts
-  const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
-
-  // Calculate SVG path for tab bar with circular recess
-  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const centerX = screenWidth / 2;
-  const leftStart = centerX - recessRadius;
-  const rightEnd = centerX + recessRadius;
-  const cornerRadius = 24; // Rounded top corners
   
-  // SVG path: rectangle with circular cutout at top center
-  const tabBarPath = `
-    M 0,${tabBarHeight}
-    L 0,${cornerRadius}
-    Q 0,0 ${cornerRadius},0
-    L ${leftStart},0
-    A ${recessRadius},${recessRadius} 0 0 1 ${rightEnd},0
-    L ${screenWidth - cornerRadius},0
-    Q ${screenWidth},0 ${screenWidth},${cornerRadius}
-    L ${screenWidth},${tabBarHeight}
-    Z
-  `;
+  // Center position: dial radius + 10px from bottom of tab bar
+  // This places the center vertically above the tab bar
+  const dialRadius = dialSize / 2;
+  const centerYFromBottom = dialRadius + 10; // Center is dial radius + 10px from bottom
+
+  // SVG needs to be tall enough to include the recess that extends above the tab bar
+  // Center is at dialRadius + 10px from bottom, so SVG height needs to accommodate this
+  const svgHeight = Math.max(tabBarHeight, centerYFromBottom + recessRadius);
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
@@ -150,33 +136,37 @@ export const BottomMenuBar = ({
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess using SVG mask */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* SVG mask for circular cutout */}
-          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgHeight}px` }}>
+          {/* SVG mask for circular cutout - extends above tab bar to include recess */}
+          <svg className="absolute inset-0 w-full" style={{ height: `${svgHeight}px`, pointerEvents: 'none' }}>
             <defs>
               <mask id={maskId}>
-                <rect width="100%" height="100%" fill="white" />
-                {/* Circular cutout at top center - black means transparent */}
+                {/* White rectangle covers tab bar area */}
+                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgHeight - tabBarHeight}px`} fill="white" />
+                {/* Circular cutout - center at midpoint of screen, dial radius + 10px from bottom */}
+                {/* Recess center is coincident with dial center */}
                 <circle 
                   cx="50%" 
-                  cy="0" 
+                  cy={`${svgHeight - centerYFromBottom}px`}
                   r={recessRadius} 
                   fill="black"
                 />
               </mask>
             </defs>
-            {/* Background with mask applied */}
+            {/* Background with mask applied - only on tab bar portion */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgHeight - tabBarHeight}px`}
               fill="hsl(var(--background) / 0.95)"
               mask={`url(#${maskId})`}
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
             />
-            {/* Border with mask applied */}
+            {/* Border with mask applied - only on tab bar portion */}
             <rect 
               width="100%" 
-              height="100%" 
+              height={`${tabBarHeight}px`}
+              y={`${svgHeight - tabBarHeight}px`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
@@ -185,8 +175,8 @@ export const BottomMenuBar = ({
             />
           </svg>
           
-          {/* Content */}
-          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10">
+          {/* Content - positioned at bottom of SVG, height matches tab bar */}
+          <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
@@ -232,9 +222,9 @@ export const BottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center aligns with recess center (both at top edge of tab bar, cy="0")
-            // This positions dial center at top edge, so dial extends above tab bar
-            bottom: `${tabBarHeight - dialSize / 2}px`, // Dial center at top edge of tab bar
+            // Dial center at midpoint of screen, dial radius + 10px from bottom of tab bar
+            // This positions center vertically above the tab bar
+            bottom: `${centerYFromBottom - dialRadius}px`, // Center at dial radius + 10px from bottom
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
             zIndex: 20
