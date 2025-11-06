@@ -162,7 +162,7 @@ export const BottomMenuBar = ({
             <rect 
               width="100%" 
               height={`${tabBarHeight}px`}
-              y={`${svgHeight - tabBarHeight}px`}
+              y={`${svgTotalHeight - tabBarHeight}px`}
               fill="hsl(var(--background) / 0.95)"
               mask={`url(#${maskId})`}
               className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
@@ -171,7 +171,7 @@ export const BottomMenuBar = ({
             <rect 
               width="100%" 
               height={`${tabBarHeight}px`}
-              y={`${svgHeight - tabBarHeight}px`}
+              y={`${svgTotalHeight - tabBarHeight}px`}
               fill="none"
               stroke="hsl(var(--border) / 0.5)"
               strokeWidth="1"
