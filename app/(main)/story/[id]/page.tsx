@@ -9,6 +9,7 @@ import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId } fr
 import { formatEventDate } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { CommentsSection } from "@/components/timeline/CommentsSection";
 
 const Story = () => {
   const params = useParams();
@@ -157,6 +158,19 @@ const Story = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Scroll to comments section if hash is present
+  useEffect(() => {
+    if (event && window.location.hash === '#comments') {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const commentsElement = document.getElementById('comments');
+        if (commentsElement) {
+          commentsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [event]);
 
   const handleCommentClick = () => {
     // Navigate to timeline page with comments section
@@ -387,8 +401,10 @@ const Story = () => {
 
           {/* Social actions removed per updated design */}
 
-          {/* Comments are at timeline level, not event level */}
-          {/* Comments section removed - users should comment on the timeline, not individual events */}
+          {/* Comments Section */}
+          <div id="comments" className="mt-6 pt-6 border-t border-border scroll-mt-24">
+            <CommentsSection eventId={event.id} />
+          </div>
         </Card>
       </main>
       {event && allEvents.length > 0 && (

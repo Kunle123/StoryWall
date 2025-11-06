@@ -130,7 +130,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
               className="h-8 px-2 hover:bg-muted gap-1"
               onClick={(e) => {
                 e.stopPropagation();
-                // Handle comment action
+                router.push(`/story/${event.id}#comments`);
               }}
             >
               <MessageCircle className="w-4 h-4" />
