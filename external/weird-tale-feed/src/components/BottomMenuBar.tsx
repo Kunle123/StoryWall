@@ -124,36 +124,52 @@ export const BottomMenuBar = ({
   // Generate unique mask ID to avoid conflicts
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Calculate SVG path for tab bar with circular recess
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const centerX = screenWidth / 2;
+  const leftStart = centerX - recessRadius;
+  const rightEnd = centerX + recessRadius;
+  const cornerRadius = 24; // Rounded top corners
+  
+  // SVG path: rectangle with circular cutout at top center
+  const tabBarPath = `
+    M 0,${tabBarHeight}
+    L 0,${cornerRadius}
+    Q 0,0 ${cornerRadius},0
+    L ${leftStart},0
+    A ${recessRadius},${recessRadius} 0 0 1 ${rightEnd},0
+    L ${screenWidth - cornerRadius},0
+    Q ${screenWidth},0 ${screenWidth},${cornerRadius}
+    L ${screenWidth},${tabBarHeight}
+    Z
+  `;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
       <div className="relative" style={{ height: `${tabBarHeight + dialVerticalOffset}px` }}>
-        {/* Rectangular tab bar with circular recess */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* Background with circular cutout using SVG mask */}
-          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none', zIndex: 0 }}>
+        {/* Rectangular tab bar with circular recess using SVG */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight + recessRadius}px` }}>
+          <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: 'none' }}>
             <defs>
-              <mask id={maskId}>
-                <rect width="100%" height="100%" fill="white" />
-                {/* Circular cutout at top center */}
-                <circle 
-                  cx="50%" 
-                  cy="0" 
-                  r={recessRadius} 
-                  fill="black"
-                />
-              </mask>
+              <filter id="backdrop-blur">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10"/>
+              </filter>
             </defs>
-            <rect 
-              width="100%" 
-              height="100%" 
-              fill="hsl(var(--background) / 0.95)" 
-              mask={`url(#${maskId})`}
+            <path
+              d={tabBarPath}
+              fill="hsl(var(--background) / 0.95)"
+              className="backdrop-blur supports-[backdrop-filter]:bg-background/60"
+            />
+            <path
+              d={tabBarPath}
+              fill="none"
+              stroke="hsl(var(--border) / 0.5)"
+              strokeWidth="1"
             />
           </svg>
-          {/* Border overlay */}
-          <div className="absolute inset-0 border-t border-border/50" style={{ mask: `url(#${maskId})` }} />
+          
           {/* Content */}
-          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto px-4 h-full flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px` }}>
             {/* Left button with date */}
             <div className="flex items-center gap-2 flex-1 justify-end">
               <Button 
@@ -199,9 +215,10 @@ export const BottomMenuBar = ({
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            bottom: `${tabBarHeight - recessRadius}px`, // Position so dial center aligns with recess center
+            bottom: `${tabBarHeight - recessRadius + recessPadding}px`, // Position dial in the recess
             minWidth: `${dialSize}px`,
-            minHeight: `${dialSize}px`
+            minHeight: `${dialSize}px`,
+            zIndex: 20
           }}
         >
           <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
