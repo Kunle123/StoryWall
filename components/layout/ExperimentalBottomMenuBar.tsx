@@ -129,15 +129,19 @@ export const ExperimentalBottomMenuBar = ({
   // Since recessRadius = dialRadius + 10px, we have:
   // 30 + dialRadius = 20 + (dialRadius + 10)
   // 30 = 30 ✓
-  // But the recess must be contained within the 40px tab bar
-  // Top of recess = center - recessRadius = (30 + dialRadius) - (dialRadius + 10) = 20px from bottom ✓
-  // Bottom of recess = center + recessRadius = (30 + dialRadius) + (dialRadius + 10) = 40 + 2*dialRadius
-  // This extends beyond the tab bar! So we need to constrain it.
-  // Actually, the center should be at 20px + recessRadius from bottom, which ensures top of recess is at 20px
+  // The recess must be contained within the 40px tab bar
+  // Top of recess = center - recessRadius
+  // Bottom of recess = center + recessRadius
+  // For the recess to fit: center - recessRadius >= 0 AND center + recessRadius <= 40
+  // With center = 20 + recessRadius: top = 20, bottom = 20 + 2*recessRadius
+  // For bottom <= 40: 20 + 2*recessRadius <= 40, so recessRadius <= 10
+  // But recessRadius = dialRadius + 10, so dialRadius <= 0, which is impossible!
+  // 
+  // Actually, the user specified: center = 30px + dialRadius = 20px + recessRadius
+  // This means the center can be above the tab bar (which is fine - the dial extends above)
+  // But the recess cutout in the tab bar should show the part of the circle that intersects the tab bar
   const dialRadius = dialSize / 2;
-  // Center = 20px + recessRadius ensures top of recess is at 20px from bottom
-  // This equals 30px + dialRadius when recessRadius = dialRadius + 10
-  const centerYFromBottom = 20 + recessRadius; // 20px + recess radius = 30px + dial radius
+  const centerYFromBottom = 30 + dialRadius; // 30px + dial radius = 20px + recess radius
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
