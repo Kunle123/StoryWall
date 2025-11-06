@@ -133,6 +133,20 @@ export const ExperimentalBottomMenuBar = ({
   // Therefore: center = 30px + dialRadius from bottom
   // This also equals: 20px + recessRadius (since recessRadius = dialRadius + 10px)
   const centerYFromBottom = 30 + dialRadius; // Center at 30px + dialRadius from bottom
+  
+  // Debug logging
+  console.log('ExperimentalBottomMenuBar calculations:', {
+    dialSize,
+    dialRadius,
+    recessSize,
+    recessRadius,
+    centerYFromBottom,
+    tabBarHeight,
+    'dial bottom': 30,
+    'dial top': 30 + dialSize,
+    'recess bottom from viewport': centerYFromBottom - recessRadius,
+    'recess top from viewport': centerYFromBottom + recessRadius
+  });
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
