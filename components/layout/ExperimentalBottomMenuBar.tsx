@@ -169,10 +169,13 @@ export const ExperimentalBottomMenuBar = ({
             preserveAspectRatio="none"
           >
             <defs>
-              {/* Path for tab bar with circular cutout at top */}
+              {/* Path for tab bar with circular cutout
+                  The cutout is centered at centerYInSVG from the top of the tab bar
+                  We draw the tab bar rectangle and subtract the circular cutout */}
               <path 
                 id={`tabBarPath-${maskId}`}
-                d={`M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z`}
+                d={`M 0 ${tabBarHeight} L 0 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z M ${screenCenterX} ${centerYInSVG} m -${recessRadius},0 a ${recessRadius},${recessRadius} 0 1,1 ${recessRadius * 2},0 a ${recessRadius},${recessRadius} 0 1,1 -${recessRadius * 2},0 Z`}
+                fillRule="evenodd"
               />
             </defs>
             {/* Tab bar background using the path */}
@@ -181,7 +184,7 @@ export const ExperimentalBottomMenuBar = ({
               fill="hsl(var(--background))"
               opacity="0.95"
             />
-            {/* Border line at top (excluding the cutout area) */}
+            {/* Border line at top, with cutout for recess */}
             <path
               d={`M 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0`}
               stroke="hsl(var(--border))"
