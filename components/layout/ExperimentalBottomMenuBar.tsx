@@ -150,17 +150,42 @@ export const ExperimentalBottomMenuBar = ({
       <div className="relative" style={{ height: `${tabBarHeight}px` }}>
         {/* Rectangular tab bar with circular recess - recess contained within 40px height */}
         <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
-          {/* Background div with mask to create visible cutout */}
+          {/* SVG path that draws tab bar with circular cutout */}
+          <svg 
+            className="absolute bottom-0 left-0 w-full h-full pointer-events-none"
+            style={{ height: `${tabBarHeight}px` }}
+            viewBox={`0 0 ${screenWidth} ${tabBarHeight}`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              {/* Path for tab bar with circular cutout at top */}
+              <path 
+                id={`tabBarPath-${maskId}`}
+                d={`M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z`}
+              />
+            </defs>
+            {/* Tab bar background using the path */}
+            <use 
+              href={`#tabBarPath-${maskId}`}
+              fill="hsl(var(--background))"
+              opacity="0.95"
+            />
+            {/* Border line at top (excluding the cutout area) */}
+            <path
+              d={`M 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0`}
+              stroke="hsl(var(--border))"
+              strokeWidth="1"
+              fill="none"
+              opacity="0.5"
+            />
+          </svg>
+          
+          {/* Backdrop blur layer using clip-path */}
           <div 
-            className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border/50"
+            className="absolute bottom-0 left-0 right-0 backdrop-blur supports-[backdrop-filter]:bg-background/60"
             style={{ 
               height: `${tabBarHeight}px`,
-              maskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${tabBarHeight}'><rect width='100%' height='${tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
-              WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${screenWidth}' height='${tabBarHeight}'><rect width='100%' height='${tabBarHeight}' fill='white'/><circle cx='${screenCenterX}' cy='${centerYInSVG}' r='${recessRadius}' fill='black'/></svg>`)}")`,
-              maskSize: '100% 100%',
-              WebkitMaskSize: '100% 100%',
-              maskRepeat: 'no-repeat',
-              WebkitMaskRepeat: 'no-repeat'
+              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${screenCenterX - recessRadius} 0 A ${recessRadius} ${recessRadius} 0 0 1 ${screenCenterX + recessRadius} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
             }}
           />
           
