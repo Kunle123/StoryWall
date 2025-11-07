@@ -31,7 +31,7 @@ interface GenerateImagesStepProps {
   imageReferences?: Array<{ name: string; url: string }>;
 }
 
-const CREDIT_COST_IMAGE = 5;
+const CREDIT_COST_IMAGE_BATCH = 10; // 10 credits for up to 20 images
 
 export const GenerateImagesStep = ({
   events,
@@ -62,14 +62,10 @@ export const GenerateImagesStep = ({
 
   const handleGenerateImages = async () => {
     const eventCount = events.length;
-    const totalCost = eventCount * CREDIT_COST_IMAGE;
+    const totalCost = CREDIT_COST_IMAGE_BATCH; // 10 credits for up to 20 images
     
-    // Deduct credits before generating
-    const creditsDeducted = await deductCredits(
-      totalCost, 
-      `AI Image Generation for ${eventCount} events`
-    );
-    if (!creditsDeducted) {
+    // Check credits but don't deduct yet - will deduct after successful generation
+    if (credits < totalCost) {
       setShowCreditsDialog(true);
       return;
     }
@@ -122,12 +118,27 @@ export const GenerateImagesStep = ({
         }))
       );
       
+      // Deduct credits AFTER successful generation
+      const creditsDeducted = await deductCredits(
+        totalCost, 
+        `AI Image Generation for ${eventCount} events`
+      );
+      
+      if (!creditsDeducted) {
+        console.warn('Failed to deduct credits after image generation');
+      }
+      
       // Show warning if some images failed
       if (failedCount > 0) {
         toast({
           title: "Partial success",
           description: `Generated ${successfulImages.length} of ${events.length} images. Some prompts may have been rejected by content policy.`,
           variant: "default",
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: `Generated ${data.images.length} images`,
         });
       }
       
@@ -137,10 +148,6 @@ export const GenerateImagesStep = ({
           if (prev >= 100) {
             clearInterval(progressInterval);
             setIsGenerating(false);
-            toast({
-              title: "Success!",
-              description: `Generated ${data.images.length} images`,
-            });
             return 100;
           }
           return prev + 10;
@@ -155,6 +162,7 @@ export const GenerateImagesStep = ({
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
+      // No credits deducted if generation failed
     }
   };
 
@@ -188,7 +196,7 @@ export const GenerateImagesStep = ({
           {!isGenerating && events.length > 0 && (
             <Badge variant="secondary" className="ml-2 text-xs">
               <Coins className="w-3 h-3 mr-1" />
-              {events.length * CREDIT_COST_IMAGE}
+              {CREDIT_COST_IMAGE_BATCH} credits
             </Badge>
           )}
         </Button>
@@ -307,7 +315,7 @@ export const GenerateImagesStep = ({
       <InsufficientCreditsDialog
         open={showCreditsDialog}
         onOpenChange={setShowCreditsDialog}
-        required={events.length * CREDIT_COST_IMAGE}
+        required={CREDIT_COST_IMAGE_BATCH}
         current={credits}
         action={`AI Image Generation for ${events.length} events`}
         onBuyCredits={() => {

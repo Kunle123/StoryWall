@@ -6,8 +6,6 @@ import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useCredits } from "@/hooks/use-credits";
-import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -18,16 +16,11 @@ interface EventDetailsStepProps {
   themeColor?: string; // Optional - if provided, include in image prompts
 }
 
-const CREDIT_COST_DESCRIPTION = 2;
-
 export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle, imageStyle, themeColor }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
-  const [dialogContext, setDialogContext] = useState<{ required: number; action: string; onContinue?: () => void } | null>(null);
   const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
-  const { deductCredits, credits } = useCredits();
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -45,14 +38,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     const event = events.find((e) => e.id === id);
     if (!event) return;
 
-    // Deduct credits before generating
-    const creditsDeducted = await deductCredits(CREDIT_COST_DESCRIPTION, "AI Description Generation");
-    if (!creditsDeducted) {
-      setDialogContext({ required: CREDIT_COST_DESCRIPTION, action: "AI Description Generation" });
-      setShowCreditsDialog(true);
-      return;
-    }
-
+    // No credit charge for description generation
     setGeneratingId(id);
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
@@ -123,29 +109,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       return;
     }
 
-    const eventsWithoutDescriptions = events.filter(e => !e.description).length;
-    const totalCost = eventsWithoutDescriptions * CREDIT_COST_DESCRIPTION;
-    
-    // Deduct credits before generating
-    const creditsDeducted = await deductCredits(
-      totalCost, 
-      `AI Description Generation for ${eventsWithoutDescriptions} events`
-    );
-    if (!creditsDeducted) {
-      setDialogContext({ 
-        required: totalCost, 
-        action: `AI Description Generation for ${eventsWithoutDescriptions} events`,
-        onContinue: () => {
-          toast({
-            title: "Continue Without AI",
-            description: "You can manually add descriptions to events.",
-          });
-        }
-      });
-      setShowCreditsDialog(true);
-      return;
-    }
-
+    // No credit charge for description generation
     setIsGeneratingAll(true);
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
@@ -257,27 +221,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
         ))}
       </div>
 
-      {dialogContext && (
-        <InsufficientCreditsDialog
-          open={showCreditsDialog}
-          onOpenChange={setShowCreditsDialog}
-          required={dialogContext.required}
-          current={credits}
-          action={dialogContext.action}
-          onBuyCredits={() => {
-            const headerButton = document.querySelector('[data-buy-credits]');
-            if (headerButton) {
-              (headerButton as HTMLElement).click();
-            } else {
-              toast({
-                title: "Buy Credits",
-                description: "Click the credits button in the header to purchase more credits.",
-              });
-            }
-          }}
-          onContinueWithout={dialogContext.onContinue}
-        />
-      )}
     </div>
   );
 };

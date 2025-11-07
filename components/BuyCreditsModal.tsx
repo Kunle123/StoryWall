@@ -14,8 +14,16 @@ interface BuyCreditsModalProps {
 
 const creditPackages = [
   {
+    name: "Mini Pack",
+    credits: 10,
+    price: "$1.49",
+    priceId: "mini", // Will be replaced with Stripe price ID
+    icon: Coins,
+    popular: false,
+  },
+  {
     name: "Starter Pack",
-    credits: 1000,
+    credits: 100,
     price: "$12.99",
     priceId: "starter", // Will be replaced with Stripe price ID
     icon: Coins,
@@ -23,7 +31,7 @@ const creditPackages = [
   },
   {
     name: "Popular Pack",
-    credits: 2000,
+    credits: 200,
     price: "$19.99",
     priceId: "popular", // Will be replaced with Stripe price ID
     icon: Sparkles,
@@ -31,7 +39,7 @@ const creditPackages = [
   },
   {
     name: "Pro Pack",
-    credits: 10000,
+    credits: 1000,
     price: "$79.99",
     priceId: "pro", // Will be replaced with Stripe price ID
     icon: Zap,
@@ -83,8 +91,8 @@ export const BuyCreditsModal = ({ open, onOpenChange }: BuyCreditsModalProps) =>
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Purchase Credits</DialogTitle>
           <DialogDescription>
@@ -92,7 +100,7 @@ export const BuyCreditsModal = ({ open, onOpenChange }: BuyCreditsModalProps) =>
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 py-4 max-h-[70vh] overflow-y-auto">
           {creditPackages.map((pkg) => {
             const Icon = pkg.icon;
             const isProcessingThis = isProcessing === pkg.name;

@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 // Credit package pricing (in cents)
 const CREDIT_PACKAGES: Record<string, { credits: number; price: number }> = {
-  starter: { credits: 1000, price: 1299 }, // $12.99
-  popular: { credits: 2000, price: 1999 }, // $19.99
-  pro: { credits: 10000, price: 7999 }, // $79.99
+  mini: { credits: 10, price: 149 }, // $1.49
+  starter: { credits: 100, price: 1299 }, // $12.99
+  popular: { credits: 200, price: 1999 }, // $19.99
+  pro: { credits: 1000, price: 7999 }, // $79.99
 };
 
 function getStripe() {
