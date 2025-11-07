@@ -69,7 +69,7 @@ export const TimelineInfoStep = ({
           </Label>
           <Input
             id="timeline-name"
-            placeholder="e.g., History of Palestine from the British Mandate to present day"
+            placeholder="e.g., The Great British Bake Off Winners Journey"
             value={timelineName}
             onChange={(e) => setTimelineName(e.target.value)}
             className="h-10"
@@ -82,7 +82,7 @@ export const TimelineInfoStep = ({
           </Label>
           <Textarea
             id="timeline-description"
-            placeholder="e.g., A list of the significant geopolitical events that shaped Palestine since the British mandate"
+            placeholder="e.g., A timeline of all the winners, memorable moments, and show-stopping bakes from the iconic baking competition"
             value={timelineDescription}
             onChange={(e) => setTimelineDescription(e.target.value)}
             className="min-h-[120px] resize-none"
