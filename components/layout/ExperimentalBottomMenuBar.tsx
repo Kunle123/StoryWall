@@ -223,6 +223,11 @@ export const ExperimentalBottomMenuBar = ({
               )}
             </div>
 
+            {/* Center "Create" text */}
+            <div className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-foreground z-20" style={{ bottom: `${tabBarHeight / 2}px`, transform: 'translate(-50%, 50%)' }}>
+              Create
+            </div>
+
             {/* Spacer for center dial area */}
             <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
 
@@ -247,7 +252,7 @@ export const ExperimentalBottomMenuBar = ({
 
         {/* Floating dial widget - floats above tab bar, center aligned with recess */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-card backdrop-blur supports-[backdrop-filter]:bg-card/95 border-2 border-border/80 shadow-lg flex items-center justify-center relative overflow-hidden"
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-card backdrop-blur supports-[backdrop-filter]:bg-card/95 border-2 border-border/80 shadow-lg flex items-center justify-center relative overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
@@ -258,6 +263,7 @@ export const ExperimentalBottomMenuBar = ({
             minHeight: `${dialSize}px`,
             zIndex: 50
           }}
+          onClick={() => router.push("/editor")}
         >
               <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
                 {/* Background arc */}
@@ -284,20 +290,8 @@ export const ExperimentalBottomMenuBar = ({
                 />
               </svg>
               
-              {/* Horizontal rectangle inside dial (slightly above center) */}
-              <div 
-                className="absolute z-10 border-2 border-foreground/40 rounded-sm bg-foreground/5"
-                style={{
-                  width: `${dialSize * 0.55}px`,
-                  height: `${dialSize * 0.14}px`,
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -65%)', // Slightly above center
-                }}
-              />
-              
-              {/* Date text below the rectangle */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2" style={{ paddingTop: `${dialSize * 0.15}px` }}>
+              {/* Date text centered in dial */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2">
                 <div className="text-sm font-bold text-foreground text-center leading-tight">
                   {selectedDate || 'Timeline'}
                 </div>
