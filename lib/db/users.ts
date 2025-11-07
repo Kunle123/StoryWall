@@ -80,7 +80,7 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
         username,
         email: finalEmail,
         avatarUrl: clerkUser?.imageUrl || undefined,
-        credits: 10, // Default starting credits
+        credits: 20, // Default starting credits
       },
       select: { id: true, credits: true },
     });
