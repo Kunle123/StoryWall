@@ -331,17 +331,15 @@ export async function POST(request: NextRequest) {
     let selectedModel = getModelForStyle(imageStyle);
     const hasReferenceImages = imageReferences && imageReferences.length > 0;
     
-    // Check if using Google Imagen for photorealistic
-    const useGoogleImagen = selectedModel === MODELS.PHOTOREALISTIC && isGoogleCloudConfigured();
-    
-    if (useGoogleImagen) {
-      console.log(`[ImageGen] Using Google Imagen 4 Fast for photorealistic images (configured)`);
-      // We'll handle Google Imagen separately below
-    } else if (selectedModel === MODELS.PHOTOREALISTIC) {
-      // Fallback to Flux Dev if Google not configured
-      console.log(`[ImageGen] Google Imagen not configured, falling back to Flux Dev for photorealistic`);
-      selectedModel = MODELS.PHOTOREALISTIC_FALLBACK;
+    // Use Flux Dev for photorealistic (better quality for real people than Google Imagen)
+    // Google Imagen has quality/restriction issues with real people
+    if (selectedModel === MODELS.PHOTOREALISTIC) {
+      console.log(`[ImageGen] Using Flux Dev for photorealistic images (better quality for real people)`);
+      selectedModel = MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
     }
+    
+    // Google Imagen disabled due to poor quality for real people
+    // const useGoogleImagen = false; // Disabled - poor quality for real people
     
     // If reference images are provided and we're using Flux (which doesn't support image input),
     // we have options:
@@ -360,14 +358,10 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Only get model version for Replicate models
+    // Get model version for Replicate models
     let modelVersion: string | null = null;
-    if (!useGoogleImagen) {
-      modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-      console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
-    } else {
-      console.log(`[ImageGen] Style: "${imageStyle}" -> Model: Google Imagen 4 Fast${hasReferenceImages ? ' (with reference images)' : ''}`);
-    }
+    modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+    console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
 
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
@@ -393,22 +387,6 @@ export async function POST(request: NextRequest) {
         
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
-        
-        // Handle Google Imagen separately
-        if (useGoogleImagen) {
-          try {
-            const imagenImage = await generateImageWithImagen(prompt, {
-              quality: 'fast', // $0.02/image
-              referenceImage: referenceImage || undefined,
-              aspectRatio: '1:1',
-              personGeneration: 'dont_allow_adult', // More restrictive - avoids blocking issues
-            });
-            return { index, imageUrl: imagenImage, error: null, event };
-          } catch (error: any) {
-            console.error(`[ImageGen] Google Imagen error for "${event.title}":`, error);
-            return { index, imageUrl: null, error, event };
-          }
-        }
         
         // Build input - structure varies by model (for Replicate models)
         const input: any = {
