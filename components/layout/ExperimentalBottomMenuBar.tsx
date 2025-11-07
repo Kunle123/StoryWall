@@ -187,8 +187,8 @@ export const ExperimentalBottomMenuBar = ({
                 L ${screenWidth} ${tabBarHeight}
                 Z
               `}
-              fill="hsl(var(--background))"
-              fillOpacity="1"
+              fill="white"
+              fillOpacity="0.5"
               stroke="hsl(var(--border))"
               strokeWidth="1"
               strokeOpacity="0.5"
