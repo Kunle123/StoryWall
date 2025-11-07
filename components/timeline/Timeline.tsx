@@ -336,7 +336,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
         <div className="space-y-2">
           {decades.map((decade) => {
             const decadeEvents = sortedEvents.filter(
-              (e) => e.year >= decade && e.year < decade + 10
+              (e) => e.year !== undefined && e.year >= decade && e.year < decade + 10
             );
             if (decadeEvents.length === 0) return null;
 
