@@ -46,10 +46,18 @@ async function generateEventsForTimelines() {
     // Process timelines concurrently with a concurrency limit
     const CONCURRENCY_LIMIT = TEST_SINGLE ? 1 : 10; // Process 10 timelines at once (or 1 for testing)
     const timelinesToProcess = timelines.filter(timeline => {
-      // Skip if timeline already has events
+      // Check if timeline needs events or if events are missing descriptions/images
       if (timeline.events && timeline.events.length > 0) {
-        console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
-        return false;
+        // Check if events have descriptions and images
+        const hasDescriptions = timeline.events.some((e: any) => e.description);
+        const hasImages = timeline.events.some((e: any) => e.image_url);
+        
+        if (hasDescriptions && hasImages) {
+          console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} complete events`);
+          return false;
+        } else {
+          console.log(`🔄 "${timeline.title}" has events but missing ${!hasDescriptions ? 'descriptions' : ''}${!hasDescriptions && !hasImages ? ' and ' : ''}${!hasImages ? 'images' : ''} - will regenerate`);
+        }
       }
       return true;
     });
@@ -67,11 +75,11 @@ async function generateEventsForTimelines() {
       console.log(`\n📦 Processing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} of ${totalBatches} (${batch.length} timeline${batch.length === 1 ? '' : 's'})\n`);
       
       await Promise.all(batch.map(async (timeline) => {
-      // Skip if timeline already has events
-      if (timeline.events && timeline.events.length > 0) {
-        console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
-        continue;
-      }
+        // Skip if timeline already has events (double-check in case filtering missed it)
+        if (timeline.events && timeline.events.length > 0) {
+          console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
+          return;
+        }
       
         // Find matching seed data
         const seedData = timelineMap.get(timeline.title);
@@ -84,6 +92,26 @@ async function generateEventsForTimelines() {
         processed++;
         
         try {
+        // Check if we need to delete existing events first
+        const existingEvents = timeline.events || [];
+        const needsRegeneration = existingEvents.length === 0 || 
+                                  !existingEvents.some((e: any) => e.description) ||
+                                  !existingEvents.some((e: any) => e.image_url);
+        
+        if (needsRegeneration && existingEvents.length > 0) {
+          console.log(`   🗑️  Deleting ${existingEvents.length} incomplete events...`);
+          // Delete existing events
+          for (const event of existingEvents) {
+            try {
+              await fetch(`${apiUrl}/api/events/${event.id}`, {
+                method: 'DELETE',
+              });
+            } catch (e) {
+              // Ignore deletion errors
+            }
+          }
+        }
+        
         // Step 1: Generate events
         console.log(`   📝 Generating events...`);
         const generateEventsResponse = await fetch(`${apiUrl}/api/ai/generate-events`, {
