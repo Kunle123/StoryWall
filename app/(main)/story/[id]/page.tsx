@@ -11,6 +11,7 @@ import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
+import { TimelineEvent } from "@/components/timeline/Timeline";
 
 const Story = () => {
   const params = useParams();
