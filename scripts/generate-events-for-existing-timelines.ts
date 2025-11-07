@@ -39,24 +39,40 @@ async function generateEventsForTimelines() {
     let imagesGenerated = 0;
     let errors: string[] = [];
     
-    for (const timeline of timelines) {
+    // Process timelines concurrently with a concurrency limit
+    const CONCURRENCY_LIMIT = 5; // Process 5 timelines at once
+    const timelinesToProcess = timelines.filter(timeline => {
+      // Skip if timeline already has events
+      if (timeline.events && timeline.events.length > 0) {
+        console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
+        return false;
+      }
+      return true;
+    });
+    
+    // Process in batches
+    for (let i = 0; i < timelinesToProcess.length; i += CONCURRENCY_LIMIT) {
+      const batch = timelinesToProcess.slice(i, i + CONCURRENCY_LIMIT);
+      console.log(`\n📦 Processing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} (${batch.length} timelines)\n`);
+      
+      await Promise.all(batch.map(async (timeline) => {
       // Skip if timeline already has events
       if (timeline.events && timeline.events.length > 0) {
         console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
         continue;
       }
       
-      // Find matching seed data
-      const seedData = timelineMap.get(timeline.title);
-      if (!seedData) {
-        console.log(`⚠️  No seed data found for "${timeline.title}"`);
-        continue;
-      }
-      
-      console.log(`\n🔄 Processing: "${timeline.title}"`);
-      processed++;
-      
-      try {
+        // Find matching seed data
+        const seedData = timelineMap.get(timeline.title);
+        if (!seedData) {
+          console.log(`⚠️  No seed data found for "${timeline.title}"`);
+          return;
+        }
+        
+        console.log(`🔄 Processing: "${timeline.title}"`);
+        processed++;
+        
+        try {
         // Step 1: Generate events
         console.log(`   📝 Generating events...`);
         const generateEventsResponse = await fetch(`${apiUrl}/api/ai/generate-events`, {
@@ -84,7 +100,6 @@ async function generateEventsForTimelines() {
         }
         
         console.log(`   ✅ Generated ${events.length} events`);
-        eventsGenerated += events.length;
         
         // Step 2: Save events to timeline
         console.log(`   💾 Saving events to timeline...`);
@@ -147,18 +162,21 @@ async function generateEventsForTimelines() {
             const { images } = await generateImagesResponse.json();
             if (images && Array.isArray(images)) {
               console.log(`   ✅ Generated ${images.length} images`);
-              imagesGenerated += images.length;
             }
           } else {
             console.warn(`   ⚠️  Image generation failed: ${generateImagesResponse.statusText}`);
           }
         }
-        
-        console.log(`   ✅ Completed "${timeline.title}"\n`);
-      } catch (error: any) {
-        const errorMsg = `Failed to process "${timeline.title}": ${error.message}`;
-        console.error(`   ❌ ${errorMsg}\n`);
-        errors.push(errorMsg);
+        } catch (error: any) {
+          const errorMsg = `Failed to process "${timeline.title}": ${error.message}`;
+          console.error(`   ❌ ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }));
+      
+      // Small delay between batches to avoid overwhelming the API
+      if (i + CONCURRENCY_LIMIT < timelinesToProcess.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
       }
     }
     
