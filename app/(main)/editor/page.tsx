@@ -391,8 +391,8 @@ const TimelineEditor = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3">
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row justify-between gap-3">
                 <Button
                   variant="outline"
                   onClick={handleBack}
@@ -402,54 +402,54 @@ const TimelineEditor = () => {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleCancel}
-                  className="w-full sm:w-auto text-muted-foreground hover:text-destructive"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
-              </div>
-              {currentStep === 5 ? (
-                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <Button 
-                  variant="outline"
-                    onClick={handlePreviewTimeline}
-                    disabled={!canProceed()}
-                    className="flex-1 sm:flex-initial"
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                    Preview Timeline
-                </Button>
-                <Button 
-                    onClick={handleSaveTimeline}
-                    disabled={!canProceed() || isSaving}
-                    className="flex-1 sm:flex-initial"
-                >
-                  {isSaving ? (
-                    <>
-                      Saving...
-                    </>
+                {currentStep === 5 ? (
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <Button 
+                    variant="outline"
+                      onClick={handlePreviewTimeline}
+                      disabled={!canProceed()}
+                      className="flex-1 sm:flex-initial"
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                      Preview Timeline
+                  </Button>
+                  <Button 
+                      onClick={handleSaveTimeline}
+                      disabled={!canProceed() || isSaving}
+                      className="flex-1 sm:flex-initial"
+                  >
+                    {isSaving ? (
+                      <>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                          Save Timeline
+                      </>
+                    )}
+                  </Button>
+                    </div>
                   ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                        Save Timeline
-                    </>
-                  )}
-                </Button>
-                  </div>
-                ) : (
-                <Button
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  className="w-full sm:w-auto"
-                >
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-                  </div>
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    className="w-full sm:w-auto"
+                  >
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                onClick={handleCancel}
+                className="w-full text-muted-foreground hover:text-destructive"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel
+              </Button>
+            </div>
           </>
         )}
       </main>
