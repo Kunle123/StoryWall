@@ -61,9 +61,20 @@ export async function POST(request: NextRequest) {
       
       const userId = session.metadata?.userId;
       const credits = parseInt(session.metadata?.credits || '0', 10);
+      const priceId = session.metadata?.priceId;
+      const packageName = session.metadata?.packageName;
+
+      console.log('[Webhook] Processing checkout.session.completed:', {
+        userId,
+        credits,
+        priceId,
+        packageName,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+      });
 
       if (!userId || !credits) {
-        console.error('[Webhook] Missing userId or credits in session metadata', { userId, credits });
+        console.error('[Webhook] Missing userId or credits in session metadata', { userId, credits, metadata: session.metadata });
         return NextResponse.json({ received: true });
       }
 

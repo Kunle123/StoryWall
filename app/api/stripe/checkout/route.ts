@@ -42,20 +42,26 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { credits, packageName, priceId } = body;
 
-    // Determine the package details
+    console.log('[Checkout] Received request:', { priceId, credits, packageName });
+
+    // Determine the package details - prioritize priceId over credits
     let packageDetails;
     if (priceId && CREDIT_PACKAGES[priceId]) {
       packageDetails = CREDIT_PACKAGES[priceId];
+      console.log('[Checkout] Using package from priceId:', priceId, packageDetails);
     } else if (credits) {
-      // Fallback: find package by credits
+      // Fallback: find package by credits (only if priceId not provided)
       packageDetails = Object.values(CREDIT_PACKAGES).find(pkg => pkg.credits === credits);
       if (!packageDetails) {
+        console.error('[Checkout] No package found for credits:', credits);
         return NextResponse.json(
           { error: 'Invalid credit package' },
           { status: 400 }
         );
       }
+      console.log('[Checkout] Using package from credits fallback:', packageDetails);
     } else {
+      console.error('[Checkout] Missing package information');
       return NextResponse.json(
         { error: 'Missing package information' },
         { status: 400 }
@@ -88,6 +94,7 @@ export async function POST(request: NextRequest) {
         userId,
         credits: packageDetails.credits.toString(),
         packageName: packageName || 'Unknown',
+        priceId: priceId || 'unknown',
       },
       // Allow payment even if user already has account
       payment_intent_data: {
