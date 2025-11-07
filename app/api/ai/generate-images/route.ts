@@ -374,11 +374,15 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point`;
   
+  // Add text handling instructions to avoid misspelled text
+  // SDXL struggles with text rendering, so we strongly discourage text unless explicitly needed
+  prompt += `. No text, no words, no signs, no labels, no written content. Visual scene only`;
+  
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // Keep prompt concise and visual-focused (max 500 chars)
-  return prompt.substring(0, 500).trim();
+  // Keep prompt concise and visual-focused (max 600 chars to accommodate text instructions)
+  return prompt.substring(0, 600).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -579,6 +583,10 @@ export async function POST(request: NextRequest) {
           input.num_outputs = 1;
           input.guidance_scale = 7.5;
           input.num_inference_steps = 30;
+          
+          // Add negative prompt for SDXL to avoid misspelled text
+          // SDXL struggles with text rendering, so we discourage unnecessary text
+          input.negative_prompt = "text, words, letters, signs, labels, misspelled text, garbled text, unreadable text, text errors, written words, text blocks, documents with text";
           
           // Add reference image if available (for image-to-image transformation)
           // SDXL supports direct image input via 'image' parameter (URL from Replicate)
