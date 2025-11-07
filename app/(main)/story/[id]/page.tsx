@@ -340,7 +340,7 @@ const Story = () => {
   return (
     <div className="min-h-screen bg-background">
 
-      <main className="container mx-auto px-0 md:px-4 pt-4 pb-8 max-w-4xl">
+      <main className="container mx-auto px-0 md:px-4 pt-4 pb-32 md:pb-40 max-w-4xl">
         {/* Single Unified Card */}
         <Card 
           key={String(Array.isArray(params.id) ? params.id[0] : params.id)}

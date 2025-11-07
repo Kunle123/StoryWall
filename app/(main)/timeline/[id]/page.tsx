@@ -116,7 +116,7 @@ const TimelinePage = () => {
       <Header />
       <SubMenuBar title={timeline.title} selectedDate={formatSelectedDate(centeredEvent)} />
       <Toaster />
-      <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+      <main className="container mx-auto px-3 pt-[88px] pb-32 md:pb-40 max-w-6xl">
         <Timeline 
           events={events.length > 0 ? events : timeline.events || []} 
           pixelsPerYear={30} 
@@ -181,6 +181,8 @@ const TimelinePage = () => {
             timelinePosition={timelinePosition}
             startDate={startDate}
             endDate={endDate}
+            isNumbered={timeline?.is_numbered || false}
+            totalEvents={allEvents.length}
           />
         );
       })()}

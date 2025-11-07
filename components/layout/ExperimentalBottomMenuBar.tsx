@@ -4,12 +4,15 @@ import { Share2, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface ExperimentalBottomMenuBarProps {
   selectedDate?: string;
   timelinePosition?: number;
   startDate?: Date;
   endDate?: Date;
+  isNumbered?: boolean;
+  totalEvents?: number;
 }
 
 const formatDateRange = (startDate: Date, endDate: Date): string => {
@@ -34,10 +37,55 @@ export const ExperimentalBottomMenuBar = ({
   selectedDate,
   timelinePosition = 0.5,
   startDate,
-  endDate
+  endDate,
+  isNumbered = false,
+  totalEvents = 0
 }: ExperimentalBottomMenuBarProps) => {
   const { toast } = useToast();
   const router = useRouter();
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Detect keyboard open/close on mobile
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Use visual viewport API for better keyboard detection
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        // If viewport height is significantly smaller than window height, keyboard is likely open
+        const isKeyboardOpen = windowHeight - viewportHeight > 150;
+        setIsKeyboardVisible(isKeyboardOpen);
+      } else {
+        // Fallback: detect if window resized significantly (mobile keyboard)
+        const currentHeight = window.innerHeight;
+        const screenHeight = window.screen.height;
+        const isKeyboardOpen = screenHeight - currentHeight > 150;
+        setIsKeyboardVisible(isKeyboardOpen);
+      }
+    };
+
+    // Listen to visual viewport resize (best for keyboard detection)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+    
+    // Initial check
+    handleResize();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -113,8 +161,10 @@ export const ExperimentalBottomMenuBar = ({
   const currentArcLength = (Math.abs(currentAngle - startAngle) * Math.PI * radius) / 180;
 
   const dateRange = startDate && endDate ? formatDateRange(startDate, endDate) : null;
-  const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
-  const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
+  
+  // For numbered timelines, show "1" and total count, for dated show start/end years
+  const leftLabel = isNumbered ? "1" : (startDate ? startDate.getFullYear().toString() : null);
+  const rightLabel = isNumbered ? totalEvents.toString() : (endDate ? endDate.getFullYear().toString() : null);
 
   // Calculate dial radius first (dialSize is diameter)
   const dialRadius = dialSize / 2;
@@ -162,6 +212,11 @@ export const ExperimentalBottomMenuBar = ({
   const horizontalOffset = Math.sqrt(Math.max(0, recessRadius * recessRadius - distanceFromCenter * distanceFromCenter));
   const arcLeftX = screenCenterX - horizontalOffset;
   const arcRightX = screenCenterX + horizontalOffset;
+
+  // Hide dial when keyboard is visible on mobile
+  if (isKeyboardVisible) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
@@ -216,15 +271,15 @@ export const ExperimentalBottomMenuBar = ({
               >
                 <Home className="w-10 h-10" />
               </Button>
-              {formattedStartDate && (
+              {leftLabel && (
                 <div className="text-xs text-muted-foreground font-medium">
-                  {formattedStartDate}
+                  {leftLabel}
                 </div>
               )}
             </div>
 
-            {/* Center "Create" text */}
-            <div className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-foreground z-20" style={{ bottom: `${tabBarHeight / 2}px`, transform: 'translate(-50%, 50%)' }}>
+            {/* Center "Create" text - positioned lower in the tab bar */}
+            <div className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-foreground z-20" style={{ bottom: `${tabBarHeight / 2 - 8}px`, transform: 'translate(-50%, 50%)' }}>
               Create
             </div>
 
@@ -233,9 +288,9 @@ export const ExperimentalBottomMenuBar = ({
 
             {/* Right button with date */}
             <div className="flex items-center gap-2 flex-1" style={{ marginLeft: 'calc(-20px + 20%)' }}>
-              {formattedEndDate && (
+              {rightLabel && (
                 <div className="text-xs text-muted-foreground font-medium">
-                  {formattedEndDate}
+                  {rightLabel}
                 </div>
               )}
               <Button

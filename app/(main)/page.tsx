@@ -104,7 +104,7 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+        <main className="container mx-auto px-3 pt-[88px] pb-32 md:pb-40 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading timeline...</p>
           </div>
@@ -129,7 +129,7 @@ const Index = () => {
         </>
       )}
       <Toaster />
-      <main className={`container mx-auto px-0 md:px-3 pb-20 max-w-6xl transition-all duration-300 ${
+      <main className={`container mx-auto px-0 md:px-3 pb-32 md:pb-40 max-w-6xl transition-all duration-300 ${
         showHeader ? 'pt-[56px]' : 'pt-[44px]'
       }`}>
         {events.length === 0 ? (
@@ -159,6 +159,8 @@ const Index = () => {
             timelinePosition={getTimelinePosition()}
             startDate={startDate}
             endDate={endDate}
+            isNumbered={events.length > 0 && events[0].number !== undefined}
+            totalEvents={events.length}
           />
         );
       })()}
