@@ -339,13 +339,12 @@ export async function POST(request: NextRequest) {
     }
     
     // Google Imagen disabled due to poor quality for real people
-    // const useGoogleImagen = false; // Disabled - poor quality for real people
     
     // If reference images are provided and we're using Flux (which doesn't support image input),
     // we have options:
     // 1. Use Flux Kontext Pro (supports reference images, $0.04/image)
     // 2. Fall back to SDXL (supports reference images, $0.0048/image, lower quality)
-    if (!useGoogleImagen && hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+    if (hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
       // For photorealistic with reference images, use Flux Kontext Pro if available
       // Otherwise fall back to SDXL
       const useKontextPro = selectedModel === MODELS.PHOTOREALISTIC_FALLBACK;
