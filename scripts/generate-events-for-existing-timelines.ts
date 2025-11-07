@@ -1,0 +1,187 @@
+/**
+ * Script to generate events and images for existing timelines that don't have events
+ * Run with: npx tsx scripts/generate-events-for-existing-timelines.ts
+ */
+
+import fs from 'fs';
+import path from 'path';
+
+const SEED_FILE = path.join(process.cwd(), 'data', 'seed-30-timelines.json');
+
+async function generateEventsForTimelines() {
+  try {
+    // Read the seed data file to get timeline descriptions
+    const seedData = JSON.parse(fs.readFileSync(SEED_FILE, 'utf-8'));
+    const timelineMap = new Map<string, any>();
+    
+    // Create a map of timeline titles to their data
+    seedData[0].timelines.forEach((tl: any) => {
+      timelineMap.set(tl.title, tl);
+    });
+    
+    // Get the API URL
+    const apiUrl = process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    
+    console.log(`🌐 Using API URL: ${apiUrl}`);
+    console.log('🔍 Fetching existing timelines...\n');
+    
+    // Fetch all public timelines
+    const timelinesResponse = await fetch(`${apiUrl}/api/timelines?is_public=true&limit=100`);
+    if (!timelinesResponse.ok) {
+      throw new Error(`Failed to fetch timelines: ${timelinesResponse.statusText}`);
+    }
+    
+    const timelines = await timelinesResponse.json();
+    console.log(`📋 Found ${timelines.length} timelines\n`);
+    
+    let processed = 0;
+    let eventsGenerated = 0;
+    let imagesGenerated = 0;
+    let errors: string[] = [];
+    
+    for (const timeline of timelines) {
+      // Skip if timeline already has events
+      if (timeline.events && timeline.events.length > 0) {
+        console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
+        continue;
+      }
+      
+      // Find matching seed data
+      const seedData = timelineMap.get(timeline.title);
+      if (!seedData) {
+        console.log(`⚠️  No seed data found for "${timeline.title}"`);
+        continue;
+      }
+      
+      console.log(`\n🔄 Processing: "${timeline.title}"`);
+      processed++;
+      
+      try {
+        // Step 1: Generate events
+        console.log(`   📝 Generating events...`);
+        const generateEventsResponse = await fetch(`${apiUrl}/api/ai/generate-events`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timelineName: timeline.title,
+            timelineDescription: seedData.description,
+            maxEvents: seedData.maxEvents || 20,
+            isFactual: seedData.isFactual !== false,
+          }),
+        });
+        
+        if (!generateEventsResponse.ok) {
+          const errorText = await generateEventsResponse.text();
+          throw new Error(`Event generation failed: ${errorText}`);
+        }
+        
+        const { events, imageReferences } = await generateEventsResponse.json();
+        
+        if (!events || events.length === 0) {
+          throw new Error('No events were generated');
+        }
+        
+        console.log(`   ✅ Generated ${events.length} events`);
+        eventsGenerated += events.length;
+        
+        // Step 2: Save events to timeline
+        console.log(`   💾 Saving events to timeline...`);
+        for (const event of events) {
+          const eventDate = new Date(
+            event.year || 2020,
+            (event.month || 1) - 1,
+            event.day || 1
+          );
+          
+          const createEventResponse = await fetch(`${apiUrl}/api/timelines/${timeline.id}/events`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: event.title,
+              description: event.description || '',
+              date: eventDate.toISOString().split('T')[0],
+              year: event.year,
+              month: event.month,
+              day: event.day,
+              number: event.number,
+              number_label: event.numberLabel,
+            }),
+          });
+          
+          if (!createEventResponse.ok) {
+            const errorText = await createEventResponse.text();
+            console.warn(`   ⚠️  Failed to save event "${event.title}": ${errorText}`);
+          }
+        }
+        
+        // Step 3: Generate images if requested
+        if (seedData.generateImages && events.length > 0) {
+          console.log(`   🎨 Generating images...`);
+          const generateImagesResponse = await fetch(`${apiUrl}/api/ai/generate-images`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              timelineId: timeline.id,
+              events: events.map((e: any) => ({
+                id: `temp_${Date.now()}_${Math.random()}`,
+                title: e.title,
+                description: e.description || '',
+                year: e.year,
+                month: e.month,
+                day: e.day,
+                number: e.number,
+                imagePrompt: e.imagePrompt || '',
+              })),
+              imageStyle: seedData.imageStyle || 'photorealistic',
+              imageReferences: imageReferences || [],
+            }),
+          });
+          
+          if (generateImagesResponse.ok) {
+            const { images } = await generateImagesResponse.json();
+            if (images && Array.isArray(images)) {
+              console.log(`   ✅ Generated ${images.length} images`);
+              imagesGenerated += images.length;
+            }
+          } else {
+            console.warn(`   ⚠️  Image generation failed: ${generateImagesResponse.statusText}`);
+          }
+        }
+        
+        console.log(`   ✅ Completed "${timeline.title}"\n`);
+      } catch (error: any) {
+        const errorMsg = `Failed to process "${timeline.title}": ${error.message}`;
+        console.error(`   ❌ ${errorMsg}\n`);
+        errors.push(errorMsg);
+      }
+    }
+    
+    console.log('\n📊 Summary:');
+    console.log(`   Timelines processed: ${processed}`);
+    console.log(`   Events generated: ${eventsGenerated}`);
+    console.log(`   Images generated: ${imagesGenerated}`);
+    console.log(`   Errors: ${errors.length}`);
+    
+    if (errors.length > 0) {
+      console.log('\n⚠️  Errors:');
+      errors.forEach((error, index) => {
+        console.log(`   ${index + 1}. ${error}`);
+      });
+    }
+    
+  } catch (error: any) {
+    console.error('❌ Failed:', error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
+}
+
+// Run the function
+generateEventsForTimelines();
+
