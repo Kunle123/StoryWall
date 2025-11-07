@@ -7,9 +7,9 @@
  *   Railway: The API will automatically use Google Imagen when credentials are set
  */
 
-const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
 async function testViaAPI() {
+  const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
   console.log('🧪 Testing Google Imagen via API Route\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   

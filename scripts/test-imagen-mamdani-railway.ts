@@ -7,9 +7,9 @@
  * Or set NEXT_PUBLIC_APP_URL in .env.local
  */
 
-const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
 async function testMamdaniImage() {
+  const API_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
   console.log('🧪 Testing Google Imagen with Zohran Mamdani\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
