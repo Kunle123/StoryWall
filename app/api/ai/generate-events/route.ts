@@ -132,7 +132,7 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
             ],
             tools: [{ type: 'web_search' }],
             reasoning: { effort: 'low' },
-            verbosity: 'low',
+            text: { verbosity: 'low' },
             max_output_tokens: Math.min(3000, (maxEvents * 100) + 500),
           }),
         });
