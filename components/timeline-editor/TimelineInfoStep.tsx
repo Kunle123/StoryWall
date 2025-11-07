@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Globe, Lock, BookOpen, Sparkles } from "lucide-react";
 
 interface TimelineInfoStepProps {
@@ -67,44 +68,20 @@ export const TimelineInfoStep = ({
           </p>
         </div>
 
-        <div className="pt-4 border-t border-border">
-          <Label className="text-base mb-3 block">Timeline Type</Label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setIsFactual(true)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                isFactual
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-background hover:border-border/80'
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Factual</div>
-                <div className="text-sm text-muted-foreground">
-                  Historical events, real facts
-                </div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsFactual(false)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                !isFactual
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-background hover:border-border/80'
-              }`}
-            >
-              <Sparkles className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Fictional</div>
-                <div className="text-sm text-muted-foreground">
-                  Creative stories, narratives
-                </div>
-              </div>
-            </button>
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="allow-fictional" className="text-base">
+              Allow Fictional Information
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Enable AI to use fictional or creative content when generating timeline events
+            </p>
           </div>
+          <Switch
+            id="allow-fictional"
+            checked={!isFactual}
+            onCheckedChange={(checked) => setIsFactual(!checked)}
+          />
         </div>
 
         <div className="pt-4 border-t border-border">
