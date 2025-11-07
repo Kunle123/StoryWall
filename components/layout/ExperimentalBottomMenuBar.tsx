@@ -1,6 +1,6 @@
 "use client";
 
-import { Share2, Home } from "lucide-react";
+import { Share2, Home, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -122,12 +122,18 @@ export const ExperimentalBottomMenuBar = ({
     }
   };
 
+  // Check if there's a timeline component (has selectedDate)
+  const hasTimeline = selectedDate !== undefined && selectedDate !== null;
+  
   // Calculate arc angles for the dial (270-degree arc)
   const startAngle = -225;
   const endAngle = 45;
   const totalRange = endAngle - startAngle;
   // Clamp timelinePosition between 0 and 1 to prevent arc overflow
-  const clampedPosition = Math.min(Math.max(timelinePosition, 0), 1);
+  // If no timeline, show full circle (100%)
+  const clampedPosition = hasTimeline 
+    ? Math.min(Math.max(timelinePosition, 0), 1)
+    : 1; // Full circle when no timeline
   const currentAngle = startAngle + totalRange * clampedPosition;
   
   const toRadians = (deg: number) => (deg * Math.PI) / 180;
@@ -345,15 +351,21 @@ export const ExperimentalBottomMenuBar = ({
                 />
               </svg>
               
-              {/* Date text centered in dial */}
+              {/* Content centered in dial - plus sign if no timeline, date if timeline exists */}
               <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2">
-                <div className="text-sm font-bold text-foreground text-center leading-tight">
-                  {selectedDate || 'Timeline'}
-                </div>
-                {dateRange && (
-                  <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                    {dateRange}
-                  </div>
+                {hasTimeline ? (
+                  <>
+                    <div className="text-sm font-bold text-foreground text-center leading-tight">
+                      {selectedDate}
+                    </div>
+                    {dateRange && (
+                      <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                        {dateRange}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Plus className="w-8 h-8 text-foreground" strokeWidth={3} />
                 )}
               </div>
             </div>
