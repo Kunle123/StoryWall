@@ -310,6 +310,12 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
     };
   }
   
+  // For dated events, parse the date
+  const date = new Date(apiEvent.date);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  
   // Check if date is Jan 1 - if so, treat as year-only (no placeholder dates)
   // Only include month/day if the date is NOT Jan 1
   // This way, year-only events stored as Jan 1 won't display as "Jan 1"
