@@ -92,7 +92,9 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
   }, [timelineId, eventId, isSignedIn]);
 
   const handleSubmit = async () => {
-    if (!newComment.trim()) return;
+    // Check if we have content (either new comment or reply)
+    const contentToCheck = replyingTo ? replyContent : newComment;
+    if (!contentToCheck.trim()) return;
 
     // Check authentication
     if (!isSignedIn) {

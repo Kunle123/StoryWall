@@ -351,10 +351,15 @@ export async function fetchCommentsByTimelineId(timelineId: string): Promise<Api
 
 export async function createComment(timelineId: string, content: string, parentId?: string): Promise<ApiResponse<Comment>> {
   try {
+    const body: { content: string; parent_id?: string } = { content };
+    if (parentId) {
+      body.parent_id = parentId;
+    }
+    
     const response = await fetch(`/api/timelines/${timelineId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, parent_id: parentId }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -441,10 +446,15 @@ export async function fetchCommentsByEventId(eventId: string): Promise<ApiRespon
 
 export async function createEventComment(eventId: string, content: string, parentId?: string): Promise<ApiResponse<Comment>> {
   try {
+    const body: { content: string; parent_id?: string } = { content };
+    if (parentId) {
+      body.parent_id = parentId;
+    }
+    
     const response = await fetch(`/api/events/${eventId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content, parent_id: parentId }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
