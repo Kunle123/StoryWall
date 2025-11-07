@@ -369,6 +369,7 @@ const TimelineEditor = () => {
                   setImageStyle={setImageStyle}
                   themeColor={themeColor}
                   setThemeColor={setThemeColor}
+                  hasRealPeople={isFactual && imageReferences.length > 0}
                 />
               )}
               {currentStep === 5 && (

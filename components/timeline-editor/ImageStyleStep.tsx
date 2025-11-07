@@ -4,13 +4,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pipette } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ImageStyleStepProps {
   imageStyle: string;
   setImageStyle: (style: string) => void;
   themeColor: string;
   setThemeColor: (color: string) => void;
+  hasRealPeople?: boolean; // If true, disable photorealistic option
 }
 
 const imageStyles = [
@@ -39,10 +40,25 @@ export const ImageStyleStep = ({
   imageStyle, 
   setImageStyle,
   themeColor,
-  setThemeColor 
+  setThemeColor,
+  hasRealPeople = false
 }: ImageStyleStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
+
+  // If photorealistic is selected but real people are detected, switch to illustration
+  useEffect(() => {
+    if (imageStyle === "Photorealistic" && hasRealPeople) {
+      setImageStyle("Illustration");
+    }
+  }, [hasRealPeople, imageStyle, setImageStyle]);
+
+  const handleStyleClick = (style: string) => {
+    if (style === "Photorealistic" && hasRealPeople) {
+      return; // Don't allow selection
+    }
+    setImageStyle(style);
+  };
 
   return (
     <div className="space-y-6">
@@ -53,22 +69,36 @@ export const ImageStyleStep = ({
         <p className="text-muted-foreground mb-6">
           Choose an art style and optional theme color for all timeline images
         </p>
+        {hasRealPeople && (
+          <div className="mb-4 p-3 bg-muted rounded-md">
+            <p className="text-sm text-muted-foreground">
+              ⚠️ Photorealistic style is disabled for timelines with real people. Please choose an artistic style instead.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
         <div>
           <Label className="text-base mb-3 block">Image Style</Label>
           <div className="flex flex-wrap gap-2">
-            {imageStyles.map((style) => (
-              <Badge
-                key={style}
-                variant={imageStyle === style ? "default" : "outline"}
-                className="cursor-pointer px-4 py-2 text-sm"
-                onClick={() => setImageStyle(style)}
-              >
-                {style}
-              </Badge>
-            ))}
+            {imageStyles.map((style) => {
+              const isDisabled = style === "Photorealistic" && hasRealPeople;
+              return (
+                <Badge
+                  key={style}
+                  variant={imageStyle === style ? "default" : "outline"}
+                  className={`px-4 py-2 text-sm ${
+                    isDisabled 
+                      ? "opacity-50 cursor-not-allowed" 
+                      : "cursor-pointer"
+                  }`}
+                  onClick={() => !isDisabled && handleStyleClick(style)}
+                >
+                  {style}
+                </Badge>
+              );
+            })}
           </div>
           <div className="mt-4">
             <Label className="text-sm mb-2 block">Or describe your own style</Label>
