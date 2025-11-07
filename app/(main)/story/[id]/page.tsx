@@ -490,6 +490,8 @@ const Story = () => {
           timelinePosition={timelinePosition}
           startDate={startDate}
           endDate={endDate}
+          isNumbered={event.number !== undefined}
+          totalEvents={allEvents.length}
         />
       )}
     </div>
