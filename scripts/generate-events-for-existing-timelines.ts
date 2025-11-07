@@ -45,7 +45,15 @@ async function generateEventsForTimelines() {
     
     // Process timelines concurrently with a concurrency limit
     const CONCURRENCY_LIMIT = TEST_SINGLE ? 1 : 10; // Process 10 timelines at once (or 1 for testing)
-    const timelinesToProcess = timelines.filter(timeline => {
+    
+    // If testing, only process the first timeline before filtering
+    let timelinesToCheck = timelines;
+    if (TEST_SINGLE && timelines.length > 0) {
+      console.log(`🧪 TEST MODE: Processing only the first timeline\n`);
+      timelinesToCheck = [timelines[0]];
+    }
+    
+    const timelinesToProcess = timelinesToCheck.filter(timeline => {
       // Check if timeline needs events or if events are missing descriptions/images
       if (timeline.events && timeline.events.length > 0) {
         // Check if events have descriptions and images
@@ -62,12 +70,6 @@ async function generateEventsForTimelines() {
       return true;
     });
     
-    // If testing, only process the first timeline
-    if (TEST_SINGLE && timelinesToProcess.length > 0) {
-      console.log(`🧪 TEST MODE: Processing only the first timeline\n`);
-      timelinesToProcess.splice(1); // Keep only the first one
-    }
-    
     // Process in batches
     const totalBatches = Math.ceil(timelinesToProcess.length / CONCURRENCY_LIMIT);
     for (let i = 0; i < timelinesToProcess.length; i += CONCURRENCY_LIMIT) {
@@ -75,12 +77,6 @@ async function generateEventsForTimelines() {
       console.log(`\n📦 Processing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} of ${totalBatches} (${batch.length} timeline${batch.length === 1 ? '' : 's'})\n`);
       
       await Promise.all(batch.map(async (timeline) => {
-        // Skip if timeline already has events (double-check in case filtering missed it)
-        if (timeline.events && timeline.events.length > 0) {
-          console.log(`⏭️  Skipping "${timeline.title}" - already has ${timeline.events.length} events`);
-          return;
-        }
-      
         // Find matching seed data
         const seedData = timelineMap.get(timeline.title);
         if (!seedData) {
@@ -210,26 +206,40 @@ async function generateEventsForTimelines() {
               if (timelineEventsResponse.ok) {
                 const timelineEvents = await timelineEventsResponse.json();
                 
-                // Update each event with its corresponding image
+                // Prepare image updates
+                const imageUpdates = [];
                 for (let i = 0; i < Math.min(images.length, timelineEvents.length); i++) {
                   if (images[i] && timelineEvents[i] && images[i] !== null) {
-                    const updateEventResponse = await fetch(`${apiUrl}/api/events/${timelineEvents[i].id}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        image_url: images[i],
-                      }),
+                    imageUpdates.push({
+                      eventId: timelineEvents[i].id,
+                      imageUrl: images[i],
                     });
-                    
-                    if (!updateEventResponse.ok) {
-                      const errorText = await updateEventResponse.text();
-                      console.warn(`   ⚠️  Failed to save image for event "${timelineEvents[i].title}": ${errorText}`);
-                    }
                   }
                 }
-                console.log(`   ✅ Saved ${Math.min(images.filter((img: any) => img !== null).length, timelineEvents.length)} images to events`);
+                
+                // Save images via admin endpoint
+                if (imageUpdates.length > 0) {
+                  const updateImagesResponse = await fetch(`${apiUrl}/api/admin/events/update-images`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      updates: imageUpdates,
+                    }),
+                  });
+                  
+                  if (updateImagesResponse.ok) {
+                    const result = await updateImagesResponse.json();
+                    console.log(`   ✅ Saved ${result.results.updated} images to events`);
+                    if (result.results.failed > 0) {
+                      console.warn(`   ⚠️  Failed to save ${result.results.failed} images`);
+                    }
+                  } else {
+                    const errorText = await updateImagesResponse.text();
+                    console.warn(`   ⚠️  Failed to save images via admin endpoint: ${errorText}`);
+                  }
+                }
               }
             }
           } else {
