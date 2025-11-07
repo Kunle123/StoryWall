@@ -13,9 +13,11 @@ async function seedTimelines() {
     // Read the seed data file
     const seedData = JSON.parse(fs.readFileSync(SEED_FILE, 'utf-8'));
     
-    // Get the API URL
-    const apiUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    // Get the API URL - allow override via PRODUCTION_URL env var
+    const apiUrl = process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const seedEndpoint = `${apiUrl}/api/admin/seed`;
+    
+    console.log(`🌐 Using API URL: ${apiUrl}`);
     
     console.log('🌱 Starting to seed 30 timelines...');
     console.log(`📡 Sending request to: ${seedEndpoint}`);
