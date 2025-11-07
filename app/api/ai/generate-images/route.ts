@@ -632,21 +632,37 @@ export async function POST(request: NextRequest) {
 
     // Wait for all predictions to be created
     const predictionResults = await Promise.all(predictionPromises);
-    console.log(`[ImageGen] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
+    const createdCount = predictionResults.filter(r => r.predictionId).length;
+    const failedCreationCount = predictionResults.filter(r => r.error).length;
+    console.log(`[ImageGen] Created ${createdCount}/${events.length} predictions successfully`);
+    
+    // Log creation errors
+    if (failedCreationCount > 0) {
+      console.error(`[ImageGen] ${failedCreationCount} predictions failed to create:`);
+      predictionResults.forEach((result) => {
+        if (result.error) {
+          console.error(`[ImageGen] Event "${result.event.title}": ${result.error.message || result.error}`);
+        }
+      });
+    }
     
     // Step 2: Poll all predictions in parallel
     const imagePromises = predictionResults.map(async (result) => {
       if (result.error || !result.predictionId) {
-        return { index: result.index, imageUrl: null, error: result.error };
+        const errorMsg = result.error?.message || result.error || 'No prediction ID';
+        console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
+        return { index: result.index, imageUrl: null, error: result.error, event: result.event };
       }
 
       try {
+        console.log(`[ImageGen] Polling prediction ${result.predictionId} for "${result.event.title}"...`);
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
         console.log(`[ImageGen] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
-        return { index: result.index, imageUrl, error: null };
+        return { index: result.index, imageUrl, error: null, event: result.event };
       } catch (error: any) {
-        console.error(`[ImageGen] Error waiting for prediction "${result.event.title}":`, error);
-        return { index: result.index, imageUrl: null, error };
+        console.error(`[ImageGen] Error waiting for prediction "${result.event.title}" (ID: ${result.predictionId}):`, error);
+        console.error(`[ImageGen] Error details:`, error.message, error.stack?.substring(0, 500));
+        return { index: result.index, imageUrl: null, error, event: result.event };
       }
     });
 
@@ -655,19 +671,50 @@ export async function POST(request: NextRequest) {
     
     // Step 3: Assemble results in correct order
     const images: (string | null)[] = new Array(events.length).fill(null);
+    const errors: (Error | null)[] = new Array(events.length).fill(null);
     imageResults.forEach((result) => {
       images[result.index] = result.imageUrl;
+      errors[result.index] = result.error || null;
     });
     
     const successfulCount = images.filter(img => img !== null).length;
-    console.log(`[ImageGen] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
+    const failedCount = errors.filter(err => err !== null).length;
+    console.log(`[ImageGen] Parallel generation complete: ${successfulCount}/${events.length} images generated, ${failedCount} failed`);
+    
+    // Log detailed error information
+    if (failedCount > 0) {
+      console.error(`[ImageGen] Failed image generation details:`);
+      imageResults.forEach((result) => {
+        if (result.error) {
+          console.error(`[ImageGen] Event "${result.event.title}": ${result.error.message || result.error}`);
+        }
+      });
+    }
     
     // Filter out null values and check if we have any successful images
     const successfulImages = images.filter(img => img !== null);
     
     if (successfulImages.length === 0) {
+      // Collect all error messages for better debugging
+      const errorMessages = imageResults
+        .filter(r => r.error)
+        .map(r => `${r.event.title}: ${r.error?.message || r.error}`)
+        .join('; ');
+      
+      console.error(`[ImageGen] All ${events.length} images failed to generate. Errors: ${errorMessages}`);
+      
       return NextResponse.json(
-        { error: 'Failed to generate any images. Please check your REPLICATE_API_TOKEN and try again.', details: 'Make sure you have a valid Replicate API token and sufficient credits.' },
+        { 
+          error: 'Failed to generate any images. Please check your REPLICATE_API_TOKEN and try again.', 
+          details: `All ${events.length} image generations failed. ${errorMessages || 'Check server logs for details.'}`,
+          debug: process.env.NODE_ENV === 'development' ? {
+            totalEvents: events.length,
+            createdPredictions: createdCount,
+            failedPredictions: failedCreationCount,
+            successfulImages: successfulCount,
+            errors: errorMessages,
+          } : undefined,
+        },
         { status: 500 }
       );
     }
