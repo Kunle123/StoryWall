@@ -16,6 +16,7 @@ export interface TimelineEvent {
   description?: string;
   imageUrl?: string;
   imagePrompt?: string; // AI-generated prompt optimized for image generation
+  hasFamousPeople?: boolean; // Detected if event mentions famous people
 }
 
 interface WritingStyleStepProps {

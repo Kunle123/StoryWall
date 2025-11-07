@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Eye, Pencil, Loader2, Coins } from "lucide-react";
+import { Sparkles, Eye, Pencil, Loader2, Coins, AlertTriangle } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
+import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 
 const themeColors = [
   { name: "Blue", value: "#3B82F6" },
@@ -168,6 +169,17 @@ export const GenerateImagesStep = ({
 
   const allGenerated = events.every((e) => e.imageUrl);
 
+  // Detect events with famous people
+  const eventsWithFamousPeople = useMemo(() => {
+    return events.filter(event => 
+      containsFamousPerson(event.title) || 
+      (event.description && containsFamousPerson(event.description)) ||
+      (event.imagePrompt && containsFamousPerson(event.imagePrompt))
+    );
+  }, [events]);
+
+  const hasFamousPeople = eventsWithFamousPeople.length > 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -178,6 +190,26 @@ export const GenerateImagesStep = ({
           Generate AI images for your timeline events using {imageStyle} style
           {themeColor && ` with ${themeColors.find(c => c.value === themeColor)?.name || 'selected'} theme`}
         </p>
+        {hasFamousPeople && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                  Famous People Detected
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                  {eventsWithFamousPeople.length} event{eventsWithFamousPeople.length > 1 ? 's' : ''} mention{eventsWithFamousPeople.length > 1 ? '' : 's'} famous people. Images will use stylized artistic representations to avoid likeness issues.
+                </p>
+                {imageStyle === "Photorealistic" && (
+                  <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                    Note: Photorealistic style has been automatically switched to Illustration for these events.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

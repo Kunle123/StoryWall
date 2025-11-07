@@ -12,6 +12,7 @@ import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/Wr
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
 import { ImageStyleStep } from "@/components/timeline-editor/ImageStyleStep";
 import { GenerateImagesStep } from "@/components/timeline-editor/GenerateImagesStep";
+import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 import { createTimeline, createEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -132,6 +133,13 @@ const TimelineEditor = () => {
     // Navigate to discover page
     router.push('/discover');
   };
+
+  // Detect if any events contain famous people
+  const hasFamousPeople = events.some(event => 
+    containsFamousPerson(event.title) || 
+    (event.description && containsFamousPerson(event.description)) ||
+    (event.imagePrompt && containsFamousPerson(event.imagePrompt))
+  );
 
   const canProceed = () => {
     switch (currentStep) {
@@ -376,7 +384,7 @@ const TimelineEditor = () => {
                   setImageStyle={setImageStyle}
                   themeColor={themeColor}
                   setThemeColor={setThemeColor}
-                  hasRealPeople={isFactual && imageReferences.length > 0}
+                  hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
                 />
               )}
               {currentStep === 5 && (
