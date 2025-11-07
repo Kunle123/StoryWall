@@ -2,12 +2,14 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Eye, Pencil, Loader2, Coins, AlertTriangle } from "lucide-react";
+import { Sparkles, Eye, Pencil, Loader2, Coins, AlertTriangle, Upload, RotateCw } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
@@ -46,6 +48,8 @@ export const GenerateImagesStep = ({
   const [progress, setProgress] = useState(0);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
+  const [uploadingEventId, setUploadingEventId] = useState<string | null>(null);
+  const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set(events.map(e => e.id)));
   const { deductCredits, credits } = useCredits();
 
   const handleSaveEdit = () => {
@@ -61,8 +65,84 @@ export const GenerateImagesStep = ({
     }
   };
 
+  const handleFileUpload = async (eventId: string, file: File) => {
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a JPEG, PNG, GIF, or WebP image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingEventId(eventId);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      
+      setEvents(
+        events.map((event) =>
+          event.id === eventId ? { ...event, imageUrl: data.url } : event
+        )
+      );
+      
+      toast({
+        title: "Image uploaded",
+        description: "Image uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingEventId(null);
+    }
+  };
+
+  const toggleEventSelection = (eventId: string) => {
+    setSelectedEvents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(eventId)) {
+        newSet.delete(eventId);
+      } else {
+        newSet.add(eventId);
+      }
+      return newSet;
+    });
+  };
+
   const handleGenerateImages = async () => {
-    const eventCount = events.length;
+    const selectedEventsList = events.filter(e => selectedEvents.has(e.id));
+    const eventCount = selectedEventsList.length;
     const totalCost = CREDIT_COST_IMAGE_BATCH; // 10 credits for up to 20 images
     
     // Check credits but don't deduct yet - will deduct after successful generation
@@ -79,7 +159,7 @@ export const GenerateImagesStep = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          events: events.map(e => ({ 
+          events: selectedEventsList.map(e => ({ 
             title: e.title, 
             description: e.description || "",
             year: e.year,
@@ -112,11 +192,17 @@ export const GenerateImagesStep = ({
       const successfulImages = data.images.filter((img: any) => img !== null);
       const failedCount = data.images.length - successfulImages.length;
       
+      // Map images back to selected events only
+      let imageIndex = 0;
       setEvents(
-        events.map((e, idx) => ({
-          ...e,
-          imageUrl: data.images[idx] || e.imageUrl,
-        }))
+        events.map((e) => {
+          if (selectedEvents.has(e.id)) {
+            const imageUrl = data.images[imageIndex] || e.imageUrl;
+            imageIndex++;
+            return { ...e, imageUrl };
+          }
+          return e;
+        })
       );
       
       // Deduct credits AFTER successful generation
@@ -133,13 +219,13 @@ export const GenerateImagesStep = ({
       if (failedCount > 0) {
         toast({
           title: "Partial success",
-          description: `Generated ${successfulImages.length} of ${events.length} images. Some prompts may have been rejected by content policy.`,
+          description: `Generated ${successfulImages.length} of ${eventCount} images. Some prompts may have been rejected by content policy.`,
           variant: "default",
         });
       } else {
         toast({
           title: "Success!",
-          description: `Generated ${data.images.length} images`,
+          description: `Generated ${successfulImages.length} images`,
         });
       }
       
@@ -167,8 +253,6 @@ export const GenerateImagesStep = ({
     }
   };
 
-  const allGenerated = events.every((e) => e.imageUrl);
-
   // Detect events with famous people
   const eventsWithFamousPeople = useMemo(() => {
     return events.filter(event => 
@@ -184,11 +268,10 @@ export const GenerateImagesStep = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 5: Generate Images
+          Step 5: Images
         </h2>
         <p className="text-muted-foreground mb-6">
-          Generate AI images for your timeline events using {imageStyle} style
-          {themeColor && ` with ${themeColors.find(c => c.value === themeColor)?.name || 'selected'} theme`}
+          Upload your own images or generate them with AI
         </p>
         {hasFamousPeople && (
           <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -212,78 +295,203 @@ export const GenerateImagesStep = ({
         )}
       </div>
 
-      <div className="space-y-4">
-        <Button
-          onClick={handleGenerateImages}
-          disabled={allGenerated || isGenerating || events.length === 0}
-          size="lg"
-          className="w-full"
-        >
-          {isGenerating ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <Sparkles className="mr-2 h-5 w-5" />
-          )}
-          {isGenerating ? "Generating Images..." : "Generate All Images"}
-          {!isGenerating && events.length > 0 && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              <Coins className="w-3 h-3 mr-1" />
-              {CREDIT_COST_IMAGE_BATCH} credits
-            </Badge>
-          )}
-        </Button>
+      <Tabs defaultValue="manual" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="manual">Manual Upload</TabsTrigger>
+          <TabsTrigger value="ai">AI Generated</TabsTrigger>
+        </TabsList>
 
-        {isGenerating && (
-          <div className="space-y-2">
-            <Progress value={progress} />
-            <p className="text-sm text-center text-muted-foreground">
-              Generating {progress}%
+        <TabsContent value="manual" className="space-y-4 mt-6">
+          <Card className="p-6">
+            <p className="text-sm text-muted-foreground mb-4">
+              Upload images for each event in your timeline
             </p>
-          </div>
-        )}
-      </div>
-
-      {/* Preview Generated Images */}
-      {allGenerated && (
-        <div className="space-y-4">
-          <Label className="text-base">Generated Images</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {events.map((event) => (
-              <div
-                key={event.id}
-                className="space-y-2 p-4 border rounded-lg bg-card"
-              >
-                <div className="aspect-video bg-muted rounded-md flex items-center justify-center overflow-hidden">
+            <div className="space-y-4">
+              {events.map((event) => (
+                <div key={event.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <p className="font-medium">{event.year} - {event.title}</p>
+                    {event.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                        {event.description}
+                      </p>
+                    )}
+                  </div>
                   {event.imageUrl ? (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={event.imageUrl}
+                        alt={event.title}
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(event.id, file);
+                          }}
+                          disabled={uploadingEventId === event.id}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          asChild
+                          disabled={uploadingEventId === event.id}
+                        >
+                          <span>
+                            {uploadingEventId === event.id ? (
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                              <Upload className="w-4 h-4 mr-2" />
+                            )}
+                            Change
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(event.id, file);
+                        }}
+                        disabled={uploadingEventId === event.id}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild
+                        disabled={uploadingEventId === event.id}
+                      >
+                        <span>
+                          {uploadingEventId === event.id ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                          )}
+                          Upload Image
+                        </span>
+                      </Button>
+                    </label>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-4 mt-6">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4">Select Events to Generate Images For</h3>
+            <div className="space-y-2 mb-4">
+              {events.map((event) => (
+                <label 
+                  key={event.id} 
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedEvents.has(event.id)}
+                    onChange={() => toggleEventSelection(event.id)}
+                    className="w-4 h-4"
+                  />
+                  <div className="flex-1">
+                    <p className="font-medium">{event.year} - {event.title}</p>
+                    {event.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-1">{event.description}</p>
+                    )}
+                  </div>
+                  {event.imageUrl && (
                     <img
                       src={event.imageUrl}
                       alt={event.title}
-                      className="w-full h-full object-cover"
+                      className="w-16 h-16 object-cover rounded"
                     />
-                  ) : (
-                    <span className="text-muted-foreground">No image</span>
                   )}
-                </div>
-                <div>
-                  <Label className="text-sm font-semibold">{event.title}</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {event.year}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setEditingEvent(event)}
-                >
-                  <Pencil className="mr-2 h-3 w-3" />
-                  Edit
-                </Button>
+                </label>
+              ))}
+            </div>
+            
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-muted-foreground">
+                {selectedEvents.size} event{selectedEvents.size !== 1 ? 's' : ''} selected
+              </p>
+              <p className="text-sm font-semibold">
+                Total cost: {CREDIT_COST_IMAGE_BATCH} credits
+              </p>
+            </div>
+
+            <Button
+              onClick={handleGenerateImages}
+              disabled={isGenerating || selectedEvents.size === 0 || !imageStyle}
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating... {Math.round(progress)}%
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Images ({CREDIT_COST_IMAGE_BATCH} credits)
+                </>
+              )}
+            </Button>
+
+            {isGenerating && (
+              <div className="mt-4 space-y-2">
+                <Progress value={progress} />
+                <p className="text-sm text-center text-muted-foreground">
+                  Generating {Math.round(progress)}%
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            )}
+          </Card>
+
+          {events.some(e => e.imageUrl) && (
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Generated Images</h3>
+              <div className="space-y-4">
+                {events.filter(e => e.imageUrl).map((event) => (
+                  <div key={event.id} className="border rounded-lg overflow-hidden">
+                    <img
+                      src={event.imageUrl}
+                      alt={event.title}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h4 className="font-medium">{event.year} - {event.title}</h4>
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingEvent(event)}
+                        >
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Event Dialog */}
       <Dialog open={!!editingEvent} onOpenChange={() => setEditingEvent(null)}>

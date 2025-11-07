@@ -1,11 +1,9 @@
-import { Share2, Layers, Home } from "lucide-react";
+import { Share2, Home } from "lucide-react";
 import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 interface BottomMenuBarProps {
-  viewMode?: "vertical" | "hybrid";
-  onViewModeChange?: (mode: "vertical" | "hybrid") => void;
   selectedDate?: string;
   timelinePosition?: number;
   startDate?: Date;
@@ -31,8 +29,6 @@ const formatDateRange = (startDate: Date, endDate: Date): string => {
 };
 
 export const BottomMenuBar = ({ 
-  viewMode, 
-  onViewModeChange,
   selectedDate,
   timelinePosition = 0.5,
   startDate,
@@ -41,32 +37,38 @@ export const BottomMenuBar = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({
-        title: "Timeline",
-        text: "Check out this timeline",
-        url: url,
-      }).catch(() => {
-        navigator.clipboard.writeText(url);
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Timeline",
+          text: "Check out this timeline",
+          url: url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied!",
           description: "Timeline link copied to clipboard",
         });
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      toast({
-        title: "Link copied!",
-        description: "Timeline link copied to clipboard",
-      });
-    }
-  };
-
-  const handleToggleView = () => {
-    if (onViewModeChange) {
-      onViewModeChange(viewMode === "vertical" ? "hybrid" : "vertical");
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(url);
+          toast({
+            title: "Link copied!",
+            description: "Timeline link copied to clipboard",
+          });
+        } catch (clipboardError) {
+          toast({
+            title: "Failed to share",
+            description: "Please try copying the link manually",
+            variant: "destructive",
+          });
+        }
+      }
     }
   };
 
@@ -112,85 +114,105 @@ export const BottomMenuBar = ({
   const formattedStartDate = startDate ? startDate.getFullYear().toString() : null;
   const formattedEndDate = endDate ? endDate.getFullYear().toString() : null;
 
-  // Calculate recess size: 5px gap on each side = 10px total diameter difference
-  const recessGap = 5; // Gap between dial edge and recess edge
-  const recessSize = dialSize + (recessGap * 2); // 5px gap on each side
-  const recessRadius = recessSize / 2;
-  
-  // Tab bar height - standard 44px
-  const tabBarHeight = 44;
-  
-  // Center position: dial radius + 40px from bottom of tab bar
-  // Tab bar is 44px tall, so center is 44px (top of tab bar) + dialRadius + 40px from viewport bottom
+  // Calculate dial radius first (dialSize is diameter)
   const dialRadius = dialSize / 2;
-  const centerYFromBottom = tabBarHeight + dialRadius + 40; // 44px (top of tab bar) + dialRadius + 40px
-
-  // SVG needs to extend above tab bar to include the recess
-  // Center is at centerYFromBottom from viewport bottom
-  // Tab bar is 44px tall, so if center is above tab bar, we need extra height
-  const svgExtraHeight = Math.max(0, centerYFromBottom - tabBarHeight + recessRadius);
-  const svgTotalHeight = tabBarHeight + svgExtraHeight;
   
-  // Center Y in SVG coordinates (from top of SVG)
-  // SVG extends svgExtraHeight above tab bar, so center Y = svgTotalHeight - centerYFromBottom
-  const centerYInSVG = svgTotalHeight - centerYFromBottom;
+  // Calculate recess size: 20px gap across the diameter
+  // dialSize is the diameter, so recess diameter = dialSize + 20px
+  const recessGap = 20; // Gap across diameter = 20px
+  const recessSize = dialSize + recessGap; // Recess diameter = dialSize + 20px
+  const recessRadius = recessSize / 2; // Recess radius = (dialSize + 20) / 2 = dialRadius + 10px
+  
+  // Tab bar height - 40px
+  const tabBarHeight = 40;
+  
+  // Center position: The lowest point of the dial should be 30px above the bottom of the tab bar
+  // Lowest point = center - dialRadius = 30px from bottom
+  // Therefore: center = 30px + dialRadius from bottom
+  // This also equals: 20px + recessRadius (since recessRadius = dialRadius + 10px)
+  const centerYFromBottom = 30 + dialRadius; // Center at 30px + dialRadius from bottom
 
   // Generate unique mask ID
   const maskId = `tabBarMask-${Math.random().toString(36).substr(2, 9)}`;
 
+  // Recess is contained within the 40px tab bar
+  // Center is at centerYFromBottom from bottom of tab bar
+  // SVG height matches tab bar height (40px), with y=0 at top, y=40 at bottom
+  const svgTotalHeight = tabBarHeight;
+  
+  // Calculate screen center first
+  const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
+  const screenCenterX = screenWidth / 2;
+  
+  // Calculate where the recess circle intersects the top of the tab bar (y=0 in SVG)
+  // The recess center is at centerYFromBottom = 90px from viewport bottom
+  // In SVG coordinates: centerYInSVG = tabBarHeight - centerYFromBottom = 40 - 90 = -50
+  // The circle has radius recessRadius = 70px, centered at (screenCenterX, -50)
+  // At y=0 (top of tab bar), we need to find the x-coordinates where the circle intersects
+  // Circle equation: (x - cx)^2 + (y - cy)^2 = r^2
+  // At y=0: (x - screenCenterX)^2 + (0 - (-50))^2 = 70^2
+  // (x - screenCenterX)^2 + 2500 = 4900
+  // (x - screenCenterX)^2 = 2400
+  // x - screenCenterX = ±sqrt(2400) = ±48.99
+  const centerYInSVG = tabBarHeight - centerYFromBottom; // -50
+  const yIntersect = 0; // Top of tab bar
+  const distanceFromCenter = Math.abs(centerYInSVG - yIntersect); // 50
+  const horizontalOffset = Math.sqrt(Math.max(0, recessRadius * recessRadius - distanceFromCenter * distanceFromCenter));
+  const arcLeftX = screenCenterX - horizontalOffset;
+  const arcRightX = screenCenterX + horizontalOffset;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="relative" style={{ height: `${tabBarHeight}px` }}>
-        {/* Rectangular tab bar with circular recess using SVG mask */}
-        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${svgTotalHeight}px` }}>
-          {/* SVG to create tab bar with circular cutout using mask - extends above tab bar */}
-          <svg className="absolute inset-0 w-full" style={{ height: `${svgTotalHeight}px`, pointerEvents: 'none' }}>
-            <defs>
-              <mask id={maskId}>
-                {/* White rectangle = visible tab bar area (bottom portion) */}
-                <rect width="100%" height={`${tabBarHeight}px`} y={`${svgTotalHeight - tabBarHeight}px`} fill="white" />
-                {/* Black circle = transparent cutout (recess) */}
-                <circle 
-                  cx="50%" 
-                  cy={`${centerYInSVG}px`}
-                  r={recessRadius} 
-                  fill="black"
-                />
-              </mask>
-            </defs>
-            {/* Background with mask applied - only on tab bar portion */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
-              fill="hsl(var(--background) / 0.95)"
-              mask={`url(#${maskId})`}
-              className="backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-t-3xl"
-            />
-            {/* Border with mask applied - only on tab bar portion */}
-            <rect 
-              width="100%" 
-              height={`${tabBarHeight}px`}
-              y={`${svgTotalHeight - tabBarHeight}px`}
-              fill="none"
-              stroke="hsl(var(--border) / 0.5)"
+      {/* Container for both dial and tab bar */}
+      <div className="relative">
+        {/* Tab bar with circular recess at top center */}
+        <div className="absolute bottom-0 left-0 right-0" style={{ height: `${tabBarHeight}px` }}>
+          {/* Tab bar with circular cutout at top center */}
+          <svg 
+            className="absolute bottom-0 left-0 w-full pointer-events-none"
+            style={{ height: `${tabBarHeight}px` }}
+            viewBox={`0 0 ${screenWidth} ${tabBarHeight}`}
+            preserveAspectRatio="none"
+          >
+            {/* Draw tab bar shape with circular arc cutout at top */}
+            <path
+              d={`
+                M 0 ${tabBarHeight}
+                L 0 0
+                L ${arcLeftX} 0
+                A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0
+                L ${screenWidth} 0
+                L ${screenWidth} ${tabBarHeight}
+                Z
+              `}
+              fill="hsl(var(--card))"
+              fillOpacity="0.95"
+              stroke="hsl(var(--border))"
               strokeWidth="1"
-              mask={`url(#${maskId})`}
-              className="rounded-t-3xl"
+              strokeOpacity="0.8"
             />
           </svg>
+          
+          {/* Backdrop blur layer with same cutout shape (no background, just blur effect) */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 backdrop-blur pointer-events-none"
+            style={{ 
+              height: `${tabBarHeight}px`,
+              clipPath: `path('M 0 ${tabBarHeight} L 0 0 L ${arcLeftX} 0 A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0 L ${screenWidth} 0 L ${screenWidth} ${tabBarHeight} Z')`
+            }}
+          />
           
           {/* Content - positioned at bottom of SVG, height matches tab bar */}
           <div className="container mx-auto px-4 flex items-center justify-between max-w-4xl relative z-10" style={{ height: `${tabBarHeight}px`, position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%' }}>
             {/* Left button with date */}
-            <div className="flex items-center gap-2 flex-1 justify-end">
+            <div className="flex items-center gap-2 flex-1 justify-end" style={{ marginRight: 'calc(-20px + 20%)' }}>
               <Button 
                 variant="ghost" 
                 size="icon"
                 className="h-12 w-12"
                 onClick={() => navigate("/discover")}
               >
-                <Home className="w-7 h-7" />
+                <Home className="w-10 h-10" />
               </Button>
               {formattedStartDate && (
                 <div className="text-xs text-muted-foreground font-medium">
@@ -199,11 +221,16 @@ export const BottomMenuBar = ({
               )}
             </div>
 
+            {/* Center "Create" text */}
+            <div className="absolute left-1/2 -translate-x-1/2 text-sm font-semibold text-foreground z-20" style={{ bottom: `${tabBarHeight / 2}px`, transform: 'translate(-50%, 50%)' }}>
+              Create
+            </div>
+
             {/* Spacer for center dial area */}
             <div style={{ width: `${recessSize}px`, flexShrink: 0 }} />
 
             {/* Right button with date */}
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 flex-1" style={{ marginLeft: 'calc(-20px + 20%)' }}>
               {formattedEndDate && (
                 <div className="text-xs text-muted-foreground font-medium">
                   {formattedEndDate}
@@ -215,75 +242,64 @@ export const BottomMenuBar = ({
                 className="h-12 w-12"
                 onClick={handleShare}
               >
-                <Share2 className="w-7 h-7" />
+                <Share2 className="w-10 h-10" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Center dial widget - positioned so its center is coincident with recess center */}
+        {/* Floating dial widget - floats above tab bar, center aligned with recess */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-card backdrop-blur supports-[backdrop-filter]:bg-card/95 border-2 border-border/80 shadow-lg flex items-center justify-center relative overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
-            // Dial center at midpoint of screen, dial radius + 10px from bottom of tab bar
-            // This positions center vertically above the tab bar
-            bottom: `${centerYFromBottom - dialRadius}px`, // Center at dial radius + 10px from bottom
+            // Position dial floating above tab bar
+            // Dial bottom at 30px from viewport bottom
+            bottom: `30px`,
             minWidth: `${dialSize}px`,
             minHeight: `${dialSize}px`,
-            zIndex: 20
+            zIndex: 50
           }}
+          onClick={() => navigate("/editor")}
         >
-          <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
-            {/* Background arc */}
-            <path
-              d={arcPath}
-              fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-            {/* Active arc */}
-            <path
-              d={arcPath}
-              fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={totalArcLength}
-              strokeDashoffset={totalArcLength - currentArcLength}
-              style={{
-                transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)',
-                filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))'
-              }}
-            />
-          </svg>
-          
-          {/* Horizontal rectangle inside dial (slightly above center) */}
-          <div 
-            className="absolute z-10 bg-foreground/20 border border-foreground/30 rounded-sm"
-            style={{
-              width: `${dialSize * 0.55}px`,
-              height: `${dialSize * 0.14}px`,
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -65%)', // Slightly above center
-            }}
-          />
-          
-          {/* Date text below the rectangle */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2" style={{ paddingTop: `${dialSize * 0.15}px` }}>
-            <div className="text-sm font-bold text-foreground text-center leading-tight">
-              {selectedDate || 'Timeline'}
-            </div>
-            {dateRange && (
-              <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                {dateRange}
+              <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
+                {/* Background arc */}
+                <path
+                  d={arcPath}
+                  fill="none"
+                  stroke="hsl(var(--muted-foreground) / 0.2)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                />
+                {/* Active arc */}
+                <path
+                  d={arcPath}
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeDasharray={totalArcLength}
+                  strokeDashoffset={totalArcLength - currentArcLength}
+                  style={{
+                    transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25, 0.1, 0.25, 1)',
+                    filter: 'drop-shadow(0 0 4px hsl(var(--primary) / 0.5))'
+                  }}
+                />
+              </svg>
+              
+              {/* Date text centered in dial */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2">
+                <div className="text-sm font-bold text-foreground text-center leading-tight">
+                  {selectedDate || 'Timeline'}
+                </div>
+                {dateRange && (
+                  <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                    {dateRange}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
       </div>
     </div>
   );
