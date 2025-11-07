@@ -18,7 +18,29 @@ const Portfolio = () => {
   const { toast } = useToast();
   const [savedCards, setSavedCards] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
+  // Handle header hide/show on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        setShowHeader(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   useEffect(() => {
     async function loadPortfolio() {
       try {
@@ -95,8 +117,8 @@ const Portfolio = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-4 pt-16 pb-8 max-w-4xl">
+        <Header isVisible={showHeader} />
+        <main className="container mx-auto px-4 pt-16 pb-32 md:pb-40 max-w-4xl">
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
@@ -107,9 +129,11 @@ const Portfolio = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header isVisible={showHeader} />
       <Toaster />
-      <main className="container mx-auto px-4 pt-16 pb-8 max-w-4xl">
+      <main className={`container mx-auto px-4 max-w-4xl pb-32 md:pb-40 transition-all duration-300 ${
+        showHeader ? 'pt-16' : 'pt-4'
+      }`}>
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <div>
