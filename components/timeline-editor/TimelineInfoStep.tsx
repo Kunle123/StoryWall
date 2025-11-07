@@ -23,6 +23,10 @@ interface TimelineInfoStepProps {
   setStartDate?: (date?: Date) => void;
   endDate?: Date;
   setEndDate?: (date?: Date) => void;
+  isNumbered?: boolean;
+  setIsNumbered?: (isNumbered: boolean) => void;
+  numberLabel?: string;
+  setNumberLabel?: (label: string) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -38,6 +42,10 @@ export const TimelineInfoStep = ({
   setStartDate,
   endDate,
   setEndDate,
+  isNumbered = false,
+  setIsNumbered,
+  numberLabel = "Day",
+  setNumberLabel,
 }: TimelineInfoStepProps) => {
   return (
     <div className="space-y-6">
@@ -113,7 +121,42 @@ export const TimelineInfoStep = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5 flex-1">
+            <Label htmlFor="is-numbered" className="text-base">
+              Numbered Events
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Use sequential numbering instead of dates (e.g., "12 Days of Christmas")
+            </p>
+            {isNumbered && setIsNumbered && setNumberLabel && (
+              <div className="mt-3">
+                <Label htmlFor="number-label" className="text-sm mb-1 block">
+                  Event Label
+                </Label>
+                <Input
+                  id="number-label"
+                  placeholder="Day, Event, Step, etc."
+                  value={numberLabel}
+                  onChange={(e) => setNumberLabel(e.target.value)}
+                  className="h-9 mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Events will be labeled as "{numberLabel} 1", "{numberLabel} 2", etc.
+                </p>
+              </div>
+            )}
+          </div>
+          <Switch
+            id="is-numbered"
+            checked={isNumbered}
+            onCheckedChange={(checked) => setIsNumbered?.(checked)}
+            disabled={!setIsNumbered}
+          />
+        </div>
+
+        {!isNumbered && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="start-date" className="text-base mb-2 block">
               Start Date (Optional)
@@ -173,6 +216,7 @@ export const TimelineInfoStep = ({
             </Popover>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
