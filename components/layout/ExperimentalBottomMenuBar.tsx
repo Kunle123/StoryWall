@@ -187,10 +187,11 @@ export const ExperimentalBottomMenuBar = ({
                 L ${screenWidth} ${tabBarHeight}
                 Z
               `}
-              fill="rgba(255, 255, 255, 0.5)"
+              fill="hsl(var(--card))"
+              fillOpacity="0.95"
               stroke="hsl(var(--border))"
               strokeWidth="1"
-              strokeOpacity="0.5"
+              strokeOpacity="0.8"
             />
           </svg>
           
@@ -246,7 +247,7 @@ export const ExperimentalBottomMenuBar = ({
 
         {/* Floating dial widget - floats above tab bar, center aligned with recess */}
         <div 
-          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border border-border flex items-center justify-center relative overflow-hidden"
+          className="absolute left-1/2 -translate-x-1/2 rounded-full bg-card backdrop-blur supports-[backdrop-filter]:bg-card/95 border-2 border-border/80 shadow-lg flex items-center justify-center relative overflow-hidden"
           style={{ 
             width: `${dialSize}px`, 
             height: `${dialSize}px`,
@@ -263,7 +264,7 @@ export const ExperimentalBottomMenuBar = ({
                 <path
                   d={arcPath}
                   fill="none"
-                  stroke="hsl(var(--muted))"
+                  stroke="hsl(var(--muted-foreground) / 0.2)"
                   strokeWidth="4"
                   strokeLinecap="round"
                 />
@@ -285,7 +286,7 @@ export const ExperimentalBottomMenuBar = ({
               
               {/* Horizontal rectangle inside dial (slightly above center) */}
               <div 
-                className="absolute z-10 border border-foreground/30 rounded-sm"
+                className="absolute z-10 border-2 border-foreground/40 rounded-sm bg-foreground/5"
                 style={{
                   width: `${dialSize * 0.55}px`,
                   height: `${dialSize * 0.14}px`,
