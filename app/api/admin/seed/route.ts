@@ -165,8 +165,14 @@ export async function POST(request: NextRequest) {
 
             // Generate events using AI - call the API endpoint
             // Use internal URL for server-side calls
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            let baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                         process.env.NEXT_PUBLIC_APP_URL || 
+                         (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            
+            // Ensure URL has protocol
+            if (baseUrl && !baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+              baseUrl = `https://${baseUrl}`;
+            }
             
             const generateEventsResponse = await fetch(
               `${baseUrl}/api/ai/generate-events`,
