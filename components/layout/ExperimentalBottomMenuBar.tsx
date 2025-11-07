@@ -50,14 +50,14 @@ export const ExperimentalBottomMenuBar = ({
     if (typeof window === 'undefined') return;
 
     // Check if any input/textarea is focused
-    const checkInputFocus = () => {
+    const checkInputFocus = (): boolean => {
       const activeElement = document.activeElement;
       const isInputFocused = activeElement && (
         activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.getAttribute('contenteditable') === 'true'
       );
-      return isInputFocused;
+      return Boolean(isInputFocused);
     };
 
     // Use visual viewport API for better keyboard detection
