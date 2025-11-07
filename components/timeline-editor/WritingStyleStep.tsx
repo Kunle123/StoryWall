@@ -6,8 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Sparkles, Loader2, Coins } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useCredits } from "@/hooks/use-credits";
-import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 
 export interface TimelineEvent {
   id: string;
@@ -47,8 +45,6 @@ const writingStyles = [
   "Academic",
   "Poetic",
 ];
-
-const CREDIT_COST_EVENTS = 10;
 
 export const WritingStyleStep = ({
   writingStyle,
@@ -309,34 +305,6 @@ export const WritingStyleStep = ({
           )}
         </p>
       </div>
-
-      <InsufficientCreditsDialog
-        open={showCreditsDialog}
-        onOpenChange={setShowCreditsDialog}
-        required={CREDIT_COST_EVENTS}
-        current={credits}
-        action="AI Event Generation"
-        onBuyCredits={() => {
-          // Open buy credits modal via Header
-          const headerButton = document.querySelector('[data-buy-credits]');
-          if (headerButton) {
-            (headerButton as HTMLElement).click();
-          } else {
-            // Fallback: navigate or show toast
-            toast({
-              title: "Buy Credits",
-              description: "Click the credits button in the header to purchase more credits.",
-            });
-          }
-        }}
-        onContinueWithout={() => {
-          // User can continue by adding events manually
-          toast({
-            title: "Continue Without AI",
-            description: "You can add events manually using the 'Add Manually' button.",
-          });
-        }}
-      />
 
       {/* Events List */}
       {events.length > 0 && (
