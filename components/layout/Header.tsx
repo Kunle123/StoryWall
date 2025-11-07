@@ -19,16 +19,19 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { credits, fetchCredits } = useCredits();
   const { isSignedIn } = useUser();
+  
+  // Handle case where Clerk might not be initialized yet
+  const isUserSignedIn = isSignedIn ?? false;
 
   // Use controlled visibility if provided, otherwise use internal state
   const headerVisible = controlledVisibility !== undefined ? controlledVisibility : isVisible;
 
   useEffect(() => {
     // Only fetch credits if user is signed in
-    if (isSignedIn) {
+    if (isUserSignedIn) {
       fetchCredits();
     }
-  }, [fetchCredits, isSignedIn]);
+  }, [fetchCredits, isUserSignedIn]);
 
   useEffect(() => {
     // Only handle window scroll if visibility is not controlled by parent
@@ -72,7 +75,7 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
         </Link>
 
         <div className="flex items-center gap-2">
-          {isSignedIn && (
+          {isUserSignedIn && (
             <Button
               variant="outline"
               size="sm"
@@ -87,7 +90,7 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
             </Button>
           )}
           
-          {isSignedIn ? (
+          {isUserSignedIn ? (
             <Button
               variant="ghost"
               // @ts-ignore - Type inference issue with class-variance-authority
