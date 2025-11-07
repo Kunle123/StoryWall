@@ -104,40 +104,27 @@ function getModelForStyle(imageStyle: string): string {
 // Legacy constant for backward compatibility
 const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
-// Helper to upload image to Replicate's file storage and get URL
-async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
+// Helper to prepare image for Replicate (try URL first, upload if needed)
+async function prepareImageForReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
-    // First, download the image
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      console.warn(`[ImageGen] Failed to download reference image: ${imageUrl}`);
-      return null;
+    // Check if URL is publicly accessible (starts with http/https)
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      // Try using the URL directly first (Replicate accepts publicly accessible URLs)
+      console.log(`[ImageGen] Using reference image URL directly: ${imageUrl.substring(0, 100)}...`);
+      return imageUrl;
     }
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = response.headers.get('content-type') || 'image/jpeg';
     
-    // Upload to Replicate's file storage
-    const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${replicateApiKey}`,
-        'Content-Type': mimeType,
-      },
-      body: buffer,
-    });
-    
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error(`[ImageGen] Failed to upload image to Replicate: ${errorText}`);
+    // If it's a data URL or base64, we need to handle it differently
+    // For now, return null and log a warning
+    if (imageUrl.startsWith('data:')) {
+      console.warn(`[ImageGen] Data URLs not directly supported by Replicate. Need to upload or convert.`);
+      // Could extract base64 and upload, but for now return null
       return null;
     }
     
-    const uploadResult = await uploadResponse.json();
-    // Replicate returns a URL in the format: https://replicate.delivery/...
-    return uploadResult.url || uploadResult.urls?.get || null;
+    return null;
   } catch (error) {
-    console.error(`[ImageGen] Error uploading reference image to Replicate: ${imageUrl}`, error);
+    console.error(`[ImageGen] Error preparing reference image for Replicate: ${imageUrl}`, error);
     return null;
   }
 }
@@ -523,12 +510,12 @@ export async function POST(request: NextRequest) {
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
-    // Upload reference images to Replicate if available (one per event, or use first available)
+    // Prepare reference images for Replicate if available (one per event, or use first available)
     const referenceImagePromises = imageReferences && imageReferences.length > 0
-      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => uploadImageToReplicate(ref.url, replicateApiKey))
+      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
       : [];
-    const uploadedReferences = await Promise.all(referenceImagePromises);
-    console.log(`[ImageGen] Uploaded ${uploadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images to Replicate`);
+    const preparedReferences = await Promise.all(referenceImagePromises);
+    console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images for Replicate`);
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images using ${selectedModel}...`);
@@ -540,7 +527,7 @@ export async function POST(request: NextRequest) {
         const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
         
         // Get reference image URL for this event (use first available, or cycle through if multiple events)
-        const referenceImageUrl = uploadedReferences[index] || uploadedReferences[0] || null;
+        const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
