@@ -479,7 +479,7 @@ const Story = () => {
           </div>
 
           {/* Comments Section */}
-          <div id="comments" className="mt-6 pt-6 border-t border-border scroll-mt-24">
+          <div id="comments" className="mt-6 pt-6 pb-32 md:pb-40 border-t border-border scroll-mt-24">
             <CommentsSection eventId={event.id} />
           </div>
         </Card>

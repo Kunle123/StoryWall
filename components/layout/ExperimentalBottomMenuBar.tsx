@@ -45,9 +45,20 @@ export const ExperimentalBottomMenuBar = ({
   const router = useRouter();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // Detect keyboard open/close on mobile
+  // Detect keyboard open/close on mobile and input focus
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Check if any input/textarea is focused
+    const checkInputFocus = () => {
+      const activeElement = document.activeElement;
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.getAttribute('contenteditable') === 'true'
+      );
+      return isInputFocused;
+    };
 
     // Use visual viewport API for better keyboard detection
     const handleResize = () => {
@@ -56,14 +67,35 @@ export const ExperimentalBottomMenuBar = ({
         const windowHeight = window.innerHeight;
         // If viewport height is significantly smaller than window height, keyboard is likely open
         const isKeyboardOpen = windowHeight - viewportHeight > 150;
-        setIsKeyboardVisible(isKeyboardOpen);
+        const inputFocused = checkInputFocus();
+        setIsKeyboardVisible(isKeyboardOpen || inputFocused);
       } else {
         // Fallback: detect if window resized significantly (mobile keyboard)
         const currentHeight = window.innerHeight;
         const screenHeight = window.screen.height;
         const isKeyboardOpen = screenHeight - currentHeight > 150;
-        setIsKeyboardVisible(isKeyboardOpen);
+        const inputFocused = checkInputFocus();
+        setIsKeyboardVisible(isKeyboardOpen || inputFocused);
       }
+    };
+
+    // Check on focus/blur events for inputs
+    const handleFocus = () => {
+      setIsKeyboardVisible(true);
+    };
+
+    const handleBlur = () => {
+      // Small delay to check if keyboard actually closed
+      setTimeout(() => {
+        if (window.visualViewport) {
+          const viewportHeight = window.visualViewport.height;
+          const windowHeight = window.innerHeight;
+          const isKeyboardOpen = windowHeight - viewportHeight > 150;
+          setIsKeyboardVisible(isKeyboardOpen);
+        } else {
+          setIsKeyboardVisible(false);
+        }
+      }, 100);
     };
 
     // Listen to visual viewport resize (best for keyboard detection)
@@ -73,6 +105,10 @@ export const ExperimentalBottomMenuBar = ({
     } else {
       window.addEventListener('resize', handleResize);
     }
+
+    // Listen to input focus/blur
+    document.addEventListener('focusin', handleFocus);
+    document.addEventListener('focusout', handleBlur);
     
     // Initial check
     handleResize();
@@ -84,6 +120,8 @@ export const ExperimentalBottomMenuBar = ({
       } else {
         window.removeEventListener('resize', handleResize);
       }
+      document.removeEventListener('focusin', handleFocus);
+      document.removeEventListener('focusout', handleBlur);
     };
   }, []);
 

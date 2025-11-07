@@ -152,7 +152,7 @@ const TimelinePage = () => {
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
         />
-        <div id="comments" className="mt-12 pb-8 scroll-mt-24">
+        <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24">
           <CommentsSection timelineId={timeline.id || timelineId} />
         </div>
       </main>
