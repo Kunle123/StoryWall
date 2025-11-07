@@ -104,20 +104,40 @@ function getModelForStyle(imageStyle: string): string {
 // Legacy constant for backward compatibility
 const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
-// Helper to download reference image from URL and convert to base64
-async function downloadReferenceImage(imageUrl: string): Promise<string | null> {
+// Helper to upload image to Replicate's file storage and get URL
+async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
+    // First, download the image
     const response = await fetch(imageUrl);
     if (!response.ok) {
       console.warn(`[ImageGen] Failed to download reference image: ${imageUrl}`);
       return null;
     }
     const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const buffer = Buffer.from(arrayBuffer);
     const mimeType = response.headers.get('content-type') || 'image/jpeg';
-    return `data:${mimeType};base64,${base64}`;
+    
+    // Upload to Replicate's file storage
+    const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${replicateApiKey}`,
+        'Content-Type': mimeType,
+      },
+      body: buffer,
+    });
+    
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error(`[ImageGen] Failed to upload image to Replicate: ${errorText}`);
+      return null;
+    }
+    
+    const uploadResult = await uploadResponse.json();
+    // Replicate returns a URL in the format: https://replicate.delivery/...
+    return uploadResult.url || uploadResult.urls?.get || null;
   } catch (error) {
-    console.error(`[ImageGen] Error downloading reference image ${imageUrl}:`, error);
+    console.error(`[ImageGen] Error uploading reference image to Replicate: ${imageUrl}`, error);
     return null;
   }
 }
@@ -153,6 +173,91 @@ async function getLatestModelVersion(modelName: string, replicateApiKey: string)
   }
 }
 
+// Extract visual elements and suggest what should be depicted
+function extractVisualElements(title: string, description?: string): {
+  subjects: string[];
+  objects: string[];
+  setting: string;
+  actions: string[];
+} {
+  const text = `${title} ${description || ''}`.toLowerCase();
+  
+  // Common visual nouns (people, objects, places)
+  const peoplePatterns = [
+    /\b(person|people|man|woman|baker|chef|player|athlete|politician|leader|soldier|artist|scientist|inventor|explorer)\w*/gi,
+    /\b([A-Z][a-z]+)\b/g, // Proper nouns (names)
+  ];
+  
+  const objectPatterns = [
+    /\b(cake|roll|bread|food|dish|meal|equipment|tool|weapon|vehicle|building|structure|document|paper|book|machine|device)\w*/gi,
+    /\b(swiss roll|tent|kitchen|stadium|office|house|car|plane|ship)\w*/gi,
+  ];
+  
+  const settingPatterns = [
+    /\b(tent|kitchen|stadium|field|office|building|room|hall|street|city|country|battlefield|laboratory|studio)\w*/gi,
+    /\b(baking|competition|election|war|meeting|ceremony|event|celebration)\w*/gi,
+  ];
+  
+  const actionPatterns = [
+    /\b(eliminated|collapsed|won|lost|announced|declared|created|built|discovered|invented|launched|started|ended|defeated|victory|defeat)\w*/gi,
+    /\b(baking|cooking|competing|fighting|speaking|signing|celebrating|mourning)\w*/gi,
+  ];
+  
+  const subjects: string[] = [];
+  const objects: string[] = [];
+  const actions: string[] = [];
+  let setting = '';
+  
+  // Extract people/subjects
+  peoplePatterns.forEach(pattern => {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        if (!subjects.includes(match) && match.length > 2) {
+          subjects.push(match);
+        }
+      });
+    }
+  });
+  
+  // Extract objects
+  objectPatterns.forEach(pattern => {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        if (!objects.includes(match) && match.length > 2) {
+          objects.push(match);
+        }
+      });
+    }
+  });
+  
+  // Extract setting
+  const settingMatches = text.match(settingPatterns[0]) || text.match(settingPatterns[1]);
+  if (settingMatches && settingMatches.length > 0) {
+    setting = settingMatches[0];
+  }
+  
+  // Extract actions
+  actionPatterns.forEach(pattern => {
+    const matches = text.match(pattern);
+    if (matches) {
+      matches.forEach(match => {
+        if (!actions.includes(match) && match.length > 2) {
+          actions.push(match);
+        }
+      });
+    }
+  });
+  
+  return {
+    subjects: subjects.slice(0, 3), // Limit to 3 most relevant
+    objects: objects.slice(0, 3),
+    setting: setting || '',
+    actions: actions.slice(0, 2),
+  };
+}
+
 // Build enhanced image prompt with style, color, and cohesion
 function buildImagePrompt(
   event: { title: string; description?: string; year?: number; imagePrompt?: string },
@@ -163,12 +268,59 @@ function buildImagePrompt(
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
+  // Extract visual elements to suggest what should be depicted
+  const visualElements = extractVisualElements(event.title, event.description);
+  
+  // Build the core visual description
+  let visualDescription = '';
+  
+  // Start with main subject(s)
+  if (visualElements.subjects.length > 0) {
+    visualDescription = visualElements.subjects.join(', ');
+  } else {
+    // Fallback to title if no subjects extracted
+    visualDescription = event.title;
+  }
+  
+  // Add key objects that should be visible
+  if (visualElements.objects.length > 0) {
+    visualDescription += ` with ${visualElements.objects.join(', ')}`;
+  }
+  
+  // Add setting/environment
+  if (visualElements.setting) {
+    visualDescription += ` in ${visualElements.setting}`;
+  }
+  
+  // Add action/moment being depicted
+  if (visualElements.actions.length > 0) {
+    visualDescription += `, ${visualElements.actions.join(' ')}`;
+  }
+  
   // Start with AI-generated prompt if available (from description step)
   let prompt = '';
   
   if (event.imagePrompt && event.imagePrompt.trim()) {
-    // Use AI-generated prompt as base, but enhance it
+    // Use AI-generated prompt as base, but clean it up
     prompt = event.imagePrompt;
+    
+    // Remove narrative/exclamatory phrases from AI prompt
+    const narrativePatterns = [
+      /Oh dear!/gi,
+      /Talk about/gi,
+      /It was a/gi,
+      /This is/gi,
+      /What a/gi,
+      /\.\.\./g,
+    ];
+    narrativePatterns.forEach(pattern => {
+      prompt = prompt.replace(pattern, '');
+    });
+    
+    // Enhance with visual elements if not already present
+    if (!prompt.toLowerCase().includes(visualElements.subjects[0]?.toLowerCase() || '')) {
+      prompt = `${visualDescription}. ${prompt}`;
+    }
     
     // Check for famous people and make safe
     if (containsFamousPerson(prompt) || containsFamousPerson(event.title)) {
@@ -180,20 +332,17 @@ function buildImagePrompt(
       }
     }
     
-    // Ensure it includes style and color context if not already present
+    // Ensure it includes style if not already present
     if (!prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
-      prompt = `${imageStyle} style illustration: ${prompt}`;
+      prompt = `${imageStyle} style: ${prompt}`;
     }
   } else {
-    // Build from scratch if no AI prompt available
-    const yearContext = event.year ? ` from ${event.year}` : '';
-    const title = event.title;
-    const description = event.description ? `. ${event.description.substring(0, 150)}` : '';
-    
-    let basePrompt = `${imageStyle} style historical illustration${yearContext}: ${title}${description}`;
+    // Build from scratch with visual focus
+    const yearContext = event.year ? `, ${event.year}` : '';
+    let basePrompt = `${imageStyle} style: ${visualDescription}${yearContext}`;
     
     // Check for famous people and make safe
-    if (containsFamousPerson(title) || containsFamousPerson(description)) {
+    if (containsFamousPerson(visualDescription)) {
       basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
       const safeStyle = getSafeStyleForFamousPeople(imageStyle);
       if (safeStyle !== imageStyle) {
@@ -204,36 +353,45 @@ function buildImagePrompt(
     prompt = basePrompt;
   }
   
-  // Add prominent color integration
-  const colorInstructions = [
-    `dominant ${colorName} color palette`,
-    `${colorName} as primary visual element`,
-    `${colorName} lighting and atmosphere`,
-    `${colorName} accents throughout composition`,
-    `color harmony featuring ${colorName} prominently`
-  ];
+  // Add explicit depiction suggestions
+  const depictionSuggestions: string[] = [];
   
-  // Select 2-3 color instructions for variety
-  const selectedColorInstructions = colorInstructions.slice(0, 3).join(', ');
-  prompt += `. ${selectedColorInstructions}`;
+  if (visualElements.subjects.length > 0) {
+    depictionSuggestions.push(`depict ${visualElements.subjects[0]}`);
+  }
   
-  // Add style-specific visual language for cohesion
+  if (visualElements.objects.length > 0) {
+    depictionSuggestions.push(`show ${visualElements.objects[0]}`);
+  }
+  
+  if (visualElements.setting) {
+    depictionSuggestions.push(`set in ${visualElements.setting}`);
+  }
+  
+  if (depictionSuggestions.length > 0) {
+    prompt += `. ${depictionSuggestions.join(', ')}`;
+  }
+  
+  // Add color integration (concise)
+  prompt += `. ${colorName} color palette, ${colorName} lighting`;
+  
+  // Add style-specific visual language
   prompt += `. ${styleVisualLanguage}`;
   
   // Add historical period context if year is available
   if (event.year) {
     const century = Math.floor(event.year / 100) + 1;
-    prompt += `. Period-accurate historical detail, ${century}th century setting`;
+    prompt += `. ${century}th century period detail`;
   }
   
-  // Ensure consistent composition guidance
-  prompt += `. Balanced composition, centered focal point, timeline-appropriate visual narrative`;
+  // Add composition guidance (concise)
+  prompt += `. Balanced composition, centered focal point`;
   
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // Most models handle longer prompts well, but keep it reasonable
-  return prompt.substring(0, 900);
+  // Keep prompt concise and visual-focused (max 500 chars)
+  return prompt.substring(0, 500).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -365,12 +523,12 @@ export async function POST(request: NextRequest) {
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
-    // Download reference images if available (one per event, or use first available)
+    // Upload reference images to Replicate if available (one per event, or use first available)
     const referenceImagePromises = imageReferences && imageReferences.length > 0
-      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => downloadReferenceImage(ref.url))
+      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => uploadImageToReplicate(ref.url, replicateApiKey))
       : [];
-    const downloadedReferences = await Promise.all(referenceImagePromises);
-    console.log(`[ImageGen] Downloaded ${downloadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images`);
+    const uploadedReferences = await Promise.all(referenceImagePromises);
+    console.log(`[ImageGen] Uploaded ${uploadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images to Replicate`);
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images using ${selectedModel}...`);
@@ -381,11 +539,11 @@ export async function POST(request: NextRequest) {
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
         
-        // Get reference image for this event (use first available, or cycle through if multiple events)
-        const referenceImage = downloadedReferences[index] || downloadedReferences[0] || null;
+        // Get reference image URL for this event (use first available, or cycle through if multiple events)
+        const referenceImageUrl = uploadedReferences[index] || uploadedReferences[0] || null;
         
         // Log the prompt being sent (for debugging)
-        console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
+        console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
         
         // Build input - structure varies by model (for Replicate models)
         const input: any = {
@@ -412,7 +570,7 @@ export async function POST(request: NextRequest) {
           // Flux models don't support direct image input via Replicate API
           // If reference images are needed, we could include URLs in prompt (less effective)
           // For photorealistic with reference images, consider using SDXL or Flux Kontext Pro instead
-          if (referenceImage) {
+          if (referenceImageUrl) {
             console.warn(`[ImageGen] Flux models don't support direct image input. Reference images will be ignored. For reference images, use SDXL or Flux Kontext Pro.`);
             // Note: We could add reference URLs to prompt, but it's less effective than direct input
           }
@@ -423,9 +581,9 @@ export async function POST(request: NextRequest) {
           input.num_inference_steps = 30;
           
           // SD 3.5 may support image input - check model docs
-          if (referenceImage) {
-            // Try image input if supported
-            input.image = referenceImage;
+          if (referenceImageUrl) {
+            // Use Replicate URL for image input
+            input.image = referenceImageUrl;
             input.prompt_strength = 0.8;
             console.log(`[ImageGen] Using reference image with SD 3.5`);
           }
@@ -436,9 +594,9 @@ export async function POST(request: NextRequest) {
           input.num_inference_steps = 30;
           
           // Add reference image if available (for image-to-image transformation)
-          // SDXL supports direct image input via 'image' parameter
-          if (referenceImage) {
-            input.image = referenceImage;
+          // SDXL supports direct image input via 'image' parameter (URL from Replicate)
+          if (referenceImageUrl) {
+            input.image = referenceImageUrl;
             input.prompt_strength = 0.8; // How strongly the prompt transforms the input image (0-1)
             console.log(`[ImageGen] Using reference image for image-to-image transformation`);
           }

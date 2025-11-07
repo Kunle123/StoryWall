@@ -35,6 +35,12 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     );
   };
 
+  const updateEventImagePrompt = (id: string, imagePrompt: string) => {
+    setEvents(
+      events.map((e) => (e.id === id ? { ...e, imagePrompt } : e))
+    );
+  };
+
   const generateDescription = async (id: string) => {
     const event = events.find((e) => e.id === id);
     if (!event) return;
@@ -56,7 +62,8 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           events: [{ year: event.year, title: event.title }],
           timelineDescription,
           writingStyle,
-          ...(imageStyle && { imageStyle, themeColor }), // Include if available
+          imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
+          themeColor, // Include if available
         }),
       });
 
@@ -148,7 +155,8 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           events: events.map(e => ({ year: e.year, title: e.title })),
           timelineDescription,
           writingStyle,
-          ...(imageStyle && { imageStyle, themeColor }), // Include if available for image prompt generation
+          imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
+          themeColor, // Include if available
         }),
       });
 
@@ -234,6 +242,16 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
               onChange={(e) => updateEventDescription(event.id, e.target.value)}
               rows={4}
               className="resize-none"
+            />
+            {/* Hidden image prompt field - used for image generation but not visible to user */}
+            <Textarea
+              placeholder="Image prompt (auto-generated, used for image creation)..."
+              value={event.imagePrompt || ""}
+              onChange={(e) => updateEventImagePrompt(event.id, e.target.value)}
+              rows={2}
+              className="resize-none hidden"
+              aria-hidden="true"
+              style={{ display: 'none' }}
             />
           </div>
         ))}

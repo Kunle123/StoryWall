@@ -66,12 +66,11 @@ export async function POST(request: NextRequest) {
     // Build prompt for description generation
     const descriptionPrompt = `Timeline Context: ${timelineDescription}\n\nGenerate descriptions for these ${events.length} events:\n${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n')}\n\nReturn JSON: { "descriptions": ["description 1", "description 2", ...] } with exactly ${events.length} descriptions in the same order.`;
     
-    // If imageStyle is provided, also generate optimized image prompts
-    let imagePromptRequest = '';
-    if (imageStyle) {
-      const colorContext = themeColor ? `The selected theme color is ${themeColor}. Use this color prominently in the visual composition - as primary backgrounds, key elements, or atmospheric lighting.` : '';
-      imagePromptRequest = `\n\nAdditionally, generate optimized image prompts for each event. These prompts will be used to create ${imageStyle} style illustrations. ${colorContext} Each image prompt should:\n- Be visually descriptive and specific\n- Include key visual elements from the event\n- Suggest composition and atmosphere\n- Be optimized for ${imageStyle} style illustration\n- Include the year/period context\n- IMPORTANT: If the event involves famous people, use "stylized representation" or "symbolic illustration" style - focus on historical setting, period-appropriate clothing, and context rather than specific facial features or direct likenesses\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
-    }
+    // Always generate image prompts - focused on what should be visually depicted
+    const imageStyleContext = imageStyle ? `The image style will be ${imageStyle}.` : 'The image style will be determined later.';
+    const colorContext = themeColor ? `The theme color is ${themeColor} - use this color prominently in the visual composition.` : '';
+    
+    const imagePromptRequest = `\n\nAdditionally, generate a separate image description for each event that specifies what should be visually depicted in the accompanying image. These image descriptions will be used to create illustrations. ${imageStyleContext} ${colorContext}\n\nFor each event, create an image description that:\n- Specifies the main subject(s) to be depicted (people, objects, scenes)\n- Describes key visual elements that should be visible (clothing, setting, objects, actions)\n- Suggests the composition and what should be in the foreground/background\n- Includes period-appropriate details if a year is provided\n- Focuses on visual, depictable elements rather than abstract concepts\n- Is concise and specific (2-3 sentences max)\n- IMPORTANT: If the event involves famous people, focus on historical setting, period-appropriate clothing, and context rather than specific facial features or direct likenesses\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context.${imagePromptRequest ? ' Additionally, create detailed image prompts optimized for visual illustration that capture the essence, composition, and atmosphere of each historical event.' : ''} Return descriptions as a JSON object with a "descriptions" array.${imagePromptRequest ? ' If image style context is provided, also return an "imagePrompts" array with optimized visual prompts for each event.' : ''}`,
+            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context. Additionally, create separate image descriptions that specify what should be visually depicted in accompanying illustrations - focus on subjects, objects, settings, and visual composition. Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each containing exactly ${events.length} items.`,
           },
           {
             role: 'user',
@@ -134,26 +133,22 @@ export async function POST(request: NextRequest) {
       descriptions.push('Description not generated.');
     }
     
-    // Extract image prompts if provided
-    let imagePrompts: string[] | undefined = undefined;
-    if (imageStyle && content.imagePrompts && Array.isArray(content.imagePrompts)) {
+    // Extract image prompts (always generated now)
+    let imagePrompts: string[] = [];
+    if (content.imagePrompts && Array.isArray(content.imagePrompts)) {
       imagePrompts = content.imagePrompts.map((prompt: any) => String(prompt || ''));
-      // Ensure we have the same number of image prompts as events
-      if (imagePrompts) {
-        while (imagePrompts.length < events.length) {
-          imagePrompts.push('');
-        }
-        imagePrompts = imagePrompts.slice(0, events.length);
-      }
     }
     
-    const responseData: { descriptions: string[]; imagePrompts?: string[] } = {
-      descriptions: descriptions.slice(0, events.length)
+    // Ensure we have the same number of image prompts as events
+    while (imagePrompts.length < events.length) {
+      imagePrompts.push('');
+    }
+    imagePrompts = imagePrompts.slice(0, events.length);
+    
+    const responseData: { descriptions: string[]; imagePrompts: string[] } = {
+      descriptions: descriptions.slice(0, events.length),
+      imagePrompts: imagePrompts
     };
-    
-    if (imagePrompts) {
-      responseData.imagePrompts = imagePrompts;
-    }
     
     return NextResponse.json(responseData);
   } catch (error: any) {
