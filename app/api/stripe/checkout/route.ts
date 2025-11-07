@@ -46,11 +46,16 @@ export async function POST(request: NextRequest) {
 
     // Determine the package details - prioritize priceId over credits
     let packageDetails;
-    if (priceId && CREDIT_PACKAGES[priceId]) {
+    // Ensure priceId is a valid string and exists in our packages
+    const validPriceId = priceId && typeof priceId === 'string' && priceId.trim() !== '';
+    if (validPriceId && CREDIT_PACKAGES[priceId]) {
       packageDetails = CREDIT_PACKAGES[priceId];
       console.log('[Checkout] Using package from priceId:', priceId, packageDetails);
     } else if (credits) {
-      // Fallback: find package by credits (only if priceId not provided)
+      // Fallback: find package by credits (only if priceId not provided or invalid)
+      if (validPriceId) {
+        console.warn('[Checkout] priceId provided but not found in packages, falling back to credits lookup:', priceId);
+      }
       packageDetails = Object.values(CREDIT_PACKAGES).find(pkg => pkg.credits === credits);
       if (!packageDetails) {
         console.error('[Checkout] No package found for credits:', credits);
@@ -67,6 +72,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    
+    // Double-check: log the final package details being used
+    console.log('[Checkout] Final package details:', {
+      priceId: priceId || 'none',
+      requestedCredits: credits || 'none',
+      selectedCredits: packageDetails.credits,
+      selectedPrice: packageDetails.price,
+      packageName: packageName || 'none'
+    });
 
     // Create Stripe Checkout Session
     const stripe = getStripe();
