@@ -13,6 +13,8 @@ export async function createTimeline(
       visualizationType: input.visualization_type || 'horizontal',
       isPublic: input.is_public !== false,
       isCollaborative: input.is_collaborative || false,
+      isNumbered: input.is_numbered || false,
+      numberLabel: input.number_label || null,
     },
     include: {
       creator: true,

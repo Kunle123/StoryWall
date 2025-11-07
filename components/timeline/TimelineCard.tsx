@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
 import { Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatEventDate } from "@/lib/utils/dateFormat";
+import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -101,8 +101,16 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
     }
   };
   
-  const formatDate = (year: number, month?: number, day?: number) => {
-    return formatEventDate(year, month, day);
+  const formatDate = (event: TimelineEvent) => {
+    // For numbered events, use formatNumberedEvent
+    if (event.number !== undefined) {
+      return formatNumberedEvent(event.number, event.numberLabel || "Event");
+    }
+    // For dated events, use formatEventDate
+    if (event.year) {
+      return formatEventDate(event.year, event.month, event.day);
+    }
+    return "Unknown";
   };
 
   return (
@@ -131,7 +139,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
       <div className="space-y-3">
         {/* Date - shown on mobile, hidden on desktop (where it's in margin) */}
         <div className="text-xs font-medium text-muted-foreground md:hidden">
-          {formatDate(event.year, event.month, event.day)}
+          {formatDate(event)}
         </div>
         
         {/* Title */}

@@ -17,6 +17,8 @@ export interface Event {
   description?: string;
   date: string;
   end_date?: string;
+  number?: number; // For numbered events (1, 2, 3...)
+  number_label?: string; // Label for numbered events (e.g., "Day", "Event")
   image_url?: string;
   location_lat?: number;
   location_lng?: number;
@@ -46,6 +48,8 @@ export interface Timeline {
   visualization_type: VisualizationType;
   is_public: boolean;
   is_collaborative: boolean;
+  is_numbered?: boolean;
+  number_label?: string;
   view_count: number;
   created_at: string;
   updated_at: string;
@@ -68,6 +72,10 @@ export interface CreateTimelineInput {
   visualization_type?: VisualizationType;
   is_public?: boolean;
   is_collaborative?: boolean;
+  is_numbered?: boolean;
+  number_label?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 export interface CreateEventInput {
@@ -76,6 +84,8 @@ export interface CreateEventInput {
   description?: string;
   date: string;
   end_date?: string;
+  number?: number;
+  number_label?: string;
   image_url?: string;
   location_lat?: number;
   location_lng?: number;

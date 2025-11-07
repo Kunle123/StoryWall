@@ -39,6 +39,8 @@ model Timeline {
   visualizationType String   @default("horizontal") @map("visualization_type") @db.VarChar(50)
   isPublic          Boolean  @default(true) @map("is_public")
   isCollaborative   Boolean  @default(false) @map("is_collaborative")
+  isNumbered        Boolean  @default(false) @map("is_numbered")
+  numberLabel       String?  @default("Day") @map("number_label") @db.VarChar(50)
   viewCount         Int      @default(0) @map("view_count")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
@@ -64,6 +66,8 @@ model Event {
   description  String?
   date         DateTime  @db.Date
   endDate      DateTime? @map("end_date") @db.Date
+  number       Int?      @map("number") // For numbered events (1, 2, 3...)
+  numberLabel  String?  @map("number_label") @db.VarChar(50) // Label for numbered events (e.g., "Day", "Event")
   imageUrl     String?   @map("image_url")
   locationLat  Decimal?  @map("location_lat") @db.Decimal(10, 8)
   locationLng  Decimal?  @map("location_lng") @db.Decimal(11, 8)

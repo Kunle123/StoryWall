@@ -106,6 +106,10 @@ export async function createTimeline(timelineData: {
   visualization_type?: 'horizontal' | 'vertical' | 'grid';
   is_public?: boolean;
   is_collaborative?: boolean;
+  is_numbered?: boolean;
+  number_label?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
 }): Promise<ApiResponse<any>> {
   try {
     console.log('[API] Creating timeline:', timelineData);
@@ -181,6 +185,8 @@ export async function createEvent(timelineId: string, eventData: {
   description?: string;
   date: string;
   end_date?: string;
+  number?: number;
+  number_label?: string;
   image_url?: string;
   location_lat?: number;
   location_lng?: number;
@@ -290,15 +296,24 @@ export async function getOrCreatePortfolioTimeline(): Promise<ApiResponse<any>> 
 
 // Helper function to transform API event to TimelineEvent format
 export function transformApiEventToTimelineEvent(apiEvent: any) {
-  const date = new Date(apiEvent.date);
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  // Check if this is a numbered event (has number field)
+  if (apiEvent.number !== undefined && apiEvent.number !== null) {
+    return {
+      id: apiEvent.id,
+      number: apiEvent.number,
+      numberLabel: apiEvent.number_label || "Day",
+      title: apiEvent.title,
+      description: apiEvent.description,
+      category: apiEvent.category,
+      image: apiEvent.image_url,
+      video: undefined,
+    };
+  }
   
   // Check if date is Jan 1 - if so, treat as year-only (no placeholder dates)
   // Only include month/day if the date is NOT Jan 1
   // This way, year-only events stored as Jan 1 won't display as "Jan 1"
-  const isYearOnly = month === 1 && day === 1;
+  const isYearOnly = month === 1 && day === 1 && year !== 1; // Exclude year 1 (used for numbered events)
   
   return {
     id: apiEvent.id,

@@ -6,9 +6,11 @@ import { TimelineCardSkeleton } from "./TimelineCardSkeleton";
 
 export interface TimelineEvent {
   id: string;
-  year: number;
+  year?: number; // Optional for numbered events
   month?: number;
   day?: number;
+  number?: number; // For numbered events (1, 2, 3...)
+  numberLabel?: string; // Label for numbered events (e.g., "Day", "Event", "Step")
   title: string;
   description?: string;
   category?: string;
@@ -43,26 +45,67 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
 
-  // Sort events by date
+  // Sort events by date or number
   const sortedEvents = [...events].sort((a, b) => {
-    const dateA = new Date(a.year, a.month || 0, a.day || 1);
-    const dateB = new Date(b.year, b.month || 0, b.day || 1);
-    return dateA.getTime() - dateB.getTime();
+    // If both are numbered events, sort by number
+    if (a.number && b.number) {
+      return a.number - b.number;
+    }
+    // If one is numbered and one is dated, numbered come first (or handle as needed)
+    if (a.number && !b.number) return -1;
+    if (!a.number && b.number) return 1;
+    // Both are dated events, sort by date
+    if (a.year && b.year) {
+      const dateA = new Date(a.year, a.month || 0, a.day || 1);
+      const dateB = new Date(b.year, b.month || 0, b.day || 1);
+      return dateA.getTime() - dateB.getTime();
+    }
+    // Fallback: keep original order
+    return 0;
   });
 
-  // Calculate earliest and latest events
+  // Check if timeline is numbered
+  const isNumberedTimeline = sortedEvents.length > 0 && sortedEvents[0].number !== undefined;
+  
+  // Calculate earliest and latest events (for dated timelines) or min/max numbers (for numbered)
   const earliestEvent = sortedEvents[0];
   const latestEvent = sortedEvents[sortedEvents.length - 1];
   
-  const startDate = new Date(earliestEvent?.year || 1886, earliestEvent?.month || 0, earliestEvent?.day || 1);
-  const endDate = new Date(latestEvent?.year || 2026, latestEvent?.month || 0, latestEvent?.day || 1);
-  const totalTimeSpan = endDate.getTime() - startDate.getTime();
+  let startDate: Date;
+  let endDate: Date;
+  let totalTimeSpan: number;
+  
+  if (isNumberedTimeline) {
+    // For numbered events, use sequential positioning (equal spacing)
+    const minNumber = Math.min(...sortedEvents.map(e => e.number || 1));
+    const maxNumber = Math.max(...sortedEvents.map(e => e.number || 1));
+    // Use a virtual date range for positioning
+    startDate = new Date(2000, 0, minNumber);
+    endDate = new Date(2000, 0, maxNumber);
+    totalTimeSpan = endDate.getTime() - startDate.getTime();
+  } else {
+    // For dated events, use actual dates
+    startDate = new Date(earliestEvent?.year || 1886, earliestEvent?.month || 0, earliestEvent?.day || 1);
+    endDate = new Date(latestEvent?.year || 2026, latestEvent?.month || 0, latestEvent?.day || 1);
+    totalTimeSpan = endDate.getTime() - startDate.getTime();
+  }
 
   // Calculate position as percentage of timeline height
   const getEventPositionPercent = (event: TimelineEvent) => {
-    const eventDate = new Date(event.year, event.month || 0, event.day || 1);
-    const timeDiff = eventDate.getTime() - startDate.getTime();
-    return (timeDiff / totalTimeSpan) * 100;
+    if (isNumberedTimeline && event.number) {
+      // For numbered events, position based on number
+      const minNumber = Math.min(...sortedEvents.map(e => e.number || 1));
+      const maxNumber = Math.max(...sortedEvents.map(e => e.number || 1));
+      const numberRange = maxNumber - minNumber;
+      if (numberRange === 0) return 0;
+      return ((event.number - minNumber) / numberRange) * 100;
+    } else if (event.year) {
+      // For dated events, position based on date
+      const eventDate = new Date(event.year, event.month || 0, event.day || 1);
+      const timeDiff = eventDate.getTime() - startDate.getTime();
+      return (timeDiff / totalTimeSpan) * 100;
+    }
+    return 0;
   };
 
   // Group only events at the exact same date/position
@@ -352,6 +395,13 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
             sortedEvents.map((event, index) => {
             const isSelected = selectedEventId === event.id;
             const formatDate = () => {
+              // For numbered events, show number with label
+              if (event.number !== undefined) {
+                const label = event.numberLabel || "Event";
+                return `${label} ${event.number}`;
+              }
+              
+              // For dated events, format date
               const formatYear = (y: number) => {
                 if (y < 0) return `${Math.abs(y)} BC`;
                 if (y === 0) return '1 AD';
@@ -359,16 +409,20 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                 return y.toString();
               };
               
-              if (event.day && event.month) {
-                const date = new Date(event.year, event.month - 1, event.day);
-                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                return `${monthName} ${event.day}, ${formatYear(event.year)}`;
-              } else if (event.month) {
-                const date = new Date(event.year, event.month - 1);
-                const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-                return `${monthName} ${formatYear(event.year)}`;
+              if (event.year) {
+                if (event.day && event.month) {
+                  const date = new Date(event.year, event.month - 1, event.day);
+                  const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                  return `${monthName} ${event.day}, ${formatYear(event.year)}`;
+                } else if (event.month) {
+                  const date = new Date(event.year, event.month - 1);
+                  const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+                  return `${monthName} ${formatYear(event.year)}`;
+                }
+                return formatYear(event.year);
               }
-              return formatYear(event.year);
+              
+              return "Unknown";
             };
             
             return (

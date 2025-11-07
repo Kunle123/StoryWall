@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
-import { formatEventDate, formatEventDateShort } from "@/lib/utils/dateFormat";
+import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 
 const Index = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -21,8 +21,12 @@ const Index = () => {
   // Format the centered event date for dial (short format for constrained space)
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
-    // Use short format (11/03/22) for dial display
-    return formatEventDateShort(event.year, event.month, event.day);
+    // For numbered events, show number with label
+    if (event.number !== undefined) {
+      return formatNumberedEvent(event.number, event.numberLabel || "Event");
+    }
+    // For dated events, use short format (11/03/22) for dial display
+    return formatEventDateShort(event.year || 0, event.month, event.day);
   };
 
   // Get preceding and following events

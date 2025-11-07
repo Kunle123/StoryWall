@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ChevronLeft, ChevronRight, X, Heart } from "lucide-react";
 import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
-import { formatEventDate } from "@/lib/utils/dateFormat";
+import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
@@ -320,12 +320,17 @@ const Story = () => {
     );
   }
 
-  const formatDate = (year: number, month?: number, day?: number) => {
-    return formatEventDate(year, month, day);
+  const formatDate = (event: TimelineEvent) => {
+    // For numbered events, use formatNumberedEvent
+    if (event.number !== undefined) {
+      return formatNumberedEvent(event.number, event.numberLabel || "Event");
+    }
+    // For dated events, use formatEventDate
+    return formatEventDate(event.year || 0, event.month, event.day);
   };
 
   // Widget data - calculate dates for ExperimentalBottomMenuBar
-  const selectedDate = event ? formatDate(event.year, event.month, event.day) : undefined;
+  const selectedDate = event ? formatDate(event) : undefined;
   const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
 
   const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
@@ -438,7 +443,7 @@ const Story = () => {
           {/* Date and Category */}
           <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
             <span className="text-sm text-muted-foreground">
-              {formatDate(event.year, event.month, event.day)}
+              {formatDate(event)}
             </span>
             {event.category && (
               <>

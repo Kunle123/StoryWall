@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await getOrCreateUser(userId);
 
     const body = await request.json();
-    const { title, description, visualization_type, is_public, is_collaborative } = body;
+    const { title, description, visualization_type, is_public, is_collaborative, is_numbered, number_label, start_date, end_date } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -39,6 +39,10 @@ export async function POST(request: NextRequest) {
       visualization_type: visualization_type || 'horizontal',
       is_public: is_public !== false,
       is_collaborative: is_collaborative || false,
+      is_numbered: is_numbered || false,
+      number_label: number_label || null,
+      start_date: start_date || null,
+      end_date: end_date || null,
     });
 
     return NextResponse.json(timeline, { status: 201 });

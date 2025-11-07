@@ -185,6 +185,10 @@ const TimelineEditor = () => {
         visualization_type: "vertical",
         is_public: isPublic,
         is_collaborative: false,
+        is_numbered: isNumbered,
+        number_label: isNumbered ? numberLabel : null,
+        start_date: startDate?.toISOString() || null,
+        end_date: endDate?.toISOString() || null,
       });
 
       console.log('[Timeline Save] Timeline creation result:', timelineResult);
@@ -205,12 +209,9 @@ const TimelineEditor = () => {
           let dateStr: string;
           
           if (isNumbered && event.number) {
-            // For numbered events, use a special date format or store number separately
-            // For now, we'll use year 1 with the number as the day (temporary solution)
-            // TODO: Add number field to database schema
-            const number = event.number;
-            // Store as year 1, month 1, day = number (we'll need to update DB schema later)
-            dateStr = `1-01-${String(number).padStart(2, '0')}`;
+            // For numbered events, use year 1 as placeholder (DB requires a date)
+            // The number will be stored in the number field
+            dateStr = `1-01-01`; // Placeholder date for numbered events
           } else {
             // Format date: only include month/day if they are actually provided
             // Use Jan 1 as placeholder for year-only dates (DB requires full date)
@@ -229,6 +230,8 @@ const TimelineEditor = () => {
             title: event.title,
             description: event.description || "",
             date: dateStr,
+            number: isNumbered && event.number ? event.number : undefined,
+            number_label: isNumbered && event.numberLabel ? event.numberLabel : undefined,
             image_url: event.imageUrl || undefined,
           });
 
