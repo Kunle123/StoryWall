@@ -4,18 +4,26 @@ import { Timeline, CreateTimelineInput } from '@/lib/types';
 export async function createTimeline(
   input: CreateTimelineInput & { slug: string; creator_id: string }
 ): Promise<Timeline> {
+  const timelineData: any = {
+    title: input.title,
+    description: input.description,
+    slug: input.slug,
+    creatorId: input.creator_id,
+    visualizationType: input.visualization_type || 'horizontal',
+    isPublic: input.is_public !== false,
+    isCollaborative: input.is_collaborative || false,
+  };
+  
+  // Only include isNumbered and numberLabel if they're provided (for backward compatibility)
+  if (input.is_numbered !== undefined) {
+    timelineData.isNumbered = input.is_numbered;
+  }
+  if (input.number_label !== undefined) {
+    timelineData.numberLabel = input.number_label;
+  }
+  
   const timeline = await prisma.timeline.create({
-    data: {
-      title: input.title,
-      description: input.description,
-      slug: input.slug,
-      creatorId: input.creator_id,
-      visualizationType: input.visualization_type || 'horizontal',
-      isPublic: input.is_public !== false,
-      isCollaborative: input.is_collaborative || false,
-      isNumbered: input.is_numbered || false,
-      numberLabel: input.number_label || null,
-    },
+    data: timelineData,
     include: {
       creator: true,
       events: true,

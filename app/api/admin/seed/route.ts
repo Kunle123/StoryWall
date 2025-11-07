@@ -137,10 +137,18 @@ export async function POST(request: NextRequest) {
             let slug = baseSlug;
             let counter = 1;
 
-            // Ensure unique slug
-            while (await prisma.timeline.findUnique({ where: { slug } })) {
+            // Ensure unique slug - use findFirst to avoid Prisma client issues
+            let existingTimeline = await prisma.timeline.findFirst({ 
+              where: { slug },
+              select: { id: true }
+            });
+            while (existingTimeline) {
               slug = `${baseSlug}-${counter}`;
               counter++;
+              existingTimeline = await prisma.timeline.findFirst({ 
+                where: { slug },
+                select: { id: true }
+              });
             }
 
             const timeline = await createTimeline({

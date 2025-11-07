@@ -38,19 +38,27 @@ async function seedTimelines() {
     const result = await response.json();
     
     console.log('✅ Seeding complete!');
-    console.log('\n📊 Results:');
-    console.log(`   Users created: ${result.usersCreated}`);
-    console.log(`   Users skipped: ${result.usersSkipped}`);
-    console.log(`   Timelines created: ${result.timelinesCreated}`);
-    console.log(`   Timelines failed: ${result.timelinesFailed}`);
-    console.log(`   Events generated: ${result.eventsGenerated}`);
-    console.log(`   Images generated: ${result.imagesGenerated}`);
     
-    if (result.errors && result.errors.length > 0) {
-      console.log('\n⚠️  Errors:');
-      result.errors.forEach((error: string, index: number) => {
-        console.log(`   ${index + 1}. ${error}`);
-      });
+    if (result.summary) {
+      const summary = result.summary;
+      console.log('\n📊 Results:');
+      console.log(`   Total users processed: ${summary.totalUsers}`);
+      console.log(`   Users created: ${summary.usersCreated}`);
+      console.log(`   Users skipped: ${summary.usersSkipped}`);
+      console.log(`   Total timelines: ${summary.totalTimelines}`);
+      console.log(`   Timelines created: ${summary.timelinesCreated}`);
+      console.log(`   Timelines failed: ${summary.timelinesFailed}`);
+      console.log(`   Events generated: ${summary.eventsGenerated}`);
+      console.log(`   Images generated: ${summary.imagesGenerated}`);
+      
+      if (summary.errors && summary.errors.length > 0) {
+        console.log('\n⚠️  Errors:');
+        summary.errors.forEach((error: string, index: number) => {
+          console.log(`   ${index + 1}. ${error}`);
+        });
+      }
+    } else {
+      console.log('\n📊 Response:', JSON.stringify(result, null, 2));
     }
     
   } catch (error: any) {
