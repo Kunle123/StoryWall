@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Globe, Lock, BookOpen, Sparkles, CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -158,44 +158,20 @@ export const TimelineInfoStep = ({
           </div>
         </div>
 
-        <div className="pt-4 border-t border-border">
-          <Label className="text-base mb-3 block">Visibility</Label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setIsPublic(true)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                isPublic
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-background hover:border-border/80'
-              }`}
-            >
-              <Globe className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Public</div>
-                <div className="text-sm text-muted-foreground">
-                  Visible in discover page
-                </div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPublic(false)}
-              className={`flex-1 flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                !isPublic
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-background hover:border-border/80'
-              }`}
-            >
-              <Lock className="w-5 h-5" />
-              <div className="text-left">
-                <div className="font-semibold">Private</div>
-                <div className="text-sm text-muted-foreground">
-                  Only visible to you
-                </div>
-              </div>
-            </button>
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="is-public" className="text-base">
+              Public Timeline
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Make this timeline visible in the discover page for other users
+            </p>
           </div>
+          <Switch
+            id="is-public"
+            checked={isPublic}
+            onCheckedChange={setIsPublic}
+          />
         </div>
       </div>
     </div>
