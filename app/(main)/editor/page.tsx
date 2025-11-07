@@ -6,7 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, Eye, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
 import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -124,6 +124,13 @@ const TimelineEditor = () => {
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
+  const handleCancel = () => {
+    // Clear localStorage state
+    localStorage.removeItem(STORAGE_KEY);
+    // Navigate to discover page
+    router.push('/discover');
   };
 
   const canProceed = () => {
@@ -385,15 +392,25 @@ const TimelineEditor = () => {
 
             {/* Navigation Buttons */}
             <div className="flex flex-col sm:flex-row justify-between gap-3">
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                disabled={currentStep === 1}
-                className="w-full sm:w-auto"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  disabled={currentStep === 1}
+                  className="w-full sm:w-auto"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleCancel}
+                  className="w-full sm:w-auto text-muted-foreground hover:text-destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
               {currentStep === 5 ? (
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button 
