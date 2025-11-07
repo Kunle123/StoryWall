@@ -62,6 +62,7 @@ export const WritingStyleStep = ({
   isFactual = true,
   isNumbered = false,
   numberLabel = "Day",
+  maxEvents = 20,
   setImageReferences,
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
