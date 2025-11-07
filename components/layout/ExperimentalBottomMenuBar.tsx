@@ -188,7 +188,7 @@ export const ExperimentalBottomMenuBar = ({
                 Z
               `}
               fill="hsl(var(--background))"
-              fillOpacity="0.5"
+              fillOpacity="1"
               stroke="hsl(var(--border))"
               strokeWidth="1"
               strokeOpacity="0.5"
