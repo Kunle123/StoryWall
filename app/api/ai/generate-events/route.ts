@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
 
     // Build prompts once
     const systemPrompt = isNumbered
-      ? `You are a numbered timeline event generator. Generate ${maxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string). Events should be ordered sequentially and relevant to the timeline description.`
+      ? `You are a numbered timeline event generator. Generate ${maxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
       : isFactual 
-      ? `You are a factual timeline event generator. You MUST generate ${maxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
+      ? `You are a factual timeline event generator. You MUST generate ${maxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31).
 
 Additionally, when people are mentioned (e.g., candidates, public officials), include an optional top-level "image_references" array with 3-8 high-quality reference image links (objects with { name: string, url: string }). Prefer:
 - Official portraits or headshots (campaign or government sites)
@@ -81,7 +81,7 @@ ACCURACY REQUIREMENTS:
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
-      : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). 
+      : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31). 
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
@@ -93,7 +93,7 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
     const userPrompt = isNumbered
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Return as JSON: { "events": [{ "number": 1, "title": "First event" }, { "number": 2, "title": "Second event" }, ...] }`
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
       : isFactual
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
@@ -116,8 +116,8 @@ Include as many significant events as you can. If you know the specific date (mo
 
 IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
 
-Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
-      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
+Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
+      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
     let response;
@@ -389,6 +389,7 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
           month: event.month ? parseInt(event.month) : undefined,
           day: event.day ? parseInt(event.day) : undefined,
           title: title || `Event ${index + 1}`,
+          description: event.description || '',
         };
       }
     });
