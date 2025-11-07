@@ -129,20 +129,39 @@ Generate a comprehensive timeline with all major events you know about this topi
 
         if (resp.ok) {
           const data = await resp.json();
+          console.log('[GenerateEvents API] Responses API response structure:', {
+            hasOutputText: typeof data.output_text === 'string',
+            hasOutput: Array.isArray(data.output),
+            outputLength: Array.isArray(data.output) ? data.output.length : 0,
+            dataKeys: Object.keys(data),
+          });
+          
           // Prefer convenient field when available
           if (typeof data.output_text === 'string') {
             contentText = data.output_text;
+            console.log('[GenerateEvents API] Using output_text, length:', contentText.length);
           } else if (Array.isArray(data.output)) {
             // Find assistant message content text
             for (const item of data.output) {
-              if (item.type === 'message' && item.role === 'assistant' && Array.isArray(item.content)) {
-                const textPart = item.content.find((c: any) => typeof c.text === 'string');
-                if (textPart) {
-                  contentText = textPart.text;
+              if (item.type === 'message' && item.role === 'assistant') {
+                if (typeof item.content === 'string') {
+                  contentText = item.content;
+                  console.log('[GenerateEvents API] Using message.content (string), length:', contentText.length);
                   break;
+                } else if (Array.isArray(item.content)) {
+                  const textPart = item.content.find((c: any) => typeof c.text === 'string');
+                  if (textPart) {
+                    contentText = textPart.text;
+                    console.log('[GenerateEvents API] Using message.content[].text, length:', contentText.length);
+                    break;
+                  }
                 }
               }
             }
+          }
+          
+          if (!contentText) {
+            console.error('[GenerateEvents API] Could not extract content from Responses API:', JSON.stringify(data, null, 2));
           }
         } else {
           const errText = await resp.text();
@@ -228,13 +247,36 @@ Generate a comprehensive timeline with all major events you know about this topi
 
     let content;
     try {
-      content = JSON.parse(contentText);
+      // Try to extract JSON from the response if it's wrapped in markdown code blocks
+      let jsonText = contentText.trim();
+      
+      // Remove markdown code blocks if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      
+      content = JSON.parse(jsonText);
     } catch (parseError: any) {
       console.error('[GenerateEvents API] Failed to parse OpenAI message content:', {
-        content: contentText,
+        contentPreview: contentText.substring(0, 500),
+        contentLength: contentText.length,
         error: parseError.message,
       });
-      throw new Error('Failed to parse OpenAI response content');
+      
+      // Try to extract JSON object from the text if it's embedded in other text
+      const jsonMatch = contentText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          content = JSON.parse(jsonMatch[0]);
+          console.log('[GenerateEvents API] Successfully extracted JSON from text');
+        } catch (e) {
+          throw new Error('Failed to parse OpenAI response content: ' + parseError.message);
+        }
+      } else {
+        throw new Error('Failed to parse OpenAI response content: ' + parseError.message);
+      }
     }
     
     console.log('[GenerateEvents API] Raw OpenAI response content:', JSON.stringify(content, null, 2));
@@ -274,10 +316,20 @@ Generate a comprehensive timeline with all major events you know about this topi
     });
     
     // Filter out only events that are completely invalid (no year AND no title)
+    // But be more lenient - if it has a title, keep it even if year is missing
     const events = mappedEvents.filter((event: any) => {
-      const isValid = event.year && event.title && event.title !== 'Untitled Event';
+      const hasTitle = event.title && event.title.trim() && event.title !== 'Untitled Event';
+      const hasYear = event.year && !isNaN(event.year) && event.year > 0;
+      
+      // Keep if it has a title (year can be defaulted)
+      const isValid = hasTitle;
       if (!isValid) {
-        console.warn('[GenerateEvents API] Filtered out invalid event:', event);
+        console.warn('[GenerateEvents API] Filtered out invalid event:', {
+          title: event.title,
+          year: event.year,
+          hasTitle,
+          hasYear,
+        });
       }
       return isValid;
     });
@@ -327,11 +379,21 @@ Generate a comprehensive timeline with all major events you know about this topi
     }
     
     if (events.length === 0) {
-      console.error('[GenerateEvents API] No valid events after processing. Raw content:', content);
+      console.error('[GenerateEvents API] No valid events after processing.');
+      console.error('[GenerateEvents API] Raw content keys:', Object.keys(content));
+      console.error('[GenerateEvents API] Raw events array:', content.events);
+      console.error('[GenerateEvents API] Mapped events:', mappedEvents);
+      console.error('[GenerateEvents API] Full content (first 2000 chars):', JSON.stringify(content, null, 2).substring(0, 2000));
+      
       return NextResponse.json(
         { 
           error: 'No events were generated. Please try again or provide more details in your timeline description.',
-          details: 'The AI may have been uncertain about the topic or the response format was invalid.'
+          details: 'The AI may have been uncertain about the topic or the response format was invalid. Check server logs for details.',
+          debug: process.env.NODE_ENV === 'development' ? {
+            contentKeys: Object.keys(content),
+            eventsCount: content.events?.length || 0,
+            mappedEventsCount: mappedEvents.length,
+          } : undefined,
         },
         { status: 200 } // Return 200 but with error message so frontend can handle gracefully
       );
