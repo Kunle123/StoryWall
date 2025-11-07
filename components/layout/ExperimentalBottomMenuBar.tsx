@@ -187,8 +187,7 @@ export const ExperimentalBottomMenuBar = ({
                 L ${screenWidth} ${tabBarHeight}
                 Z
               `}
-              fill="white"
-              fillOpacity="0.5"
+              fill="rgba(255, 255, 255, 0.5)"
               stroke="hsl(var(--border))"
               strokeWidth="1"
               strokeOpacity="0.5"
