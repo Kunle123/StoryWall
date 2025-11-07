@@ -401,6 +401,7 @@ export async function POST(request: NextRequest) {
               quality: 'fast', // $0.02/image
               referenceImage: referenceImage || undefined,
               aspectRatio: '1:1',
+              personGeneration: 'dont_allow_adult', // More restrictive - avoids blocking issues
             });
             return { index, imageUrl: imagenImage, error: null, event };
           } catch (error: any) {

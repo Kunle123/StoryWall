@@ -34,7 +34,47 @@ function getVertexAIClient(): VertexAI {
   // Initialize with JSON credentials from environment variable
   if (credentialsJson) {
     try {
-      const credentials = JSON.parse(credentialsJson);
+      // Handle JSON that might be stored as a string with escaped quotes
+      let jsonString = credentialsJson.trim();
+      
+      // Remove surrounding quotes if present (single or double)
+      // Check for balanced quotes at start and end
+      if (jsonString.length > 2) {
+        if ((jsonString.startsWith('"') && jsonString.endsWith('"')) || 
+            (jsonString.startsWith("'") && jsonString.endsWith("'"))) {
+          jsonString = jsonString.slice(1, -1);
+        }
+      }
+      
+      // Handle actual newlines in the JSON (if it's formatted with line breaks)
+      // First, try to parse as-is (in case it's already valid JSON with escaped newlines)
+      // If that fails, remove actual newlines and try again
+      let parsedCredentials;
+      try {
+        parsedCredentials = JSON.parse(jsonString);
+      } catch (firstError) {
+        // If parsing fails, try removing actual newlines and whitespace
+        const cleanedJson = jsonString.replace(/\r\n/g, '').replace(/\n/g, '').replace(/\r/g, '').trim();
+        try {
+          parsedCredentials = JSON.parse(cleanedJson);
+          jsonString = cleanedJson; // Use cleaned version
+        } catch (secondError) {
+          // Still failed, throw original error
+          throw firstError;
+        }
+      }
+      
+      const credentials = parsedCredentials;
+      
+      // If it still looks like it has escaped quotes, try to unescape
+      if (jsonString.includes('\\"')) {
+        jsonString = jsonString.replace(/\\"/g, '"');
+      }
+      if (jsonString.includes("\\'")) {
+        jsonString = jsonString.replace(/\\'/g, "'");
+      }
+      
+      // Credentials already parsed above
       
       // For Railway/serverless: Write credentials to a temp file and use it
       // The Vertex AI SDK will use GOOGLE_APPLICATION_CREDENTIALS if set
@@ -59,8 +99,15 @@ function getVertexAIClient(): VertexAI {
         location: 'us-central1', // or 'europe-west4' - check availability
       });
       return vertexAI;
-    } catch (error) {
-      throw new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: ${error}`);
+    } catch (error: any) {
+      // Provide more helpful error message
+      const errorMsg = error.message || String(error);
+      const jsonPreview = credentialsJson.substring(0, 100);
+      throw new Error(
+        `Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: ${errorMsg}\n` +
+        `JSON preview: ${jsonPreview}...\n` +
+        `Make sure the JSON is properly formatted in .env.local (no extra quotes, proper escaping)`
+      );
     }
   }
 
@@ -110,7 +157,7 @@ export async function generateImageWithImagen(
     referenceImage,
     aspectRatio = '1:1',
     safetyFilterLevel = 'block_some',
-    personGeneration = 'allow_all',
+    personGeneration = 'dont_allow_adult', // Changed from 'allow_all' - not available for most accounts
   } = options;
 
   try {
@@ -120,15 +167,11 @@ export async function generateImageWithImagen(
     console.log(`[Imagen] Prompt: ${prompt.substring(0, 100)}...`);
     
     // Map quality to Imagen model
-    const modelMap: Record<string, string> = {
-      'fast': 'imagegeneration@006', // Fast model
-      'standard': 'imagegeneration@005', // Standard model
-      'ultra': 'imagegeneration@006', // Ultra uses same as fast for now
-    };
+    // Imagen 4 model name: imagen-4.0-generate-001
+    // Quality is controlled via parameters, not different models
+    const model = 'imagen-4.0-generate-001';
     
-    const model = modelMap[quality] || 'imagegeneration@006';
-    
-    // Prepare the request
+    // Prepare the request - Imagen 4 uses a specific format
     const requestBody: any = {
       instances: [
         {
@@ -155,11 +198,21 @@ export async function generateImageWithImagen(
       };
     }
     
-    // Call the Vertex AI API
-    // Note: The exact endpoint may vary - this is based on typical Vertex AI structure
+    // Call the Vertex AI API for Imagen
+    // Imagen 4 uses a different endpoint structure
     const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID!;
     const location = 'us-central1';
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
+    
+    // Try different possible endpoint formats for Imagen
+    // Format 1: Standard Vertex AI predict endpoint
+    let endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
+    
+    // Alternative format if the above doesn't work
+    // Format 2: imagegeneration endpoint (if different)
+    // endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagegeneration-006:predict`;
+    
+    console.log(`[Imagen] Calling endpoint: ${endpoint.substring(0, 100)}...`);
+    console.log(`[Imagen] Request body:`, JSON.stringify(requestBody).substring(0, 200));
     
     // Get access token (the SDK should handle this, but we may need to use REST API directly)
     // For now, let's use the SDK's prediction service if available
@@ -191,14 +244,47 @@ export async function generateImageWithImagen(
     
     const result = await response.json();
     
+    // Log the response structure for debugging
+    console.log(`[Imagen] API response structure:`, JSON.stringify(result).substring(0, 500));
+    
     // Extract image from response
-    // The response structure: { predictions: [{ bytesBase64Encoded: "..." }] }
-    if (result.predictions && result.predictions[0] && result.predictions[0].bytesBase64Encoded) {
-      const imageBase64 = result.predictions[0].bytesBase64Encoded;
+    // The response structure may vary - check different possible formats
+    let imageBase64: string | null = null;
+    
+    // Format 1: { predictions: [{ bytesBase64Encoded: "..." }] }
+    if (result.predictions && result.predictions[0]) {
+      if (result.predictions[0].bytesBase64Encoded) {
+        imageBase64 = result.predictions[0].bytesBase64Encoded;
+      } else if (result.predictions[0].image) {
+        // Format 2: { predictions: [{ image: "base64..." }] }
+        imageBase64 = result.predictions[0].image;
+      } else if (typeof result.predictions[0] === 'string') {
+        // Format 3: { predictions: ["base64..."] }
+        imageBase64 = result.predictions[0];
+      }
+    }
+    
+    // Format 4: Direct base64 in response
+    if (!imageBase64 && result.image) {
+      imageBase64 = result.image;
+    }
+    
+    // Format 5: { output: "base64..." }
+    if (!imageBase64 && result.output) {
+      imageBase64 = result.output;
+    }
+    
+    if (imageBase64) {
+      // Remove data URL prefix if present
+      if (imageBase64.startsWith('data:image')) {
+        return imageBase64;
+      }
       return `data:image/png;base64,${imageBase64}`;
     }
     
-    throw new Error('No image data in Imagen API response');
+    // If we get here, log the full response for debugging
+    console.error('[Imagen] Full API response:', JSON.stringify(result, null, 2));
+    throw new Error('No image data in Imagen API response - check response structure');
   } catch (error: any) {
     console.error('[Imagen] Error generating image:', error);
     throw new Error(`Failed to generate image with Google Imagen: ${error.message}`);
