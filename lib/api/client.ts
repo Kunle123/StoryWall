@@ -602,6 +602,119 @@ export async function unlikeEvent(eventId: string): Promise<ApiResponse<{ messag
   }
 }
 
+// Comment likes
+export interface CommentLikeStatus {
+  comment_id: string;
+  likes_count: number;
+  user_liked: boolean;
+}
+
+export async function fetchCommentLikeStatus(commentId: string): Promise<ApiResponse<CommentLikeStatus>> {
+  try {
+    const response = await fetch(`/api/comments/${commentId}/likes`);
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to fetch like status';
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        if (response.status === 404) {
+          errorMessage = 'Comment not found';
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch like status' };
+  }
+}
+
+export async function likeComment(commentId: string): Promise<ApiResponse<CommentLikeStatus>> {
+  try {
+    const response = await fetch(`/api/comments/${commentId}/likes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to like comment';
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (response.status === 404) {
+          errorMessage = 'Comment not found';
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
+    const data = await response.json();
+    return { 
+      data: {
+        comment_id: commentId,
+        likes_count: data.likes_count,
+        user_liked: data.liked,
+      }
+    };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to like comment' };
+  }
+}
+
+export async function unlikeComment(commentId: string): Promise<ApiResponse<CommentLikeStatus>> {
+  try {
+    const response = await fetch(`/api/comments/${commentId}/likes`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to unlike comment';
+      
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized';
+        } else if (response.status === 404) {
+          errorMessage = 'Comment not found';
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+      }
+      
+      return { error: errorMessage };
+    }
+
+    const data = await response.json();
+    return { 
+      data: {
+        comment_id: commentId,
+        likes_count: data.likes_count,
+        user_liked: data.liked,
+      }
+    };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to unlike comment' };
+  }
+}
+
 // User Profile API calls
 export interface UserProfile {
   id: string;
