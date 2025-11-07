@@ -26,6 +26,7 @@ const imageStyles = [
 ];
 
 const themeColors = [
+  { name: "None", value: "" },
   { name: "Blue", value: "#3B82F6" },
   { name: "Purple", value: "#A855F7" },
   { name: "Green", value: "#10B981" },
@@ -125,10 +126,12 @@ export const ImageStyleStep = ({
                 className="cursor-pointer px-4 py-2 text-sm"
                 onClick={() => setThemeColor(color.value)}
               >
-                <div 
-                  className="w-4 h-4 rounded-full mr-2 border border-border"
-                  style={{ backgroundColor: color.value }}
-                />
+                {color.value && (
+                  <div 
+                    className="w-4 h-4 rounded-full mr-2 border border-border"
+                    style={{ backgroundColor: color.value }}
+                  />
+                )}
                 {color.name}
               </Badge>
             ))}

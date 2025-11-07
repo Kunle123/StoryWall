@@ -3,7 +3,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Globe, Lock, BookOpen, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Globe, Lock, BookOpen, Sparkles, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -14,6 +19,10 @@ interface TimelineInfoStepProps {
   setIsPublic: (isPublic: boolean) => void;
   isFactual: boolean;
   setIsFactual: (isFactual: boolean) => void;
+  startDate?: Date;
+  setStartDate?: (date?: Date) => void;
+  endDate?: Date;
+  setEndDate?: (date?: Date) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -25,6 +34,10 @@ export const TimelineInfoStep = ({
   setIsPublic,
   isFactual,
   setIsFactual,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
 }: TimelineInfoStepProps) => {
   return (
     <div className="space-y-6">
@@ -82,6 +95,67 @@ export const TimelineInfoStep = ({
             checked={!isFactual}
             onCheckedChange={(checked) => setIsFactual(!checked)}
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="start-date" className="text-base mb-2 block">
+              Start Date (Optional)
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-10",
+                    !startDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label htmlFor="end-date" className="text-base mb-2 block">
+              End Date (Optional)
+            </Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-10",
+                    !endDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  disabled={(date) => startDate ? date < startDate : false}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <div className="pt-4 border-t border-border">

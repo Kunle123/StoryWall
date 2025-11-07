@@ -17,6 +17,8 @@ import { createTimeline, createEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const STORAGE_KEY = 'timeline-editor-state';
 
@@ -29,6 +31,8 @@ const TimelineEditor = () => {
   const [timelineDescription, setTimelineDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true); // Default to public so timelines appear in discover
   const [isFactual, setIsFactual] = useState(true); // Default to factual timelines
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [writingStyle, setWritingStyle] = useState("");
   const [customStyle, setCustomStyle] = useState("");
   const [imageStyle, setImageStyle] = useState("");
@@ -48,6 +52,8 @@ const TimelineEditor = () => {
         setTimelineDescription(state.timelineDescription || "");
         setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
         setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
+        setStartDate(state.startDate ? new Date(state.startDate) : undefined);
+        setEndDate(state.endDate ? new Date(state.endDate) : undefined);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "");
@@ -68,6 +74,8 @@ const TimelineEditor = () => {
       timelineDescription,
       isPublic,
       isFactual,
+      startDate: startDate?.toISOString(),
+      endDate: endDate?.toISOString(),
       writingStyle,
       customStyle,
       imageStyle,
@@ -77,7 +85,7 @@ const TimelineEditor = () => {
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, isPublic, isFactual, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -352,6 +360,10 @@ const TimelineEditor = () => {
                   setIsPublic={setIsPublic}
                   isFactual={isFactual}
                   setIsFactual={setIsFactual}
+                  startDate={startDate}
+                  setStartDate={setStartDate}
+                  endDate={endDate}
+                  setEndDate={setEndDate}
                 />
               )}
               {currentStep === 2 && (
@@ -398,6 +410,57 @@ const TimelineEditor = () => {
                   imageReferences={imageReferences}
                 />
               )}
+              {currentStep === 6 && (
+                <div>
+                  <h2 className="text-2xl font-semibold mb-4">Review & Publish</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Review your timeline and publish it when ready.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-2">{timelineName}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{timelineDescription}</p>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <Badge variant="outline">{isFactual ? "Factual" : "Fictional"}</Badge>
+                        <Badge variant="outline">{isPublic ? "Public" : "Private"}</Badge>
+                        {imageStyle && <Badge variant="outline">{imageStyle}</Badge>}
+                      </div>
+                      {startDate && endDate && (
+                        <p className="text-sm text-muted-foreground">
+                          {format(startDate, "PPP")} - {format(endDate, "PPP")}
+                        </p>
+                      )}
+                      <p className="text-sm mt-2">Total events: {events.length}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Events with images: {events.filter(e => e.imageUrl).length}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">Event Preview:</h4>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {events.slice(0, 5).map((event) => (
+                          <div key={event.id} className="p-3 border rounded-lg text-sm">
+                            <div className="font-medium">{event.year} - {event.title}</div>
+                            {event.description && (
+                              <div className="text-muted-foreground mt-1 line-clamp-2">
+                                {event.description}
+                              </div>
+                            )}
+                            {event.imageUrl && (
+                              <div className="mt-2 text-xs text-muted-foreground">✓ Has image</div>
+                            )}
+                          </div>
+                        ))}
+                        {events.length > 5 && (
+                          <div className="text-sm text-muted-foreground text-center">
+                            ... and {events.length - 5} more events
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </Card>
 
             {/* Navigation Buttons */}
@@ -413,34 +476,38 @@ const TimelineEditor = () => {
                   Back
                 </Button>
                 {currentStep === 5 ? (
+                  <Button
+                    onClick={handleNext}
+                    disabled={!canProceed()}
+                    className="w-full sm:w-auto"
+                  >
+                    Next
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : currentStep === 6 ? (
                   <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <Button 
-                    variant="outline"
+                    <Button 
+                      variant="outline"
                       onClick={handlePreviewTimeline}
                       disabled={!canProceed()}
                       className="flex-1 sm:flex-initial"
-                  >
-                    <Eye className="mr-2 h-4 w-4" />
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
                       Preview Timeline
-                  </Button>
-                  <Button 
+                    </Button>
+                    <Button 
                       onClick={handleSaveTimeline}
                       disabled={!canProceed() || isSaving}
                       className="flex-1 sm:flex-initial"
-                  >
-                    {isSaving ? (
-                      <>
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                          Save Timeline
-                      </>
-                    )}
-                  </Button>
-                    </div>
-                  ) : (
+                    >
+                      {isSaving ? (
+                        <>Saving...</>
+                      ) : (
+                        <><Save className="mr-2 h-4 w-4" />Save Timeline</>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     onClick={handleNext}
                     disabled={!canProceed()}

@@ -16,6 +16,7 @@ import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialo
 import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 
 const themeColors = [
+  { name: "None", value: "" },
   { name: "Blue", value: "#3B82F6" },
   { name: "Purple", value: "#A855F7" },
   { name: "Green", value: "#10B981" },
@@ -56,6 +57,8 @@ export const GenerateImagesStep = ({
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   const [uploadingEventId, setUploadingEventId] = useState<string | null>(null);
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set(events.map(e => e.id)));
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [regenerationCount, setRegenerationCount] = useState<Record<string, number>>({});
   const { deductCredits, credits } = useCredits();
 
   const handleSaveEdit = () => {
@@ -144,6 +147,81 @@ export const GenerateImagesStep = ({
       }
       return newSet;
     });
+  };
+
+  const handleRegenerateImage = async (eventId: string) => {
+    const count = regenerationCount[eventId] || 0;
+    const cost = count >= 2 ? 10 : 5;
+    
+    // Check credits
+    if (credits < cost) {
+      setShowCreditsDialog(true);
+      return;
+    }
+
+    setRegeneratingId(eventId);
+    
+    try {
+      const event = events.find(e => e.id === eventId);
+      if (!event) return;
+
+      const response = await fetch("/api/ai/generate-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: [{ 
+            title: event.title, 
+            description: event.description || "",
+            year: event.year,
+            imagePrompt: event.imagePrompt,
+          }],
+          imageStyle,
+          themeColor,
+          imageReferences,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Regeneration failed');
+      }
+
+      const data = await response.json();
+      
+      if (!data.images || data.images.length === 0 || !data.images[0]) {
+        throw new Error("No image was generated");
+      }
+
+      // Update the event with the new image
+      setEvents(
+        events.map((e) =>
+          e.id === eventId ? { ...e, imageUrl: data.images[0] } : e
+        )
+      );
+
+      // Deduct credits AFTER successful generation
+      await deductCredits(cost, `Image Regeneration for "${event.title}"`);
+      
+      // Update regeneration count
+      setRegenerationCount(prev => ({
+        ...prev,
+        [eventId]: count + 1
+      }));
+
+      toast({
+        title: "Image regenerated",
+        description: `New image generated for "${event.title}"`,
+      });
+    } catch (error: any) {
+      console.error("Error regenerating image:", error);
+      toast({
+        title: "Failed to regenerate image",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingId(null);
+    }
   };
 
   const handleGenerateImages = async () => {
@@ -435,10 +513,12 @@ export const GenerateImagesStep = ({
                       className="cursor-pointer px-4 py-2 text-sm"
                       onClick={() => setThemeColor?.(color.value)}
                     >
-                      <div 
-                        className="w-4 h-4 rounded-full mr-2 border border-border"
-                        style={{ backgroundColor: color.value }}
-                      />
+                      {color.value && (
+                        <div 
+                          className="w-4 h-4 rounded-full mr-2 border border-border"
+                          style={{ backgroundColor: color.value }}
+                        />
+                      )}
                       {color.name}
                     </Badge>
                   ))}
@@ -563,6 +643,24 @@ export const GenerateImagesStep = ({
                         >
                           <Pencil className="w-4 h-4 mr-2" />
                           Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRegenerateImage(event.id)}
+                          disabled={regeneratingId === event.id}
+                        >
+                          {regeneratingId === event.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Regenerating...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCw className="w-4 h-4 mr-2" />
+                              Regenerate {regenerationCount[event.id] >= 2 ? "(10 credits)" : "(5 credits)"}
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>
