@@ -313,10 +313,11 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
                           });
                         } else if (result.data) {
                           // Update the comment's like status
+                          const resultData = result.data;
                           setComments(prevComments => 
                             prevComments.map(c => 
                               c.id === comment.id
-                                ? { ...c, likes: result.data.likes_count, isLiked: result.data.user_liked }
+                                ? { ...c, likes: resultData.likes_count, isLiked: resultData.user_liked }
                                 : c
                             )
                           );
@@ -435,6 +436,7 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
                                     });
                                   } else if (result.data) {
                                     // Update the reply's like status within its parent comment
+                                    const resultData = result.data;
                                     setComments(prevComments => 
                                       prevComments.map(c => 
                                         c.id === comment.id
@@ -442,7 +444,7 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
                                               ...c,
                                               replies: (c.replies || []).map(r =>
                                                 r.id === reply.id
-                                                  ? { ...r, likes: result.data.likes_count, isLiked: result.data.user_liked }
+                                                  ? { ...r, likes: resultData.likes_count, isLiked: resultData.user_liked }
                                                   : r
                                               )
                                             }
