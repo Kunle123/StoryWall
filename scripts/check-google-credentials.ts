@@ -1,7 +1,7 @@
 
 
 
-did you yu/**
+/**
  * Check Google Cloud credentials format in .env.local
  */
 
