@@ -11,7 +11,11 @@ import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialo
 
 export interface TimelineEvent {
   id: string;
-  year: number;
+  year?: number; // Optional for numbered events
+  month?: number;
+  day?: number;
+  number?: number; // For numbered events (1, 2, 3...)
+  numberLabel?: string; // Label for numbered events (e.g., "Day", "Event", "Step")
   title: string;
   description?: string;
   imageUrl?: string;
@@ -29,6 +33,8 @@ interface WritingStyleStepProps {
   timelineDescription?: string;
   timelineName?: string;
   isFactual?: boolean;
+  isNumbered?: boolean;
+  numberLabel?: string;
   setImageReferences?: (refs: Array<{ name: string; url: string }>) => void;
 }
 
@@ -53,6 +59,8 @@ export const WritingStyleStep = ({
   timelineDescription = "",
   timelineName = "",
   isFactual = true,
+  isNumbered = false,
+  numberLabel = "Day",
   setImageReferences,
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
@@ -104,7 +112,9 @@ export const WritingStyleStep = ({
           timelineDescription,
           timelineName,
           maxEvents: 20,
-            isFactual,
+          isFactual,
+          isNumbered,
+          numberLabel,
         }),
           signal: controller.signal,
       });
@@ -150,11 +160,26 @@ export const WritingStyleStep = ({
 
       console.log('[GenerateEvents] Successfully parsed events:', data.events.length);
 
-      const generatedEvents: TimelineEvent[] = data.events.map((e: any, idx: number) => ({
-        id: `event-${Date.now()}-${idx}`,
-        year: e.year,
-        title: e.title,
-      }));
+      const generatedEvents: TimelineEvent[] = data.events.map((e: any, idx: number) => {
+        if (isNumbered) {
+          // For numbered events, use number instead of year
+          return {
+            id: `event-${Date.now()}-${idx}`,
+            number: e.number || (idx + 1), // Use provided number or sequential
+            numberLabel: numberLabel,
+            title: e.title,
+          };
+        } else {
+          // For dated events, use year/month/day
+          return {
+            id: `event-${Date.now()}-${idx}`,
+            year: e.year,
+            month: e.month,
+            day: e.day,
+            title: e.title,
+          };
+        }
+      });
 
       setEvents(generatedEvents);
       if (setImageReferences && Array.isArray(data.imageReferences)) {
@@ -196,11 +221,18 @@ export const WritingStyleStep = ({
   };
 
   const addEvent = () => {
-    const newEvent: TimelineEvent = {
-      id: Date.now().toString(),
-      year: new Date().getFullYear(),
-      title: "",
-    };
+    const newEvent: TimelineEvent = isNumbered
+      ? {
+          id: Date.now().toString(),
+          number: events.length + 1, // Sequential numbering
+          numberLabel: numberLabel,
+          title: "",
+        }
+      : {
+          id: Date.now().toString(),
+          year: new Date().getFullYear(),
+          title: "",
+        };
     setEvents([...events, newEvent]);
   };
 
@@ -334,15 +366,32 @@ export const WritingStyleStep = ({
               className="flex gap-3 items-start p-4 border rounded-lg bg-card"
             >
               <div className="flex-1 space-y-3">
-                <Input
-                  placeholder="Year"
-                  type="number"
-                  value={event.year}
-                  onChange={(e) =>
-                    updateEvent(event.id, "year", parseInt(e.target.value))
-                  }
-                  className="w-32 h-10"
-                />
+                {isNumbered ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder={numberLabel}
+                      type="number"
+                      value={event.number || ""}
+                      onChange={(e) =>
+                        updateEvent(event.id, "number", parseInt(e.target.value))
+                      }
+                      className="w-32 h-10"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {numberLabel} {event.number || ""}
+                    </span>
+                  </div>
+                ) : (
+                  <Input
+                    placeholder="Year"
+                    type="number"
+                    value={event.year || ""}
+                    onChange={(e) =>
+                      updateEvent(event.id, "year", parseInt(e.target.value))
+                    }
+                    className="w-32 h-10"
+                  />
+                )}
                 <Input
                   placeholder="Event title"
                   value={event.title}

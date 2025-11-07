@@ -19,13 +19,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { timelineDescription, timelineName, maxEvents = 20, isFactual = true } = body;
+    const { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day" } = body;
     
     console.log('[GenerateEvents API] Request received:', {
       timelineName,
       descriptionLength: timelineDescription?.length,
       maxEvents,
       isFactual,
+      isNumbered,
+      numberLabel,
       userAgent: request.headers.get('user-agent')?.substring(0, 50),
     });
 
@@ -46,7 +48,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Build prompts once
-    const systemPrompt = isFactual 
+    const systemPrompt = isNumbered
+      ? `You are a numbered timeline event generator. Generate ${maxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string). Events should be ordered sequentially and relevant to the timeline description.`
+      : isFactual 
       ? `You are a factual timeline event generator. You MUST generate ${maxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
 
 Additionally, when people are mentioned (e.g., candidates, public officials), include an optional top-level "image_references" array with 3-8 high-quality reference image links (objects with { name: string, url: string }). Prefer:
@@ -85,7 +89,9 @@ CREATIVE GUIDELINES:
 
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
-    const userPrompt = isFactual
+    const userPrompt = isNumbered
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Return as JSON: { "events": [{ "number": 1, "title": "First event" }, { "number": 2, "title": "Second event" }, ...] }`
+      : isFactual
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
@@ -305,43 +311,75 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
     
     // Map events with better validation
     const mappedEvents = content.events.map((event: any, index: number) => {
-      const year = parseInt(event.year);
       const title = String(event.title || '').trim();
       
-      console.log(`[GenerateEvents API] Event ${index + 1}:`, {
-        rawYear: event.year,
-        parsedYear: year,
-        rawTitle: event.title,
-        parsedTitle: title,
-        hasMonth: !!event.month,
-        hasDay: !!event.day,
-      });
-      
-      return {
-        year: year || new Date().getFullYear(),
-      month: event.month ? parseInt(event.month) : undefined,
-      day: event.day ? parseInt(event.day) : undefined,
-        title: title || `Event ${index + 1}`,
-      };
+      if (isNumbered) {
+        // For numbered events, use number instead of year
+        const number = event.number ? parseInt(event.number) : (index + 1);
+        console.log(`[GenerateEvents API] Numbered Event ${index + 1}:`, {
+          rawNumber: event.number,
+          parsedNumber: number,
+          rawTitle: event.title,
+          parsedTitle: title,
+        });
+        
+        return {
+          number: number,
+          title: title || `${numberLabel} ${number}`,
+        };
+      } else {
+        // For dated events, use year/month/day
+        const year = parseInt(event.year);
+        console.log(`[GenerateEvents API] Event ${index + 1}:`, {
+          rawYear: event.year,
+          parsedYear: year,
+          rawTitle: event.title,
+          parsedTitle: title,
+          hasMonth: !!event.month,
+          hasDay: !!event.day,
+        });
+        
+        return {
+          year: year || new Date().getFullYear(),
+          month: event.month ? parseInt(event.month) : undefined,
+          day: event.day ? parseInt(event.day) : undefined,
+          title: title || `Event ${index + 1}`,
+        };
+      }
     });
     
-    // Filter out only events that are completely invalid (no year AND no title)
-    // But be more lenient - if it has a title, keep it even if year is missing
+    // Filter out only events that are completely invalid
     const events = mappedEvents.filter((event: any) => {
       const hasTitle = event.title && event.title.trim() && event.title !== 'Untitled Event';
-      const hasYear = event.year && !isNaN(event.year) && event.year > 0;
       
-      // Keep if it has a title (year can be defaulted)
-      const isValid = hasTitle;
-      if (!isValid) {
-        console.warn('[GenerateEvents API] Filtered out invalid event:', {
-          title: event.title,
-          year: event.year,
-          hasTitle,
-          hasYear,
-        });
+      if (isNumbered) {
+        // For numbered events, check for number and title
+        const hasNumber = event.number && !isNaN(event.number) && event.number > 0;
+        const isValid = hasTitle && hasNumber;
+        if (!isValid) {
+          console.warn('[GenerateEvents API] Filtered out invalid numbered event:', {
+            title: event.title,
+            number: event.number,
+            hasTitle,
+            hasNumber,
+          });
+        }
+        return isValid;
+      } else {
+        // For dated events, check for year and title
+        const hasYear = event.year && !isNaN(event.year) && event.year > 0;
+        // Keep if it has a title (year can be defaulted)
+        const isValid = hasTitle;
+        if (!isValid) {
+          console.warn('[GenerateEvents API] Filtered out invalid event:', {
+            title: event.title,
+            year: event.year,
+            hasTitle,
+            hasYear,
+          });
+        }
+        return isValid;
       }
-      return isValid;
     });
     
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
@@ -379,12 +417,21 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
     // If all events were filtered out, return the mapped events anyway (with defaults)
     if (events.length === 0 && mappedEvents.length > 0) {
       console.warn('[GenerateEvents API] All events filtered out, using mapped events with defaults');
-      const fallbackEvents = mappedEvents.map((e: any) => ({
-        year: e.year || new Date().getFullYear(),
-        month: e.month,
-        day: e.day,
-        title: e.title || 'Untitled Event',
-      }));
+      const fallbackEvents = mappedEvents.map((e: any, idx: number) => {
+        if (isNumbered) {
+          return {
+            number: e.number || (idx + 1),
+            title: e.title || `${numberLabel} ${idx + 1}`,
+          };
+        } else {
+          return {
+            year: e.year || new Date().getFullYear(),
+            month: e.month,
+            day: e.day,
+            title: e.title || 'Untitled Event',
+          };
+        }
+      });
       return NextResponse.json({ events: fallbackEvents.slice(0, maxEvents) });
     }
     

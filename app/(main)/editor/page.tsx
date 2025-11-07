@@ -31,6 +31,8 @@ const TimelineEditor = () => {
   const [timelineDescription, setTimelineDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true); // Default to public so timelines appear in discover
   const [isFactual, setIsFactual] = useState(true); // Default to factual timelines
+  const [isNumbered, setIsNumbered] = useState(false); // Default to dated events
+  const [numberLabel, setNumberLabel] = useState("Day"); // Default label for numbered events
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [writingStyle, setWritingStyle] = useState("");
@@ -50,10 +52,12 @@ const TimelineEditor = () => {
         const state = JSON.parse(saved);
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
-        setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
-        setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
-        setStartDate(state.startDate ? new Date(state.startDate) : undefined);
-        setEndDate(state.endDate ? new Date(state.endDate) : undefined);
+            setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
+            setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
+            setIsNumbered(state.isNumbered !== undefined ? state.isNumbered : false);
+            setNumberLabel(state.numberLabel || "Day");
+            setStartDate(state.startDate ? new Date(state.startDate) : undefined);
+            setEndDate(state.endDate ? new Date(state.endDate) : undefined);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "");
@@ -69,13 +73,15 @@ const TimelineEditor = () => {
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    const state = {
-      timelineName,
-      timelineDescription,
-      isPublic,
-      isFactual,
-      startDate: startDate?.toISOString(),
-      endDate: endDate?.toISOString(),
+        const state = {
+          timelineName,
+          timelineDescription,
+          isPublic,
+          isFactual,
+          isNumbered,
+          numberLabel,
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
       writingStyle,
       customStyle,
       imageStyle,
@@ -85,7 +91,7 @@ const TimelineEditor = () => {
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [timelineName, timelineDescription, isPublic, isFactual, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
+      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -196,22 +202,33 @@ const TimelineEditor = () => {
       const eventResults = [];
       for (const event of events) {
         try {
-          // Format date: only include month/day if they are actually provided
-          // Use Jan 1 as placeholder for year-only dates (DB requires full date)
-          // We'll detect this in formatting to show year-only when appropriate
-          const hasMonth = (event as any).month && (event as any).month >= 1 && (event as any).month <= 12;
-          const hasDay = (event as any).day && (event as any).day >= 1 && (event as any).day <= 31;
+          let dateStr: string;
           
-          // Only use month/day if both are provided, otherwise use Jan 1 as placeholder
-          // This ensures year-only events are stored as Jan 1 but displayed as year-only
-          const month = (hasMonth && hasDay) ? (event as any).month : 1;
-          const day = (hasMonth && hasDay) ? (event as any).day : 1;
-          const dateStr = `${event.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if (isNumbered && event.number) {
+            // For numbered events, use a special date format or store number separately
+            // For now, we'll use year 1 with the number as the day (temporary solution)
+            // TODO: Add number field to database schema
+            const number = event.number;
+            // Store as year 1, month 1, day = number (we'll need to update DB schema later)
+            dateStr = `1-01-${String(number).padStart(2, '0')}`;
+          } else {
+            // Format date: only include month/day if they are actually provided
+            // Use Jan 1 as placeholder for year-only dates (DB requires full date)
+            // We'll detect this in formatting to show year-only when appropriate
+            const hasMonth = (event as any).month && (event as any).month >= 1 && (event as any).month <= 12;
+            const hasDay = (event as any).day && (event as any).day >= 1 && (event as any).day <= 31;
+            
+            // Only use month/day if both are provided, otherwise use Jan 1 as placeholder
+            // This ensures year-only events are stored as Jan 1 but displayed as year-only
+            const month = (hasMonth && hasDay) ? (event as any).month : 1;
+            const day = (hasMonth && hasDay) ? (event as any).day : 1;
+            dateStr = `${event.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          }
 
           const eventResult = await createEvent(timelineId, {
             title: event.title,
             description: event.description || "",
-        date: dateStr,
+            date: dateStr,
             image_url: event.imageUrl || undefined,
           });
 
@@ -351,22 +368,26 @@ const TimelineEditor = () => {
         {!showPreview && (
           <>
             <Card className="p-6 mb-6">
-              {currentStep === 1 && (
-                <TimelineInfoStep
-                  timelineName={timelineName}
-                  setTimelineName={setTimelineName}
-                  timelineDescription={timelineDescription}
-                  setTimelineDescription={setTimelineDescription}
-                  isPublic={isPublic}
-                  setIsPublic={setIsPublic}
-                  isFactual={isFactual}
-                  setIsFactual={setIsFactual}
-                  startDate={startDate}
-                  setStartDate={setStartDate}
-                  endDate={endDate}
-                  setEndDate={setEndDate}
-                />
-              )}
+                  {currentStep === 1 && (
+                    <TimelineInfoStep
+                      timelineName={timelineName}
+                      setTimelineName={setTimelineName}
+                      timelineDescription={timelineDescription}
+                      setTimelineDescription={setTimelineDescription}
+                      isPublic={isPublic}
+                      setIsPublic={setIsPublic}
+                      isFactual={isFactual}
+                      setIsFactual={setIsFactual}
+                      isNumbered={isNumbered}
+                      setIsNumbered={setIsNumbered}
+                      numberLabel={numberLabel}
+                      setNumberLabel={setNumberLabel}
+                      startDate={startDate}
+                      setStartDate={setStartDate}
+                      endDate={endDate}
+                      setEndDate={setEndDate}
+                    />
+                  )}
               {currentStep === 2 && (
                 <WritingStyleStep
                   writingStyle={writingStyle}
@@ -378,6 +399,8 @@ const TimelineEditor = () => {
                   timelineDescription={timelineDescription}
                   timelineName={timelineName}
                   isFactual={isFactual}
+                  isNumbered={isNumbered}
+                  numberLabel={numberLabel}
                   setImageReferences={setImageReferences}
                 />
               )}
