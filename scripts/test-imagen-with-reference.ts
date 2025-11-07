@@ -79,7 +79,7 @@ async function testWithReference() {
       quality: 'fast',
       aspectRatio: '1:1',
       personGeneration: 'dont_allow_adult',
-      referenceImage: referenceImage, // Pass reference image if available
+      referenceImage: referenceImage || undefined, // Pass reference image if available
     });
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
