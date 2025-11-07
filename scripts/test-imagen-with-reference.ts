@@ -46,7 +46,7 @@ async function testWithReference() {
   // For Zohran Mamdani, you could use a news photo or official image
   const referenceImageUrl = process.argv[2] || '';
   
-  let referenceImage: string | undefined = undefined;
+  let referenceImage: string | null = null;
   
   if (referenceImageUrl) {
     console.log(`📥 Downloading reference image from: ${referenceImageUrl}\n`);
