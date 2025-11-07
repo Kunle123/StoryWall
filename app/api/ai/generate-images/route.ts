@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
+import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
 
 /**
  * Generate images for timeline events using style-appropriate models (via Replicate)
@@ -53,8 +54,14 @@ const COLOR_NAMES: Record<string, string> = {
 // Models available on Replicate
 const MODELS = {
   // Photorealistic models (best for realistic photos)
-  PHOTOREALISTIC: "black-forest-labs/flux-pro", // $0.05-0.10/image - best for photorealistic
-  PHOTOREALISTIC_ALT: "stability-ai/sdxl", // $0.0048/image - good fallback, cheaper
+  // Google Imagen 4 Fast: Best quality/price ratio ($0.02/image) - requires Google Cloud setup
+  PHOTOREALISTIC: "google-imagen-4-fast", // $0.02/image - excellent quality, best price
+  PHOTOREALISTIC_FALLBACK: "black-forest-labs/flux-dev", // $0.025-0.030/image - fallback if Google not configured
+  // Alternative photorealistic options:
+  // - "google-imagen-4-standard": $0.04/image (higher quality)
+  // - "black-forest-labs/flux-pro": $0.05-0.10/image (highest quality, expensive)
+  // - "stability-ai/stable-diffusion-3.5-large-turbo": $0.04/image (very high quality)
+  // - "black-forest-labs/flux-kontext-pro": $0.04/image (with reference image support)
   
   // Artistic models (best for illustrations, watercolor, etc.)
   ARTISTIC: "stability-ai/sdxl", // $0.0048/image - excellent for artistic styles
@@ -322,17 +329,45 @@ export async function POST(request: NextRequest) {
 
     // Select model based on image style
     let selectedModel = getModelForStyle(imageStyle);
-    
-    // If reference images are provided and we're using Flux (which doesn't support image input),
-    // fall back to SDXL which supports reference images
     const hasReferenceImages = imageReferences && imageReferences.length > 0;
-    if (hasReferenceImages && selectedModel.includes('flux')) {
-      console.log(`[ImageGen] Reference images provided but Flux doesn't support image input. Switching to SDXL for reference image support.`);
-      selectedModel = MODELS.ARTISTIC; // SDXL
+    
+    // Check if using Google Imagen for photorealistic
+    const useGoogleImagen = selectedModel === MODELS.PHOTOREALISTIC && isGoogleCloudConfigured();
+    
+    if (useGoogleImagen) {
+      console.log(`[ImageGen] Using Google Imagen 4 Fast for photorealistic images (configured)`);
+      // We'll handle Google Imagen separately below
+    } else if (selectedModel === MODELS.PHOTOREALISTIC) {
+      // Fallback to Flux Dev if Google not configured
+      console.log(`[ImageGen] Google Imagen not configured, falling back to Flux Dev for photorealistic`);
+      selectedModel = MODELS.PHOTOREALISTIC_FALLBACK;
     }
     
-    const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-    console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
+    // If reference images are provided and we're using Flux (which doesn't support image input),
+    // we have options:
+    // 1. Use Flux Kontext Pro (supports reference images, $0.04/image)
+    // 2. Fall back to SDXL (supports reference images, $0.0048/image, lower quality)
+    if (!useGoogleImagen && hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+      // For photorealistic with reference images, use Flux Kontext Pro if available
+      // Otherwise fall back to SDXL
+      const useKontextPro = selectedModel === MODELS.PHOTOREALISTIC_FALLBACK;
+      if (useKontextPro) {
+        console.log(`[ImageGen] Reference images provided. Using Flux Kontext Pro for photorealistic with reference support.`);
+        selectedModel = "black-forest-labs/flux-kontext-pro"; // Supports reference images
+      } else {
+        console.log(`[ImageGen] Reference images provided but Flux doesn't support image input. Switching to SDXL for reference image support.`);
+        selectedModel = MODELS.ARTISTIC; // SDXL
+      }
+    }
+    
+    // Only get model version for Replicate models
+    let modelVersion: string | null = null;
+    if (!useGoogleImagen) {
+      modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+      console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
+    } else {
+      console.log(`[ImageGen] Style: "${imageStyle}" -> Model: Google Imagen 4 Fast${hasReferenceImages ? ' (with reference images)' : ''}`);
+    }
 
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
@@ -368,15 +403,38 @@ export async function POST(request: NextRequest) {
         if (selectedModel.includes('flux')) {
           // Flux models use different parameters
           input.num_outputs = 1;
-          input.guidance_scale = 3.5;
-          input.num_inference_steps = 28;
+          // Flux Dev uses slightly different parameters than Flux Pro
+          if (selectedModel.includes('flux-dev')) {
+            input.guidance_scale = 3.5;
+            input.num_inference_steps = 28;
+          } else if (selectedModel.includes('flux-pro')) {
+            input.guidance_scale = 3.5;
+            input.num_inference_steps = 50; // More steps for higher quality
+          } else {
+            // Default Flux parameters
+            input.guidance_scale = 3.5;
+            input.num_inference_steps = 28;
+          }
           
           // Flux models don't support direct image input via Replicate API
           // If reference images are needed, we could include URLs in prompt (less effective)
-          // For photorealistic with reference images, consider using SDXL instead
+          // For photorealistic with reference images, consider using SDXL or Flux Kontext Pro instead
           if (referenceImage) {
-            console.warn(`[ImageGen] Flux models don't support direct image input. Reference images will be ignored. For reference images, use SDXL model.`);
+            console.warn(`[ImageGen] Flux models don't support direct image input. Reference images will be ignored. For reference images, use SDXL or Flux Kontext Pro.`);
             // Note: We could add reference URLs to prompt, but it's less effective than direct input
+          }
+        } else if (selectedModel.includes('stable-diffusion-3')) {
+          // Stable Diffusion 3.5 models
+          input.num_outputs = 1;
+          input.guidance_scale = 7.0;
+          input.num_inference_steps = 30;
+          
+          // SD 3.5 may support image input - check model docs
+          if (referenceImage) {
+            // Try image input if supported
+            input.image = referenceImage;
+            input.prompt_strength = 0.8;
+            console.log(`[ImageGen] Using reference image with SD 3.5`);
           }
         } else {
           // SDXL and similar models

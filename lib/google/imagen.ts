@@ -35,12 +35,29 @@ function getVertexAIClient(): VertexAI {
   if (credentialsJson) {
     try {
       const credentials = JSON.parse(credentialsJson);
+      
+      // For Railway/serverless: Write credentials to a temp file and use it
+      // The Vertex AI SDK will use GOOGLE_APPLICATION_CREDENTIALS if set
+      if (typeof process !== 'undefined' && process.env) {
+        // Set the credentials JSON in environment for the SDK to pick up
+        // The SDK uses Application Default Credentials (ADC)
+        const fs = require('fs');
+        const path = require('path');
+        const os = require('os');
+        
+        // Create temp file for credentials
+        const tempDir = os.tmpdir();
+        const tempFilePath = path.join(tempDir, `gcp-credentials-${Date.now()}.json`);
+        fs.writeFileSync(tempFilePath, credentialsJson);
+        
+        // Set environment variable to point to temp file
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = tempFilePath;
+      }
+      
       vertexAI = new VertexAI({
         project: projectId,
         location: 'us-central1', // or 'europe-west4' - check availability
       });
-      // Set credentials via environment variable
-      process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = credentialsJson;
       return vertexAI;
     } catch (error) {
       throw new Error(`Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON: ${error}`);
@@ -97,30 +114,91 @@ export async function generateImageWithImagen(
   } = options;
 
   try {
-    const client = getVertexAIClient();
-    
-    // Note: The actual API call structure may vary based on Google's latest SDK
-    // This is a placeholder structure - we'll need to check the actual SDK methods
-    
-    // For now, this is a template. We'll need to check:
-    // 1. The actual Vertex AI SDK methods for Imagen 4
-    // 2. The correct endpoint and parameters
-    // 3. How to handle reference images
+    const vertexAI = getVertexAIClient();
     
     console.log(`[Imagen] Generating image with quality: ${quality}, aspectRatio: ${aspectRatio}`);
     console.log(`[Imagen] Prompt: ${prompt.substring(0, 100)}...`);
     
-    // TODO: Implement actual API call once we verify the SDK structure
-    // This will likely use something like:
-    // const response = await client.preview.predictImage({
-    //   prompt,
-    //   aspectRatio,
-    //   safetyFilterLevel,
-    //   personGeneration,
-    //   ...
-    // });
+    // Map quality to Imagen model
+    const modelMap: Record<string, string> = {
+      'fast': 'imagegeneration@006', // Fast model
+      'standard': 'imagegeneration@005', // Standard model
+      'ultra': 'imagegeneration@006', // Ultra uses same as fast for now
+    };
     
-    throw new Error('Google Imagen integration not yet implemented - checking SDK structure');
+    const model = modelMap[quality] || 'imagegeneration@006';
+    
+    // Prepare the request
+    const requestBody: any = {
+      instances: [
+        {
+          prompt: prompt,
+        },
+      ],
+      parameters: {
+        sampleCount: 1,
+        aspectRatio: aspectRatio,
+        safetyFilterLevel: safetyFilterLevel,
+        personGeneration: personGeneration,
+      },
+    };
+    
+    // Add reference image if provided
+    if (referenceImage) {
+      // Remove data URL prefix if present
+      const base64Data = referenceImage.includes(',') 
+        ? referenceImage.split(',')[1] 
+        : referenceImage;
+      
+      requestBody.instances[0].image = {
+        bytesBase64Encoded: base64Data,
+      };
+    }
+    
+    // Call the Vertex AI API
+    // Note: The exact endpoint may vary - this is based on typical Vertex AI structure
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID!;
+    const location = 'us-central1';
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:predict`;
+    
+    // Get access token (the SDK should handle this, but we may need to use REST API directly)
+    // For now, let's use the SDK's prediction service if available
+    const { PredictionServiceClient } = require('@google-cloud/vertexai');
+    
+    // Alternative: Use REST API with authenticated fetch
+    const { GoogleAuth } = require('google-auth-library');
+    const auth = new GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || '{}'),
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    
+    const client = await auth.getClient();
+    const accessToken = await client.getAccessToken();
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Imagen API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    
+    // Extract image from response
+    // The response structure: { predictions: [{ bytesBase64Encoded: "..." }] }
+    if (result.predictions && result.predictions[0] && result.predictions[0].bytesBase64Encoded) {
+      const imageBase64 = result.predictions[0].bytesBase64Encoded;
+      return `data:image/png;base64,${imageBase64}`;
+    }
+    
+    throw new Error('No image data in Imagen API response');
   } catch (error: any) {
     console.error('[Imagen] Error generating image:', error);
     throw new Error(`Failed to generate image with Google Imagen: ${error.message}`);
