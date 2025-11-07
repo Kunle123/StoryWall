@@ -97,6 +97,22 @@ export const TimelineInfoStep = ({
           />
         </div>
 
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="is-private" className="text-base">
+              Private Timeline
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Make this timeline private (only visible to you)
+            </p>
+          </div>
+          <Switch
+            id="is-private"
+            checked={!isPublic}
+            onCheckedChange={(checked) => setIsPublic(!checked)}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="start-date" className="text-base mb-2 block">
@@ -156,22 +172,6 @@ export const TimelineInfoStep = ({
               </PopoverContent>
             </Popover>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="space-y-0.5">
-            <Label htmlFor="is-public" className="text-base">
-              Public Timeline
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Make this timeline visible in the discover page for other users
-            </p>
-          </div>
-          <Switch
-            id="is-public"
-            checked={isPublic}
-            onCheckedChange={setIsPublic}
-          />
         </div>
       </div>
     </div>
