@@ -448,7 +448,7 @@ const Story = () => {
                     event.category === "vehicle"
                       ? "bg-primary/10 text-primary"
                       : event.category === "crisis"
-                      ? "bg-destructive/10 text-destructive"
+                      ? "bg-destructive/15 text-destructive"
                       : "bg-accent/10 text-accent"
                   }`}
                 >
