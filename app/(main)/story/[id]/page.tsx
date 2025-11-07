@@ -330,8 +330,18 @@ const Story = () => {
     return formatEventDate(event.year || 0, event.month, event.day);
   };
 
+  // Format date for dial (number only for numbered events, no label)
+  const formatDateForDial = (event: TimelineEvent) => {
+    // For numbered events, show only the number (no label)
+    if (event.number !== undefined) {
+      return event.number.toString();
+    }
+    // For dated events, use formatEventDate
+    return formatEventDate(event.year || 0, event.month, event.day);
+  };
+
   // Widget data - calculate dates for ExperimentalBottomMenuBar
-  const selectedDate = event ? formatDate(event) : undefined;
+  const selectedDate = event ? formatDateForDial(event) : undefined;
   const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
 
   const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;

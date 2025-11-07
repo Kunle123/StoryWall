@@ -47,9 +47,9 @@ const TimelinePage = () => {
   // Format the centered event date for dial (short format for constrained space)
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
-    // For numbered events, show number with label
+    // For numbered events, show only the number (no label)
     if (event.number !== undefined) {
-      return formatNumberedEvent(event.number, event.numberLabel || "Event");
+      return event.number.toString();
     }
     // For dated events, use short format (11/03/22) for dial display
     return formatEventDateShort(event.year || 0, event.month, event.day);
