@@ -129,21 +129,33 @@ const TimelinePage = () => {
         </div>
       </main>
       {(() => {
-        const evts = (events.length > 0 ? events : (timeline.events || [])).map((e: any) => ({
+        // Filter to only dated events (numbered events don't have years)
+        const allEvents = events.length > 0 ? events : (timeline.events || []);
+        const datedEvents = allEvents.filter((e: any) => e.year !== undefined).map((e: any) => ({
           year: e.year,
           month: e.month,
           day: e.day,
         }));
-        const hasAny = evts.length > 0;
+        const hasAny = datedEvents.length > 0;
         const startDate = hasAny ? new Date(Math.min(
-          ...evts.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime())
+          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime())
         )) : undefined;
         const endDate = hasAny ? new Date(Math.max(
-          ...evts.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime())
+          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime())
         )) : undefined;
         const timelinePosition = (() => {
-          if (!centeredEvent || evts.length < 2) return 0.5;
-          const sortedEvts = [...evts].sort((a, b) => {
+          // For numbered events, calculate position based on number
+          if (centeredEvent?.number !== undefined) {
+            const numberedEvents = allEvents.filter((e: any) => e.number !== undefined).sort((a: any, b: any) => (a.number || 0) - (b.number || 0));
+            const idx = numberedEvents.findIndex((e: any) => e.id === centeredEvent.id);
+            if (idx >= 0 && numberedEvents.length > 1) {
+              return idx / (numberedEvents.length - 1);
+            }
+            return 0.5;
+          }
+          // For dated events, calculate position based on date
+          if (!centeredEvent || datedEvents.length < 2 || centeredEvent.year === undefined) return 0.5;
+          const sortedEvts = [...datedEvents].sort((a, b) => {
             const dateA = new Date(a.year, (a.month || 1) - 1, a.day || 1).getTime();
             const dateB = new Date(b.year, (b.month || 1) - 1, b.day || 1).getTime();
             return dateA - dateB;
