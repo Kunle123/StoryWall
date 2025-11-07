@@ -139,20 +139,20 @@ Generate a comprehensive timeline with all major events you know about this topi
           // Prefer convenient field when available
           if (typeof data.output_text === 'string') {
             contentText = data.output_text;
-            console.log('[GenerateEvents API] Using output_text, length:', contentText.length);
+            console.log('[GenerateEvents API] Using output_text, length:', contentText?.length || 0);
           } else if (Array.isArray(data.output)) {
             // Find assistant message content text
             for (const item of data.output) {
               if (item.type === 'message' && item.role === 'assistant') {
                 if (typeof item.content === 'string') {
                   contentText = item.content;
-                  console.log('[GenerateEvents API] Using message.content (string), length:', contentText.length);
+                  console.log('[GenerateEvents API] Using message.content (string), length:', contentText?.length || 0);
                   break;
                 } else if (Array.isArray(item.content)) {
                   const textPart = item.content.find((c: any) => typeof c.text === 'string');
                   if (textPart) {
                     contentText = textPart.text;
-                    console.log('[GenerateEvents API] Using message.content[].text, length:', contentText.length);
+                    console.log('[GenerateEvents API] Using message.content[].text, length:', contentText?.length || 0);
                     break;
                   }
                 }
