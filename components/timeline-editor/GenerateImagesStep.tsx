@@ -151,10 +151,13 @@ export const GenerateImagesStep = ({
 
   const handleRegenerateImage = async (eventId: string) => {
     const count = regenerationCount[eventId] || 0;
-    const cost = count >= 2 ? 10 : 5;
     
-    // Check credits
-    if (credits < cost) {
+    // First 5 regenerations are FREE, then charge 10 credits
+    const isFree = count < 5;
+    const cost = isFree ? 0 : 10;
+    
+    // Check credits only if not free
+    if (!isFree && credits < cost) {
       setShowCreditsDialog(true);
       return;
     }
@@ -199,8 +202,10 @@ export const GenerateImagesStep = ({
         )
       );
 
-      // Deduct credits AFTER successful generation
-      await deductCredits(cost, `Image Regeneration for "${event.title}"`);
+      // Deduct credits AFTER successful generation (only if not free)
+      if (!isFree) {
+        await deductCredits(cost, `Image Regeneration for "${event.title}"`);
+      }
       
       // Update regeneration count
       setRegenerationCount(prev => ({
@@ -210,7 +215,9 @@ export const GenerateImagesStep = ({
 
       toast({
         title: "Image regenerated",
-        description: `New image generated for "${event.title}"`,
+        description: isFree 
+          ? `New image generated for "${event.title}" (${5 - count - 1} free regenerations remaining)`
+          : `New image generated for "${event.title}" (10 credits used)`,
       });
     } catch (error: any) {
       console.error("Error regenerating image:", error);
@@ -337,7 +344,7 @@ export const GenerateImagesStep = ({
     }
   };
 
-  // Detect events with famous people
+  // Detect events with famous people (for internal tracking, not UI restrictions)
   const eventsWithFamousPeople = useMemo(() => {
     return events.filter(event => 
       containsFamousPerson(event.title) || 
@@ -357,26 +364,6 @@ export const GenerateImagesStep = ({
         <p className="text-muted-foreground mb-6">
           Upload your own images or generate them with AI
         </p>
-        {hasFamousPeople && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                  Famous People Detected
-                </p>
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-                  {eventsWithFamousPeople.length} event{eventsWithFamousPeople.length > 1 ? 's' : ''} mention{eventsWithFamousPeople.length > 1 ? '' : 's'} famous people. Images will use stylized artistic representations to avoid likeness issues.
-                </p>
-                {imageStyle === "Photorealistic" && (
-                  <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-                    Note: Photorealistic style has been automatically switched to Illustration for these events.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <Tabs defaultValue="manual" className="w-full">
@@ -658,7 +645,13 @@ export const GenerateImagesStep = ({
                           ) : (
                             <>
                               <RotateCw className="w-4 h-4 mr-2" />
-                              Regenerate {regenerationCount[event.id] >= 2 ? "(10 credits)" : "(5 credits)"}
+                              Regenerate {(() => {
+                                const count = regenerationCount[event.id] || 0;
+                                if (count < 5) {
+                                  return `(${5 - count} free)`;
+                                }
+                                return "(10 credits)";
+                              })()}
                             </>
                           )}
                         </Button>

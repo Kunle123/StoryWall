@@ -124,6 +124,7 @@ const TimelineEditor = () => {
     { number: 3, title: "Event Details" },
     { number: 4, title: "Image Style" },
     { number: 5, title: "Generate Images" },
+    { number: 6, title: "Review & Publish" },
   ];
 
   // Scroll to top on step change (matching design)
@@ -132,7 +133,7 @@ const TimelineEditor = () => {
   }, [currentStep]);
 
   const handleNext = () => {
-    if (currentStep < 5) {
+    if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
   };
