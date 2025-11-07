@@ -27,6 +27,8 @@ interface TimelineInfoStepProps {
   setIsNumbered?: (isNumbered: boolean) => void;
   numberLabel?: string;
   setNumberLabel?: (label: string) => void;
+  maxEvents?: number;
+  setMaxEvents?: (maxEvents: number) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -46,6 +48,8 @@ export const TimelineInfoStep = ({
   setIsNumbered,
   numberLabel = "Day",
   setNumberLabel,
+  maxEvents = 20,
+  setMaxEvents,
 }: TimelineInfoStepProps) => {
   return (
     <div className="space-y-6">
@@ -84,9 +88,41 @@ export const TimelineInfoStep = ({
             className="min-h-[120px] resize-none"
             rows={5}
           />
-          <p className="text-sm text-muted-foreground mt-2">
-            AI will generate up to 20 events based on your timeline description
-          </p>
+          <div className="mt-2 space-y-2">
+            {maxEvents <= 20 ? (
+              <p className="text-sm text-muted-foreground">
+                AI will generate up to 20 events based on your timeline description
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                For &gt; 20 events, enter the max number here. (If using AI, additional images will require 0.5 credits each)
+              </p>
+            )}
+            {setMaxEvents && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="max-events" className="text-sm">
+                  Max Events:
+                </Label>
+                <Input
+                  id="max-events"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={maxEvents}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (!isNaN(value) && value >= 1 && value <= 100) {
+                      setMaxEvents(value);
+                    }
+                  }}
+                  className="h-9 w-24"
+                />
+                <span className="text-xs text-muted-foreground">
+                  (max 100)
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center justify-between p-4 border rounded-lg">

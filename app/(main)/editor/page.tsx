@@ -33,6 +33,7 @@ const TimelineEditor = () => {
   const [isFactual, setIsFactual] = useState(true); // Default to factual timelines
   const [isNumbered, setIsNumbered] = useState(false); // Default to dated events
   const [numberLabel, setNumberLabel] = useState("Day"); // Default label for numbered events
+  const [maxEvents, setMaxEvents] = useState(20); // Default to 20 events
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [writingStyle, setWritingStyle] = useState("");
@@ -56,6 +57,7 @@ const TimelineEditor = () => {
             setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
             setIsNumbered(state.isNumbered !== undefined ? state.isNumbered : false);
             setNumberLabel(state.numberLabel || "Day");
+            setMaxEvents(state.maxEvents !== undefined ? state.maxEvents : 20);
             setStartDate(state.startDate ? new Date(state.startDate) : undefined);
             setEndDate(state.endDate ? new Date(state.endDate) : undefined);
         setWritingStyle(state.writingStyle || "");
@@ -80,6 +82,7 @@ const TimelineEditor = () => {
           isFactual,
           isNumbered,
           numberLabel,
+          maxEvents,
           startDate: startDate?.toISOString(),
           endDate: endDate?.toISOString(),
       writingStyle,
@@ -91,7 +94,7 @@ const TimelineEditor = () => {
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
+      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -386,6 +389,8 @@ const TimelineEditor = () => {
                       setIsNumbered={setIsNumbered}
                       numberLabel={numberLabel}
                       setNumberLabel={setNumberLabel}
+                      maxEvents={maxEvents}
+                      setMaxEvents={setMaxEvents}
                       startDate={startDate}
                       setStartDate={setStartDate}
                       endDate={endDate}
@@ -405,6 +410,7 @@ const TimelineEditor = () => {
                   isFactual={isFactual}
                   isNumbered={isNumbered}
                   numberLabel={numberLabel}
+                  maxEvents={maxEvents}
                   setImageReferences={setImageReferences}
                 />
               )}

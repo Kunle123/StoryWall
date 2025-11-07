@@ -35,6 +35,7 @@ interface WritingStyleStepProps {
   isFactual?: boolean;
   isNumbered?: boolean;
   numberLabel?: string;
+  maxEvents?: number;
   setImageReferences?: (refs: Array<{ name: string; url: string }>) => void;
 }
 
@@ -111,7 +112,7 @@ export const WritingStyleStep = ({
         body: JSON.stringify({
           timelineDescription,
           timelineName,
-          maxEvents: 20,
+          maxEvents: maxEvents || 20,
           isFactual,
           isNumbered,
           numberLabel,

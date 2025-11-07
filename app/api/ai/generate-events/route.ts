@@ -19,7 +19,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day" } = body;
+    let { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day" } = body;
+    
+    // Validate and clamp maxEvents to 1-100
+    maxEvents = Math.max(1, Math.min(100, parseInt(String(maxEvents), 10) || 20));
     
     console.log('[GenerateEvents API] Request received:', {
       timelineName,

@@ -234,7 +234,12 @@ export const GenerateImagesStep = ({
   const handleGenerateImages = async () => {
     const selectedEventsList = events.filter(e => selectedEvents.has(e.id));
     const eventCount = selectedEventsList.length;
-    const totalCost = CREDIT_COST_IMAGE_BATCH; // 10 credits for up to 20 images
+    
+    // Calculate cost: 10 credits for first 20 images, 0.5 credits per image over 20
+    const baseCost = CREDIT_COST_IMAGE_BATCH; // 10 credits for up to 20 images
+    const additionalImages = Math.max(0, eventCount - 20);
+    const additionalCost = additionalImages * 0.5;
+    const totalCost = baseCost + additionalCost;
     
     // Check credits but don't deduct yet - will deduct after successful generation
     if (credits < totalCost) {
@@ -572,7 +577,15 @@ export const GenerateImagesStep = ({
                 {selectedEvents.size} event{selectedEvents.size !== 1 ? 's' : ''} selected
               </p>
               <p className="text-sm font-semibold">
-                Total cost: {CREDIT_COST_IMAGE_BATCH} credits
+                Total cost: {(() => {
+                  const baseCost = CREDIT_COST_IMAGE_BATCH;
+                  const additionalImages = Math.max(0, selectedEvents.size - 20);
+                  const additionalCost = additionalImages * 0.5;
+                  const totalCost = baseCost + additionalCost;
+                  return totalCost === baseCost 
+                    ? `${baseCost} credits` 
+                    : `${baseCost} credits (first 20) + ${additionalCost} credits (${additionalImages} additional) = ${totalCost} credits`;
+                })()}
               </p>
             </div>
 
@@ -589,7 +602,12 @@ export const GenerateImagesStep = ({
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Images ({CREDIT_COST_IMAGE_BATCH} credits)
+                  Generate Images ({(() => {
+                    const baseCost = CREDIT_COST_IMAGE_BATCH;
+                    const additionalImages = Math.max(0, selectedEvents.size - 20);
+                    const additionalCost = additionalImages * 0.5;
+                    return baseCost + additionalCost;
+                  })()} credits)
                 </>
               )}
             </Button>
@@ -727,7 +745,12 @@ export const GenerateImagesStep = ({
       <InsufficientCreditsDialog
         open={showCreditsDialog}
         onOpenChange={setShowCreditsDialog}
-        required={CREDIT_COST_IMAGE_BATCH}
+        required={(() => {
+          const baseCost = CREDIT_COST_IMAGE_BATCH;
+          const additionalImages = Math.max(0, events.filter(e => selectedEvents.has(e.id)).length - 20);
+          const additionalCost = additionalImages * 0.5;
+          return baseCost + additionalCost;
+        })()}
         current={credits}
         action={`AI Image Generation`}
         onBuyCredits={() => {
