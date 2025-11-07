@@ -394,7 +394,22 @@ export async function POST(request: NextRequest) {
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
         
-        // Build input - structure varies by model
+        // Handle Google Imagen separately
+        if (useGoogleImagen) {
+          try {
+            const imagenImage = await generateImageWithImagen(prompt, {
+              quality: 'fast', // $0.02/image
+              referenceImage: referenceImage || undefined,
+              aspectRatio: '1:1',
+            });
+            return { index, imageUrl: imagenImage, error: null, event };
+          } catch (error: any) {
+            console.error(`[ImageGen] Google Imagen error for "${event.title}":`, error);
+            return { index, imageUrl: null, error, event };
+          }
+        }
+        
+        // Build input - structure varies by model (for Replicate models)
         const input: any = {
           prompt: prompt,
         };
