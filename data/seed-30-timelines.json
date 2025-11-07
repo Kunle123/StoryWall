@@ -1,0 +1,290 @@
+[
+  {
+    "user": {
+      "email": "editor@storywall.com",
+      "username": "storywall_editor"
+    },
+    "timelines": [
+      {
+        "title": "The 2024 U.S. Presidential Election",
+        "description": "A comprehensive timeline of the 2024 U.S. presidential election, from candidate announcements through primaries, debates, and the general election results.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 25,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Rise of Artificial Intelligence (2020-2024)",
+        "description": "Key developments in AI technology from ChatGPT's launch to the latest breakthroughs in generative AI, including major product releases, company announcements, and regulatory responses.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Taylor Swift's Eras Tour",
+        "description": "The record-breaking Eras Tour journey across the United States and internationally, including tour dates, album releases, and cultural impact moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 30,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The COVID-19 Pandemic Response in America",
+        "description": "Major milestones in the U.S. response to the COVID-19 pandemic, including vaccine development, policy changes, and key public health decisions.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Streaming Wars: Netflix vs. Competitors",
+        "description": "The evolution of streaming services in America, from Netflix dominance to the rise of Disney+, HBO Max, Apple TV+, and the battle for subscribers.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Climate Change Action in the United States",
+        "description": "Major climate policy initiatives, extreme weather events, renewable energy milestones, and environmental legislation from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Barbie Movie Phenomenon",
+        "description": "From announcement to release, the cultural impact of the 2023 Barbie movie, including box office records, fashion trends, and social media moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 15,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Cryptocurrency and Bitcoin in America",
+        "description": "Major cryptocurrency developments, regulatory changes, company launches, and market milestones in the United States from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Return of Space Exploration",
+        "description": "NASA missions, SpaceX achievements, commercial spaceflight milestones, and America's renewed focus on space exploration and moon missions.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Social Media Platform Evolution",
+        "description": "The rise and fall of social media platforms, from Twitter's transformation to TikTok's growth, Meta's pivots, and new platform launches in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The WNBA's Growing Popularity",
+        "description": "Key moments in the WNBA's surge in popularity, including record-breaking viewership, player achievements, expansion, and cultural impact from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Electric Vehicle Revolution in America",
+        "description": "The growth of electric vehicles in the U.S., including Tesla milestones, new EV launches, charging infrastructure expansion, and policy incentives.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Opioid Crisis Response",
+        "description": "Major developments in addressing the opioid crisis in America, including legal settlements, policy changes, treatment initiatives, and public health responses.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "College Sports NIL Revolution",
+        "description": "The transformation of college athletics through Name, Image, and Likeness (NIL) policies, including major deals, policy changes, and impact on student-athletes.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Housing Market Boom and Shift",
+        "description": "The dramatic changes in the U.S. housing market from the pandemic boom to interest rate changes, including record prices, policy shifts, and market corrections.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Rise of Women's Sports",
+        "description": "Major milestones in women's sports in America, including record-breaking achievements, media coverage expansion, pay equity progress, and cultural moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Tech Layoffs and Industry Shifts",
+        "description": "Major tech company layoffs, industry restructuring, and the shifting landscape of Big Tech employment in America from 2022 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Return of Concerts and Live Events",
+        "description": "The post-pandemic revival of live entertainment in America, including record-breaking tours, festival returns, and the economic impact of live events.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Renewable Energy Milestones",
+        "description": "Major achievements in renewable energy in America, including solar and wind power records, infrastructure projects, and policy initiatives from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Labor Movement Resurgence",
+        "description": "Major strikes, union organizing victories, and labor movement milestones in America, including Hollywood strikes, auto workers, and service industry organizing.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Supreme Court's Major Decisions",
+        "description": "Landmark Supreme Court decisions from 2020 to 2024, including cases on abortion, affirmative action, voting rights, and other significant constitutional issues.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Creator Economy Boom",
+        "description": "The rise of content creators, influencer marketing, and the creator economy in America, including platform changes, major deals, and industry evolution.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "Mental Health Awareness Movement",
+        "description": "Major developments in mental health awareness, policy changes, celebrity advocacy, and destigmatization efforts in America from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Fast Food Price Wars",
+        "description": "Major changes in the fast food industry, including price increases, value menu battles, new product launches, and industry consolidation in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Return of Movie Theaters",
+        "description": "The post-pandemic recovery of movie theaters in America, including blockbuster releases, box office records, streaming vs. theatrical debates, and industry changes.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Remote Work Revolution",
+        "description": "The transformation of work in America, including remote work adoption, return-to-office policies, tech company changes, and the future of workplace culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Student Loan Crisis and Relief",
+        "description": "Major developments in student loan policy, forgiveness programs, Supreme Court decisions, and the ongoing debate about student debt in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Rise of Pickleball",
+        "description": "The explosive growth of pickleball in America, from niche sport to mainstream phenomenon, including court construction, professional leagues, and cultural impact.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Inflation and Economic Recovery",
+        "description": "Economic developments in America from 2020 to 2024, including inflation spikes, Federal Reserve responses, job market changes, and economic recovery milestones.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Diversity and Inclusion Movement",
+        "description": "Major milestones in diversity, equity, and inclusion efforts across corporate America, entertainment, and public institutions from 2020 to 2024.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Future of Transportation",
+        "description": "Innovations in American transportation, including autonomous vehicles, high-speed rail proposals, e-scooters, bike-sharing, and urban mobility solutions.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      }
+    ]
+  }
+]
+
