@@ -23,7 +23,7 @@ export default function AuthPage() {
         routing="path"
         path="/auth"
         signUpUrl="/auth"
-        fallbackRedirectUrl="/discover"
+        fallbackRedirectUrl="/"
         appearance={{
           elements: {
             socialButtonsBlockButton: "flex items-center justify-center",
