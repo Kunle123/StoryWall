@@ -142,7 +142,7 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
             tools: [{ type: 'web_search' }],
             reasoning: { effort: 'low' },
             text: { verbosity: 'low' },
-            max_output_tokens: Math.min(3000, (maxEvents * 100) + 500),
+            max_output_tokens: Math.min(4000, (maxEvents * 150) + 1000),
           }),
         });
 
@@ -264,10 +264,29 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
       throw new Error('Empty assistant response');
     }
 
+    // Check if content appears truncated (incomplete JSON)
+    const trimmedContent = contentText.trim();
+    const isTruncated = (
+      trimmedContent.length > 0 &&
+      !trimmedContent.endsWith('}') &&
+      !trimmedContent.endsWith(']') &&
+      !trimmedContent.endsWith('```') &&
+      trimmedContent.includes('{') // Has JSON start but no proper end
+    );
+
+    if (isTruncated) {
+      console.error('[GenerateEvents API] Response appears truncated:', {
+        contentLength: contentText.length,
+        lastChars: contentText.substring(Math.max(0, contentText.length - 100)),
+        contentPreview: contentText.substring(0, 500),
+      });
+      throw new Error('OpenAI response appears incomplete (truncated JSON). The response may have exceeded token limits. Please try with fewer events or a shorter description.');
+    }
+
     let content;
     try {
       // Try to extract JSON from the response if it's wrapped in markdown code blocks
-      let jsonText = contentText.trim();
+      let jsonText = trimmedContent;
       
       // Remove markdown code blocks if present
       if (jsonText.startsWith('```json')) {
@@ -276,22 +295,45 @@ Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "ur
         jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
       
+      // Validate JSON structure before parsing
+      const openBraces = (jsonText.match(/\{/g) || []).length;
+      const closeBraces = (jsonText.match(/\}/g) || []).length;
+      if (openBraces !== closeBraces) {
+        console.error('[GenerateEvents API] JSON braces mismatch:', {
+          openBraces,
+          closeBraces,
+          contentLength: jsonText.length,
+          lastChars: jsonText.substring(Math.max(0, jsonText.length - 200)),
+        });
+        throw new Error(`Incomplete JSON: ${openBraces} opening braces but ${closeBraces} closing braces`);
+      }
+      
       content = JSON.parse(jsonText);
     } catch (parseError: any) {
       console.error('[GenerateEvents API] Failed to parse OpenAI message content:', {
         contentPreview: contentText.substring(0, 500),
         contentLength: contentText.length,
+        lastChars: contentText.substring(Math.max(0, contentText.length - 200)),
         error: parseError.message,
+        errorName: parseError.name,
       });
       
       // Try to extract JSON object from the text if it's embedded in other text
       const jsonMatch = contentText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
-          content = JSON.parse(jsonMatch[0]);
-          console.log('[GenerateEvents API] Successfully extracted JSON from text');
-        } catch (e) {
-          throw new Error('Failed to parse OpenAI response content: ' + parseError.message);
+          // Check if extracted JSON is complete
+          const extracted = jsonMatch[0];
+          const openBraces = (extracted.match(/\{/g) || []).length;
+          const closeBraces = (extracted.match(/\}/g) || []).length;
+          if (openBraces === closeBraces) {
+            content = JSON.parse(extracted);
+            console.log('[GenerateEvents API] Successfully extracted JSON from text');
+          } else {
+            throw new Error(`Extracted JSON is incomplete: ${openBraces} opening braces but ${closeBraces} closing braces`);
+          }
+        } catch (e: any) {
+          throw new Error('Failed to parse OpenAI response content: ' + (e.message || parseError.message));
         }
       } else {
         throw new Error('Failed to parse OpenAI response content: ' + parseError.message);
