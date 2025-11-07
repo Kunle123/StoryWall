@@ -371,6 +371,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         return {
           number: number,
           title: title || `${numberLabel} ${number}`,
+          description: event.description || '',
         };
       } else {
         // For dated events, use year/month/day
@@ -468,6 +469,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           return {
             number: e.number || (idx + 1),
             title: e.title || `${numberLabel} ${idx + 1}`,
+            description: e.description || '',
           };
         } else {
           return {
@@ -475,6 +477,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
             month: e.month,
             day: e.day,
             title: e.title || 'Untitled Event',
+            description: e.description || '',
           };
         }
       });

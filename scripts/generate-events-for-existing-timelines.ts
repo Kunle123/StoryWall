@@ -1,12 +1,16 @@
 /**
  * Script to generate events and images for existing timelines that don't have events
  * Run with: npx tsx scripts/generate-events-for-existing-timelines.ts
+ * 
+ * To test with a single timeline:
+ * TEST_SINGLE=true npx tsx scripts/generate-events-for-existing-timelines.ts
  */
 
 import fs from 'fs';
 import path from 'path';
 
 const SEED_FILE = path.join(process.cwd(), 'data', 'seed-30-timelines.json');
+const TEST_SINGLE = process.env.TEST_SINGLE === 'true';
 
 async function generateEventsForTimelines() {
   try {
@@ -40,7 +44,7 @@ async function generateEventsForTimelines() {
     let errors: string[] = [];
     
     // Process timelines concurrently with a concurrency limit
-    const CONCURRENCY_LIMIT = 5; // Process 5 timelines at once
+    const CONCURRENCY_LIMIT = TEST_SINGLE ? 1 : 10; // Process 10 timelines at once (or 1 for testing)
     const timelinesToProcess = timelines.filter(timeline => {
       // Skip if timeline already has events
       if (timeline.events && timeline.events.length > 0) {
@@ -50,10 +54,17 @@ async function generateEventsForTimelines() {
       return true;
     });
     
+    // If testing, only process the first timeline
+    if (TEST_SINGLE && timelinesToProcess.length > 0) {
+      console.log(`🧪 TEST MODE: Processing only the first timeline\n`);
+      timelinesToProcess.splice(1); // Keep only the first one
+    }
+    
     // Process in batches
+    const totalBatches = Math.ceil(timelinesToProcess.length / CONCURRENCY_LIMIT);
     for (let i = 0; i < timelinesToProcess.length; i += CONCURRENCY_LIMIT) {
       const batch = timelinesToProcess.slice(i, i + CONCURRENCY_LIMIT);
-      console.log(`\n📦 Processing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} (${batch.length} timelines)\n`);
+      console.log(`\n📦 Processing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} of ${totalBatches} (${batch.length} timeline${batch.length === 1 ? '' : 's'})\n`);
       
       await Promise.all(batch.map(async (timeline) => {
       // Skip if timeline already has events
