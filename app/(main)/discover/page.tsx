@@ -34,6 +34,28 @@ const Discover = () => {
   const { toast } = useToast();
   const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Handle header hide/show on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        setShowHeader(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   useEffect(() => {
     async function loadTimelines() {
@@ -241,22 +263,34 @@ const Discover = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <Header />
-      <main className="container mx-auto px-3 pt-16 max-w-4xl">
-        {/* Search Bar */}
-        <div className="sticky top-12 z-40 bg-background py-3 border-b border-border/50">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search timelines..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-10"
-            />
+    <div className="min-h-screen bg-background pb-32 md:pb-40">
+      <Header isVisible={showHeader} />
+      <main className={`container mx-auto px-3 max-w-4xl transition-all duration-300 ${
+        showHeader ? 'pt-16' : 'pt-4'
+      }`}>
+        {/* Search Bar - moves up when header hides */}
+        <div 
+          className={`fixed left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/50 transition-all duration-300 ${
+            showHeader ? 'top-12' : 'top-0'
+          }`}
+          style={{ height: '56px' }}
+        >
+          <div className="container mx-auto px-3 h-full flex items-center max-w-4xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search timelines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10"
+              />
+            </div>
           </div>
         </div>
+
+        {/* Spacer for fixed search bar */}
+        <div style={{ height: '56px' }} />
 
         {/* Categories */}
         <div className="py-4 border-b border-border/50">

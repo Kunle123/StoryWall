@@ -130,7 +130,7 @@ const Index = () => {
       )}
       <Toaster />
       <main className={`container mx-auto px-0 md:px-3 pb-32 md:pb-40 max-w-6xl transition-all duration-300 ${
-        showHeader ? 'pt-[56px]' : 'pt-[44px]'
+        showHeader ? 'pt-[96px]' : 'pt-[44px]'
       }`}>
         {events.length === 0 ? (
           <div className="flex items-center justify-center py-20">

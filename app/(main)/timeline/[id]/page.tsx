@@ -21,7 +21,29 @@ const TimelinePage = () => {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"vertical" | "hybrid">("vertical");
   const [centeredEvent, setCenteredEvent] = useState<TimelineEvent | null>(null);
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
+  // Handle header hide/show on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        // Scrolling down
+        setShowHeader(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        setShowHeader(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   // Format the centered event date for dial (short format for constrained space)
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
@@ -87,8 +109,8 @@ const TimelinePage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+        <Header isVisible={showHeader} />
+        <main className="container mx-auto px-3 pt-16 pb-32 max-w-6xl">
           <div className="flex items-center justify-center py-20">
             <p className="text-muted-foreground">Loading timeline...</p>
           </div>
@@ -100,8 +122,8 @@ const TimelinePage = () => {
   if (error || !timeline) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
-        <main className="container mx-auto px-3 pt-[88px] pb-0 max-w-6xl">
+        <Header isVisible={showHeader} />
+        <main className="container mx-auto px-3 pt-16 pb-32 max-w-6xl">
           <div className="text-center py-20">
             <h2 className="text-2xl font-bold mb-2">Timeline Not Found</h2>
             <p className="text-muted-foreground">{error || "This timeline does not exist."}</p>
@@ -113,10 +135,16 @@ const TimelinePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <SubMenuBar title={timeline.title} selectedDate={formatSelectedDate(centeredEvent)} />
+      <Header isVisible={showHeader} />
+      <SubMenuBar 
+        title={timeline.title} 
+        selectedDate={formatSelectedDate(centeredEvent)}
+        headerVisible={showHeader}
+      />
       <Toaster />
-      <main className="container mx-auto px-3 pt-[88px] pb-32 md:pb-40 max-w-6xl">
+      <main className={`container mx-auto px-3 pb-32 md:pb-40 max-w-6xl transition-all duration-300 ${
+        showHeader ? 'pt-[96px]' : 'pt-[44px]'
+      }`}>
         <Timeline 
           events={events.length > 0 ? events : timeline.events || []} 
           pixelsPerYear={30} 
