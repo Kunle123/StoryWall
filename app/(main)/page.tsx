@@ -149,8 +149,10 @@ const Index = () => {
         )}
       </main>
       {events.length > 0 && (() => {
-        const startDate = events.length > 0 ? new Date(Math.min(...events.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
-        const endDate = events.length > 0 ? new Date(Math.max(...events.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+        // Filter to only dated events (numbered events don't have years)
+        const datedEvents = events.filter(e => e.year !== undefined);
+        const startDate = datedEvents.length > 0 ? new Date(Math.min(...datedEvents.map(e => new Date(e.year!, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
+        const endDate = datedEvents.length > 0 ? new Date(Math.max(...datedEvents.map(e => new Date(e.year!, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
         return (
           <ExperimentalBottomMenuBar
             selectedDate={formatSelectedDate(centeredEvent)}
