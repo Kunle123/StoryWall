@@ -736,7 +736,7 @@ export const GenerateImagesStep = ({
         onOpenChange={setShowCreditsDialog}
         required={CREDIT_COST_IMAGE_BATCH}
         current={credits}
-        action={`AI Image Generation for ${events.length} events`}
+        action={`AI Image Generation`}
         onBuyCredits={() => {
           const headerButton = document.querySelector('[data-buy-credits]');
           if (headerButton) {
