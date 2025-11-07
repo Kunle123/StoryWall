@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Build prompts once
     const systemPrompt = isFactual 
-      ? `You are a factual timeline event generator. Generate up to ${maxEvents} accurate historical events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
+      ? `You are a factual timeline event generator. You MUST generate ${maxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31).
 
 Additionally, when people are mentioned (e.g., candidates, public officials), include an optional top-level "image_references" array with 3-8 high-quality reference image links (objects with { name: string, url: string }). Prefer:
 - Official portraits or headshots (campaign or government sites)
@@ -67,7 +67,9 @@ ACCURACY REQUIREMENTS:
 - Use your training data and web search to provide accurate events for the requested topic
 - If you are unsure about specific dates, use only the year (do not guess month/day)
 - For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
-- Generate as many accurate events as you can, up to the requested maximum
+- ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
+- If web search returns relevant information, you MUST use it to generate events - do not return an empty array
+- Only return an empty events array if the topic is completely unknown or impossible to research
 
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
@@ -84,7 +86,13 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
     const userPrompt = isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} factual events based on your knowledge of this topic. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL: Include the most recent 48-hour developments (e.g., election-night result and victory announcement) when relevant. Include primary date(s) and result(s) as well. Use article-level citations for these items (not just domain homepages). Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available.
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
+- You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
+- If web search finds relevant news articles, you MUST use that information to create events
+- Include the most recent 48-hour developments (e.g., election-night result and victory announcement) when relevant
+- Include primary date(s) and result(s) as well
+- Use article-level citations for these items (not just domain homepages)
+- Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -97,7 +105,9 @@ For political campaigns, elections, or public figures: include ALL major events 
 
 Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-Generate a comprehensive timeline with all major events you know about this topic. Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
+
+Return as JSON: { "events": [...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
       : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
