@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
       creatorId: finalCreatorId || undefined,
     });
 
+    // Return as array (client expects array directly, not wrapped in { data })
     return NextResponse.json(timelines || []);
   } catch (error: any) {
     console.error('Error fetching timelines:', error);

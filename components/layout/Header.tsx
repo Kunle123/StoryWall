@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StoryWallIcon } from "@/components/StoryWallIcon";
 import { useCredits } from "@/hooks/use-credits";
 import { BuyCreditsModal } from "@/components/BuyCreditsModal";
+import { useUser } from "@clerk/nextjs";
 
 interface HeaderProps {
   isVisible?: boolean; // Controlled visibility from parent (for timeline pages)
@@ -17,13 +18,17 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { credits, fetchCredits } = useCredits();
+  const { isSignedIn } = useUser();
 
   // Use controlled visibility if provided, otherwise use internal state
   const headerVisible = controlledVisibility !== undefined ? controlledVisibility : isVisible;
 
   useEffect(() => {
-    fetchCredits();
-  }, [fetchCredits]);
+    // Only fetch credits if user is signed in
+    if (isSignedIn) {
+      fetchCredits();
+    }
+  }, [fetchCredits, isSignedIn]);
 
   useEffect(() => {
     // Only handle window scroll if visibility is not controlled by parent
@@ -59,7 +64,7 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-transform duration-300 ease-in-out ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
       <div className="container mx-auto px-3 h-12 flex items-center justify-between max-w-4xl">
-        <Link href="/discover" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
             <StoryWallIcon size={34} />
           </div>
@@ -67,31 +72,44 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
         </Link>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5"
-            onClick={() => {
-              setShowBuyCredits(true);
-            }}
-            data-buy-credits
-          >
-            <Coins className="w-4 h-4" />
-            <span className="font-semibold">{credits}</span>
-          </Button>
+          {isSignedIn && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => {
+                setShowBuyCredits(true);
+              }}
+              data-buy-credits
+            >
+              <Coins className="w-4 h-4" />
+              <span className="font-semibold">{credits}</span>
+            </Button>
+          )}
           
-          <Button
-            variant="ghost"
-            // @ts-ignore - Type inference issue with class-variance-authority
-            size="icon"
-            className="h-8 w-8 rounded-full"
-            // @ts-ignore - Type inference issue with asChild prop
-            asChild
-          >
-            <Link href="/profile">
-              <User className="w-4 h-4" />
-            </Link>
-          </Button>
+          {isSignedIn ? (
+            <Button
+              variant="ghost"
+              // @ts-ignore - Type inference issue with class-variance-authority
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              // @ts-ignore - Type inference issue with asChild prop
+              asChild
+            >
+              <Link href="/profile">
+                <User className="w-4 h-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              // @ts-ignore - Type inference issue with asChild prop
+              asChild
+            >
+              <Link href="/sign-in">Sign In</Link>
+            </Button>
+          )}
         </div>
       </div>
       
