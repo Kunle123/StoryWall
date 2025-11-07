@@ -162,9 +162,40 @@ async function generateEventsForTimelines() {
             const { images } = await generateImagesResponse.json();
             if (images && Array.isArray(images)) {
               console.log(`   ✅ Generated ${images.length} images`);
+              
+              // Step 4: Save images to events
+              console.log(`   💾 Saving images to events...`);
+              
+              // Fetch the timeline events we just created
+              const timelineEventsResponse = await fetch(`${apiUrl}/api/timelines/${timeline.id}/events`);
+              if (timelineEventsResponse.ok) {
+                const timelineEvents = await timelineEventsResponse.json();
+                
+                // Update each event with its corresponding image
+                for (let i = 0; i < Math.min(images.length, timelineEvents.length); i++) {
+                  if (images[i] && timelineEvents[i] && images[i] !== null) {
+                    const updateEventResponse = await fetch(`${apiUrl}/api/events/${timelineEvents[i].id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        image_url: images[i],
+                      }),
+                    });
+                    
+                    if (!updateEventResponse.ok) {
+                      const errorText = await updateEventResponse.text();
+                      console.warn(`   ⚠️  Failed to save image for event "${timelineEvents[i].title}": ${errorText}`);
+                    }
+                  }
+                }
+                console.log(`   ✅ Saved ${Math.min(images.filter((img: any) => img !== null).length, timelineEvents.length)} images to events`);
+              }
             }
           } else {
-            console.warn(`   ⚠️  Image generation failed: ${generateImagesResponse.statusText}`);
+            const errorText = await generateImagesResponse.text();
+            console.warn(`   ⚠️  Image generation failed: ${errorText}`);
           }
         }
         } catch (error: any) {
