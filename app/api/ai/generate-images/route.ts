@@ -3,8 +3,10 @@ import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFam
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 
 /**
- * Generate images for timeline events using SDXL (via Replicate)
- * Supports image-to-image generation with reference images
+ * Generate images for timeline events using style-appropriate models (via Replicate)
+ * - Photorealistic styles: Flux Pro (best quality) or SDXL (cost-effective)
+ * - Artistic styles: SDXL (excellent for illustrations, watercolor, etc.)
+ * Supports image-to-image generation with reference images (SDXL)
  * 
  * Request Body:
  * {
@@ -44,18 +46,63 @@ const COLOR_NAMES: Record<string, string> = {
   '#14B8A6': 'teal',
 };
 
-// SDXL model on Replicate
-// Using Stability AI's SDXL model with image-to-image support
-// Cost: ~$0.0048 per image (much cheaper than IP-Adapter, ~6x cost reduction)
-// Supports text-to-image and image-to-image generation
-const SDXL_MODEL_NAME = "stability-ai/sdxl"; // Supports text + image input
+// Model selection based on image style
+// Photorealistic styles use models optimized for realism
+// Artistic styles use models optimized for creative/artistic output
+
+// Models available on Replicate
+const MODELS = {
+  // Photorealistic models (best for realistic photos)
+  PHOTOREALISTIC: "black-forest-labs/flux-pro", // $0.05-0.10/image - best for photorealistic
+  PHOTOREALISTIC_ALT: "stability-ai/sdxl", // $0.0048/image - good fallback, cheaper
+  
+  // Artistic models (best for illustrations, watercolor, etc.)
+  ARTISTIC: "stability-ai/sdxl", // $0.0048/image - excellent for artistic styles
+  ARTISTIC_ALT: "black-forest-labs/flux-dev", // $0.025-0.030/image - alternative artistic option
+};
+
+// Map image styles to models
+const STYLE_TO_MODEL: Record<string, string> = {
+  // Photorealistic styles -> use photorealistic model
+  'Photorealistic': MODELS.PHOTOREALISTIC,
+  'photorealistic': MODELS.PHOTOREALISTIC,
+  'Realistic': MODELS.PHOTOREALISTIC,
+  'realistic': MODELS.PHOTOREALISTIC,
+  
+  // Artistic styles -> use artistic model
+  'Illustration': MODELS.ARTISTIC,
+  'illustration': MODELS.ARTISTIC,
+  'Watercolor': MODELS.ARTISTIC,
+  'watercolor': MODELS.ARTISTIC,
+  'Minimalist': MODELS.ARTISTIC,
+  'minimalist': MODELS.ARTISTIC,
+  'Vintage': MODELS.ARTISTIC,
+  'vintage': MODELS.ARTISTIC,
+  '3D Render': MODELS.ARTISTIC,
+  '3d render': MODELS.ARTISTIC,
+  'Sketch': MODELS.ARTISTIC,
+  'sketch': MODELS.ARTISTIC,
+  'Abstract': MODELS.ARTISTIC,
+  'abstract': MODELS.ARTISTIC,
+};
+
+// Default model (fallback)
+const DEFAULT_MODEL = MODELS.ARTISTIC; // SDXL - good all-around
+
+// Helper to get model for a given style
+function getModelForStyle(imageStyle: string): string {
+  return STYLE_TO_MODEL[imageStyle] || DEFAULT_MODEL;
+}
+
+// Legacy constant for backward compatibility
+const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
 // Helper to download reference image from URL and convert to base64
 async function downloadReferenceImage(imageUrl: string): Promise<string | null> {
   try {
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      console.warn(`[SDXL] Failed to download reference image: ${imageUrl}`);
+      console.warn(`[ImageGen] Failed to download reference image: ${imageUrl}`);
       return null;
     }
     const arrayBuffer = await response.arrayBuffer();
@@ -63,7 +110,7 @@ async function downloadReferenceImage(imageUrl: string): Promise<string | null> 
     const mimeType = response.headers.get('content-type') || 'image/jpeg';
     return `data:${mimeType};base64,${base64}`;
   } catch (error) {
-    console.error(`[SDXL] Error downloading reference image ${imageUrl}:`, error);
+    console.error(`[ImageGen] Error downloading reference image ${imageUrl}:`, error);
     return null;
   }
 }
@@ -178,7 +225,7 @@ function buildImagePrompt(
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // SDXL handles longer prompts well, but keep it reasonable
+  // Most models handle longer prompts well, but keep it reasonable
   return prompt.substring(0, 900);
 }
 
@@ -203,7 +250,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 
     if (prediction.status === 'succeeded') {
       // Log the raw output for debugging
-      console.log(`[Flux] Prediction output type: ${typeof prediction.output}, value:`, JSON.stringify(prediction.output).substring(0, 200));
+      console.log(`[ImageGen] Prediction output type: ${typeof prediction.output}, value:`, JSON.stringify(prediction.output).substring(0, 200));
       
       // Handle different output formats from Replicate
       let imageUrl: string | null = null;
@@ -223,20 +270,20 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
       if (imageUrl) {
         // Ensure it's a full URL (starts with http:// or https://)
         if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-          console.error(`[SDXL] Invalid URL format from Replicate: ${imageUrl}`);
+          console.error(`[ImageGen] Invalid URL format from Replicate: ${imageUrl}`);
           // Try to construct a full URL if it's a relative path
           if (imageUrl.startsWith('/')) {
-            console.warn(`[SDXL] Received relative path, cannot resolve: ${imageUrl}`);
+            console.warn(`[ImageGen] Received relative path, cannot resolve: ${imageUrl}`);
             return null;
           }
           return null;
         }
         
-        console.log(`[SDXL] Successfully received image URL: ${imageUrl.substring(0, 100)}...`);
+        console.log(`[ImageGen] Successfully received image URL: ${imageUrl.substring(0, 100)}...`);
         return imageUrl;
       }
       
-      console.error(`[SDXL] No valid image URL found in prediction output:`, JSON.stringify(prediction.output));
+      console.error(`[ImageGen] No valid image URL found in prediction output:`, JSON.stringify(prediction.output));
       return null;
     }
 
@@ -273,9 +320,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the latest SDXL model version
-    const sdxlVersion = await getLatestModelVersion(SDXL_MODEL_NAME, replicateApiKey);
-    console.log(`[SDXL] Using model version: ${sdxlVersion}`);
+    // Select model based on image style
+    let selectedModel = getModelForStyle(imageStyle);
+    
+    // If reference images are provided and we're using Flux (which doesn't support image input),
+    // fall back to SDXL which supports reference images
+    const hasReferenceImages = imageReferences && imageReferences.length > 0;
+    if (hasReferenceImages && selectedModel.includes('flux')) {
+      console.log(`[ImageGen] Reference images provided but Flux doesn't support image input. Switching to SDXL for reference image support.`);
+      selectedModel = MODELS.ARTISTIC; // SDXL
+    }
+    
+    const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+    console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
 
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
@@ -285,10 +342,10 @@ export async function POST(request: NextRequest) {
       ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => downloadReferenceImage(ref.url))
       : [];
     const downloadedReferences = await Promise.all(referenceImagePromises);
-    console.log(`[SDXL] Downloaded ${downloadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images`);
+    console.log(`[ImageGen] Downloaded ${downloadedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images`);
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
-    console.log(`[SDXL] Starting parallel generation for ${events.length} images...`);
+    console.log(`[ImageGen] Starting parallel generation for ${events.length} images using ${selectedModel}...`);
     
     // Step 1: Create all predictions in parallel
     const predictionPromises = events.map(async (event, index) => {
@@ -300,20 +357,40 @@ export async function POST(request: NextRequest) {
         const referenceImage = downloadedReferences[index] || downloadedReferences[0] || null;
         
         // Log the prompt being sent (for debugging)
-        console.log(`[SDXL] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
+        console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImage ? ' with reference image' : ' (text only)'}`);
         
-        // Build input for SDXL
+        // Build input - structure varies by model
         const input: any = {
           prompt: prompt,
-          num_outputs: 1,
-          guidance_scale: 7.5,
-          num_inference_steps: 30,
         };
         
-        // Add reference image if available (for image-to-image transformation)
-        if (referenceImage) {
-          input.image = referenceImage;
-          input.prompt_strength = 0.8; // How strongly the prompt transforms the input image (0-1)
+        // Model-specific parameters
+        if (selectedModel.includes('flux')) {
+          // Flux models use different parameters
+          input.num_outputs = 1;
+          input.guidance_scale = 3.5;
+          input.num_inference_steps = 28;
+          
+          // Flux models don't support direct image input via Replicate API
+          // If reference images are needed, we could include URLs in prompt (less effective)
+          // For photorealistic with reference images, consider using SDXL instead
+          if (referenceImage) {
+            console.warn(`[ImageGen] Flux models don't support direct image input. Reference images will be ignored. For reference images, use SDXL model.`);
+            // Note: We could add reference URLs to prompt, but it's less effective than direct input
+          }
+        } else {
+          // SDXL and similar models
+          input.num_outputs = 1;
+          input.guidance_scale = 7.5;
+          input.num_inference_steps = 30;
+          
+          // Add reference image if available (for image-to-image transformation)
+          // SDXL supports direct image input via 'image' parameter
+          if (referenceImage) {
+            input.image = referenceImage;
+            input.prompt_strength = 0.8; // How strongly the prompt transforms the input image (0-1)
+            console.log(`[ImageGen] Using reference image for image-to-image transformation`);
+          }
         }
         
         // Create prediction via Replicate
@@ -324,7 +401,7 @@ export async function POST(request: NextRequest) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            version: sdxlVersion,
+            version: modelVersion,
             input: input,
           }),
         });
@@ -339,7 +416,7 @@ export async function POST(request: NextRequest) {
           }
           
           const errorMsg = errorData.detail || errorData.message || errorText;
-          console.error(`[SDXL] Replicate API error for "${event.title}":`, errorMsg);
+          console.error(`[ImageGen] Replicate API error for "${event.title}":`, errorMsg);
           
           return { index, error: new Error(`Replicate API error: ${errorMsg}`), event };
         }
@@ -352,14 +429,14 @@ export async function POST(request: NextRequest) {
 
         return { index, predictionId: prediction.id, event };
       } catch (error: any) {
-        console.error(`[SDXL] Error creating prediction for "${event.title}":`, error);
+        console.error(`[ImageGen] Error creating prediction for "${event.title}":`, error);
         return { index, error, event };
       }
     });
 
     // Wait for all predictions to be created
     const predictionResults = await Promise.all(predictionPromises);
-    console.log(`[SDXL] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
+    console.log(`[ImageGen] Created ${predictionResults.filter(r => r.predictionId).length}/${events.length} predictions successfully`);
     
     // Step 2: Poll all predictions in parallel
     const imagePromises = predictionResults.map(async (result) => {
@@ -369,10 +446,10 @@ export async function POST(request: NextRequest) {
 
       try {
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
-        console.log(`[SDXL] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
+        console.log(`[ImageGen] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
         return { index: result.index, imageUrl, error: null };
       } catch (error: any) {
-        console.error(`[SDXL] Error waiting for prediction "${result.event.title}":`, error);
+        console.error(`[ImageGen] Error waiting for prediction "${result.event.title}":`, error);
         return { index: result.index, imageUrl: null, error };
       }
     });
@@ -387,7 +464,7 @@ export async function POST(request: NextRequest) {
     });
     
     const successfulCount = images.filter(img => img !== null).length;
-    console.log(`[SDXL] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
+    console.log(`[ImageGen] Parallel generation complete: ${successfulCount}/${events.length} images generated`);
     
     // Filter out null values and check if we have any successful images
     const successfulImages = images.filter(img => img !== null);
@@ -401,21 +478,21 @@ export async function POST(request: NextRequest) {
     
     // Step 4: Persist all images to Cloudinary (if configured)
     // This ensures images are permanently stored and won't expire from Replicate
-    console.log(`[SDXL] Persisting ${successfulImages.length} images to Cloudinary...`);
+    console.log(`[ImageGen] Persisting ${successfulImages.length} images to Cloudinary...`);
     const persistedImages = await persistImagesToCloudinary(images);
     
     // Log summary
     const persistedCount = persistedImages.filter(img => img !== null && img.includes('res.cloudinary.com')).length;
-    console.log(`[SDXL] Generated ${successfulImages.length} of ${events.length} images successfully`);
+    console.log(`[ImageGen] Generated ${successfulImages.length} of ${events.length} images successfully`);
     if (persistedCount > 0) {
-      console.log(`[SDXL] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
+      console.log(`[ImageGen] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
     }
     
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
     // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
     return NextResponse.json({ images: persistedImages });
   } catch (error: any) {
-    console.error('[SDXL] Error generating images:', error);
+    console.error('[ImageGen] Error generating images:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate images' },
       { status: 500 }
