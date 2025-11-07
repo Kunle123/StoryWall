@@ -196,15 +196,16 @@ const TimelineEditor = () => {
       const eventResults = [];
       for (const event of events) {
         try {
-          // Format date: only include month/day if they are actually known
+          // Format date: only include month/day if they are actually provided
           // Use Jan 1 as placeholder for year-only dates (DB requires full date)
+          // We'll detect this in formatting to show year-only when appropriate
           const hasMonth = (event as any).month && (event as any).month >= 1 && (event as any).month <= 12;
           const hasDay = (event as any).day && (event as any).day >= 1 && (event as any).day <= 31;
           
-          // Use actual month/day if provided, otherwise use Jan 1 as placeholder
-          // We'll detect this in formatting to show year-only when appropriate
-          const month = hasMonth ? (event as any).month : 1;
-          const day = hasDay ? (event as any).day : 1;
+          // Only use month/day if both are provided, otherwise use Jan 1 as placeholder
+          // This ensures year-only events are stored as Jan 1 but displayed as year-only
+          const month = (hasMonth && hasDay) ? (event as any).month : 1;
+          const day = (hasMonth && hasDay) ? (event as any).day : 1;
           const dateStr = `${event.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
           const eventResult = await createEvent(timelineId, {

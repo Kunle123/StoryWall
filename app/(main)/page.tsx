@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
-import { formatEventDate } from "@/lib/utils/dateFormat";
+import { formatEventDate, formatEventDateShort } from "@/lib/utils/dateFormat";
 
 const Index = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -18,10 +18,11 @@ const Index = () => {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   
-  // Format the centered event date
+  // Format the centered event date for dial (short format for constrained space)
   const formatSelectedDate = (event: TimelineEvent | null) => {
     if (!event) return undefined;
-    return formatEventDate(event.year, event.month, event.day);
+    // Use short format (11/03/22) for dial display
+    return formatEventDateShort(event.year, event.month, event.day);
   };
 
   // Get preceding and following events

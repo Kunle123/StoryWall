@@ -36,13 +36,36 @@ export function formatYearWithAD(year: number, alwaysShowAD: boolean = false): s
 }
 
 /**
- * Check if a date string represents a placeholder date (Jan 1) for year-only events
- * Returns true if the date is likely a placeholder, false if it's a real date
+ * Format a date in short format (11/03/22) for constrained spaces
+ * Uses locale-appropriate format (DD/MM/YY for UK, MM/DD/YY for US)
  */
-export function isPlaceholderDate(dateStr: string): boolean {
-  // If date ends with -01-01, it's likely a placeholder for year-only dates
-  // Real Jan 1 events are rare, so this heuristic works for most cases
-  return dateStr.endsWith('-01-01');
+export function formatEventDateShort(
+  year: number,
+  month?: number,
+  day?: number
+): string {
+  // Year only
+  if (!month || !day) {
+    return year.toString();
+  }
+  
+  // Full date - use locale-appropriate format
+  // Default to DD/MM/YY (UK format)
+  const dayStr = String(day).padStart(2, '0');
+  const monthStr = String(month).padStart(2, '0');
+  const yearStr = String(year).slice(-2); // Last 2 digits of year
+  
+  return `${dayStr}/${monthStr}/${yearStr}`;
+}
+
+/**
+ * Format a numbered event (e.g., "Day 1", "Event 2", "Step 3")
+ */
+export function formatNumberedEvent(
+  number: number,
+  label: string = "Event"
+): string {
+  return `${label} ${number}`;
 }
 
 /**
@@ -76,7 +99,9 @@ export function formatEventDate(
 }
 
 /**
- * Format a date from ISO string, detecting placeholder dates
+ * Format a date from ISO string
+ * Only shows month/day if they are actually provided (not null/undefined)
+ * No placeholder detection - if month/day are in the date, they're real
  */
 export function formatEventDateFromISO(
   dateStr: string,
@@ -88,15 +113,12 @@ export function formatEventDateFromISO(
     const month = date.getMonth() + 1;
     const day = date.getDate();
     
-    // If date is Jan 1, treat as placeholder (year-only)
-    // Exception: don't treat as placeholder if it's clearly a New Year's event
-    // For now, we'll treat all Jan 1 as placeholder - real Jan 1 events are rare
-    const isPlaceholder = month === 1 && day === 1;
-    
+    // Use the date as-is - no placeholder detection
+    // If month/day are present, they're real dates
     return formatEventDate(
       year,
-      isPlaceholder ? undefined : month,
-      isPlaceholder ? undefined : day,
+      month,
+      day,
       alwaysShowAD
     );
   } catch {

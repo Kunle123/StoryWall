@@ -295,17 +295,17 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   
-  // Check if date is Jan 1 - likely a placeholder for year-only dates
-  // Only include month/day if the date is NOT Jan 1 (or if explicitly provided)
-  const isPlaceholderDate = month === 1 && day === 1;
+  // Check if date is Jan 1 - if so, treat as year-only (no placeholder dates)
+  // Only include month/day if the date is NOT Jan 1
+  // This way, year-only events stored as Jan 1 won't display as "Jan 1"
+  const isYearOnly = month === 1 && day === 1;
   
   return {
     id: apiEvent.id,
     year: year,
-    // Only include month/day if it's not a placeholder date (Jan 1)
-    // This way, year-only events won't show "Jan 1" unless it's actually Jan 1
-    month: isPlaceholderDate ? undefined : month,
-    day: isPlaceholderDate ? undefined : day,
+    // Only include month/day if it's not a year-only placeholder
+    month: isYearOnly ? undefined : month,
+    day: isYearOnly ? undefined : day,
     title: apiEvent.title,
     description: apiEvent.description,
     category: apiEvent.category,
