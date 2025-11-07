@@ -67,8 +67,6 @@ export const WritingStyleStep = ({
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
-  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
-  const { deductCredits, credits } = useCredits();
 
   const handleGenerateEvents = async () => {
     if (!timelineDescription || !timelineName) {
@@ -79,18 +77,6 @@ export const WritingStyleStep = ({
       });
       return;
     }
-
-    // Deduct credits before generating
-    const creditsDeducted = await deductCredits(CREDIT_COST_EVENTS, "AI Event Generation");
-    if (!creditsDeducted) {
-      setShowCreditsDialog(true);
-      return;
-    }
-    
-    toast({
-      title: "Credits Used",
-      description: `${CREDIT_COST_EVENTS} credits used for AI Event Generation`,
-    });
 
     setIsGenerating(true);
     try {
@@ -304,12 +290,6 @@ export const WritingStyleStep = ({
               <Sparkles className="mr-2 h-4 w-4" />
             )}
             {isGenerating ? "Generating..." : hasGenerated ? "Events Generated" : "Generate with AI"}
-            {!isGenerating && !hasGenerated && (
-              <Badge variant="secondary" className="ml-2 text-xs">
-                <Coins className="w-3 h-3 mr-1" />
-                {CREDIT_COST_EVENTS}
-              </Badge>
-            )}
           </Button>
           <Button variant="outline" onClick={addEvent} className="w-full sm:w-auto sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />

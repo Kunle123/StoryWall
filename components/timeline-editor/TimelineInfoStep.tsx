@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -125,134 +126,143 @@ export const TimelineInfoStep = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="space-y-0.5">
-            <Label htmlFor="allow-fictional" className="text-base">
-              Allow Fictional Information
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Enable AI to use fictional or creative content when generating timeline events
-            </p>
-          </div>
-          <Switch
-            id="allow-fictional"
-            checked={!isFactual}
-            onCheckedChange={(checked) => setIsFactual(!checked)}
-          />
-        </div>
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="more-options">
+            <AccordionTrigger>More Options</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="allow-fictional" className="text-base">
+                      Allow Fictional Information
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Enable AI to use fictional or creative content when generating timeline events
+                    </p>
+                  </div>
+                  <Switch
+                    id="allow-fictional"
+                    checked={!isFactual}
+                    onCheckedChange={(checked) => setIsFactual(!checked)}
+                  />
+                </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="space-y-0.5">
-            <Label htmlFor="is-private" className="text-base">
-              Private Timeline
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Make this timeline private (only visible to you)
-            </p>
-          </div>
-          <Switch
-            id="is-private"
-            checked={!isPublic}
-            onCheckedChange={(checked) => setIsPublic(!checked)}
-          />
-        </div>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is-private" className="text-base">
+                      Private Timeline
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Make this timeline private (only visible to you)
+                    </p>
+                  </div>
+                  <Switch
+                    id="is-private"
+                    checked={!isPublic}
+                    onCheckedChange={(checked) => setIsPublic(!checked)}
+                  />
+                </div>
 
-        <div className="flex items-center justify-between p-4 border rounded-lg">
-          <div className="space-y-0.5 flex-1">
-            <Label htmlFor="is-numbered" className="text-base">
-              Numbered Events
-            </Label>
-            <p className="text-sm text-muted-foreground">
-              Use sequential numbering instead of dates (e.g., "12 Days of Christmas")
-            </p>
-            {isNumbered && setIsNumbered && setNumberLabel && (
-              <div className="mt-3">
-                <Label htmlFor="number-label" className="text-sm mb-1 block">
-                  Event Label
-                </Label>
-                <Input
-                  id="number-label"
-                  placeholder="Day, Event, Step, etc."
-                  value={numberLabel}
-                  onChange={(e) => setNumberLabel(e.target.value)}
-                  className="h-9 mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Events will be labeled as "{numberLabel} 1", "{numberLabel} 2", etc.
-                </p>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-0.5 flex-1">
+                    <Label htmlFor="is-numbered" className="text-base">
+                      Numbered Events
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Use sequential numbering instead of dates (e.g., "12 Days of Christmas")
+                    </p>
+                    {isNumbered && setIsNumbered && setNumberLabel && (
+                      <div className="mt-3">
+                        <Label htmlFor="number-label" className="text-sm mb-1 block">
+                          Event Label
+                        </Label>
+                        <Input
+                          id="number-label"
+                          placeholder="Day, Event, Step, etc."
+                          value={numberLabel}
+                          onChange={(e) => setNumberLabel(e.target.value)}
+                          className="h-9 mt-1"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Events will be labeled as "{numberLabel} 1", "{numberLabel} 2", etc.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <Switch
+                    id="is-numbered"
+                    checked={isNumbered}
+                    onCheckedChange={(checked) => setIsNumbered?.(checked)}
+                    disabled={!setIsNumbered}
+                  />
+                </div>
+
+                {!isNumbered && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="start-date" className="text-base mb-2 block">
+                        Start Date (Optional)
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-10",
+                              !startDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="end-date" className="text-base mb-2 block">
+                        End Date (Optional)
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-10",
+                              !endDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                            disabled={(date) => startDate ? date < startDate : false}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          <Switch
-            id="is-numbered"
-            checked={isNumbered}
-            onCheckedChange={(checked) => setIsNumbered?.(checked)}
-            disabled={!setIsNumbered}
-          />
-        </div>
-
-        {!isNumbered && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="start-date" className="text-base mb-2 block">
-              Start Date (Optional)
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-10",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <Label htmlFor="end-date" className="text-base mb-2 block">
-              End Date (Optional)
-            </Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal h-10",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  disabled={(date) => startDate ? date < startDate : false}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   );
