@@ -360,6 +360,15 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
 
   // Calculate time difference between events
   const getTimeDifference = (event1: TimelineEvent, event2: TimelineEvent) => {
+    // For numbered events, return difference in numbers
+    if (event1.number !== undefined && event2.number !== undefined) {
+      const diff = Math.abs(event2.number - event1.number);
+      return diff === 1 ? "1 Event" : `${diff} Events`;
+    }
+    // For dated events, calculate time difference
+    if (event1.year === undefined || event2.year === undefined) {
+      return "N/A";
+    }
     const date1 = new Date(event1.year, event1.month || 0, event1.day || 1);
     const date2 = new Date(event2.year, event2.month || 0, event2.day || 1);
     const diffMs = Math.abs(date2.getTime() - date1.getTime());
