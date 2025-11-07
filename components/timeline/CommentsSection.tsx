@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send, Heart } from "lucide-react";
-import { fetchCommentsByTimelineId, fetchCommentsByEventId, createComment, createEventComment, Comment } from "@/lib/api/client";
+import { fetchCommentsByTimelineId, fetchCommentsByEventId, createComment, createEventComment, Comment, fetchCommentLikeStatus, likeComment, unlikeComment } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,6 +18,7 @@ interface DisplayComment {
   content: string;
   timestamp: string;
   likes: number;
+  isLiked?: boolean;
   parentId?: string;
   replies?: DisplayComment[];
 }
@@ -36,6 +37,7 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [likingComments, setLikingComments] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Fetch comments on mount (only if signed in)
@@ -59,24 +61,38 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
           // Don't show toast for errors, just log
           console.error('[Comments] Failed to load:', result.error);
         } else if (result.data) {
-          const displayComments: DisplayComment[] = result.data.map((comment: Comment) => ({
-            id: comment.id,
-            author: comment.user?.username || "Anonymous",
-            avatar: comment.user?.avatar_url,
-            content: comment.content,
-            timestamp: formatDistanceToNow(new Date(comment.created_at), { addSuffix: true }),
-            likes: comment.likes_count || 0,
-            parentId: comment.parent_id,
-            replies: comment.replies?.map((reply: Comment) => ({
-              id: reply.id,
-              author: reply.user?.username || "Anonymous",
-              avatar: reply.user?.avatar_url,
-              content: reply.content,
-              timestamp: formatDistanceToNow(new Date(reply.created_at), { addSuffix: true }),
-              likes: reply.likes_count || 0,
-              parentId: reply.parent_id,
-            })) || [],
-          }));
+          // Fetch like status for all comments and replies
+          const displayCommentsPromises = result.data.map(async (comment: Comment) => {
+            const likeStatus = await fetchCommentLikeStatus(comment.id);
+            const repliesPromises = (comment.replies || []).map(async (reply: Comment) => {
+              const replyLikeStatus = await fetchCommentLikeStatus(reply.id);
+              return {
+                id: reply.id,
+                author: reply.user?.username || "Anonymous",
+                avatar: reply.user?.avatar_url,
+                content: reply.content,
+                timestamp: formatDistanceToNow(new Date(reply.created_at), { addSuffix: true }),
+                likes: replyLikeStatus.data?.likes_count || reply.likes_count || 0,
+                isLiked: replyLikeStatus.data?.user_liked || false,
+                parentId: reply.parent_id,
+              };
+            });
+            const replies = await Promise.all(repliesPromises);
+            
+            return {
+              id: comment.id,
+              author: comment.user?.username || "Anonymous",
+              avatar: comment.user?.avatar_url,
+              content: comment.content,
+              timestamp: formatDistanceToNow(new Date(comment.created_at), { addSuffix: true }),
+              likes: likeStatus.data?.likes_count || comment.likes_count || 0,
+              isLiked: likeStatus.data?.user_liked || false,
+              parentId: comment.parent_id,
+              replies,
+            };
+          });
+          
+          const displayComments = await Promise.all(displayCommentsPromises);
           setComments(displayComments);
         }
       } catch (error: any) {
@@ -265,9 +281,63 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto p-0 gap-2 text-muted-foreground hover:text-pink-600 transition-colors"
+                    className={`h-auto p-0 gap-2 transition-colors ${
+                      comment.isLiked 
+                        ? 'text-pink-600 hover:text-pink-700' 
+                        : 'text-muted-foreground hover:text-pink-600'
+                    }`}
+                    onClick={async () => {
+                      if (!isSignedIn) {
+                        toast({
+                          title: "Sign in required",
+                          description: "Please sign in to like comments",
+                          variant: "destructive",
+                        });
+                        router.push("/auth");
+                        return;
+                      }
+                      
+                      if (likingComments.has(comment.id)) return;
+                      
+                      setLikingComments(prev => new Set(prev).add(comment.id));
+                      try {
+                        const result = comment.isLiked 
+                          ? await unlikeComment(comment.id)
+                          : await likeComment(comment.id);
+                        
+                        if (result.error) {
+                          toast({
+                            title: "Error",
+                            description: result.error,
+                            variant: "destructive",
+                          });
+                        } else if (result.data) {
+                          // Update the comment's like status
+                          setComments(prevComments => 
+                            prevComments.map(c => 
+                              c.id === comment.id
+                                ? { ...c, likes: result.data.likes_count, isLiked: result.data.user_liked }
+                                : c
+                            )
+                          );
+                        }
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to update like",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setLikingComments(prev => {
+                          const next = new Set(prev);
+                          next.delete(comment.id);
+                          return next;
+                        });
+                      }
+                    }}
+                    disabled={likingComments.has(comment.id)}
                   >
-                    <Heart className="w-[18px] h-[18px]" />
+                    <Heart className={`w-[18px] h-[18px] ${comment.isLiked ? 'fill-current' : ''}`} />
                     <span className="text-[13px]">{comment.likes}</span>
                   </Button>
                   <Button
@@ -333,9 +403,70 @@ export const CommentsSection = ({ timelineId, eventId }: CommentsSectionProps) =
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-auto p-0 gap-2 text-muted-foreground hover:text-pink-600 transition-colors"
+                              className={`h-auto p-0 gap-2 transition-colors ${
+                                reply.isLiked 
+                                  ? 'text-pink-600 hover:text-pink-700' 
+                                  : 'text-muted-foreground hover:text-pink-600'
+                              }`}
+                              onClick={async () => {
+                                if (!isSignedIn) {
+                                  toast({
+                                    title: "Sign in required",
+                                    description: "Please sign in to like comments",
+                                    variant: "destructive",
+                                  });
+                                  router.push("/auth");
+                                  return;
+                                }
+                                
+                                if (likingComments.has(reply.id)) return;
+                                
+                                setLikingComments(prev => new Set(prev).add(reply.id));
+                                try {
+                                  const result = reply.isLiked 
+                                    ? await unlikeComment(reply.id)
+                                    : await likeComment(reply.id);
+                                  
+                                  if (result.error) {
+                                    toast({
+                                      title: "Error",
+                                      description: result.error,
+                                      variant: "destructive",
+                                    });
+                                  } else if (result.data) {
+                                    // Update the reply's like status within its parent comment
+                                    setComments(prevComments => 
+                                      prevComments.map(c => 
+                                        c.id === comment.id
+                                          ? {
+                                              ...c,
+                                              replies: (c.replies || []).map(r =>
+                                                r.id === reply.id
+                                                  ? { ...r, likes: result.data.likes_count, isLiked: result.data.user_liked }
+                                                  : r
+                                              )
+                                            }
+                                          : c
+                                      )
+                                    );
+                                  }
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Error",
+                                    description: error.message || "Failed to update like",
+                                    variant: "destructive",
+                                  });
+                                } finally {
+                                  setLikingComments(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(reply.id);
+                                    return next;
+                                  });
+                                }
+                              }}
+                              disabled={likingComments.has(reply.id)}
                             >
-                              <Heart className="w-[16px] h-[16px]" />
+                              <Heart className={`w-[16px] h-[16px] ${reply.isLiked ? 'fill-current' : ''}`} />
                               <span className="text-[12px]">{reply.likes}</span>
                             </Button>
                           </div>

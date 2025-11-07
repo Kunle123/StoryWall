@@ -1,0 +1,340 @@
+[
+  {
+    "user": {
+      "email": "historian1@example.com",
+      "username": "historian1"
+    },
+    "timelines": [
+      {
+        "title": "The History of Space Exploration",
+        "description": "Key milestones in human space exploration from the first satellite to modern missions to Mars and beyond",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "realistic"
+      },
+      {
+        "title": "The Evolution of Computing",
+        "description": "Major developments in computer technology from the abacus to quantum computing",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "World War II Timeline",
+        "description": "Major events and battles of World War II from 1939 to 1945",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Renaissance Period",
+        "description": "Cultural and artistic developments during the Renaissance in Europe",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Industrial Revolution",
+        "description": "Technological and social changes during the Industrial Revolution",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The American Civil War",
+        "description": "Key battles and events of the American Civil War from 1861 to 1865",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Cold War",
+        "description": "Major events and tensions during the Cold War era",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The French Revolution",
+        "description": "Revolutionary events in France from 1789 to 1799",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Age of Exploration",
+        "description": "European exploration and discovery of new lands from the 15th to 17th centuries",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Roman Empire",
+        "description": "Rise and fall of the Roman Empire from its founding to its decline",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Scientific Revolution",
+        "description": "Major scientific discoveries and developments from the 16th to 18th centuries",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Byzantine Empire",
+        "description": "History of the Byzantine Empire from its founding to its fall",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Crusades",
+        "description": "Major crusades and religious conflicts in the Middle Ages",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Black Death",
+        "description": "The spread and impact of the Black Death pandemic in Europe",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Reformation",
+        "description": "Religious reform movements in Europe during the 16th century",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Age of Enlightenment",
+        "description": "Intellectual and philosophical movements of the 18th century",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The American Revolution",
+        "description": "Events leading to and during the American Revolutionary War",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Napoleonic Wars",
+        "description": "Wars and campaigns of Napoleon Bonaparte",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Victorian Era",
+        "description": "Social, cultural, and technological developments during Queen Victoria's reign",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The Russian Revolution",
+        "description": "Revolutionary events in Russia leading to the fall of the Tsarist regime",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      }
+    ]
+  },
+  {
+    "user": {
+      "email": "historian2@example.com",
+      "username": "historian2"
+    },
+    "timelines": [
+      {
+        "title": "The History of Medicine",
+        "description": "Major medical discoveries and developments throughout history",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Art",
+        "description": "Major art movements and influential artists throughout history",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Music",
+        "description": "Evolution of music from ancient times to modern genres",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Literature",
+        "description": "Major literary works and movements throughout history",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Architecture",
+        "description": "Architectural styles and significant buildings throughout history",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Philosophy",
+        "description": "Major philosophical movements and thinkers",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Mathematics",
+        "description": "Major mathematical discoveries and developments",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Physics",
+        "description": "Major discoveries in physics from classical to quantum mechanics",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Chemistry",
+        "description": "Major discoveries and developments in chemistry",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Biology",
+        "description": "Major discoveries in biology and life sciences",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Astronomy",
+        "description": "Major discoveries and developments in astronomy",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Technology",
+        "description": "Technological innovations and inventions throughout history",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Transportation",
+        "description": "Evolution of transportation from ancient times to modern vehicles",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Communication",
+        "description": "Development of communication methods from writing to the internet",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Agriculture",
+        "description": "Development of farming and agricultural techniques",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Education",
+        "description": "Evolution of educational systems and methods",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Law",
+        "description": "Development of legal systems and major legal codes",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Economics",
+        "description": "Major economic theories and developments",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Religion",
+        "description": "Major religious movements and developments",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      },
+      {
+        "title": "The History of Sports",
+        "description": "Evolution of sports and major sporting events",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true
+      }
+    ]
+  }
+]
+
