@@ -371,10 +371,10 @@ export const GenerateImagesStep = ({
         </p>
       </div>
 
-      <Tabs defaultValue="manual" className="w-full">
+      <Tabs defaultValue="ai" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="manual">Manual Upload</TabsTrigger>
           <TabsTrigger value="ai">AI Generated</TabsTrigger>
+          <TabsTrigger value="manual">Manual Upload</TabsTrigger>
         </TabsList>
 
         <TabsContent value="manual" className="space-y-4 mt-6">
