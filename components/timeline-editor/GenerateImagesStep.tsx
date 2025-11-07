@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Eye, Pencil, Loader2, Coins, AlertTriangle, Upload, RotateCw } from "lucide-react";
+import { Sparkles, Eye, Pencil, Loader2, Coins, AlertTriangle, Upload, RotateCw, Pipette } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,7 +30,9 @@ interface GenerateImagesStepProps {
   events: TimelineEvent[];
   setEvents: (events: TimelineEvent[]) => void;
   imageStyle: string;
+  setImageStyle?: (style: string) => void;
   themeColor: string;
+  setThemeColor?: (color: string) => void;
   imageReferences?: Array<{ name: string; url: string }>;
 }
 
@@ -40,9 +42,13 @@ export const GenerateImagesStep = ({
   events,
   setEvents,
   imageStyle,
+  setImageStyle,
   themeColor,
+  setThemeColor,
   imageReferences = [],
 }: GenerateImagesStepProps) => {
+  const [customStyle, setCustomStyle] = useState("");
+  const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -388,6 +394,81 @@ export const GenerateImagesStep = ({
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-4 mt-6">
+          <Card className="p-6">
+            <div className="space-y-6">
+              <div>
+                <Label className="text-base mb-3 block">Image Style</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["Photorealistic", "Illustration", "Minimalist", "Vintage", "Watercolor", "3D Render", "Sketch", "Abstract"].map((style) => (
+                    <Badge
+                      key={style}
+                      variant={imageStyle === style ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-sm"
+                      onClick={() => setImageStyle?.(style)}
+                    >
+                      {style}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <Label className="text-sm mb-2 block">Or describe your own style</Label>
+                  <Textarea
+                    placeholder="e.g., in a comic book hero style"
+                    value={customStyle}
+                    onChange={(e) => setCustomStyle(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-base mb-3 block">Theme Color (Optional)</Label>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Select a dominant color theme for the generated images
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {themeColors.map((color) => (
+                    <Badge
+                      key={color.name}
+                      variant={themeColor === color.value ? "default" : "outline"}
+                      className="cursor-pointer px-4 py-2 text-sm"
+                      onClick={() => setThemeColor?.(color.value)}
+                    >
+                      <div 
+                        className="w-4 h-4 rounded-full mr-2 border border-border"
+                        style={{ backgroundColor: color.value }}
+                      />
+                      {color.name}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label className="text-sm mb-2 block">Custom Color</Label>
+                    <Input
+                      type="color"
+                      value={customColor}
+                      onChange={(e) => {
+                        setCustomColor(e.target.value);
+                        setThemeColor?.(e.target.value);
+                      }}
+                      className="h-10 w-full cursor-pointer"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setThemeColor?.(customColor)}
+                    className="h-10"
+                  >
+                    <Pipette className="mr-2 h-4 w-4" />
+                    Apply Color
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card className="p-6">
             <h3 className="font-semibold mb-4">Select Events to Generate Images For</h3>
             <div className="space-y-2 mb-4">

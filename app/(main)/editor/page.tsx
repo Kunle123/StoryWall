@@ -392,7 +392,9 @@ const TimelineEditor = () => {
                   events={events} 
                   setEvents={setEvents}
                   imageStyle={imageStyle}
+                  setImageStyle={setImageStyle}
                   themeColor={themeColor}
+                  setThemeColor={setThemeColor}
                   imageReferences={imageReferences}
                 />
               )}
