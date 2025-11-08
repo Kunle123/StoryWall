@@ -343,12 +343,18 @@ export async function POST(request: NextRequest) {
                     
                     console.log(`[Seed] Found ${timelineEvents.length} events to update with images`);
 
+                    // Import updateEvent to use the same logic as the events API
+                    const { updateEvent } = await import('@/lib/db/events');
+                    
+                    // Use placeholder user ID (same as events API uses)
+                    const placeholderUserId = process.env.TEST_USER_ID || user.id;
+                    
                     for (let i = 0; i < Math.min(images.length, timelineEvents.length); i++) {
                       if (images[i] && typeof images[i] === 'string') {
                         try {
-                          await prisma.event.update({
-                            where: { id: timelineEvents[i].id },
-                            data: { imageUrl: images[i] },
+                          // Use the same updateEvent function as the events API
+                          await updateEvent(timelineEvents[i].id, placeholderUserId, {
+                            image_url: images[i]
                           });
                           results.imagesGenerated++;
                           if ((i + 1) % 5 === 0) {

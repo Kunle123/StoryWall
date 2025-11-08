@@ -1,0 +1,15 @@
+🌐 Using API URL: https://www.storywall.com
+🌱 Starting to seed 30 timelines in batches of 3...
+⚡ Concurrency: 1 batches at a time
+
+📋 Total batches: 10
+
+
+🚀 Starting batch group: 1
+📦 Batch 1: Processing 3 timelines...
+❌ Failed to seed timelines: fetch failed
+TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at async seedTimelineBatch (/Users/admin/Documents/KunleDevFolder/StoryWall/scripts/seed-30-timelines.ts:24:22)
+    at async Promise.all (index 0)
+    at async seedTimelines (/Users/admin/Documents/KunleDevFolder/StoryWall/scripts/seed-30-timelines.ts:93:28)
