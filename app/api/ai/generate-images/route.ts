@@ -127,6 +127,46 @@ function getModelForStyle(imageStyle: string, needsText: boolean = false): strin
 // Legacy constant for backward compatibility
 const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
+// Helper to validate that a URL actually points to an image
+async function validateImageUrl(url: string): Promise<boolean> {
+  try {
+    // Check if URL has image extension
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'];
+    const hasImageExtension = imageExtensions.some(ext => url.toLowerCase().includes(ext));
+    
+    if (!hasImageExtension && !url.includes('upload.wikimedia.org')) {
+      console.warn(`[ImageGen] URL doesn't appear to be an image: ${url.substring(0, 100)}`);
+      return false;
+    }
+    
+    // Make HEAD request to check content-type
+    const headResponse = await fetch(url, { 
+      method: 'HEAD',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    if (!headResponse.ok) {
+      console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
+      return false;
+    }
+    
+    const contentType = headResponse.headers.get('content-type') || '';
+    const isImage = contentType.startsWith('image/');
+    
+    if (!isImage) {
+      console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
+      return false;
+    }
+    
+    console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
+    return true;
+  } catch (error: any) {
+    console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+    return false;
+  }
+}
+
 // Helper to convert Wikimedia Commons page URL to direct image URL
 async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | null> {
   try {
@@ -138,7 +178,15 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
     
     // Use Wikimedia API to get direct image URL
     const apiUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&format=json`;
-    const response = await fetch(apiUrl);
+    const response = await fetch(apiUrl, {
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (!response.ok) {
+      console.error(`[ImageGen] Wikimedia API returned ${response.status}`);
+      return null;
+    }
+    
     const data = await response.json();
     
     const pages = data.query?.pages;
@@ -147,9 +195,20 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
     const pageId = Object.keys(pages)[0];
     const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
     
-    return imageUrl || null;
-  } catch (error) {
-    console.error(`[ImageGen] Error converting Wikimedia URL: ${pageUrl}`, error);
+    if (!imageUrl) {
+      console.warn(`[ImageGen] No image URL found in Wikimedia API response for: ${filename}`);
+      return null;
+    }
+    
+    // Validate the URL actually points to an image
+    const isValid = await validateImageUrl(imageUrl);
+    if (!isValid) {
+      return null;
+    }
+    
+    return imageUrl;
+  } catch (error: any) {
+    console.error(`[ImageGen] Error converting Wikimedia URL: ${pageUrl}`, error.message);
     return null;
   }
 }
@@ -157,34 +216,38 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
 // Helper to prepare image for Replicate (try URL first, upload if needed)
 async function prepareImageForReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
+    let finalUrl = imageUrl;
+    
     // Convert Wikimedia Commons page URLs to direct image URLs
     if (imageUrl.includes('commons.wikimedia.org/wiki/File:')) {
       console.log(`[ImageGen] Converting Wikimedia page URL to direct image URL...`);
       const directUrl = await getWikimediaDirectImageUrl(imageUrl);
       if (directUrl) {
-        console.log(`[ImageGen] Using direct Wikimedia image: ${directUrl.substring(0, 100)}...`);
-        return directUrl;
+        finalUrl = directUrl;
+        console.log(`[ImageGen] Using direct Wikimedia image: ${finalUrl.substring(0, 100)}...`);
+      } else {
+        console.warn(`[ImageGen] Failed to convert Wikimedia URL: ${imageUrl.substring(0, 100)}`);
+        return null;
       }
     }
     
     // Check if URL is publicly accessible (starts with http/https)
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      // Try using the URL directly first (Replicate accepts publicly accessible URLs)
-      console.log(`[ImageGen] Using reference image URL directly: ${imageUrl.substring(0, 100)}...`);
-      return imageUrl;
-    }
-    
-    // If it's a data URL or base64, we need to handle it differently
-    // For now, return null and log a warning
-    if (imageUrl.startsWith('data:')) {
-      console.warn(`[ImageGen] Data URLs not directly supported by Replicate. Need to upload or convert.`);
-      // Could extract base64 and upload, but for now return null
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      console.warn(`[ImageGen] URL is not publicly accessible: ${finalUrl.substring(0, 100)}`);
       return null;
     }
     
-    return null;
-  } catch (error) {
-    console.error(`[ImageGen] Error preparing reference image for Replicate: ${imageUrl}`, error);
+    // Validate that the URL actually points to an image
+    const isValid = await validateImageUrl(finalUrl);
+    if (!isValid) {
+      console.warn(`[ImageGen] URL validation failed: ${finalUrl.substring(0, 100)}`);
+      return null;
+    }
+    
+    console.log(`[ImageGen] Validated and ready to use reference image: ${finalUrl.substring(0, 100)}...`);
+    return finalUrl;
+  } catch (error: any) {
+    console.error(`[ImageGen] Error preparing reference image for Replicate: ${imageUrl.substring(0, 100)}`, error.message);
     return null;
   }
 }
@@ -305,6 +368,26 @@ function extractVisualElements(title: string, description?: string): {
   };
 }
 
+// Extract person names from image references
+function extractPersonNames(imageReferences?: Array<{ name: string; url: string }>): string[] {
+  if (!imageReferences || imageReferences.length === 0) return [];
+  
+  const personNames: string[] = [];
+  imageReferences.forEach(ref => {
+    // Extract person name from reference name (e.g., "Joe Biden (official portrait)" -> "Joe Biden")
+    const nameMatch = ref.name.match(/^([^(]+?)(?:\s*\(|$)/);
+    if (nameMatch) {
+      const name = nameMatch[1].trim();
+      // Filter out common non-person words
+      if (name && !name.match(/^(official|portrait|photograph|photo|image|picture)$/i)) {
+        personNames.push(name);
+      }
+    }
+  });
+  
+  return personNames;
+}
+
 // Build enhanced image prompt with style, color, and cohesion
 function buildImagePrompt(
   event: { title: string; description?: string; year?: number; imagePrompt?: string },
@@ -312,7 +395,8 @@ function buildImagePrompt(
   themeColor: string,
   styleVisualLanguage: string,
   needsText: boolean = false,
-  imageReferences?: Array<{ name: string; url: string }>
+  imageReferences?: Array<{ name: string; url: string }>,
+  hasReferenceImage: boolean = false
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
@@ -423,11 +507,23 @@ function buildImagePrompt(
     prompt += `. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters`;
   }
   
+  // Add person matching instructions when reference images are provided
+  if (hasReferenceImage && imageReferences && imageReferences.length > 0) {
+    const personNames = extractPersonNames(imageReferences);
+    if (personNames.length > 0) {
+      // Add specific person matching instructions
+      prompt += `. Match the facial features, appearance, and likeness of ${personNames.join(' and ')} from the reference image. Maintain accurate facial structure, distinctive features, and recognizable characteristics while adapting to the scene context`;
+    } else {
+      // Generic person matching instruction if names can't be extracted
+      prompt += `. Match the person's appearance, facial features, and likeness from the reference image. Maintain accurate facial structure and distinctive characteristics while adapting to the scene context`;
+    }
+  }
+  
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // Keep prompt concise and visual-focused (max 600 chars to accommodate text instructions)
-  return prompt.substring(0, 600).trim();
+  // Keep prompt concise and visual-focused (max 700 chars to accommodate person matching)
+  return prompt.substring(0, 700).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -538,12 +634,35 @@ export async function POST(request: NextRequest) {
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
     // Prepare reference images for Replicate if available (one per event, or use first available)
-    // Filter out invalid URLs (categories, articles, non-Wikimedia)
+    // Filter out invalid URLs (categories, articles, non-image URLs)
     const validImageReferences = imageReferences && imageReferences.length > 0
-      ? imageReferences.filter((ref: { name: string; url: string }) => 
-          ref.url.includes('/File:') // Only actual file URLs, not categories or articles
-        )
+      ? imageReferences.filter((ref: { name: string; url: string }) => {
+          // Must have a valid URL
+          if (!ref.url || typeof ref.url !== 'string') return false;
+          
+          // Accept direct image URLs (upload.wikimedia.org, etc.)
+          if (ref.url.includes('upload.wikimedia.org')) return true;
+          
+          // Accept Wikimedia page URLs that can be converted
+          if (ref.url.includes('commons.wikimedia.org/wiki/File:')) return true;
+          
+          // Accept other direct image URLs with image extensions
+          const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+          const hasImageExtension = imageExtensions.some(ext => ref.url.toLowerCase().includes(ext));
+          if (hasImageExtension && (ref.url.startsWith('http://') || ref.url.startsWith('https://'))) {
+            return true;
+          }
+          
+          // Reject category pages, article pages, etc.
+          if (ref.url.includes('/Category:') || ref.url.includes('/wiki/') && !ref.url.includes('/File:')) {
+            return false;
+          }
+          
+          return false;
+        })
       : [];
+    
+    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${imageReferences?.length || 0} valid image references`);
     
     const referenceImagePromises = validImageReferences.length > 0
       ? validImageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
@@ -583,14 +702,28 @@ export async function POST(request: NextRequest) {
           console.log(`[ImageGen] Event "${event.title}" needs text - using ${selectedModel} (better text rendering)`);
         }
         
-        // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
-        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage, needsText);
-        
         // Get reference image URL for this event (use first available, or cycle through if multiple events)
         const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
+        const hasReferenceImage = !!referenceImageUrl;
+        
+        // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
+        // Include person matching instructions when reference images are provided
+        const prompt = buildImagePrompt(
+          event, 
+          imageStyle, 
+          themeColor, 
+          styleVisualLanguage, 
+          needsText,
+          imageReferences,
+          hasReferenceImage
+        );
         
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
+        if (hasReferenceImage) {
+          const personNames = extractPersonNames(imageReferences);
+          console.log(`[ImageGen] Person matching enabled for: ${personNames.join(', ') || 'person in reference image'}`);
+        }
         
         // Build input - structure varies by model (for Replicate models)
         const input: any = {
@@ -631,8 +764,9 @@ export async function POST(request: NextRequest) {
           if (referenceImageUrl) {
             // Use Replicate URL for image input
             input.image = referenceImageUrl;
-            input.prompt_strength = 0.8;
-            console.log(`[ImageGen] Using reference image with SD 3.5`);
+            input.prompt_strength = 0.75; // Balanced for person matching
+            input.strength = 0.75;
+            console.log(`[ImageGen] Using reference image with SD 3.5 (strength: 0.75)`);
           }
         } else {
           // SDXL and similar models
@@ -653,8 +787,11 @@ export async function POST(request: NextRequest) {
           // SDXL supports direct image input via 'image' parameter (URL from Replicate)
           if (referenceImageUrl) {
             input.image = referenceImageUrl;
-            input.prompt_strength = 0.8; // How strongly the prompt transforms the input image (0-1)
-            console.log(`[ImageGen] Using reference image for image-to-image transformation`);
+            // Higher prompt_strength (0.7-0.85) for better person matching while allowing scene adaptation
+            // Lower values (0.5-0.7) preserve more of reference, higher (0.8-0.9) allow more transformation
+            input.prompt_strength = 0.75; // Balanced: maintain person likeness while adapting to scene
+            input.strength = 0.75; // Additional strength parameter for some models
+            console.log(`[ImageGen] Using reference image for image-to-image transformation with person matching (strength: 0.75)`);
           }
         }
         
