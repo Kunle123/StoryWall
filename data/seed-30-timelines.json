@@ -12,7 +12,7 @@
         "isPublic": true,
         "maxEvents": 25,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "illustration"
       },
       {
         "title": "The Rise of Artificial Intelligence (2020-2024)",
@@ -21,7 +21,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "minimalist"
       },
       {
         "title": "Taylor Swift's Eras Tour",
@@ -30,7 +30,7 @@
         "isPublic": true,
         "maxEvents": 30,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "vintage"
       },
       {
         "title": "The COVID-19 Pandemic Response in America",
@@ -39,7 +39,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "watercolor"
       },
       {
         "title": "The Streaming Wars: Netflix vs. Competitors",
@@ -48,43 +48,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "Climate Change Action in the United States",
-        "description": "Major climate policy initiatives, extreme weather events, renewable energy milestones, and environmental legislation from 2020 to 2024.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 20,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "The Barbie Movie Phenomenon",
-        "description": "From announcement to release, the cultural impact of the 2023 Barbie movie, including box office records, fashion trends, and social media moments.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 15,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "Cryptocurrency and Bitcoin in America",
-        "description": "Major cryptocurrency developments, regulatory changes, company launches, and market milestones in the United States from 2020 to 2024.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 20,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "The Return of Space Exploration",
-        "description": "NASA missions, SpaceX achievements, commercial spaceflight milestones, and America's renewed focus on space exploration and moon missions.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 20,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "3D Render"
       },
       {
         "title": "Social Media Platform Evolution",
@@ -93,7 +57,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "sketch"
       },
       {
         "title": "The WNBA's Growing Popularity",
@@ -111,7 +75,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "illustration"
       },
       {
         "title": "The Opioid Crisis Response",
@@ -120,7 +84,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "minimalist"
       },
       {
         "title": "College Sports NIL Revolution",
@@ -129,52 +93,34 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "vintage"
       },
       {
         "title": "The Housing Market Boom and Shift",
-        "description": "The dramatic changes in the U.S. housing market from the pandemic boom to interest rate changes, including record prices, policy shifts, and market corrections.",
+        "description": "Trends in the U.S. housing market from 2020 to 2024, including pandemic-driven booms, interest rate impacts, affordability challenges, and market corrections.",
         "isFactual": true,
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "watercolor"
       },
       {
-        "title": "The Rise of Women's Sports",
-        "description": "Major milestones in women's sports in America, including record-breaking achievements, media coverage expansion, pay equity progress, and cultural moments.",
+        "title": "The Marvel Cinematic Universe Phase 4 & 5",
+        "description": "Post-Endgame Marvel films and Disney+ series, including new characters, multiverse storylines, and the evolution of the MCU.",
         "isFactual": true,
         "isPublic": true,
-        "maxEvents": 20,
+        "maxEvents": 25,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "3D Render"
       },
       {
-        "title": "Tech Layoffs and Industry Shifts",
-        "description": "Major tech company layoffs, industry restructuring, and the shifting landscape of Big Tech employment in America from 2022 to 2024.",
+        "title": "Climate Change Initiatives in the U.S.",
+        "description": "Major climate policy developments, environmental legislation, corporate sustainability commitments, and renewable energy milestones in America.",
         "isFactual": true,
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "The Return of Concerts and Live Events",
-        "description": "The post-pandemic revival of live entertainment in America, including record-breaking tours, festival returns, and the economic impact of live events.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 20,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
-      },
-      {
-        "title": "Renewable Energy Milestones",
-        "description": "Major achievements in renewable energy in America, including solar and wind power records, infrastructure projects, and policy initiatives from 2020 to 2024.",
-        "isFactual": true,
-        "isPublic": true,
-        "maxEvents": 20,
-        "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "sketch"
       },
       {
         "title": "The Labor Movement Resurgence",
@@ -183,7 +129,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "abstract"
       },
       {
         "title": "The Supreme Court's Major Decisions",
@@ -192,7 +138,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "illustration"
       },
       {
         "title": "The Creator Economy Boom",
@@ -201,7 +147,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "minimalist"
       },
       {
         "title": "Mental Health Awareness Movement",
@@ -210,7 +156,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "vintage"
       },
       {
         "title": "The Fast Food Price Wars",
@@ -219,7 +165,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "watercolor"
       },
       {
         "title": "The Return of Movie Theaters",
@@ -228,7 +174,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "3D Render"
       },
       {
         "title": "The Remote Work Revolution",
@@ -237,7 +183,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "sketch"
       },
       {
         "title": "The Student Loan Crisis and Relief",
@@ -246,7 +192,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "abstract"
       },
       {
         "title": "The Rise of Pickleball",
@@ -255,7 +201,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "illustration"
       },
       {
         "title": "The Inflation and Economic Recovery",
@@ -264,7 +210,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "minimalist"
       },
       {
         "title": "The Diversity and Inclusion Movement",
@@ -273,7 +219,7 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "vintage"
       },
       {
         "title": "The Future of Transportation",
@@ -282,9 +228,53 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "watercolor"
+      },
+      {
+        "title": "SpaceX and the New Space Race",
+        "description": "SpaceX missions, achievements, and milestones from 2020 to 2024, including Starship development, Crew Dragon launches, and the commercialization of space travel.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "3D Render"
+      },
+      {
+        "title": "The TikTok Phenomenon",
+        "description": "TikTok's explosive growth in America, viral trends, creator success stories, political controversies, and its impact on social media and culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "sketch"
+      },
+      {
+        "title": "Cryptocurrency Boom and Bust Cycles",
+        "description": "Major cryptocurrency developments in America, including Bitcoin and Ethereum price movements, regulatory changes, FTX collapse, and the evolution of digital assets.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "abstract"
+      },
+      {
+        "title": "The Netflix Documentary Hits",
+        "description": "Popular and influential Netflix documentaries and docuseries from 2020 to 2024, including true crime, social justice, and cultural phenomenon series.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "illustration"
+      },
+      {
+        "title": "Women's Soccer World Cup Journey",
+        "description": "The U.S. Women's National Soccer Team's journey through recent World Cups, including key matches, player achievements, and cultural impact moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "minimalist"
       }
     ]
   }
 ]
-
