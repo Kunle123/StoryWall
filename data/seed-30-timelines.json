@@ -30,7 +30,7 @@
         "description": "The record-breaking Eras Tour journey across the United States and internationally, including tour dates, album releases, and cultural impact moments.",
         "isFactual": true,
         "isPublic": true,
-        "maxEvents": 30,
+        "maxEvents": 20,
         "generateImages": true,
         "imageStyle": "vintage",
         "themeColor": "#F97316"

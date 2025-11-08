@@ -16,8 +16,8 @@ async function testSingleTimeline() {
     // Get the API URL
     const apiUrl = process.env.PRODUCTION_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     
-    // Extract first timeline
-    const firstTimeline = seedDataArray[0]?.timelines?.[0];
+    // Extract second timeline (Taylor Swift - safer than political figures)
+    const firstTimeline = seedDataArray[0]?.timelines?.[2];
     const user = seedDataArray[0]?.user;
     
     if (!firstTimeline || !user) {
