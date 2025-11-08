@@ -96,9 +96,39 @@ const STYLE_TO_MODEL: Record<string, string> = {
 // Default model (fallback)
 const DEFAULT_MODEL = MODELS.ARTISTIC; // SDXL - good all-around
 
+// Helper to detect if text is expected in the image
+function expectsTextInImage(event: { title: string; description?: string; imagePrompt?: string }): boolean {
+  const text = `${event.title} ${event.description || ''} ${event.imagePrompt || ''}`.toLowerCase();
+  
+  // Keywords that suggest text should be visible in the image
+  const textIndicators = [
+    'sign', 'signage', 'poster', 'banner', 'newspaper', 'headline', 'article',
+    'document', 'letter', 'note', 'label', 'tag', 'badge', 'nameplate',
+    'inscription', 'engraving', 'tombstone', 'plaque', 'marquee', 'billboard',
+    'advertisement', 'ad', 'flyer', 'pamphlet', 'book', 'magazine', 'journal',
+    'diary', 'manuscript', 'scroll', 'certificate', 'diploma', 'license',
+    'ticket', 'stamp', 'coin', 'currency', 'money', 'check', 'receipt',
+    'menu', 'recipe', 'chart', 'graph', 'map', 'blueprint', 'schedule',
+    'timetable', 'program', 'playbill', 'scoreboard', 'leaderboard',
+    'score', 'statistics', 'stats', 'data', 'numbers', 'text', 'words',
+    'writing', 'written', 'printed', 'typed', 'calligraphy', 'handwriting'
+  ];
+  
+  return textIndicators.some(indicator => text.includes(indicator));
+}
+
 // Helper to get model for a given style
-function getModelForStyle(imageStyle: string): string {
-  return STYLE_TO_MODEL[imageStyle] || DEFAULT_MODEL;
+// If text is expected, prefer Flux models (better at text rendering)
+function getModelForStyle(imageStyle: string, needsText: boolean = false): string {
+  const baseModel = STYLE_TO_MODEL[imageStyle] || DEFAULT_MODEL;
+  
+  // If text is needed and we're using SDXL (which struggles with text), switch to Flux
+  if (needsText && baseModel === MODELS.ARTISTIC) {
+    // Flux Dev is better at text than SDXL
+    return MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
+  }
+  
+  return baseModel;
 }
 
 // Legacy constant for backward compatibility
@@ -251,6 +281,7 @@ function buildImagePrompt(
   imageStyle: string,
   themeColor: string,
   styleVisualLanguage: string,
+  needsText: boolean = false,
   imageReferences?: Array<{ name: string; url: string }>
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
@@ -353,9 +384,14 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
-  // Add text handling instructions to avoid misspelled text
-  // SDXL struggles with text rendering, so we strongly discourage text unless explicitly needed
-  prompt += `. No text, no words, no signs, no labels, no written content. Visual scene only`;
+  // Add text handling instructions based on whether text is expected
+  if (needsText) {
+    // When text is needed, encourage clear, readable text
+    prompt += `. Include clear, readable text where appropriate. Text should be legible and well-rendered`;
+  } else {
+    // SDXL struggles with text rendering, so discourage text unless explicitly needed
+    prompt += `. No text, no words, no signs, no labels, no written content. Visual scene only`;
+  }
   
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
@@ -455,41 +491,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Select model based on image style
-    let selectedModel = getModelForStyle(imageStyle);
+    // Detect which events need text in images
+    const eventsWithTextNeeds = events.map(event => ({
+      event,
+      needsText: expectsTextInImage(event)
+    }));
+    
+    const textNeededCount = eventsWithTextNeeds.filter(e => e.needsText).length;
+    if (textNeededCount > 0) {
+      console.log(`[ImageGen] ${textNeededCount} of ${events.length} events require text in images - will use text-capable models`);
+    }
+    
     const hasReferenceImages = imageReferences && imageReferences.length > 0;
     
-    // Use Flux Dev for photorealistic (better quality for real people than Google Imagen)
-    // Google Imagen has quality/restriction issues with real people
-    if (selectedModel === MODELS.PHOTOREALISTIC) {
-      console.log(`[ImageGen] Using Flux Dev for photorealistic images (better quality for real people)`);
-      selectedModel = MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
-    }
-    
-    // Google Imagen disabled due to poor quality for real people
-    
-    // If reference images are provided and we're using Flux (which doesn't support image input),
-    // we have options:
-    // 1. Use Flux Kontext Pro (supports reference images, $0.04/image)
-    // 2. Fall back to SDXL (supports reference images, $0.0048/image, lower quality)
-    if (hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
-      // For photorealistic with reference images, use Flux Kontext Pro if available
-      // Otherwise fall back to SDXL
-      const useKontextPro = selectedModel === MODELS.PHOTOREALISTIC_FALLBACK;
-      if (useKontextPro) {
-        console.log(`[ImageGen] Reference images provided. Using Flux Kontext Pro for photorealistic with reference support.`);
-        selectedModel = "black-forest-labs/flux-kontext-pro"; // Supports reference images
-      } else {
-        console.log(`[ImageGen] Reference images provided but Flux doesn't support image input. Switching to SDXL for reference image support.`);
-        selectedModel = MODELS.ARTISTIC; // SDXL
-      }
-    }
-    
-    // Get model version for Replicate models
-    let modelVersion: string | null = null;
-    modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-    console.log(`[ImageGen] Style: "${imageStyle}" -> Model: ${selectedModel}, Version: ${modelVersion}${hasReferenceImages ? ' (with reference images)' : ''}`);
-
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
@@ -501,13 +515,39 @@ export async function POST(request: NextRequest) {
     console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images for Replicate`);
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
-    console.log(`[ImageGen] Starting parallel generation for ${events.length} images using ${selectedModel}...`);
+    console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
     
     // Step 1: Create all predictions in parallel
-    const predictionPromises = events.map(async (event, index) => {
+    const predictionPromises = eventsWithTextNeeds.map(async ({ event, needsText }, index) => {
       try {
+        // Select model based on style and text needs
+        let selectedModel = getModelForStyle(imageStyle, needsText);
+        
+        // Use Flux Dev for photorealistic (better quality for real people than Google Imagen)
+        if (selectedModel === MODELS.PHOTOREALISTIC) {
+          selectedModel = MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
+        }
+        
+        // If reference images are provided and we're using Flux (which doesn't support image input),
+        // use Flux Kontext Pro or fall back to SDXL
+        if (hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+          const useKontextPro = selectedModel === MODELS.PHOTOREALISTIC_FALLBACK;
+          if (useKontextPro) {
+            selectedModel = "black-forest-labs/flux-kontext-pro"; // Supports reference images
+          } else {
+            selectedModel = MODELS.ARTISTIC; // SDXL
+          }
+        }
+        
+        // Get model version for this specific event
+        const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+        
+        if (needsText) {
+          console.log(`[ImageGen] Event "${event.title}" needs text - using ${selectedModel} (better text rendering)`);
+        }
+        
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
-        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage);
+        const prompt = buildImagePrompt(event, imageStyle, themeColor, styleVisualLanguage, needsText);
         
         // Get reference image URL for this event (use first available, or cycle through if multiple events)
         const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
@@ -563,9 +603,14 @@ export async function POST(request: NextRequest) {
           input.guidance_scale = 7.5;
           input.num_inference_steps = 30;
           
-          // Add negative prompt for SDXL to avoid misspelled text
+          // Add negative prompt for SDXL only when text is NOT needed
           // SDXL struggles with text rendering, so we discourage unnecessary text
-          input.negative_prompt = "text, words, letters, signs, labels, misspelled text, garbled text, unreadable text, text errors, written words, text blocks, documents with text";
+          if (!needsText) {
+            input.negative_prompt = "text, words, letters, signs, labels, misspelled text, garbled text, unreadable text, text errors, written words, text blocks, documents with text";
+          } else {
+            // When text is needed, use a minimal negative prompt that doesn't discourage text
+            input.negative_prompt = "blurry text, misspelled words, garbled text, unreadable text";
+          }
           
           // Add reference image if available (for image-to-image transformation)
           // SDXL supports direct image input via 'image' parameter (URL from Replicate)
