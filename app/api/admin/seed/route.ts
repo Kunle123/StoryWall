@@ -207,26 +207,59 @@ export async function POST(request: NextRequest) {
               throw new Error('No events were generated');
             }
 
+            // Generate enhanced descriptions and image prompts (same as manual flow)
+            // This ensures images are properly related to events
+            let eventsWithPrompts = events;
+            try {
+              const generateDescriptionsResponse = await fetch(
+                `${baseUrl}/api/ai/generate-descriptions`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    events: events.map((e: any) => ({
+                      year: e.year,
+                      title: e.title,
+                    })),
+                    timelineDescription: timelineData.description,
+                    writingStyle: 'narrative', // Default writing style for seeded timelines
+                    imageStyle: timelineData.imageStyle || 'photorealistic',
+                    themeColor: '#3B82F6', // Default theme color
+                  }),
+                }
+              );
+
+              if (generateDescriptionsResponse.ok) {
+                const { descriptions, imagePrompts } = await generateDescriptionsResponse.json();
+                
+                // Merge enhanced descriptions and image prompts with events
+                eventsWithPrompts = events.map((e: any, index: number) => ({
+                  ...e,
+                  description: descriptions?.[index] || e.description || '',
+                  imagePrompt: imagePrompts?.[index] || '',
+                }));
+              } else {
+                console.warn(`[Seed] Description generation failed for timeline ${timeline.id}, using basic descriptions`);
+              }
+            } catch (descError: any) {
+              console.warn(`[Seed] Description generation error for timeline ${timeline.id}:`, descError.message);
+              // Continue with basic descriptions
+            }
+
             // Save events to timeline
-            for (const event of events) {
+            for (const event of eventsWithPrompts) {
               const eventDate = new Date(
                 event.year,
                 (event.month || 1) - 1,
                 event.day || 1
               );
 
-              // Generate description if not provided (using AI)
-              let description = event.description || '';
-              if (!description && event.title) {
-                // For seeding, we can use a simple description or skip
-                // In production, you might want to generate descriptions here
-                description = `Event: ${event.title}`;
-              }
-
               await createEvent({
                 timeline_id: timeline.id,
                 title: event.title,
-                description: description,
+                description: event.description || '',
                 date: eventDate.toISOString().split('T')[0],
                 category: event.category,
                 links: event.links || [],
@@ -236,8 +269,8 @@ export async function POST(request: NextRequest) {
               results.eventsGenerated++;
             }
 
-            // Generate images if requested
-            if (timelineData.generateImages && events.length > 0) {
+            // Generate images if requested (using same structure as manual flow)
+            if (timelineData.generateImages && eventsWithPrompts.length > 0) {
               try {
                 const generateImagesResponse = await fetch(
                   `${baseUrl}/api/ai/generate-images`,
@@ -247,17 +280,14 @@ export async function POST(request: NextRequest) {
                       'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                      events: events.map((e: any) => ({
-                        id: e.id || `temp_${Date.now()}_${Math.random()}`,
+                      events: eventsWithPrompts.map((e: any) => ({
                         title: e.title,
                         description: e.description || '',
                         year: e.year,
-                        month: e.month,
-                        day: e.day,
-                        imagePrompt: e.imagePrompt || '',
+                        imagePrompt: e.imagePrompt || '', // Use AI-generated image prompt
                       })),
-                      timelineId: timeline.id,
-                      imageStyle: timelineData.imageStyle || 'realistic',
+                      imageStyle: timelineData.imageStyle || 'photorealistic',
+                      themeColor: '#3B82F6', // Default theme color
                       imageReferences: imageReferences || [],
                     }),
                   }

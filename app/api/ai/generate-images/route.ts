@@ -255,35 +255,6 @@ function buildImagePrompt(
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
-  // Extract visual elements to suggest what should be depicted
-  const visualElements = extractVisualElements(event.title, event.description);
-  
-  // Build the core visual description
-  let visualDescription = '';
-  
-  // Start with main subject(s)
-  if (visualElements.subjects.length > 0) {
-    visualDescription = visualElements.subjects.join(', ');
-  } else {
-    // Fallback to title if no subjects extracted
-    visualDescription = event.title;
-  }
-  
-  // Add key objects that should be visible
-  if (visualElements.objects.length > 0) {
-    visualDescription += ` with ${visualElements.objects.join(', ')}`;
-  }
-  
-  // Add setting/environment
-  if (visualElements.setting) {
-    visualDescription += ` in ${visualElements.setting}`;
-  }
-  
-  // Add action/moment being depicted
-  if (visualElements.actions.length > 0) {
-    visualDescription += `, ${visualElements.actions.join(' ')}`;
-  }
-  
   // Start with AI-generated prompt if available (from description step)
   let prompt = '';
   
@@ -304,11 +275,6 @@ function buildImagePrompt(
       prompt = prompt.replace(pattern, '');
     });
     
-    // Enhance with visual elements if not already present
-    if (!prompt.toLowerCase().includes(visualElements.subjects[0]?.toLowerCase() || '')) {
-      prompt = `${visualDescription}. ${prompt}`;
-    }
-    
     // Check for famous people and make safe
     if (containsFamousPerson(prompt) || containsFamousPerson(event.title)) {
       prompt = makePromptSafeForFamousPeople(prompt, imageStyle);
@@ -324,12 +290,25 @@ function buildImagePrompt(
       prompt = `${imageStyle} style: ${prompt}`;
     }
   } else {
-    // Build from scratch with visual focus
-    const yearContext = event.year ? `, ${event.year}` : '';
+    // Build from scratch using event title and description directly
+    // This is more reliable than regex extraction
+    
+    // Start with the event title as the main subject
+    let visualDescription = event.title;
+    
+    // Enhance with description if available (extract key visual elements)
+    if (event.description) {
+      // Use description to add context, but keep it concise
+      const descWords = event.description.split(' ').slice(0, 15).join(' '); // First 15 words
+      visualDescription = `${event.title}: ${descWords}`;
+    }
+    
+    // Build base prompt
+    const yearContext = event.year ? `, historical period ${event.year}` : '';
     let basePrompt = `${imageStyle} style: ${visualDescription}${yearContext}`;
     
     // Check for famous people and make safe
-    if (containsFamousPerson(visualDescription)) {
+    if (containsFamousPerson(visualDescription) || containsFamousPerson(event.title)) {
       basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
       const safeStyle = getSafeStyleForFamousPeople(imageStyle);
       if (safeStyle !== imageStyle) {
@@ -340,23 +319,23 @@ function buildImagePrompt(
     prompt = basePrompt;
   }
   
-  // Add explicit depiction suggestions
-  const depictionSuggestions: string[] = [];
+  // Add explicit visual instructions to ensure the image relates to the event
+  prompt += `. Depict the specific event: ${event.title}`;
   
-  if (visualElements.subjects.length > 0) {
-    depictionSuggestions.push(`depict ${visualElements.subjects[0]}`);
-  }
-  
-  if (visualElements.objects.length > 0) {
-    depictionSuggestions.push(`show ${visualElements.objects[0]}`);
-  }
-  
-  if (visualElements.setting) {
-    depictionSuggestions.push(`set in ${visualElements.setting}`);
-  }
-  
-  if (depictionSuggestions.length > 0) {
-    prompt += `. ${depictionSuggestions.join(', ')}`;
+  if (event.description) {
+    // Add key visual elements from description
+    const descLower = event.description.toLowerCase();
+    // Extract key nouns that should be visible
+    const keyTerms: string[] = [];
+    const importantNouns = ['launch', 'announcement', 'election', 'war', 'treaty', 'discovery', 'invention', 'award', 'championship', 'tournament', 'conference', 'summit', 'meeting', 'ceremony', 'celebration', 'protest', 'rally', 'debate', 'speech', 'signing', 'opening', 'closing', 'victory', 'defeat'];
+    importantNouns.forEach(noun => {
+      if (descLower.includes(noun)) {
+        keyTerms.push(noun);
+      }
+    });
+    if (keyTerms.length > 0) {
+      prompt += `. Show ${keyTerms[0]}`;
+    }
   }
   
   // Add color integration (concise)
@@ -368,11 +347,11 @@ function buildImagePrompt(
   // Add historical period context if year is available
   if (event.year) {
     const century = Math.floor(event.year / 100) + 1;
-    prompt += `. ${century}th century period detail`;
+    prompt += `. ${century}th century period detail, historically accurate`;
   }
   
   // Add composition guidance (concise)
-  prompt += `. Balanced composition, centered focal point`;
+  prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
   // Add text handling instructions to avoid misspelled text
   // SDXL struggles with text rendering, so we strongly discourage text unless explicitly needed
