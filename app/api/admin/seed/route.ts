@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
 
         // Process each timeline for this user
         for (const timelineData of entry.timelines) {
+          let timeline: any = null; // Track timeline for cleanup
           try {
             // Create timeline
             const baseSlug = slugify(timelineData.title);
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            const timeline = await createTimeline({
+            timeline = await createTimeline({
               title: timelineData.title,
               description: timelineData.description,
               slug,
@@ -333,6 +334,21 @@ export async function POST(request: NextRequest) {
             }
           } catch (timelineError: any) {
             console.error(`[Seed] Failed to create timeline "${timelineData.title}":`, timelineError);
+            
+            // Clean up: Delete partial timeline if it was created
+            if (timeline && timeline.id) {
+              try {
+                console.log(`[Seed] Cleaning up partial timeline: ${timeline.id}`);
+                await prisma.timeline.delete({
+                  where: { id: timeline.id },
+                });
+                console.log(`[Seed] Deleted partial timeline: ${timeline.id}`);
+              } catch (cleanupError: any) {
+                console.error(`[Seed] Failed to cleanup timeline ${timeline.id}:`, cleanupError);
+                // Continue - cleanup failure shouldn't block error reporting
+              }
+            }
+            
             results.timelinesFailed++;
             results.errors.push(
               `Timeline "${timelineData.title}" (${entry.user.email}): ${timelineError.message}`
