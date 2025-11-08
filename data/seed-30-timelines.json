@@ -12,7 +12,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Rise of Artificial Intelligence (2020-2024)",
@@ -21,7 +22,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#10B981"
       },
       {
         "title": "Taylor Swift's Eras Tour",
@@ -30,7 +32,8 @@
         "isPublic": true,
         "maxEvents": 30,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#F97316"
       },
       {
         "title": "The COVID-19 Pandemic Response in America",
@@ -39,7 +42,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Streaming Wars: Netflix vs. Competitors",
@@ -48,7 +52,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#EC4899"
       },
       {
         "title": "Social Media Platform Evolution",
@@ -57,7 +62,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The WNBA's Growing Popularity",
@@ -66,7 +72,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "Electric Vehicle Revolution in America",
@@ -75,7 +82,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Opioid Crisis Response",
@@ -84,7 +92,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#A855F7"
       },
       {
         "title": "College Sports NIL Revolution",
@@ -93,7 +102,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Housing Market Boom and Shift",
@@ -102,7 +112,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Marvel Cinematic Universe Phase 4 & 5",
@@ -111,7 +122,8 @@
         "isPublic": true,
         "maxEvents": 25,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#EF4444"
       },
       {
         "title": "Climate Change Initiatives in the U.S.",
@@ -120,7 +132,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Labor Movement Resurgence",
@@ -129,7 +142,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Supreme Court's Major Decisions",
@@ -138,7 +152,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Creator Economy Boom",
@@ -147,7 +162,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "Mental Health Awareness Movement",
@@ -156,7 +172,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Fast Food Price Wars",
@@ -165,7 +182,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Return of Movie Theaters",
@@ -174,7 +192,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Remote Work Revolution",
@@ -183,7 +202,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Student Loan Crisis and Relief",
@@ -192,7 +212,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Rise of Pickleball",
@@ -201,7 +222,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Inflation and Economic Recovery",
@@ -210,7 +232,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Diversity and Inclusion Movement",
@@ -219,7 +242,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Future of Transportation",
@@ -228,7 +252,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#A855F7"
       },
       {
         "title": "SpaceX and the New Space Race",
@@ -237,7 +262,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#10B981"
       },
       {
         "title": "The TikTok Phenomenon",
@@ -246,7 +272,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#F97316"
       },
       {
         "title": "Cryptocurrency Boom and Bust Cycles",
@@ -255,7 +282,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Netflix Documentary Hits",
@@ -264,7 +292,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#EC4899"
       },
       {
         "title": "Women's Soccer World Cup Journey",
@@ -273,7 +302,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#EAB308"
       }
     ]
   }

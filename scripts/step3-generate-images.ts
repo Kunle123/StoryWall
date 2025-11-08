@@ -67,9 +67,9 @@ async function generateImagesForTimelines() {
                 year: e.year,
                 imagePrompt: e.imagePrompt || '',
               })),
-              imageStyle: 'illustration', // Use cheap model for batch generation
-              themeColor: '#3B82F6',
-              imageReferences: [],
+              imageStyle: timeline.imageStyle || 'illustration',
+              themeColor: timeline.themeColor || '#3B82F6',
+              imageReferences: timeline.imageReferences || [],
             }),
           });
           

@@ -12,7 +12,8 @@
         "isPublic": true,
         "maxEvents": 25,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Super Bowl (2020-2025)",
@@ -21,7 +22,8 @@
         "isPublic": true,
         "maxEvents": 6,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food Delivery Revolution",
@@ -30,7 +32,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Barbenheimer Phenomenon",
@@ -39,7 +42,8 @@
         "isPublic": true,
         "maxEvents": 15,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The NBA Finals (2020-2024)",
@@ -48,7 +52,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Coffee Shop Culture Evolution",
@@ -57,7 +62,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The World Cup (2022-2026)",
@@ -66,7 +72,8 @@
         "isPublic": true,
         "maxEvents": 25,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Great British Bake Off Journey",
@@ -75,7 +82,8 @@
         "isPublic": true,
         "maxEvents": 15,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food Truck Revolution",
@@ -84,7 +92,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Olympics (2020-2024)",
@@ -93,7 +102,8 @@
         "isPublic": true,
         "maxEvents": 30,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Plant-Based Food Boom",
@@ -102,7 +112,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Premier League Season (2023-2024)",
@@ -111,7 +122,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Travel Industry Recovery",
@@ -120,7 +132,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Stanley Cup Playoffs (2020-2024)",
@@ -129,7 +142,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food Network and Cooking Shows",
@@ -138,7 +152,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Grammy Awards (2020-2025)",
@@ -147,7 +162,8 @@
         "isPublic": true,
         "maxEvents": 6,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Craft Beer Movement",
@@ -156,7 +172,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Wimbledon Championships (2020-2024)",
@@ -165,7 +182,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Foodie Culture and Restaurant Scene",
@@ -174,7 +192,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Masters Golf Tournament (2020-2024)",
@@ -183,7 +202,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food Allergy Awareness Movement",
@@ -192,7 +212,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Oscars (2020-2025)",
@@ -201,7 +222,8 @@
         "isPublic": true,
         "maxEvents": 6,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food Sustainability Movement",
@@ -210,7 +232,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The World Series (2020-2024)",
@@ -219,7 +242,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food Delivery App Wars",
@@ -228,7 +252,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Tour de France (2020-2024)",
@@ -237,7 +262,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food Instagram Culture",
@@ -246,7 +272,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Emmys (2020-2024)",
@@ -255,7 +282,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food Safety and Regulation",
@@ -264,7 +292,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Kentucky Derby (2020-2024)",
@@ -273,7 +302,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food Waste Reduction Movement",
@@ -282,7 +312,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Golden Globe Awards (2020-2025)",
@@ -291,7 +322,8 @@
         "isPublic": true,
         "maxEvents": 6,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food Price Inflation",
@@ -300,7 +332,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The US Open Tennis (2020-2024)",
@@ -309,7 +342,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food Subscription Box Trend",
@@ -318,7 +352,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Tony Awards (2020-2024)",
@@ -327,7 +362,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food Truck Festivals",
@@ -336,7 +372,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Daytona 500 (2020-2024)",
@@ -345,7 +382,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food Blogging and Recipe Sharing",
@@ -354,7 +392,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The CMA Awards (2020-2024)",
@@ -363,7 +402,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Wine Pairing Culture",
@@ -372,7 +412,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Ryder Cup (2020-2024)",
@@ -381,7 +422,8 @@
         "isPublic": true,
         "maxEvents": 3,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food Hall and Market Trend",
@@ -390,7 +432,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#F97316"
       },
       {
         "title": "The MTV Video Music Awards (2020-2024)",
@@ -399,7 +442,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Health Connection",
@@ -408,7 +452,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The British Open Golf (2020-2024)",
@@ -417,7 +462,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Travel Shows",
@@ -426,7 +472,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The People's Choice Awards (2020-2024)",
@@ -435,7 +482,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Social Justice",
@@ -444,7 +492,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Australian Open Tennis (2020-2024)",
@@ -453,7 +502,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food and Technology",
@@ -462,7 +512,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Billboard Music Awards (2020-2024)",
@@ -471,7 +522,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Celebrity Chefs",
@@ -480,7 +532,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Rose Bowl (2020-2024)",
@@ -489,7 +542,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Local Sourcing",
@@ -498,7 +552,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The SAG Awards (2020-2024)",
@@ -507,7 +562,8 @@
         "isPublic": true,
         "maxEvents": 5,
         "generateImages": true,
-        "imageStyle": "photorealistic"
+        "imageStyle": "photorealistic",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Cultural Fusion",
@@ -516,7 +572,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Travel and Tourism Recovery",
@@ -525,7 +582,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food and Restaurant Reviews",
@@ -534,7 +592,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Travel and Adventure Tourism",
@@ -543,7 +602,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Meal Prep Culture",
@@ -552,7 +612,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Travel and Sustainable Tourism",
@@ -561,7 +622,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Home Cooking Renaissance",
@@ -570,7 +632,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Travel and Digital Nomad Movement",
@@ -579,7 +642,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Snack Culture",
@@ -588,7 +652,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Travel and Cruise Industry",
@@ -597,7 +662,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food and Breakfast Culture",
@@ -606,7 +672,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Travel and Hotel Innovation",
@@ -615,7 +682,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Dessert Trends",
@@ -624,7 +692,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Travel and Airline Industry",
@@ -633,7 +702,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Beverage Pairing",
@@ -642,7 +712,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Travel and Road Trip Culture",
@@ -651,7 +722,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Street Food",
@@ -660,7 +732,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Travel and National Parks",
@@ -669,7 +742,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food and Cooking Techniques",
@@ -678,7 +752,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Travel and City Breaks",
@@ -687,7 +762,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Regional Cuisines",
@@ -696,7 +772,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Travel and Solo Travel",
@@ -705,7 +782,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Food Photography",
@@ -714,7 +792,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Travel and Luxury Travel",
@@ -723,7 +802,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Food Festivals",
@@ -732,7 +812,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Travel and Travel Technology",
@@ -741,7 +822,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#10B981"
       },
       {
         "title": "The Food and Food Science",
@@ -750,7 +832,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#F97316"
       },
       {
         "title": "The Travel and Travel Influencers",
@@ -759,7 +842,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "abstract"
+        "imageStyle": "abstract",
+        "themeColor": "#EF4444"
       },
       {
         "title": "The Food and Food History",
@@ -768,7 +852,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "illustration"
+        "imageStyle": "illustration",
+        "themeColor": "#EC4899"
       },
       {
         "title": "The Travel and Travel Safety",
@@ -777,7 +862,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "minimalist"
+        "imageStyle": "minimalist",
+        "themeColor": "#EAB308"
       },
       {
         "title": "The Food and Food Education",
@@ -786,7 +872,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "vintage"
+        "imageStyle": "vintage",
+        "themeColor": "#3B82F6"
       },
       {
         "title": "The Travel and Travel Planning",
@@ -795,7 +882,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "watercolor"
+        "imageStyle": "watercolor",
+        "themeColor": "#14B8A6"
       },
       {
         "title": "The Food and Food Service Industry",
@@ -804,7 +892,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "3D Render"
+        "imageStyle": "3D Render",
+        "themeColor": "#A855F7"
       },
       {
         "title": "The Travel and Travel Memories",
@@ -813,7 +902,8 @@
         "isPublic": true,
         "maxEvents": 20,
         "generateImages": true,
-        "imageStyle": "sketch"
+        "imageStyle": "sketch",
+        "themeColor": "#10B981"
       }
     ]
   }

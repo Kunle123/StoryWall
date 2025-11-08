@@ -369,8 +369,8 @@ function buildImagePrompt(
     }
   }
   
-  // Add color integration (concise)
-  prompt += `. ${colorName} color palette, ${colorName} lighting`;
+  // Add color integration subtly (as accent/motif, not dominating)
+  prompt += `. Subtle ${colorName} accent elements`;
   
   // Add style-specific visual language
   prompt += `. ${styleVisualLanguage}`;

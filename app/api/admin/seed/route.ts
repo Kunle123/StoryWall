@@ -18,6 +18,7 @@ interface SeedTimeline {
   maxEvents?: number;
   generateImages?: boolean;
   imageStyle?: string;
+  themeColor?: string;
 }
 
 interface SeedEntry {
@@ -281,7 +282,7 @@ export async function POST(request: NextRequest) {
                         imagePrompt: e.imagePrompt || '', // Use AI-generated image prompt
                       })),
                       imageStyle: timelineData.imageStyle || 'photorealistic',
-                      themeColor: '#3B82F6', // Default theme color
+                      themeColor: timelineData.themeColor || '#3B82F6', // Use timeline theme color
                       imageReferences: imageReferences || [],
                     }),
                   }
