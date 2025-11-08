@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
               slug,
               creator_id: user.id,
               visualization_type: 'horizontal',
-              is_public: timelineData.isPublic !== false,
+              is_public: true, // Always public for seeded timelines
               is_collaborative: false,
             });
 
