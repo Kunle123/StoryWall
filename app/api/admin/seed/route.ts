@@ -291,22 +291,34 @@ export async function POST(request: NextRequest) {
 
                 if (generateImagesResponse.ok) {
                   const { images } = await generateImagesResponse.json();
+                  console.log(`[Seed] Received ${images?.length || 0} image URLs from generation`);
+                  
                   if (images && Array.isArray(images)) {
                     // Update events with image URLs
                     const timelineEvents = await prisma.event.findMany({
                       where: { timelineId: timeline.id },
                       orderBy: { date: 'asc' },
                     });
+                    
+                    console.log(`[Seed] Found ${timelineEvents.length} events to update with images`);
 
                     for (let i = 0; i < Math.min(images.length, timelineEvents.length); i++) {
                       if (images[i] && typeof images[i] === 'string') {
-                        await prisma.event.update({
-                          where: { id: timelineEvents[i].id },
-                          data: { imageUrl: images[i] },
-                        });
-                        results.imagesGenerated++;
+                        try {
+                          await prisma.event.update({
+                            where: { id: timelineEvents[i].id },
+                            data: { imageUrl: images[i] },
+                          });
+                          results.imagesGenerated++;
+                          if ((i + 1) % 5 === 0) {
+                            console.log(`[Seed] Saved ${i + 1}/${images.length} image URLs to database`);
+                          }
+                        } catch (imageUpdateError: any) {
+                          console.error(`[Seed] Failed to save image URL for event ${timelineEvents[i].id}:`, imageUpdateError.message);
+                        }
                       }
                     }
+                    console.log(`[Seed] Successfully saved ${results.imagesGenerated} image URLs to database`);
                   }
                 }
               } catch (imageError: any) {
