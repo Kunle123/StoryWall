@@ -11,8 +11,14 @@ export async function POST(request: NextRequest) {
     // TODO: Add admin authentication check
     // For now, allow deletions (should be restricted in production)
     
-    const body = await request.json();
-    const { timelineIds } = body;
+    let timelineIds: string[] | undefined;
+    try {
+      const body = await request.json();
+      timelineIds = body.timelineIds;
+    } catch {
+      // No body provided or empty body - that's okay
+      timelineIds = undefined;
+    }
     
     // Fetch all timelines or specific ones
     const timelines = await prisma.timeline.findMany({

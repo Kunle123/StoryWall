@@ -16,6 +16,7 @@ async function deleteIncompleteTimelines() {
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({}),
     });
     
     if (!response.ok) {
@@ -26,13 +27,15 @@ async function deleteIncompleteTimelines() {
     const result = await response.json();
     
     console.log('✅ Deletion complete!');
-    console.log(`   Timelines found: ${result.found}`);
-    console.log(`   Timelines deleted: ${result.deleted}`);
+    console.log(`   Timelines checked: ${result.results?.totalChecked || 0}`);
+    console.log(`   Incomplete found: ${result.results?.incompleteFound || 0}`);
+    console.log(`   Timelines deleted: ${result.results?.deleted || 0}`);
+    console.log(`   Failed: ${result.results?.failed || 0}`);
     
-    if (result.deletedIds && result.deletedIds.length > 0) {
-      console.log('\n📋 Deleted timeline IDs:');
-      result.deletedIds.forEach((id: string) => {
-        console.log(`   - ${id}`);
+    if (result.results?.errors && result.results.errors.length > 0) {
+      console.log('\n⚠️  Errors:');
+      result.results.errors.forEach((error: string) => {
+        console.log(`   - ${error}`);
       });
     }
     
