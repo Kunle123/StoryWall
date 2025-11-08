@@ -1,0 +1,15 @@
+🌐 Using API URL: https://www.storywall.com
+🌱 Starting to seed 30 timelines in batches of 3...
+⚡ Concurrency: 1 batches at a time
+
+📋 Total batches: 10
+
+
+🚀 Starting batch group: 1
+📦 Batch 1: Processing 3 timelines...
+✅ Batch 1: Complete!
+
+⏳ Waiting 5 seconds before next batch...
+
+🚀 Starting batch group: 2
+📦 Batch 2: Processing 3 timelines...

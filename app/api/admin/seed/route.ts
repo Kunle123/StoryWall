@@ -208,46 +208,14 @@ export async function POST(request: NextRequest) {
               throw new Error('No events were generated');
             }
 
-            // Generate enhanced descriptions and image prompts (same as manual flow)
-            // This ensures images are properly related to events
-            let eventsWithPrompts = events;
-            try {
-              const generateDescriptionsResponse = await fetch(
-                `${baseUrl}/api/ai/generate-descriptions`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    events: events.map((e: any) => ({
-                      year: e.year,
-                      title: e.title,
-                    })),
-                    timelineDescription: timelineData.description,
-                    writingStyle: 'narrative', // Default writing style for seeded timelines
-                    imageStyle: timelineData.imageStyle || 'photorealistic',
-                    themeColor: '#3B82F6', // Default theme color
-                  }),
-                }
-              );
-
-              if (generateDescriptionsResponse.ok) {
-                const { descriptions, imagePrompts } = await generateDescriptionsResponse.json();
-                
-                // Merge enhanced descriptions and image prompts with events
-                eventsWithPrompts = events.map((e: any, index: number) => ({
-                  ...e,
-                  description: descriptions?.[index] || e.description || '',
-                  imagePrompt: imagePrompts?.[index] || '',
-                }));
-              } else {
-                console.warn(`[Seed] Description generation failed for timeline ${timeline.id}, using basic descriptions`);
-              }
-            } catch (descError: any) {
-              console.warn(`[Seed] Description generation error for timeline ${timeline.id}:`, descError.message);
-              // Continue with basic descriptions
-            }
+            // Skip description enhancement for now - use basic descriptions from event generation
+            // This avoids timeout issues that can cause timeline deletion
+            console.log(`[Seed] Using basic descriptions for timeline ${timeline.id} (${events.length} events)`);
+            const eventsWithPrompts = events.map((e: any) => ({
+              ...e,
+              description: e.description || '',
+              imagePrompt: '', // No enhanced image prompts for now
+            }));
 
             // Save events to timeline
             console.log(`[Seed] Saving ${eventsWithPrompts.length} events to timeline ${timeline.id}...`);
@@ -294,8 +262,9 @@ export async function POST(request: NextRequest) {
             }
             console.log(`[Seed] Successfully saved ${results.eventsGenerated}/${eventsWithPrompts.length} events`);
 
+            // TEMPORARILY DISABLED: Skip image generation for testing
             // Generate images if requested (using same structure as manual flow)
-            if (timelineData.generateImages && eventsWithPrompts.length > 0) {
+            if (false && timelineData.generateImages && eventsWithPrompts.length > 0) {
               try {
                 const generateImagesResponse = await fetch(
                   `${baseUrl}/api/ai/generate-images`,
