@@ -250,17 +250,30 @@ export async function POST(request: NextRequest) {
 
             // Save events to timeline
             for (const event of eventsWithPrompts) {
-              const eventDate = new Date(
-                event.year,
-                (event.month || 1) - 1,
-                event.day || 1
-              );
+              // Handle numbered events vs dated events
+              let eventDate: string;
+              if (event.number !== undefined) {
+                // Numbered event - use a placeholder date (will be sorted by number)
+                eventDate = new Date().toISOString().split('T')[0];
+              } else if (event.year) {
+                // Dated event
+                eventDate = new Date(
+                  event.year,
+                  (event.month || 1) - 1,
+                  event.day || 1
+                ).toISOString().split('T')[0];
+              } else {
+                // Fallback if no year or number
+                eventDate = new Date().toISOString().split('T')[0];
+              }
 
               await createEvent({
                 timeline_id: timeline.id,
                 title: event.title,
                 description: event.description || '',
-                date: eventDate.toISOString().split('T')[0],
+                date: eventDate,
+                number: event.number,
+                number_label: event.numberLabel,
                 category: event.category,
                 links: event.links || [],
                 created_by: user.id,
