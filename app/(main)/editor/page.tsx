@@ -136,6 +136,37 @@ const TimelineEditor = () => {
   }, [currentStep]);
 
   const handleNext = () => {
+    if (!canProceed()) {
+      // Show validation error
+      let errorMessage = "Please complete the required fields before proceeding.";
+      switch (currentStep) {
+        case 1:
+          errorMessage = "Please provide a timeline name and description.";
+          break;
+        case 2:
+          if (!writingStyle && !customStyle) {
+            errorMessage = "Please select a writing style or enter a custom style.";
+          } else if (events.length === 0) {
+            errorMessage = "Please add at least one event (generate with AI or add manually).";
+          } else if (!events.every(e => e.title)) {
+            errorMessage = "Please add titles to all events.";
+          }
+          break;
+        case 3:
+          errorMessage = "Please add descriptions to all events.";
+          break;
+        case 4:
+          errorMessage = "Please select an image style.";
+          break;
+      }
+      toast({
+        title: "Cannot proceed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
@@ -544,8 +575,8 @@ const TimelineEditor = () => {
                 ) : (
                   <Button
                     onClick={handleNext}
-                    disabled={!canProceed()}
                     className="w-full sm:w-auto"
+                    variant={!canProceed() ? "outline" : "default"}
                   >
                     Next
                     <ArrowRight className="ml-2 h-4 w-4" />

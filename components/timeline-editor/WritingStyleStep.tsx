@@ -80,8 +80,28 @@ export const WritingStyleStep = ({
       console.log('[GenerateEvents] Starting generation:', { 
         timelineName, 
         descriptionLength: timelineDescription?.length,
-        isFactual 
+        isFactual,
+        maxEvents,
+        isNumbered,
+        numberLabel
       });
+      
+      // Validate request body
+      const requestBody = {
+        timelineDescription: String(timelineDescription || '').trim(),
+        timelineName: String(timelineName || '').trim(),
+        maxEvents: Math.max(1, Math.min(100, parseInt(String(maxEvents || 20), 10) || 20)),
+        isFactual: Boolean(isFactual),
+        isNumbered: Boolean(isNumbered),
+        numberLabel: String(numberLabel || 'Day').trim(),
+      };
+
+      // Additional validation
+      if (!requestBody.timelineDescription || !requestBody.timelineName) {
+        throw new Error("Timeline name and description are required");
+      }
+
+      console.log('[GenerateEvents] Request body:', requestBody);
       
       // Create AbortController for timeout handling (important for mobile networks)
       const controller = new AbortController();
@@ -91,15 +111,11 @@ export const WritingStyleStep = ({
       try {
         response = await fetch("/api/ai/generate-events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          timelineDescription,
-          timelineName,
-          maxEvents: maxEvents || 20,
-          isFactual,
-          isNumbered,
-          numberLabel,
-        }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(requestBody),
           signal: controller.signal,
       });
         clearTimeout(timeoutId);
@@ -127,7 +143,20 @@ export const WritingStyleStep = ({
 
       if (!response.ok) {
         const errorMsg = data?.error || data?.details || data?.message || `HTTP ${response.status}: ${response.statusText}`;
-        console.error('[GenerateEvents] API error:', { status: response.status, data, errorMsg });
+        console.error('[GenerateEvents] API error:', { 
+          status: response.status, 
+          statusText: response.statusText,
+          data, 
+          errorMsg,
+          requestBody 
+        });
+        
+        // Special handling for 422 (Unprocessable Entity) - validation errors
+        if (response.status === 422) {
+          const validationError = data?.errors || data?.validation || errorMsg;
+          throw new Error(`Validation error: ${validationError}. Please check that timeline name and description are provided.`);
+        }
+        
         throw new Error(errorMsg);
       }
 
@@ -207,17 +236,27 @@ export const WritingStyleStep = ({
   const addEvent = () => {
     const newEvent: TimelineEvent = isNumbered
       ? {
-          id: Date.now().toString(),
+          id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           number: events.length + 1, // Sequential numbering
           numberLabel: numberLabel,
           title: "",
         }
       : {
-          id: Date.now().toString(),
+          id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           year: new Date().getFullYear(),
           title: "",
         };
-    setEvents([...events, newEvent]);
+    
+    console.log('[AddEvent] Adding new event:', newEvent);
+    const updatedEvents = [...events, newEvent];
+    console.log('[AddEvent] Updated events array length:', updatedEvents.length);
+    setEvents(updatedEvents);
+    
+    // Show feedback
+    toast({
+      title: "Event added",
+      description: "You can now enter the event details below.",
+    });
   };
 
   const removeEvent = (id: string) => {
@@ -225,7 +264,16 @@ export const WritingStyleStep = ({
   };
 
   const updateEvent = (id: string, field: keyof TimelineEvent, value: any) => {
-    setEvents(events.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
+    const updatedEvents = events.map((e) => {
+      if (e.id === id) {
+        const updated = { ...e, [field]: value };
+        console.log('[UpdateEvent] Updating event:', { id, field, value, updated });
+        return updated;
+      }
+      return e;
+    });
+    console.log('[UpdateEvent] Updated events count:', updatedEvents.length);
+    setEvents(updatedEvents);
   };
 
   return (

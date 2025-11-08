@@ -1,0 +1,78 @@
+🌱 Seeding remaining timelines (one at a time)
+🌐 Using API URL: https://www.storywall.com
+
+📋 Found 4 existing timelines
+📝 Total timelines to seed: 30
+
+⏭️  [1/30] Skipping: The 2024 U.S. Presidential Election (already exists)
+⏭️  [2/30] Skipping: The Rise of Artificial Intelligence (2020-2024) (already exists)
+
+🔨 [3/30] Creating: Taylor Swift's Eras Tour
+   ❌ Failed: HTTP 502
+⏭️  [4/30] Skipping: The COVID-19 Pandemic Response in America (already exists)
+
+🔨 [5/30] Creating: The Streaming Wars: Netflix vs. Competitors
+   ✅ Created: 19 events, 19 images
+⏭️  [6/30] Skipping: Social Media Platform Evolution (already exists)
+
+🔨 [7/30] Creating: The WNBA's Growing Popularity
+   ✅ Created: 19 events, 19 images
+
+🔨 [8/30] Creating: Electric Vehicle Revolution in America
+   ✅ Created: 19 events, 19 images
+
+🔨 [9/30] Creating: The Opioid Crisis Response
+   ❌ Failed: fetch failed
+
+🔨 [10/30] Creating: College Sports NIL Revolution
+   ❌ Failed: fetch failed
+
+🔨 [11/30] Creating: The Housing Market Boom and Shift
+   ✅ Created: 20 events, 20 images
+
+🔨 [12/30] Creating: The Marvel Cinematic Universe Phase 4 & 5
+   ✅ Created: 24 events, 24 images
+
+🔨 [13/30] Creating: Climate Change Initiatives in the U.S.
+   ✅ Created: 20 events, 20 images
+
+🔨 [14/30] Creating: The Labor Movement Resurgence
+   ✅ Created: 19 events, 19 images
+
+🔨 [15/30] Creating: The Supreme Court's Major Decisions
+   ✅ Created: 20 events, 20 images
+
+🔨 [16/30] Creating: The Creator Economy Boom
+   ✅ Created: 19 events, 19 images
+
+🔨 [17/30] Creating: Mental Health Awareness Movement
+   ✅ Created: 20 events, 19 images
+
+🔨 [18/30] Creating: The Fast Food Price Wars
+   ✅ Created: 19 events, 19 images
+
+🔨 [19/30] Creating: The Return of Movie Theaters
+   ✅ Created: 19 events, 19 images
+
+🔨 [20/30] Creating: The Remote Work Revolution
+   ✅ Created: 20 events, 0 images
+
+🔨 [21/30] Creating: The Student Loan Crisis and Relief
+   ✅ Created: 20 events, 20 images
+
+🔨 [22/30] Creating: The Rise of Pickleball
+   ✅ Created: 20 events, 20 images
+
+🔨 [23/30] Creating: The Inflation and Economic Recovery
+   ✅ Created: 20 events, 0 images
+
+🔨 [24/30] Creating: The Diversity and Inclusion Movement
+   ✅ Created: 20 events, 20 images
+
+🔨 [25/30] Creating: The Future of Transportation
+   ✅ Created: 20 events, 20 images
+
+🔨 [26/30] Creating: SpaceX and the New Space Race
+   ✅ Created: 20 events, 20 images
+
+🔨 [27/30] Creating: The TikTok Phenomenon
