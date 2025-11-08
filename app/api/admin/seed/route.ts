@@ -273,10 +273,10 @@ export async function POST(request: NextRequest) {
                     });
 
                     for (let i = 0; i < Math.min(images.length, timelineEvents.length); i++) {
-                      if (images[i]?.url) {
+                      if (images[i] && typeof images[i] === 'string') {
                         await prisma.event.update({
                           where: { id: timelineEvents[i].id },
-                          data: { imageUrl: images[i].url },
+                          data: { imageUrl: images[i] },
                         });
                         results.imagesGenerated++;
                       }
