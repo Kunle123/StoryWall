@@ -47,8 +47,18 @@ export const ImageStyleStep = ({
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
 
+  // Sync customStyle with imageStyle when customStyle is provided
+  useEffect(() => {
+    if (customStyle && customStyle.trim()) {
+      setImageStyle(customStyle.trim());
+    }
+  }, [customStyle, setImageStyle]);
+
   const handleStyleClick = (style: string) => {
+    console.log('[ImageStyleStep] Setting image style:', style);
     setImageStyle(style);
+    // Clear custom style when preset is selected
+    setCustomStyle("");
   };
 
   return (
@@ -65,13 +75,27 @@ export const ImageStyleStep = ({
       <div className="space-y-6">
         <div>
           <Label className="text-base mb-3 block">Image Style</Label>
+          {imageStyle && (
+            <p className="text-sm text-muted-foreground mb-3">
+              Selected: <strong>{imageStyle}</strong>
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {imageStyles.map((style) => (
               <Badge
                 key={style}
                 variant={imageStyle === style ? "default" : "outline"}
-                className="cursor-pointer px-4 py-2 text-sm"
-                onClick={() => handleStyleClick(style)}
+                className="cursor-pointer px-4 py-2 text-sm hover:bg-accent transition-colors"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[ImageStyleStep] Badge clicked:', style);
+                  handleStyleClick(style);
+                }}
+                onMouseDown={(e) => {
+                  // Prevent default to ensure click fires
+                  e.preventDefault();
+                }}
               >
                 {style}
               </Badge>

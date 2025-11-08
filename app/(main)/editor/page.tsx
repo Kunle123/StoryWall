@@ -135,6 +135,11 @@ const TimelineEditor = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
+  // Debug: Log imageStyle changes
+  useEffect(() => {
+    console.log('[Editor] imageStyle changed:', imageStyle);
+  }, [imageStyle]);
+
   const handleNext = () => {
     if (!canProceed()) {
       // Show validation error
@@ -191,18 +196,26 @@ const TimelineEditor = () => {
   );
 
   const canProceed = () => {
+    let result = false;
     switch (currentStep) {
       case 1:
-        return timelineName && timelineDescription;
+        result = !!(timelineName && timelineDescription);
+        break;
       case 2:
-        return (writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
+        result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
+        break;
       case 3:
-        return events.every(e => e.description);
+        result = events.every(e => e.description);
+        break;
       case 4:
-        return imageStyle;
+        result = !!imageStyle;
+        console.log('[canProceed] Step 4 validation:', { imageStyle, result, imageStyleLength: imageStyle?.length });
+        break;
       default:
-        return true;
+        result = true;
     }
+    console.log('[canProceed] Step', currentStep, 'result:', result);
+    return result;
   };
 
   const handleSaveTimeline = async () => {
