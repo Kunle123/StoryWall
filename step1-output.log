@@ -1,0 +1,12 @@
+
+🎯 STEP 1: Generate Timelines + Events (No Images)
+🌐 Using API URL: https://www.storywall.com
+📝 Processing 30 timelines in batches of 5...
+⚡ Concurrency: 2 batches at a time
+
+📋 Total batches: 6
+
+
+🚀 Starting batch group: 1, 2
+📦 Batch 1: Processing 5 timelines (events only)...
+📦 Batch 2: Processing 5 timelines (events only)...
