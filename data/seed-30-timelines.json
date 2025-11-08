@@ -10,7 +10,7 @@
         "description": "A comprehensive timeline of the 2024 U.S. presidential election, from candidate announcements through primaries, debates, and the general election results.",
         "isFactual": true,
         "isPublic": true,
-        "maxEvents": 25,
+        "maxEvents": 20,
         "generateImages": true,
         "imageStyle": "illustration"
       },
