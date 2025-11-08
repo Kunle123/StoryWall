@@ -265,9 +265,8 @@ export async function POST(request: NextRequest) {
             }
             console.log(`[Seed] Successfully saved ${results.eventsGenerated}/${eventsWithPrompts.length} events`);
 
-            // TEMPORARILY DISABLED: Skip image generation for testing
             // Generate images if requested (using same structure as manual flow)
-            if (false && timelineData.generateImages && eventsWithPrompts.length > 0) {
+            if (timelineData.generateImages && eventsWithPrompts.length > 0) {
               try {
                 const generateImagesResponse = await fetch(
                   `${baseUrl}/api/ai/generate-images`,
