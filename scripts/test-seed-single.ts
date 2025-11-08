@@ -56,49 +56,45 @@ async function testSingleTimeline() {
     
     console.log('✅ Test successful!\n');
     
-    if (result.summary) {
-      const summary = result.summary;
-      console.log('📊 Test Results:');
-      console.log(`   Timeline created: ${summary.timelinesCreated > 0 ? '✅' : '❌'}`);
-      console.log(`   Events generated: ${summary.eventsGenerated || 0}`);
-      console.log(`   Images generated: ${summary.imagesGenerated || 0}`);
-      
-      if (summary.errors && summary.errors.length > 0) {
-        console.log('\n⚠️  Errors:');
-        summary.errors.forEach((error: string) => {
-          console.log(`   - ${error}`);
-        });
-      }
+    const summary = result.summary;
+    const createdTimelineIds = result.createdTimelineIds || [];
+    
+    console.log('📊 Test Results:');
+    console.log(`   Timeline created: ${summary?.timelinesCreated > 0 ? '✅' : '❌'}`);
+    console.log(`   Events generated: ${summary?.eventsGenerated || 0}`);
+    console.log(`   Images generated: ${summary?.imagesGenerated || 0}`);
+    
+    if (summary?.errors && summary.errors.length > 0) {
+      console.log('\n⚠️  Errors:');
+      summary.errors.forEach((error: string) => {
+        console.log(`   - ${error}`);
+      });
     }
     
-    // Check if timeline was actually created
-    console.log('\n🔍 Verifying timeline was created...');
-    const timelinesResponse = await fetch(`${apiUrl}/api/timelines?limit=10`);
-    if (timelinesResponse.ok) {
-      const timelines = await timelinesResponse.json();
-      const createdTimeline = timelines.find((t: any) => t.title === firstTimeline.title);
-      if (createdTimeline) {
-        console.log(`✅ Timeline found: "${createdTimeline.title}"`);
-        console.log(`   Events: ${createdTimeline.events?.length || 0}`);
-        console.log(`   Has images: ${createdTimeline.events?.some((e: any) => e.imageUrl) || false}`);
+    // Verify using the returned timeline ID (not by searching by title)
+    if (createdTimelineIds.length > 0) {
+      const timelineId = createdTimelineIds[0];
+      console.log(`\n🔍 Verifying timeline ${timelineId}...`);
+      
+      const timelineResponse = await fetch(`${apiUrl}/api/timelines/${timelineId}`);
+      if (timelineResponse.ok) {
+        const timeline = await timelineResponse.json();
         
-        if (createdTimeline.events && createdTimeline.events.length > 5) {
+        // Fetch events for this timeline
+        const eventsResponse = await fetch(`${apiUrl}/api/timelines/${timelineId}/events`);
+        const events = eventsResponse.ok ? await eventsResponse.json() : [];
+        
+        console.log(`✅ Timeline found: "${timeline.title}"`);
+        console.log(`   ID: ${timelineId}`);
+        console.log(`   Events: ${events.length}`);
+        console.log(`   Has images: ${events.some((e: any) => e.imageUrl)}`);
+        
+        if (events.length > 5) {
           console.log('\n✅ Test passed! Timeline has sufficient events.');
-          console.log('🚀 Starting full batch seeding...\n');
-          
-          // Start full seeding
-          const { spawn } = await import('child_process');
-          const seedScript = spawn('npx', ['tsx', 'scripts/seed-30-timelines.ts'], {
-            cwd: process.cwd(),
-            stdio: 'inherit',
-            env: { ...process.env, PRODUCTION_URL: apiUrl }
-          });
-          
-          seedScript.on('close', (code) => {
-            process.exit(code || 0);
-          });
+          console.log('🚀 Ready to proceed with full batch seeding.');
+          process.exit(0);
         } else {
-          console.log('\n⚠️  Timeline created but has insufficient events. Not starting batch seeding.');
+          console.log('\n⚠️  Timeline created but has insufficient events.');
           process.exit(1);
         }
       } else {
@@ -106,7 +102,7 @@ async function testSingleTimeline() {
         process.exit(1);
       }
     } else {
-      console.log('⚠️  Could not verify timeline creation.');
+      console.log('❌ No timeline ID returned from API.');
       process.exit(1);
     }
     

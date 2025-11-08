@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
       eventsGenerated: 0,
       imagesGenerated: 0,
       errors: [] as string[],
+      createdTimelineIds: [] as string[],
     };
 
     // Process each user
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
             });
 
             results.timelinesCreated++;
+            results.createdTimelineIds.push(timeline.id);
 
             // Generate events using AI - call the API endpoint
             // Use internal URL for server-side calls
@@ -355,6 +357,7 @@ export async function POST(request: NextRequest) {
         imagesGenerated: results.imagesGenerated,
         errors: results.errors,
       },
+      createdTimelineIds: results.createdTimelineIds,
     });
   } catch (error: any) {
     console.error('[Seed] Error processing seed file:', error);
