@@ -250,38 +250,49 @@ export async function POST(request: NextRequest) {
             }
 
             // Save events to timeline
-            for (const event of eventsWithPrompts) {
-              // Handle numbered events vs dated events
-              let eventDate: string;
-              if (event.number !== undefined) {
-                // Numbered event - use a placeholder date (will be sorted by number)
-                eventDate = new Date().toISOString().split('T')[0];
-              } else if (event.year) {
-                // Dated event
-                eventDate = new Date(
-                  event.year,
-                  (event.month || 1) - 1,
-                  event.day || 1
-                ).toISOString().split('T')[0];
-              } else {
-                // Fallback if no year or number
-                eventDate = new Date().toISOString().split('T')[0];
+            console.log(`[Seed] Saving ${eventsWithPrompts.length} events to timeline ${timeline.id}...`);
+            for (let i = 0; i < eventsWithPrompts.length; i++) {
+              const event = eventsWithPrompts[i];
+              try {
+                // Handle numbered events vs dated events
+                let eventDate: string;
+                if (event.number !== undefined) {
+                  // Numbered event - use a placeholder date (will be sorted by number)
+                  eventDate = new Date().toISOString().split('T')[0];
+                } else if (event.year) {
+                  // Dated event
+                  eventDate = new Date(
+                    event.year,
+                    (event.month || 1) - 1,
+                    event.day || 1
+                  ).toISOString().split('T')[0];
+                } else {
+                  // Fallback if no year or number
+                  eventDate = new Date().toISOString().split('T')[0];
+                }
+
+                await createEvent({
+                  timeline_id: timeline.id,
+                  title: event.title,
+                  description: event.description || '',
+                  date: eventDate,
+                  number: event.number,
+                  number_label: event.numberLabel,
+                  category: event.category,
+                  links: event.links || [],
+                  created_by: user.id,
+                });
+
+                results.eventsGenerated++;
+                if ((i + 1) % 5 === 0) {
+                  console.log(`[Seed] Saved ${i + 1}/${eventsWithPrompts.length} events...`);
+                }
+              } catch (eventError: any) {
+                console.error(`[Seed] Failed to save event ${i + 1} "${event.title}":`, eventError.message);
+                // Continue with next event - don't fail entire timeline
               }
-
-              await createEvent({
-                timeline_id: timeline.id,
-                title: event.title,
-                description: event.description || '',
-                date: eventDate,
-                number: event.number,
-                number_label: event.numberLabel,
-                category: event.category,
-                links: event.links || [],
-                created_by: user.id,
-              });
-
-              results.eventsGenerated++;
             }
+            console.log(`[Seed] Successfully saved ${results.eventsGenerated}/${eventsWithPrompts.length} events`);
 
             // Generate images if requested (using same structure as manual flow)
             if (timelineData.generateImages && eventsWithPrompts.length > 0) {
