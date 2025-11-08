@@ -820,19 +820,19 @@ export async function POST(request: NextRequest) {
           const errorMsg = errorData.detail || errorData.message || errorText;
           console.error(`[ImageGen] Replicate API error for "${event.title}":`, errorMsg);
           
-          return { index, error: new Error(`Replicate API error: ${errorMsg}`), event };
+          return { index, error: new Error(`Replicate API error: ${errorMsg}`), event, prompt };
         }
 
         const prediction = await createResponse.json();
         
         if (!prediction.id) {
-          return { index, error: new Error('No prediction ID returned from Replicate'), event };
+          return { index, error: new Error('No prediction ID returned from Replicate'), event, prompt };
         }
 
-        return { index, predictionId: prediction.id, event };
+        return { index, predictionId: prediction.id, event, prompt };
       } catch (error: any) {
         console.error(`[ImageGen] Error creating prediction for "${event.title}":`, error);
-        return { index, error, event };
+        return { index, error, event, prompt: prompt || '' };
       }
     });
 
@@ -857,18 +857,36 @@ export async function POST(request: NextRequest) {
       if (result.error || !result.predictionId) {
         const errorMsg = result.error?.message || result.error || 'No prediction ID';
         console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
-        return { index: result.index, imageUrl: null, error: result.error, event: result.event };
+        return { 
+          index: result.index, 
+          imageUrl: null, 
+          error: result.error, 
+          event: result.event,
+          prompt: result.prompt || ''
+        };
       }
 
       try {
         console.log(`[ImageGen] Polling prediction ${result.predictionId} for "${result.event.title}"...`);
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
         console.log(`[ImageGen] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
-        return { index: result.index, imageUrl, error: null, event: result.event };
+        return { 
+          index: result.index, 
+          imageUrl, 
+          error: null, 
+          event: result.event,
+          prompt: result.prompt || ''
+        };
       } catch (error: any) {
         console.error(`[ImageGen] Error waiting for prediction "${result.event.title}" (ID: ${result.predictionId}):`, error);
         console.error(`[ImageGen] Error details:`, error.message, error.stack?.substring(0, 500));
-        return { index: result.index, imageUrl: null, error, event: result.event };
+        return { 
+          index: result.index, 
+          imageUrl: null, 
+          error, 
+          event: result.event,
+          prompt: result.prompt || ''
+        };
       }
     });
 
@@ -877,9 +895,11 @@ export async function POST(request: NextRequest) {
     
     // Step 3: Assemble results in correct order
     const images: (string | null)[] = new Array(events.length).fill(null);
+    const prompts: (string | null)[] = new Array(events.length).fill(null);
     const errors: (Error | null)[] = new Array(events.length).fill(null);
     imageResults.forEach((result) => {
       images[result.index] = result.imageUrl;
+      prompts[result.index] = result.prompt || null;
       errors[result.index] = result.error || null;
     });
     
@@ -939,7 +959,10 @@ export async function POST(request: NextRequest) {
     
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
     // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
-    return NextResponse.json({ images: persistedImages });
+    return NextResponse.json({ 
+      images: persistedImages,
+      prompts: prompts // Include prompts for debugging/testing
+    });
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
     return NextResponse.json(
