@@ -211,14 +211,49 @@ export async function POST(request: NextRequest) {
               throw new Error('No events were generated');
             }
 
-            // Skip description enhancement for now - use basic descriptions from event generation
-            // This avoids timeout issues that can cause timeline deletion
-            console.log(`[Seed] Using basic descriptions for timeline ${timeline.id} (${events.length} events)`);
-            const eventsWithPrompts = events.map((e: any) => ({
-              ...e,
-              description: e.description || '',
-              imagePrompt: '', // No enhanced image prompts for now
-            }));
+            // Generate enhanced descriptions and image prompts
+            let eventsWithPrompts = events;
+            try {
+              console.log(`[Seed] Enhancing descriptions for timeline ${timeline.id} (${events.length} events)`);
+              
+              const generateDescriptionsResponse = await fetch(
+                `${baseUrl}/api/ai/generate-descriptions`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    events: events.map((e: any) => ({
+                      year: e.year,
+                      title: e.title,
+                    })),
+                    timelineDescription: timelineData.description,
+                    writingStyle: 'narrative',
+                    imageStyle: timelineData.imageStyle || 'photorealistic',
+                    themeColor: timelineData.themeColor || '#3B82F6',
+                  }),
+                }
+              );
+
+              if (generateDescriptionsResponse.ok) {
+                const { descriptions, imagePrompts } = await generateDescriptionsResponse.json();
+                
+                eventsWithPrompts = events.map((e: any, index: number) => ({
+                  ...e,
+                  description: descriptions?.[index] || e.description || '',
+                  imagePrompt: imagePrompts?.[index] || '',
+                }));
+                console.log(`[Seed] Enhanced ${eventsWithPrompts.length} events with descriptions and image prompts`);
+              } else {
+                console.warn(`[Seed] Description enhancement failed, using basic descriptions`);
+                eventsWithPrompts = events;
+              }
+            } catch (descError: any) {
+              console.warn(`[Seed] Description generation error:`, descError.message);
+              // Continue with basic descriptions
+              eventsWithPrompts = events;
+            }
 
             // Save events to timeline
             console.log(`[Seed] Saving ${eventsWithPrompts.length} events to timeline ${timeline.id}...`);

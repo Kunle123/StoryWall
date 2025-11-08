@@ -399,8 +399,8 @@ function buildImagePrompt(
     }
   }
   
-  // Add color integration subtly (as accent/motif, not dominating)
-  prompt += `. Subtle ${colorName} accent elements`;
+  // Skip color prompting - let the style dictate natural colors
+  // Color guidance was making images too monochromatic
   
   // Add style-specific visual language
   prompt += `. ${styleVisualLanguage}`;

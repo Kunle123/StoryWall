@@ -1,0 +1,18 @@
+🧪 Testing with next 3 timelines (4-6):
+   4. The COVID-19 Pandemic Response in America
+   5. The Streaming Wars: Netflix vs. Competitors
+   6. Social Media Platform Evolution
+
+🌐 Using API URL: https://www.storywall.com
+
+📡 Sending request to: https://www.storywall.com/api/admin/seed
+
+✅ Batch complete!
+
+📊 Results:
+   Timelines created: 3
+   Events generated: 60
+   Images generated: 40
+
+✅ First batch test passed!
+🚀 Ready to proceed with full 30-timeline batch.
