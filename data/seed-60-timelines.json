@@ -1,0 +1,821 @@
+[
+  {
+    "user": {
+      "email": "editor@storywall.com",
+      "username": "storywall_editor"
+    },
+    "timelines": [
+      {
+        "title": "The Marvel Cinematic Universe (2008-2024)",
+        "description": "The complete journey of the MCU from Iron Man to the latest releases, including major film releases, character introductions, box office milestones, and cultural impact.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 25,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Super Bowl (2020-2025)",
+        "description": "Super Bowl games, halftime shows, memorable commercials, and cultural moments from recent Super Bowls, including performances, upsets, and record-breaking plays.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 6,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Delivery Revolution",
+        "description": "The rise of food delivery apps like DoorDash, Uber Eats, and Grubhub in America, including major acquisitions, restaurant partnerships, and changing dining habits.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Barbenheimer Phenomenon",
+        "description": "The simultaneous release of Barbie and Oppenheimer in 2023, the cultural moment it created, box office records, memes, and the impact on moviegoing culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 15,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The NBA Finals (2020-2024)",
+        "description": "Recent NBA Finals matchups, championship wins, MVP performances, and memorable moments from the league's biggest stage.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Coffee Shop Culture Evolution",
+        "description": "The transformation of coffee culture in America, from Starbucks expansion to third-wave coffee, cold brew trends, and specialty coffee shops.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The World Cup (2022-2026)",
+        "description": "Recent FIFA World Cup tournaments, including the 2022 Qatar World Cup and preparations for 2026, major matches, upsets, and cultural moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 25,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Great British Bake Off Journey",
+        "description": "The beloved British baking competition, including memorable bakers, showstopper challenges, host changes, and its cultural impact in the UK and beyond.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 15,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Truck Revolution",
+        "description": "The rise of food trucks in American cities, from street food to gourmet mobile kitchens, popular trends, and the evolution of mobile dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Olympics (2020-2024)",
+        "description": "Recent Olympic Games including Tokyo 2020 (held in 2021) and Paris 2024, memorable performances, controversies, and standout athletes from English-speaking countries.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 30,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Plant-Based Food Boom",
+        "description": "The growth of plant-based foods in America, including Beyond Meat, Impossible Foods, major restaurant partnerships, and the mainstreaming of vegan options.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Premier League Season (2023-2024)",
+        "description": "The most recent Premier League season, including title race, relegation battles, standout players, manager changes, and memorable matches.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel Industry Recovery",
+        "description": "The post-pandemic recovery of travel in America and globally, including airline changes, hotel trends, destination popularity, and new travel patterns.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Stanley Cup Playoffs (2020-2024)",
+        "description": "Recent NHL Stanley Cup playoffs and championships, including memorable series, overtime games, and championship celebrations.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Network and Cooking Shows",
+        "description": "Popular cooking competition shows, celebrity chefs, Food Network programming, and the evolution of food television in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Grammy Awards (2020-2025)",
+        "description": "Recent Grammy Awards ceremonies, winners, performances, controversies, and memorable moments from music's biggest night.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 6,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Craft Beer Movement",
+        "description": "The rise of craft breweries in America, including popular breweries, beer trends, brewery acquisitions, and the evolution of American beer culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Wimbledon Championships (2020-2024)",
+        "description": "Recent Wimbledon tennis tournaments, including champions, memorable matches, upsets, and the tournament's traditions and evolution.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Foodie Culture and Restaurant Scene",
+        "description": "Trends in American dining, from fine dining to casual restaurants, celebrity chef restaurants, food trends, and the evolution of restaurant culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Masters Golf Tournament (2020-2024)",
+        "description": "Recent Masters tournaments at Augusta National, including champions, memorable shots, controversies, and the tournament's traditions.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Allergy Awareness Movement",
+        "description": "Growing awareness of food allergies in America, including labeling changes, restaurant accommodations, advocacy efforts, and policy developments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Oscars (2020-2025)",
+        "description": "Recent Academy Awards ceremonies, including Best Picture winners, memorable speeches, controversies, and cultural moments from Hollywood's biggest night.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 6,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Sustainability Movement",
+        "description": "Efforts to make food production more sustainable in America, including farm-to-table movements, organic food growth, and environmental initiatives.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The World Series (2020-2024)",
+        "description": "Recent MLB World Series championships, including memorable games, upsets, standout performances, and championship celebrations.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Delivery App Wars",
+        "description": "Competition between food delivery platforms, including pricing battles, restaurant partnerships, driver issues, and market consolidation in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Tour de France (2020-2024)",
+        "description": "Recent Tour de France cycling races, including winners, memorable stages, controversies, and the race's global following.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Instagram Culture",
+        "description": "The impact of social media on food culture, including viral food trends, food influencers, restaurant marketing, and the aesthetics of food photography.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Emmys (2020-2024)",
+        "description": "Recent Emmy Awards ceremonies, including winners, streaming service dominance, memorable speeches, and television's biggest moments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Safety and Regulation",
+        "description": "Major food safety developments, recalls, FDA regulations, and public health initiatives related to food in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Kentucky Derby (2020-2024)",
+        "description": "Recent Kentucky Derby races, including winners, controversies, fashion, and the cultural significance of America's most famous horse race.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Waste Reduction Movement",
+        "description": "Efforts to reduce food waste in America, including restaurant initiatives, consumer awareness campaigns, and policy developments.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Golden Globe Awards (2020-2025)",
+        "description": "Recent Golden Globe Awards ceremonies, including winners, controversies, format changes, and memorable moments from the awards show.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 6,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Price Inflation",
+        "description": "Rising food costs in America, including grocery price increases, restaurant menu changes, and the economic impact on consumers and businesses.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The US Open Tennis (2020-2024)",
+        "description": "Recent US Open tennis tournaments, including champions, memorable matches, upsets, and the tournament's evolution.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Subscription Box Trend",
+        "description": "The rise of food subscription services in America, including meal kit services, snack boxes, and the evolution of subscription dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Tony Awards (2020-2024)",
+        "description": "Recent Tony Awards ceremonies celebrating Broadway, including winners, memorable performances, and the theater industry's recovery.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Truck Festivals",
+        "description": "The growth of food truck festivals and events in America, including popular festivals, food truck culture, and the evolution of mobile dining experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Daytona 500 (2020-2024)",
+        "description": "Recent Daytona 500 NASCAR races, including winners, memorable finishes, crashes, and the race's significance in American motorsports.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Blogging and Recipe Sharing",
+        "description": "The evolution of food blogging and online recipe sharing, including popular food bloggers, recipe websites, and the impact of social media on cooking.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The CMA Awards (2020-2024)",
+        "description": "Recent Country Music Association Awards, including winners, performances, and memorable moments from country music's biggest night.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Wine Pairing Culture",
+        "description": "The evolution of food and wine culture in America, including sommelier trends, wine pairings, and the sophistication of American dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Ryder Cup (2020-2024)",
+        "description": "Recent Ryder Cup golf competitions between Europe and the United States, including memorable matches, team dynamics, and the tournament's prestige.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 3,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food Hall and Market Trend",
+        "description": "The rise of food halls and curated food markets in American cities, including popular locations, vendor concepts, and the evolution of communal dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The MTV Video Music Awards (2020-2024)",
+        "description": "Recent VMAs ceremonies, including winners, performances, controversies, and memorable moments from music's most unpredictable awards show.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Health Connection",
+        "description": "Growing awareness of the connection between food and health in America, including nutrition trends, dietary movements, and wellness-focused eating.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The British Open Golf (2020-2024)",
+        "description": "Recent Open Championship tournaments, including winners, memorable rounds, weather challenges, and the tournament's storied history.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Travel Shows",
+        "description": "Popular food and travel television shows, including Anthony Bourdain's legacy, new travel food shows, and the evolution of culinary travel programming.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The People's Choice Awards (2020-2024)",
+        "description": "Recent People's Choice Awards ceremonies, including fan-voted winners, popular culture moments, and entertainment's most accessible awards show.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Social Justice",
+        "description": "The intersection of food and social justice in America, including food deserts, food insecurity initiatives, and community food programs.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Australian Open Tennis (2020-2024)",
+        "description": "Recent Australian Open tournaments, including champions, memorable matches, heat challenges, and the tournament's unique character.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Technology",
+        "description": "How technology is changing food in America, including smart kitchen appliances, food apps, AI in restaurants, and tech-driven dining experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Billboard Music Awards (2020-2024)",
+        "description": "Recent Billboard Music Awards ceremonies, including chart-topping winners, performances, and recognition of music's biggest hits.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Celebrity Chefs",
+        "description": "The rise of celebrity chefs in America, including Food Network stars, restaurant empires, cookbook authors, and the business of chef celebrity.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Rose Bowl (2020-2024)",
+        "description": "Recent Rose Bowl college football games, including memorable matchups, traditions, and the game's significance in American sports culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Local Sourcing",
+        "description": "The farm-to-table movement and local food sourcing in America, including farmers markets, CSA programs, and the emphasis on local ingredients.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The SAG Awards (2020-2024)",
+        "description": "Recent Screen Actors Guild Awards ceremonies, including winners, memorable speeches, and recognition of outstanding performances in film and television.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 5,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Cultural Fusion",
+        "description": "The evolution of fusion cuisine in America, including popular fusion restaurants, cultural food blending, and the diversity of American food culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Tourism Recovery",
+        "description": "How travel and tourism recovered post-pandemic in English-speaking countries, including destination trends, travel patterns, and industry changes.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Restaurant Reviews",
+        "description": "The evolution of restaurant criticism in America, including food critics, Yelp culture, Michelin guides, and the impact of reviews on dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Adventure Tourism",
+        "description": "The growth of adventure and experiential travel, including popular destinations, adventure activities, and the evolution of travel experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Meal Prep Culture",
+        "description": "The rise of meal prep and batch cooking in America, including popular methods, social media trends, and the emphasis on efficient home cooking.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Sustainable Tourism",
+        "description": "Efforts to make travel more sustainable, including eco-tourism, carbon offset programs, and responsible travel practices in English-speaking destinations.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Home Cooking Renaissance",
+        "description": "The resurgence of home cooking in America, including cooking during lockdowns, recipe sharing, and the renewed interest in home-cooked meals.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Digital Nomad Movement",
+        "description": "The rise of digital nomadism, including popular destinations, remote work policies, and the lifestyle of location-independent workers.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Snack Culture",
+        "description": "Trends in snacking in America, including popular snacks, snack innovations, healthy snacking, and the evolution of snack food culture.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Cruise Industry",
+        "description": "The recovery and evolution of the cruise industry, including new ships, destinations, safety measures, and changing cruise travel patterns.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Breakfast Culture",
+        "description": "Trends in breakfast and brunch culture in America, including popular breakfast foods, brunch spots, and the evolution of morning dining.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Hotel Innovation",
+        "description": "Innovations in the hotel industry, including boutique hotels, unique accommodations, technology integration, and the evolution of hospitality.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Dessert Trends",
+        "description": "Popular dessert trends in America, including viral desserts, ice cream innovations, pastry trends, and the evolution of sweet treats.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Airline Industry",
+        "description": "Changes in the airline industry, including new routes, airline mergers, passenger experience improvements, and the evolution of air travel.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Beverage Pairing",
+        "description": "The art of food and beverage pairing in America, including wine pairings, craft beer with food, cocktail pairings, and sophisticated dining experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Road Trip Culture",
+        "description": "The enduring appeal of road trips in America, including popular routes, road trip trends, and the cultural significance of American road travel.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Street Food",
+        "description": "The growth of street food culture in American cities, including food trucks, street vendors, food markets, and authentic street food experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and National Parks",
+        "description": "Visitation trends at America's national parks, including record attendance, popular parks, conservation efforts, and the appeal of nature travel.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Cooking Techniques",
+        "description": "Popular cooking techniques and methods in America, including sous vide, air frying, fermentation, and the evolution of home cooking skills.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and City Breaks",
+        "description": "Popular city destinations for short breaks, including urban tourism trends, city attractions, and the appeal of weekend city trips.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Regional Cuisines",
+        "description": "The celebration of regional American cuisines, including Southern food, Tex-Mex, New England seafood, and the diversity of American regional cooking.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Solo Travel",
+        "description": "The growth of solo travel, including popular solo destinations, safety considerations, and the appeal of independent travel experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food Photography",
+        "description": "The art and business of food photography, including food styling, social media food content, and the visual culture of food in America.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Luxury Travel",
+        "description": "Trends in luxury travel, including high-end destinations, luxury accommodations, exclusive experiences, and the evolution of premium travel.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food Festivals",
+        "description": "Popular food festivals in America, including major events, regional festivals, and the celebration of food culture through festivals.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Travel Technology",
+        "description": "How technology is changing travel, including booking apps, travel planning tools, virtual reality travel, and tech-driven travel experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food Science",
+        "description": "The science behind food, including food chemistry, molecular gastronomy, food innovation, and the intersection of science and cooking.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Travel Influencers",
+        "description": "The rise of travel influencers and content creators, including popular travel bloggers, social media travel content, and the business of travel influencing.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food History",
+        "description": "The history of American food, including traditional dishes, food origins, culinary heritage, and the evolution of American cuisine over time.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Travel Safety",
+        "description": "Travel safety considerations and developments, including health protocols, travel insurance, safety apps, and responsible travel practices.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food Education",
+        "description": "Culinary education and cooking classes in America, including cooking schools, online courses, and the democratization of culinary knowledge.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Travel Planning",
+        "description": "How people plan travel, including travel agents, online booking, travel research, and the evolution of travel planning methods.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Food and Food Service Industry",
+        "description": "Changes in the food service industry, including restaurant operations, service models, tipping culture, and the evolution of dining service.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      },
+      {
+        "title": "The Travel and Travel Memories",
+        "description": "How people document and remember travel, including travel photography, travel journals, souvenirs, and the preservation of travel experiences.",
+        "isFactual": true,
+        "isPublic": true,
+        "maxEvents": 20,
+        "generateImages": true,
+        "imageStyle": "photorealistic"
+      }
+    ]
+  }
+]
+
