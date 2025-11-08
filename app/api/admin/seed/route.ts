@@ -211,10 +211,13 @@ export async function POST(request: NextRequest) {
               throw new Error('No events were generated');
             }
 
-            // Generate enhanced descriptions and image prompts
+            // Generate enhanced descriptions and image prompts (with timeout)
             let eventsWithPrompts = events;
             try {
               console.log(`[Seed] Enhancing descriptions for timeline ${timeline.id} (${events.length} events)`);
+              
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
               
               const generateDescriptionsResponse = await fetch(
                 `${baseUrl}/api/ai/generate-descriptions`,
@@ -231,10 +234,13 @@ export async function POST(request: NextRequest) {
                     timelineDescription: timelineData.description,
                     writingStyle: 'narrative',
                     imageStyle: timelineData.imageStyle || 'photorealistic',
-                    themeColor: timelineData.themeColor || '#3B82F6',
+                    themeColor: '', // Don't pass theme color for seeded timelines
                   }),
+                  signal: controller.signal,
                 }
               );
+              
+              clearTimeout(timeout);
 
               if (generateDescriptionsResponse.ok) {
                 const { descriptions, imagePrompts } = await generateDescriptionsResponse.json();
@@ -251,7 +257,7 @@ export async function POST(request: NextRequest) {
               }
             } catch (descError: any) {
               console.warn(`[Seed] Description generation error:`, descError.message);
-              // Continue with basic descriptions
+              // Continue with basic descriptions - DON'T fail the whole timeline
               eventsWithPrompts = events;
             }
 

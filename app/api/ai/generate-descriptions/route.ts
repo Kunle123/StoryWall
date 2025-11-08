@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     
     // Always generate image prompts - focused on what should be visually depicted
     const imageStyleContext = imageStyle ? `The image style will be ${imageStyle}.` : 'The image style will be determined later.';
-    const colorContext = themeColor ? `The theme color is ${themeColor} - use this color prominently in the visual composition.` : '';
+    const colorContext = themeColor ? `The theme color is ${themeColor} - use this color subtly as a minor accent or motif, not as the dominant color scheme.` : '';
     
     const imagePromptRequest = `\n\nAdditionally, generate a separate image description for each event that specifies what should be visually depicted in the accompanying image. These image descriptions will be used to create illustrations. ${imageStyleContext} ${colorContext}\n\nFor each event, create an image description that:\n- Specifies the main subject(s) to be depicted (people, objects, scenes)\n- Describes key visual elements that should be visible (clothing, setting, objects, actions)\n- Suggests the composition and what should be in the foreground/background\n- Includes period-appropriate details if a year is provided\n- Focuses on visual, depictable elements rather than abstract concepts\n- Is concise and specific (2-3 sentences max)\n- IMPORTANT: If the event involves famous people, focus on historical setting, period-appropriate clothing, and context rather than specific facial features or direct likenesses\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
 
