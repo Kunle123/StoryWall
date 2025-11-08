@@ -25,3 +25,33 @@
 
 🚀 Starting batch group: 4
 📦 Batch 4: Processing 3 timelines...
+✅ Batch 4: Complete!
+
+⏳ Waiting 5 seconds before next batch...
+
+🚀 Starting batch group: 5
+📦 Batch 5: Processing 3 timelines...
+✅ Batch 5: Complete!
+
+⏳ Waiting 5 seconds before next batch...
+
+🚀 Starting batch group: 6
+📦 Batch 6: Processing 3 timelines...
+✅ Batch 6: Complete!
+
+⏳ Waiting 5 seconds before next batch...
+
+🚀 Starting batch group: 7
+📦 Batch 7: Processing 3 timelines...
+✅ Batch 7: Complete!
+
+⏳ Waiting 5 seconds before next batch...
+
+🚀 Starting batch group: 8
+📦 Batch 8: Processing 3 timelines...
+❌ Failed to seed timelines: Batch 8 failed: {"status":"error","code":502,"message":"Application failed to respond","request_id":"Ac7EhQ6KQUafczLsN8N_Fg"}
+Error: Batch 8 failed: {"status":"error","code":502,"message":"Application failed to respond","request_id":"Ac7EhQ6KQUafczLsN8N_Fg"}
+    at seedTimelineBatch (/Users/admin/Documents/KunleDevFolder/StoryWall/scripts/seed-30-timelines.ts:37:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 0)
+    at async seedTimelines (/Users/admin/Documents/KunleDevFolder/StoryWall/scripts/seed-30-timelines.ts:93:28)

@@ -34,6 +34,12 @@ export async function POST(request: NextRequest) {
         return true; // No events at all
       }
       
+      // Consider timelines with very few events (< 5) as incomplete
+      // Most timelines should have 20+ events
+      if (timeline.events.length < 5) {
+        return true;
+      }
+      
       // Check if events are missing descriptions or images
       const hasDescriptions = timeline.events.some(e => e.description);
       const hasImages = timeline.events.some(e => e.imageUrl);
