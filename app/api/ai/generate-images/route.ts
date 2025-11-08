@@ -97,21 +97,14 @@ const STYLE_TO_MODEL: Record<string, string> = {
 const DEFAULT_MODEL = MODELS.ARTISTIC; // SDXL - good all-around
 
 // Helper to detect if text is expected in the image
+// VERY RESTRICTIVE - only for things that MUST have readable text (signs, newspapers, etc.)
 function expectsTextInImage(event: { title: string; description?: string; imagePrompt?: string }): boolean {
   const text = `${event.title} ${event.description || ''} ${event.imagePrompt || ''}`.toLowerCase();
   
-  // Keywords that suggest text should be visible in the image
+  // Only detect when text is ESSENTIAL to the image (very narrow list)
   const textIndicators = [
-    'sign', 'signage', 'poster', 'banner', 'newspaper', 'headline', 'article',
-    'document', 'letter', 'note', 'label', 'tag', 'badge', 'nameplate',
-    'inscription', 'engraving', 'tombstone', 'plaque', 'marquee', 'billboard',
-    'advertisement', 'ad', 'flyer', 'pamphlet', 'book', 'magazine', 'journal',
-    'diary', 'manuscript', 'scroll', 'certificate', 'diploma', 'license',
-    'ticket', 'stamp', 'coin', 'currency', 'money', 'check', 'receipt',
-    'menu', 'recipe', 'chart', 'graph', 'map', 'blueprint', 'schedule',
-    'timetable', 'program', 'playbill', 'scoreboard', 'leaderboard',
-    'score', 'statistics', 'stats', 'data', 'numbers', 'text', 'words',
-    'writing', 'written', 'printed', 'typed', 'calligraphy', 'handwriting'
+    'newspaper headline', 'banner reads', 'sign reads', 'sign says',
+    'billboard reads', 'poster reads', 'headline reads', 'headline says'
   ];
   
   return textIndicators.some(indicator => text.includes(indicator));
@@ -421,13 +414,13 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
-  // Add text handling instructions based on whether text is expected
+  // Add text handling instructions - always minimize text
   if (needsText) {
-    // When text is needed, encourage clear, readable text
-    prompt += `. Include clear, readable text where appropriate. Text should be legible and well-rendered`;
+    // When text is needed, limit to essential text only (headlines, signs)
+    prompt += `. Minimal text - only essential headlines or signs if needed. Keep text brief and clear`;
   } else {
-    // SDXL struggles with text rendering, so discourage text unless explicitly needed
-    prompt += `. No text, no words, no signs, no labels, no written content. Visual scene only`;
+    // For most images, avoid all text
+    prompt += `. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters`;
   }
   
   // Note: Reference images are now handled separately via direct image input
@@ -545,11 +538,18 @@ export async function POST(request: NextRequest) {
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
     // Prepare reference images for Replicate if available (one per event, or use first available)
-    const referenceImagePromises = imageReferences && imageReferences.length > 0
-      ? imageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
+    // Filter out invalid URLs (categories, articles, non-Wikimedia)
+    const validImageReferences = imageReferences && imageReferences.length > 0
+      ? imageReferences.filter((ref: { name: string; url: string }) => 
+          ref.url.includes('/File:') // Only actual file URLs, not categories or articles
+        )
+      : [];
+    
+    const referenceImagePromises = validImageReferences.length > 0
+      ? validImageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
       : [];
     const preparedReferences = await Promise.all(referenceImagePromises);
-    console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${imageReferences.length} reference images for Replicate`);
+    console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${validImageReferences.length} reference images for Replicate`);
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
@@ -640,13 +640,13 @@ export async function POST(request: NextRequest) {
           input.guidance_scale = 7.5;
           input.num_inference_steps = 30;
           
-          // Add negative prompt for SDXL only when text is NOT needed
-          // SDXL struggles with text rendering, so we discourage unnecessary text
+          // Add negative prompt for SDXL - strongly discourage text in all cases
+          // Most images should be pure visual without any text
           if (!needsText) {
-            input.negative_prompt = "text, words, letters, signs, labels, misspelled text, garbled text, unreadable text, text errors, written words, text blocks, documents with text";
+            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions";
           } else {
-            // When text is needed, use a minimal negative prompt that doesn't discourage text
-            input.negative_prompt = "blurry text, misspelled words, garbled text, unreadable text";
+            // Even when text is needed, minimize it and avoid errors
+            input.negative_prompt = "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling";
           }
           
           // Add reference image if available (for image-to-image transformation)
