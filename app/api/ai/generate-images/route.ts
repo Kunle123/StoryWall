@@ -134,9 +134,46 @@ function getModelForStyle(imageStyle: string, needsText: boolean = false): strin
 // Legacy constant for backward compatibility
 const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
+// Helper to convert Wikimedia Commons page URL to direct image URL
+async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | null> {
+  try {
+    // Extract filename from URL like https://commons.wikimedia.org/wiki/File:...
+    const match = pageUrl.match(/File:(.+?)$/);
+    if (!match) return null;
+    
+    const filename = match[1];
+    
+    // Use Wikimedia API to get direct image URL
+    const apiUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=File:${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&format=json`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    
+    const pages = data.query?.pages;
+    if (!pages) return null;
+    
+    const pageId = Object.keys(pages)[0];
+    const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
+    
+    return imageUrl || null;
+  } catch (error) {
+    console.error(`[ImageGen] Error converting Wikimedia URL: ${pageUrl}`, error);
+    return null;
+  }
+}
+
 // Helper to prepare image for Replicate (try URL first, upload if needed)
 async function prepareImageForReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
+    // Convert Wikimedia Commons page URLs to direct image URLs
+    if (imageUrl.includes('commons.wikimedia.org/wiki/File:')) {
+      console.log(`[ImageGen] Converting Wikimedia page URL to direct image URL...`);
+      const directUrl = await getWikimediaDirectImageUrl(imageUrl);
+      if (directUrl) {
+        console.log(`[ImageGen] Using direct Wikimedia image: ${directUrl.substring(0, 100)}...`);
+        return directUrl;
+      }
+    }
+    
     // Check if URL is publicly accessible (starts with http/https)
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
       // Try using the URL directly first (Replicate accepts publicly accessible URLs)

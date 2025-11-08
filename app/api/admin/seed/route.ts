@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
                       })),
                       imageStyle: timelineData.imageStyle || 'photorealistic',
                       themeColor: timelineData.themeColor || '#3B82F6', // Use timeline theme color
-                      imageReferences: imageReferences || [],
+                      imageReferences: imageReferences || []
                     }),
                   }
                 );
