@@ -142,7 +142,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
             tools: [{ type: 'web_search' }],
             reasoning: { effort: 'low' },
             text: { verbosity: 'low' },
-            max_output_tokens: Math.min(4000, (maxEvents * 150) + 1000),
+            max_output_tokens: Math.min(40000, (maxEvents * 1500) + 10000),
           }),
         });
 
