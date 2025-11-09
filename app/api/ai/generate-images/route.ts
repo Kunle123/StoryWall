@@ -1197,7 +1197,14 @@ export async function POST(request: NextRequest) {
         }
         
         // Get model version for this specific event
-        const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+        let modelVersion: string;
+        try {
+          modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+          console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}"`);
+        } catch (versionError: any) {
+          console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
+          throw new Error(`Failed to get model version: ${versionError.message}`);
+        }
         
         if (needsText) {
           console.log(`[ImageGen] Event "${event.title}" needs text - using ${selectedModel} (better text rendering)`);
@@ -1206,6 +1213,12 @@ export async function POST(request: NextRequest) {
         // Get reference image URL for this event (use first available, or cycle through if multiple events)
         const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         const hasReferenceImage = !!referenceImageUrl;
+        
+        if (hasReferenceImage) {
+          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
+        } else {
+          console.log(`[ImageGen] No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
+        }
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         // Include person matching instructions when reference images are provided
@@ -1238,11 +1251,18 @@ export async function POST(request: NextRequest) {
           input.guidance_scale = 3.5;
           input.num_inference_steps = 28;
           
-          if (referenceImageUrl) {
-            input.image = referenceImageUrl;
-            input.prompt_strength = 0.75;
-            input.strength = 0.75;
-            console.log(`[ImageGen] Using reference image with Flux Kontext Pro (strength: 0.75)`);
+          if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+            // Validate the URL is actually a valid image URL
+            if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
+              input.image = referenceImageUrl;
+              input.prompt_strength = 0.75;
+              input.strength = 0.75;
+              console.log(`[ImageGen] Using reference image with Flux Kontext Pro (strength: 0.75)`);
+            } else {
+              console.warn(`[ImageGen] Invalid reference image URL format for Flux Kontext Pro: ${referenceImageUrl.substring(0, 50)}`);
+            }
+          } else {
+            console.log(`[ImageGen] No valid reference image for Flux Kontext Pro, generating without reference`);
           }
         } else if (selectedModel.includes('flux')) {
           // Other Flux models (Flux Dev, Flux Pro) don't support direct image input
@@ -1307,6 +1327,13 @@ export async function POST(request: NextRequest) {
         }
         
         // Create prediction via Replicate
+        console.log(`[ImageGen] Creating Replicate prediction for "${event.title}" with model ${selectedModel}, version ${modelVersion}`);
+        console.log(`[ImageGen] Input parameters:`, JSON.stringify({
+          ...input,
+          prompt: input.prompt?.substring(0, 100) + '...',
+          image: input.image ? input.image.substring(0, 80) + '...' : undefined
+        }, null, 2));
+        
         const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
           method: 'POST',
           headers: {
@@ -1329,9 +1356,10 @@ export async function POST(request: NextRequest) {
           }
           
           const errorMsg = errorData.detail || errorData.message || errorText;
-          console.error(`[ImageGen] Replicate API error for "${event.title}":`, errorMsg);
+          console.error(`[ImageGen] ✗ Replicate API error for "${event.title}" (${createResponse.status}):`, errorMsg);
+          console.error(`[ImageGen] Full error response:`, errorText);
           
-          return { index, error: new Error(`Replicate API error: ${errorMsg}`), event, prompt };
+          return { index, error: new Error(`Replicate API error (${createResponse.status}): ${errorMsg}`), event, prompt };
         }
 
         const prediction = await createResponse.json();
