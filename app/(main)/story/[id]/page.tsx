@@ -6,7 +6,8 @@ import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBotto
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ChevronLeft, ChevronRight, X, Heart } from "lucide-react";
-import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById } from "@/lib/api/client";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -26,6 +27,7 @@ const Story = () => {
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
+  const [timelineCreator, setTimelineCreator] = useState<{ name: string; username?: string; avatar?: string } | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -92,6 +94,21 @@ const Story = () => {
             const commentsResult = await fetchCommentsByTimelineId(result.data.timeline_id);
             if (commentsResult.data) {
               setCommentCount(commentsResult.data.length);
+            }
+            
+            // Fetch timeline to get creator information
+            const timelineResult = await fetchTimelineById(result.data.timeline_id);
+            if (timelineResult.data) {
+              const timeline = timelineResult.data;
+              // Extract creator info from timeline
+              const creatorName = timeline.user?.username || timeline.user?.name || timeline.creator || "Timeline Creator";
+              const creatorUsername = timeline.user?.username ? `@${timeline.user.username}` : timeline.user?.email?.split('@')[0] || "@historian";
+              const creatorAvatar = timeline.user?.avatar_url || timeline.avatar;
+              setTimelineCreator({
+                name: creatorName,
+                username: creatorUsername,
+                avatar: creatorAvatar
+              });
             }
           }
           
@@ -401,12 +418,15 @@ const Story = () => {
           {/* User Profile and Follow Button */}
           <div className="flex items-center justify-between mb-4 pr-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-semibold text-primary">TC</span>
-              </div>
+              <Avatar className="w-10 h-10 flex-shrink-0">
+                <AvatarImage src={timelineCreator?.avatar} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {timelineCreator?.name ? timelineCreator.name[0].toUpperCase() : 'TC'}
+                </AvatarFallback>
+              </Avatar>
               <div>
-                <p className="text-base font-bold leading-tight">Timeline Creator</p>
-                <p className="text-sm text-muted-foreground">@historian</p>
+                <p className="text-base font-bold leading-tight">{timelineCreator?.name || "Timeline Creator"}</p>
+                <p className="text-sm text-muted-foreground">{timelineCreator?.username || "@historian"}</p>
               </div>
             </div>
             <Button
