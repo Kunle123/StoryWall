@@ -1,5 +1,4 @@
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -88,23 +87,20 @@ export const ImageStyleStep = ({
           )}
           <div className="flex flex-wrap gap-2">
             {imageStyles.map((style) => (
-              <Badge
+              <Button
                 key={style}
+                type="button"
                 variant={imageStyle === style ? "default" : "outline"}
-                className="cursor-pointer px-4 py-2 text-sm hover:bg-accent transition-colors"
+                className="px-4 py-2 text-sm"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('[ImageStyleStep] Badge clicked:', style);
+                  console.log('[ImageStyleStep] Button clicked:', style);
                   handleStyleClick(style);
-                }}
-                onMouseDown={(e) => {
-                  // Prevent default to ensure click fires
-                  e.preventDefault();
                 }}
               >
                 {style}
-              </Badge>
+              </Button>
             ))}
           </div>
           <div className="mt-4">
@@ -134,11 +130,16 @@ export const ImageStyleStep = ({
           </p>
           <div className="flex flex-wrap gap-2 mb-3">
             {themeColors.map((color) => (
-              <Badge
+              <Button
                 key={color.name}
+                type="button"
                 variant={themeColor === color.value ? "default" : "outline"}
-                className="cursor-pointer px-4 py-2 text-sm"
-                onClick={() => setThemeColor(color.value)}
+                className="px-4 py-2 text-sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setThemeColor(color.value);
+                }}
               >
                 {color.value && (
                   <div 
@@ -147,7 +148,7 @@ export const ImageStyleStep = ({
                   />
                 )}
                 {color.name}
-              </Badge>
+              </Button>
             ))}
           </div>
           <div className="flex gap-2 items-end">
