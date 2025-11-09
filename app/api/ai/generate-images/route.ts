@@ -1185,14 +1185,17 @@ export async function POST(request: NextRequest) {
           selectedModel = MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
         }
         
-        // If reference images are provided and we're using Flux (which doesn't support image input),
-        // use Flux Kontext Pro or fall back to SDXL
-        if (hasReferenceImages && selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
-          const useKontextPro = selectedModel === MODELS.PHOTOREALISTIC_FALLBACK;
-          if (useKontextPro) {
-            selectedModel = "black-forest-labs/flux-kontext-pro"; // Supports reference images
-          } else {
-            selectedModel = MODELS.ARTISTIC; // SDXL
+        // If reference images are provided, use Flux Kontext Pro (supports reference images)
+        // This works for both photorealistic (Flux Dev) and artistic (SDXL) styles
+        if (hasReferenceImages) {
+          if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+            // Switch from Flux Dev to Flux Kontext Pro
+            selectedModel = "black-forest-labs/flux-kontext-pro";
+            console.log(`[ImageGen] Switching to Flux Kontext Pro for reference image support (was: ${selectedModel})`);
+          } else if (selectedModel === MODELS.ARTISTIC || selectedModel.includes('sdxl')) {
+            // Switch from SDXL to Flux Kontext Pro for better reference image support
+            selectedModel = "black-forest-labs/flux-kontext-pro";
+            console.log(`[ImageGen] Switching from SDXL to Flux Kontext Pro for reference image support`);
           }
         }
         
