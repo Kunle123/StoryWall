@@ -491,6 +491,8 @@ const MODELS = {
   // Artistic models (best for illustrations, watercolor, etc.)
   ARTISTIC: "stability-ai/sdxl", // $0.0048/image - excellent for artistic styles
   ARTISTIC_ALT: "black-forest-labs/flux-dev", // $0.025-0.030/image - alternative artistic option
+  // IP-Adapter for artistic styles with reference images (much cheaper than Flux Kontext Pro)
+  ARTISTIC_WITH_REF: "lucataco/ip-adapter", // $0.002-0.005/image - SDXL + IP-Adapter for reference images
 };
 
 // Map image styles to models
@@ -564,10 +566,14 @@ async function validateImageUrl(url: string): Promise<boolean> {
       return false;
     }
     
-    // Make HEAD request to check content-type
+    // Make HEAD request to check content-type with proper headers to avoid 403
     const headResponse = await fetch(url, { 
       method: 'HEAD',
       redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'image/*',
+      },
       signal: AbortSignal.timeout(5000) // 5 second timeout
     });
     
@@ -638,7 +644,65 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
   }
 }
 
-// Helper to prepare image for Replicate (try URL first, upload if needed)
+// Helper to upload image to Replicate's file storage
+async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
+  try {
+    // Download the image with proper headers to avoid 403
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'image/*',
+      },
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
+
+    if (!imageResponse.ok) {
+      console.warn(`[ImageGen] Failed to download image (${imageResponse.status}): ${imageUrl.substring(0, 100)}`);
+      return null;
+    }
+
+    const imageBuffer = await imageResponse.arrayBuffer();
+    const imageBlob = new Blob([imageBuffer], { type: imageResponse.headers.get('content-type') || 'image/jpeg' });
+
+    // Upload to Replicate
+    const formData = new FormData();
+    formData.append('file', imageBlob, 'image.jpg');
+
+    const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${replicateApiKey}`,
+      },
+      body: formData,
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.warn(`[ImageGen] Failed to upload image to Replicate (${uploadResponse.status}): ${errorText}`);
+      return null;
+    }
+
+    const uploadData = await uploadResponse.json();
+    const replicateUrl = uploadData.url || uploadData.urls?.get || null;
+    
+    if (replicateUrl) {
+      console.log(`[ImageGen] ✓ Uploaded image to Replicate: ${replicateUrl.substring(0, 80)}...`);
+      return replicateUrl;
+    }
+
+    return null;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.warn(`[ImageGen] Timeout uploading image to Replicate: ${imageUrl.substring(0, 100)}`);
+    } else {
+      console.error(`[ImageGen] Error uploading image to Replicate: ${imageUrl.substring(0, 100)}`, error.message);
+    }
+    return null;
+  }
+}
+
+// Helper to prepare image for Replicate (upload to Replicate to avoid 403 errors)
 async function prepareImageForReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
     let finalUrl = imageUrl;
@@ -662,7 +726,21 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // Validate that the URL actually points to an image
+    // For Wikimedia URLs, upload to Replicate to avoid 403 errors when Replicate tries to fetch
+    // This is especially important for SDXL and other models that fetch the image themselves
+    if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
+      console.log(`[ImageGen] Uploading Wikimedia image to Replicate to avoid 403 errors...`);
+      const replicateUrl = await uploadImageToReplicate(finalUrl, replicateApiKey);
+      if (replicateUrl) {
+        console.log(`[ImageGen] ✓ Using Replicate-hosted image URL`);
+        return replicateUrl;
+      } else {
+        console.warn(`[ImageGen] Failed to upload to Replicate, will try direct URL (may fail with 403)`);
+        // Fall through to try direct URL anyway
+      }
+    }
+    
+    // For non-Wikimedia URLs, validate that the URL actually points to an image
     const isValid = await validateImageUrl(finalUrl);
     if (!isValid) {
       console.warn(`[ImageGen] URL validation failed: ${finalUrl.substring(0, 100)}`);
@@ -1171,6 +1249,10 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Check if we actually have successfully prepared reference images (not just attempted)
+    const hasPreparedReferences = preparedReferences.some(ref => ref !== null && ref.length > 0);
+    console.log(`[ImageGen] Has prepared reference images: ${hasPreparedReferences} (${preparedReferences.filter(r => r !== null).length} successful)`);
+    
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
     
@@ -1180,22 +1262,37 @@ export async function POST(request: NextRequest) {
         // Select model based on style and text needs
         let selectedModel = getModelForStyle(imageStyle, needsText);
         
-        // Use Flux Dev for photorealistic (better quality for real people than Google Imagen)
-        if (selectedModel === MODELS.PHOTOREALISTIC) {
-          selectedModel = MODELS.PHOTOREALISTIC_FALLBACK; // Flux Dev
-        }
+        // CRITICAL: SDXL fails with 403 errors when Replicate tries to fetch Wikimedia URLs
+        // Use cheaper IP-Adapter for artistic styles, Flux Kontext Pro for photorealistic
+        const originalModel = selectedModel;
+        const isSDXL = selectedModel === MODELS.ARTISTIC || 
+                       selectedModel.includes('sdxl') || 
+                       selectedModel === "stability-ai/sdxl" ||
+                       selectedModel.includes('stability-ai/sdxl');
+        const isArtistic = isSDXL || selectedModel === MODELS.ARTISTIC;
+        const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
-        // If reference images are provided, use Flux Kontext Pro (supports reference images)
-        // This works for both photorealistic (Flux Dev) and artistic (SDXL) styles
         if (hasReferenceImages) {
-          if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
-            // Switch from Flux Dev to Flux Kontext Pro
+          // For artistic styles: use IP-Adapter (much cheaper: $0.002-0.005 vs $0.04 for Flux Kontext Pro)
+          if (isArtistic) {
+            selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter
+            console.log(`[ImageGen] ✓ Switching from SDXL (${originalModel}) to IP-Adapter (artistic style with reference images, $0.002-0.005/image)`);
+          } 
+          // For photorealistic styles: use Flux Kontext Pro (best quality for people)
+          else if (isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             selectedModel = "black-forest-labs/flux-kontext-pro";
-            console.log(`[ImageGen] Switching to Flux Kontext Pro for reference image support (was: ${selectedModel})`);
-          } else if (selectedModel === MODELS.ARTISTIC || selectedModel.includes('sdxl')) {
-            // Switch from SDXL to Flux Kontext Pro for better reference image support
-            selectedModel = "black-forest-labs/flux-kontext-pro";
-            console.log(`[ImageGen] Switching from SDXL to Flux Kontext Pro for reference image support`);
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (photorealistic with reference images, $0.04/image)`);
+          }
+        } else {
+          // No reference images - SDXL is fine to use
+          if (isSDXL) {
+            console.log(`[ImageGen] Using SDXL (${selectedModel}) - no reference images, safe to use`);
+          }
+          // No reference images - use cheaper models when possible
+          // For photorealistic, use Google Imagen 4 Fast ($0.02/image) instead of Flux Dev ($0.025-0.030/image)
+          if (selectedModel === MODELS.PHOTOREALISTIC) {
+            // Keep Imagen 4 Fast - it's cheaper and available on Replicate
+            console.log(`[ImageGen] Using Google Imagen 4 Fast for photorealistic (no reference images, $0.02/image)`);
           }
         }
         
@@ -1248,7 +1345,38 @@ export async function POST(request: NextRequest) {
         };
         
         // Model-specific parameters
-        if (selectedModel.includes('flux-kontext-pro')) {
+        if (selectedModel.includes('ip-adapter') || selectedModel === MODELS.ARTISTIC_WITH_REF) {
+          // IP-Adapter (SDXL + IP-Adapter) - cheap option for artistic styles with reference images
+          input.prompt = prompt;
+          input.num_outputs = 1;
+          input.guidance_scale = 7.5;
+          input.num_inference_steps = 30;
+          
+          if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+            if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
+              input.image = referenceImageUrl;
+              input.ip_adapter_scale = 0.75; // Control strength of reference image (0.5-1.0)
+              console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.002-0.005/image)`);
+            } else {
+              console.warn(`[ImageGen] Invalid reference image URL format for IP-Adapter: ${referenceImageUrl.substring(0, 50)}`);
+            }
+          } else {
+            console.log(`[ImageGen] No valid reference image for IP-Adapter, generating without reference`);
+          }
+          
+          // Add negative prompt for artistic styles
+          if (!needsText) {
+            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines";
+          }
+        } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
+          // Google Imagen 4 Fast - simple prompt-based generation
+          // Imagen doesn't support reference images via Replicate API
+          input.prompt = prompt;
+          if (referenceImageUrl) {
+            console.warn(`[ImageGen] Google Imagen doesn't support reference images via Replicate. Reference image will be ignored.`);
+          }
+          console.log(`[ImageGen] Using Google Imagen 4 Fast parameters`);
+        } else if (selectedModel.includes('flux-kontext-pro')) {
           // Flux Kontext Pro supports reference images
           input.num_outputs = 1;
           input.guidance_scale = 3.5;
