@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
-import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
@@ -612,8 +611,6 @@ const TimelineEditor = () => {
           </>
         )}
       </main>
-
-      <ExperimentalBottomMenuBar />
     </div>
   );
 };

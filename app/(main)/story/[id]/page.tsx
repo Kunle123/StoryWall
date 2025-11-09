@@ -384,8 +384,22 @@ const Story = () => {
   };
 
   // Widget data - calculate dates for ExperimentalBottomMenuBar
-  const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
-  const endDate = allEvents.length > 0 ? new Date(Math.max(...allEvents.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+  const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => {
+    // For start date, use Jan 1 if month/day missing
+    return new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
+  }))) : undefined;
+  const endDate = allEvents.length > 0 ? new Date(Math.max(...allEvents.map(e => {
+    // For end date, use actual date if available
+    if (e.month && e.day) {
+      return new Date(e.year, e.month - 1, e.day).getTime();
+    } else if (e.month) {
+      // If only month is available, use the last day of that month
+      return new Date(e.year, e.month, 0).getTime(); // Day 0 = last day of previous month
+    } else {
+      // If only year is available, use Dec 31 of that year to ensure it's the latest
+      return new Date(e.year, 11, 31).getTime();
+    }
+  }))) : undefined;
   const selectedDate = event ? formatDateForDial(event, startDate, endDate) : undefined;
   const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
 

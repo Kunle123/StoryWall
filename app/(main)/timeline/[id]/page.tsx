@@ -194,10 +194,24 @@ const TimelinePage = () => {
         }));
         const hasAny = datedEvents.length > 0;
         const startDate = hasAny ? new Date(Math.min(
-          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime())
+          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
+            // For start date, use Jan 1 if month/day missing
+            return new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
+          })
         )) : undefined;
         const endDate = hasAny ? new Date(Math.max(
-          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime())
+          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
+            // For end date, use actual date if available
+            if (e.month && e.day) {
+              return new Date(e.year, e.month - 1, e.day).getTime();
+            } else if (e.month) {
+              // If only month is available, use the last day of that month
+              return new Date(e.year, e.month, 0).getTime(); // Day 0 = last day of previous month
+            } else {
+              // If only year is available, use Dec 31 of that year to ensure it's the latest
+              return new Date(e.year, 11, 31).getTime();
+            }
+          })
         )) : undefined;
         const timelinePosition = (() => {
           // For numbered events, calculate position based on number
@@ -209,27 +223,22 @@ const TimelinePage = () => {
             }
             return 0.5;
           }
-          // For dated events, calculate position based on date
-          if (!centeredEvent || datedEvents.length < 2 || centeredEvent.year === undefined) return 0.5;
-          const sortedEvts = [...datedEvents].sort((a, b) => {
-            const dateA = new Date(a.year, (a.month || 1) - 1, a.day || 1).getTime();
-            const dateB = new Date(b.year, (b.month || 1) - 1, b.day || 1).getTime();
-            return dateA - dateB;
-          });
-          const eventDate = new Date(centeredEvent.year, (centeredEvent.month || 1) - 1, centeredEvent.day || 1).getTime();
-          const idx = sortedEvts.findIndex((e: { year: number; month?: number; day?: number }) => {
-            const eDate = new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
-            return eDate === eventDate;
-          });
-          if (idx >= 0 && sortedEvts.length > 1) {
-            return idx / (sortedEvts.length - 1);
-          }
-          if (startDate && endDate && eventDate) {
-            const totalSpan = endDate.getTime() - startDate.getTime();
-            const position = (eventDate - startDate.getTime()) / totalSpan;
-            return Math.min(Math.max(position, 0), 1);
-          }
-          return 0.5;
+          // For dated events, calculate position based on actual date, not event index
+          if (!centeredEvent || centeredEvent.year === undefined || !startDate || !endDate) return 0.5;
+          
+          // Calculate the event's date
+          const eventDate = new Date(
+            centeredEvent.year, 
+            (centeredEvent.month || 1) - 1, 
+            centeredEvent.day || 1
+          ).getTime();
+          
+          // Calculate position based on date span, not event count
+          const totalSpan = endDate.getTime() - startDate.getTime();
+          if (totalSpan <= 0) return 0.5;
+          
+          const position = (eventDate - startDate.getTime()) / totalSpan;
+          return Math.min(Math.max(position, 0), 1);
         })();
         const formattedDate = formatSelectedDate(centeredEvent, startDate, endDate);
         return (
