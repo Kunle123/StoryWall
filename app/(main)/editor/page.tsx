@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,25 @@ const STORAGE_KEY = 'timeline-editor-state';
 const TimelineEditor = () => {
   const router = useRouter();
   const { toast } = useToast();
+  const { isSignedIn, isLoaded } = useUser();
+  
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isSignedIn, isLoaded, router]);
+  
+  // Show loading while checking authentication
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   const [currentStep, setCurrentStep] = useState(1);
   const [timelineName, setTimelineName] = useState("");
