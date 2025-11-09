@@ -1280,6 +1280,9 @@ export async function POST(request: NextRequest) {
     
     // Step 1: Create all predictions in parallel
     const predictionPromises = eventsWithTextNeeds.map(async ({ event, needsText }, index) => {
+      // Define prompt at function scope so it's accessible in catch block
+      let prompt: string = '';
+      
       try {
         // Select model based on style and text needs
         let selectedModel = getModelForStyle(imageStyle, needsText);
@@ -1345,7 +1348,7 @@ export async function POST(request: NextRequest) {
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         // Include person matching instructions when reference images are provided
-        const prompt: string = buildImagePrompt(
+        prompt = buildImagePrompt(
           event, 
           imageStyle, 
           themeColor, 
