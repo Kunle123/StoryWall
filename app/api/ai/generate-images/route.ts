@@ -744,13 +744,14 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // NOTE: Replicate upload is disabled due to consistent timeouts in production
-    // Wikimedia images will be used directly - Imagen can fetch them successfully
-    // Only SDXL had issues with Wikimedia, but we're using Imagen for most cases now
+    // For Wikimedia URLs, upload to Replicate ONLY if using SDXL (which has 403 errors)
+    // Skip upload for Imagen and other models that can fetch Wikimedia URLs directly
     if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      console.log(`[ImageGen] Using Wikimedia image directly (Replicate upload disabled due to timeouts)`);
-      // Skip upload, use direct URL - Imagen handles Wikimedia URLs well
-      // Skip validation too since it's also timing out
+      // Check if we're using SDXL (which needs uploaded images)
+      // Note: We can't check the model here since it's determined per-event
+      // So we'll always return the direct URL and let the caller decide if upload is needed
+      console.log(`[ImageGen] Wikimedia image ready: ${finalUrl.substring(0, 80)}...`);
+      // Return direct URL - upload will be handled per-model if needed
       return finalUrl;
     }
     
@@ -1333,11 +1334,25 @@ export async function POST(request: NextRequest) {
         }
         
         // Get reference image URL for this event (use first available, or cycle through if multiple events)
-        const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
+        let referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         const hasReferenceImage = !!referenceImageUrl;
         
         if (hasReferenceImage) {
           console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
+          
+          // Upload to Replicate ONLY if using SDXL (which has 403 errors with Wikimedia)
+          // Skip for Imagen which can fetch Wikimedia URLs directly
+          const isSDXL = selectedModel.includes('sdxl') || selectedModel === MODELS.ARTISTIC;
+          if (isSDXL && referenceImageUrl.includes('wikimedia.org')) {
+            console.log(`[ImageGen] SDXL detected - uploading Wikimedia image to Replicate...`);
+            const uploadedUrl = await uploadImageToReplicate(referenceImageUrl, replicateApiKey);
+            if (uploadedUrl) {
+              referenceImageUrl = uploadedUrl;
+              console.log(`[ImageGen] ✓ Using uploaded Replicate URL for SDXL`);
+            } else {
+              console.warn(`[ImageGen] Upload failed, SDXL may have 403 errors with direct Wikimedia URL`);
+            }
+          }
         } else {
           console.log(`[ImageGen] No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
         }
@@ -1500,41 +1515,55 @@ export async function POST(request: NextRequest) {
           image: input.image ? input.image.substring(0, 80) + '...' : undefined
         }, null, 2));
         
-        const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${replicateApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            version: modelVersion,
-            input: input,
-          }),
-        });
-
-        if (!createResponse.ok) {
-          const errorText = await createResponse.text();
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { detail: errorText };
-          }
-          
-          const errorMsg = errorData.detail || errorData.message || errorText;
-          console.error(`[ImageGen] ✗ Replicate API error for "${event.title}" (${createResponse.status}):`, errorMsg);
-          console.error(`[ImageGen] Full error response:`, errorText);
-          
-          return { index, error: new Error(`Replicate API error (${createResponse.status}): ${errorMsg}`), event, prompt };
-        }
-
-        const prediction = await createResponse.json();
+        // Create the prediction with a generous timeout for production environment
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
         
-        if (!prediction.id) {
-          return { index, error: new Error('No prediction ID returned from Replicate'), event, prompt };
-        }
+        try {
+          const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Token ${replicateApiKey}`,
+              'Content-Type': 'application/json',
+              'Connection': 'keep-alive', // Maintain connection for slower networks
+            },
+            body: JSON.stringify({
+              version: modelVersion,
+              input: input,
+            }),
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
 
-        return { index, predictionId: prediction.id, event, prompt };
+          if (!createResponse.ok) {
+            clearTimeout(timeoutId);
+            const errorText = await createResponse.text();
+            let errorData;
+            try {
+              errorData = JSON.parse(errorText);
+            } catch {
+              errorData = { detail: errorText };
+            }
+            
+            const errorMsg = errorData.detail || errorData.message || errorText;
+            console.error(`[ImageGen] ✗ Replicate API error for "${event.title}" (${createResponse.status}):`, errorMsg);
+            console.error(`[ImageGen] Full error response:`, errorText);
+            
+            return { index, error: new Error(`Replicate API error (${createResponse.status}): ${errorMsg}`), event, prompt };
+          }
+
+          const prediction = await createResponse.json();
+          
+          if (!prediction.id) {
+            return { index, error: new Error('No prediction ID returned from Replicate'), event, prompt };
+          }
+
+          return { index, predictionId: prediction.id, event, prompt };
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          throw fetchError;
+        }
       } catch (error: any) {
         console.error(`[ImageGen] Error creating prediction for "${event.title}":`, error);
         return { index, error, event, prompt: (typeof prompt === 'string' ? prompt : String(prompt || '')) };
