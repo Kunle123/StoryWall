@@ -1273,15 +1273,12 @@ export async function POST(request: NextRequest) {
         const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
         if (hasReferenceImages) {
-          // For artistic styles: use IP-Adapter (much cheaper: $0.002-0.005 vs $0.04 for Flux Kontext Pro)
-          if (isArtistic) {
-            selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter
-            console.log(`[ImageGen] ✓ Switching from SDXL (${originalModel}) to IP-Adapter (artistic style with reference images, $0.002-0.005/image)`);
-          } 
-          // For photorealistic styles: use Flux Kontext Pro (best quality for people)
-          else if (isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+          // For all styles with reference images: use Flux Kontext Pro (reliable, supports reference images)
+          // IP-Adapter was failing, so we use Flux Kontext Pro for both artistic and photorealistic
+          if (isArtistic || isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             selectedModel = "black-forest-labs/flux-kontext-pro";
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (photorealistic with reference images, $0.04/image)`);
+            const styleType = isArtistic ? "artistic" : "photorealistic";
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (${styleType} style with reference images, $0.04/image)`);
           }
         } else {
           // No reference images - SDXL is fine to use
@@ -1301,31 +1298,9 @@ export async function POST(request: NextRequest) {
         try {
           modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
           console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}" with model ${selectedModel}`);
-          
-          // If IP-Adapter version lookup returns the model name (not a version), it might not exist
-          // Fall back to Flux Kontext Pro for artistic styles
-          if (selectedModel.includes('ip-adapter') && modelVersion === selectedModel) {
-            console.warn(`[ImageGen] IP-Adapter model may not exist or be available. Falling back to Flux Kontext Pro.`);
-            selectedModel = "black-forest-labs/flux-kontext-pro";
-            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-            console.log(`[ImageGen] Using Flux Kontext Pro fallback: ${modelVersion}`);
-          }
         } catch (versionError: any) {
           console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
-          // For artistic styles with reference images, fall back to Flux Kontext Pro
-          if (selectedModel.includes('ip-adapter')) {
-            console.warn(`[ImageGen] IP-Adapter failed, falling back to Flux Kontext Pro`);
-            selectedModel = "black-forest-labs/flux-kontext-pro";
-            try {
-              modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-              console.log(`[ImageGen] Using Flux Kontext Pro fallback: ${modelVersion}`);
-            } catch (fallbackError: any) {
-              console.error(`[ImageGen] Flux Kontext Pro fallback also failed:`, fallbackError.message);
-              throw new Error(`Failed to get model version: ${versionError.message}`);
-            }
-          } else {
-            throw new Error(`Failed to get model version: ${versionError.message}`);
-          }
+          throw new Error(`Failed to get model version: ${versionError.message}`);
         }
         
         if (needsText) {
