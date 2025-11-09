@@ -37,7 +37,10 @@ export default function TestImageGenPage() {
 
 
   const handleGenerate = async () => {
+    console.log('[TestPage] Generate button clicked', { eventTitle, eventDescription, imageStyle });
+    
     if (!eventTitle && !eventDescription) {
+      console.log('[TestPage] Validation failed: missing title/description');
       toast({
         title: "Missing information",
         description: "Please enter an event title or description.",
@@ -46,6 +49,7 @@ export default function TestImageGenPage() {
       return;
     }
 
+    console.log('[TestPage] Starting generation...');
     setIsGenerating(true);
     setError(null);
     setGeneratedImageUrl(null);
@@ -173,7 +177,15 @@ export default function TestImageGenPage() {
                     key={style}
                     variant={imageStyle === style ? "default" : "outline"}
                     className="cursor-pointer px-3 py-1"
-                    onClick={() => setImageStyle(style)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setImageStyle(style);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setImageStyle(style);
+                    }}
                   >
                     {style}
                   </Badge>
@@ -206,7 +218,13 @@ export default function TestImageGenPage() {
             </div>
 
             <Button
-              onClick={handleGenerate}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[TestPage] Button onClick fired');
+                handleGenerate();
+              }}
               disabled={isGenerating}
               className="w-full"
               size="lg"
@@ -294,10 +312,13 @@ export default function TestImageGenPage() {
                 <p className="text-sm whitespace-pre-wrap break-words">{finalPrompt}</p>
               </div>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   navigator.clipboard.writeText(finalPrompt);
                   toast({
                     title: "Copied!",
@@ -326,16 +347,25 @@ export default function TestImageGenPage() {
               </div>
               <div className="mt-2 flex gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(generatedImageUrl, "_blank")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.open(generatedImageUrl, "_blank");
+                  }}
                 >
                   Open in New Tab
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleGenerate}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleGenerate();
+                  }}
                   disabled={isGenerating}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />

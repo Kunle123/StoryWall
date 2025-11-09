@@ -1300,10 +1300,32 @@ export async function POST(request: NextRequest) {
         let modelVersion: string;
         try {
           modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-          console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}"`);
+          console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}" with model ${selectedModel}`);
+          
+          // If IP-Adapter version lookup returns the model name (not a version), it might not exist
+          // Fall back to Flux Kontext Pro for artistic styles
+          if (selectedModel.includes('ip-adapter') && modelVersion === selectedModel) {
+            console.warn(`[ImageGen] IP-Adapter model may not exist or be available. Falling back to Flux Kontext Pro.`);
+            selectedModel = "black-forest-labs/flux-kontext-pro";
+            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+            console.log(`[ImageGen] Using Flux Kontext Pro fallback: ${modelVersion}`);
+          }
         } catch (versionError: any) {
           console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
-          throw new Error(`Failed to get model version: ${versionError.message}`);
+          // For artistic styles with reference images, fall back to Flux Kontext Pro
+          if (selectedModel.includes('ip-adapter')) {
+            console.warn(`[ImageGen] IP-Adapter failed, falling back to Flux Kontext Pro`);
+            selectedModel = "black-forest-labs/flux-kontext-pro";
+            try {
+              modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+              console.log(`[ImageGen] Using Flux Kontext Pro fallback: ${modelVersion}`);
+            } catch (fallbackError: any) {
+              console.error(`[ImageGen] Flux Kontext Pro fallback also failed:`, fallbackError.message);
+              throw new Error(`Failed to get model version: ${versionError.message}`);
+            }
+          } else {
+            throw new Error(`Failed to get model version: ${versionError.message}`);
+          }
         }
         
         if (needsText) {
