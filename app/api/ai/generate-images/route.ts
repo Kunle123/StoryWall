@@ -744,18 +744,14 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // For Wikimedia URLs, upload to Replicate to avoid 403 errors when Replicate tries to fetch
-    // This is especially important for SDXL and other models that fetch the image themselves
+    // NOTE: Replicate upload is disabled due to consistent timeouts in production
+    // Wikimedia images will be used directly - Imagen can fetch them successfully
+    // Only SDXL had issues with Wikimedia, but we're using Imagen for most cases now
     if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      console.log(`[ImageGen] Uploading Wikimedia image to Replicate to avoid 403 errors...`);
-      const replicateUrl = await uploadImageToReplicate(finalUrl, replicateApiKey);
-      if (replicateUrl) {
-        console.log(`[ImageGen] ✓ Using Replicate-hosted image URL`);
-        return replicateUrl;
-      } else {
-        console.warn(`[ImageGen] Failed to upload to Replicate, will try direct URL (may fail with 403)`);
-        // Fall through to try direct URL anyway
-      }
+      console.log(`[ImageGen] Using Wikimedia image directly (Replicate upload disabled due to timeouts)`);
+      // Skip upload, use direct URL - Imagen handles Wikimedia URLs well
+      // Skip validation too since it's also timing out
+      return finalUrl;
     }
     
     // For non-Wikimedia URLs, validate that the URL actually points to an image
