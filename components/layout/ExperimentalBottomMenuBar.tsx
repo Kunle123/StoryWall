@@ -398,7 +398,7 @@ export const ExperimentalBottomMenuBar = ({
               </svg>
               
               {/* Content centered in dial - plus sign if no timeline, date if timeline exists */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2 gap-0.5">
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2">
                 {hasTimeline ? (
                   selectedDate?.type === 'numbered' ? (
                     <div className="text-sm font-bold text-foreground text-center leading-tight">
@@ -406,28 +406,25 @@ export const ExperimentalBottomMenuBar = ({
                     </div>
                   ) : selectedDate?.type === 'dated' ? (
                     <>
-                      {/* 3-line date format: day (top), month (middle), year (bottom) */}
-                      <div className="flex flex-col items-center justify-center gap-0 leading-tight">
-                        {selectedDate.day && (
-                          <div className="text-[13px] font-bold text-foreground">
-                            {selectedDate.day}
-                          </div>
-                        )}
-                        {selectedDate.month && (
-                          <div className="text-[11px] font-medium text-foreground/80">
-                            {selectedDate.month}
-                          </div>
-                        )}
-                        <div className="text-[13px] font-bold text-foreground">
+                      {/* 3-line date format with fixed positions: day (top), month (middle), year (bottom) */}
+                      <div className="flex flex-col items-center justify-center leading-tight" style={{ height: '48px' }}>
+                        {/* Day - always in top position */}
+                        <div className="text-[13px] font-bold text-foreground" style={{ height: '16px', lineHeight: '16px' }}>
+                          {selectedDate.day || ''}
+                        </div>
+                        {/* Month - always in middle position */}
+                        <div className="text-[11px] font-medium text-foreground/80" style={{ height: '14px', lineHeight: '14px' }}>
+                          {selectedDate.month || ''}
+                        </div>
+                        {/* Year - always in bottom position */}
+                        <div className="text-[13px] font-bold text-foreground" style={{ height: '16px', lineHeight: '16px' }}>
                           {selectedDate.year}
                         </div>
                       </div>
-                      {/* Duration below in the gap between the arc */}
-                      {durationFromDate && (
-                        <div className="text-[10px] text-muted-foreground font-medium mt-1">
-                          {durationFromDate}
-                        </div>
-                      )}
+                      {/* Duration - fixed position in gap between arc */}
+                      <div className="text-[10px] text-muted-foreground font-medium" style={{ marginTop: '4px', height: '12px', lineHeight: '12px' }}>
+                        {durationFromDate || ''}
+                      </div>
                     </>
                   ) : null
                 ) : (
