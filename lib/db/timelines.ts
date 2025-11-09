@@ -4,34 +4,167 @@ import { Timeline, CreateTimelineInput } from '@/lib/types';
 export async function createTimeline(
   input: CreateTimelineInput & { slug: string; creator_id: string }
 ): Promise<Timeline> {
-  const timelineData: any = {
-    title: input.title,
-    description: input.description,
-    slug: input.slug,
-    creatorId: input.creator_id,
-    visualizationType: input.visualization_type || 'horizontal',
-    isPublic: input.is_public !== false,
-    isCollaborative: input.is_collaborative || false,
-  };
-  
-  // Only include isNumbered and numberLabel if they're provided (for backward compatibility)
-  if (input.is_numbered !== undefined) {
-    timelineData.isNumbered = input.is_numbered;
-  }
-  if (input.number_label !== undefined) {
-    timelineData.numberLabel = input.number_label;
-  }
-  
-  const timeline = await prisma.timeline.create({
-    data: timelineData,
-    include: {
-      creator: true,
-      events: true,
-      categories: true,
-    },
-  });
+  // Try normal Prisma create first
+  try {
+    const timelineData: any = {
+      title: input.title,
+      description: input.description,
+      slug: input.slug,
+      creatorId: input.creator_id,
+      visualizationType: input.visualization_type || 'horizontal',
+      isPublic: input.is_public !== false,
+      isCollaborative: input.is_collaborative || false,
+    };
+    
+    // Only include isNumbered and numberLabel if explicitly provided
+    if (input.is_numbered !== undefined) {
+      timelineData.isNumbered = input.is_numbered;
+    }
+    
+    if (input.number_label !== undefined) {
+      timelineData.numberLabel = input.number_label;
+    }
+    
+    const timeline = await prisma.timeline.create({
+      data: timelineData,
+      include: {
+        creator: true,
+        events: true,
+        categories: true,
+      },
+    });
 
-  return transformTimeline(timeline);
+    return transformTimeline(timeline);
+  } catch (error: any) {
+    // If error is about missing is_numbered column, use raw SQL as fallback
+    if (error.message?.includes('is_numbered') || error.message?.includes('isNumbered')) {
+      console.warn('[createTimeline] Falling back to raw SQL due to missing is_numbered column');
+      
+      const isNumbered = input.is_numbered !== undefined ? input.is_numbered : false;
+      const numberLabel = input.number_label || 'Day';
+      
+      const timelineId = crypto.randomUUID();
+      const now = new Date();
+      
+      // Use raw SQL to insert timeline (without is_numbered and number_label since they don't exist)
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO timelines (
+          id, title, description, slug, creator_id, 
+          visualization_type, is_public, is_collaborative, 
+          view_count, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+        )
+      `,
+        timelineId,
+        input.title,
+        input.description || null,
+        input.slug,
+        input.creator_id,
+        input.visualization_type || 'horizontal',
+        input.is_public !== false,
+        input.is_collaborative || false,
+        0,
+        now,
+        now
+      );
+      
+      // Fetch the created timeline using raw SQL to avoid is_numbered column issue
+      const timelineRows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        slug: string;
+        creator_id: string;
+        visualization_type: string;
+        is_public: boolean;
+        is_collaborative: boolean;
+        view_count: number;
+        created_at: Date;
+        updated_at: Date;
+      }>>(`
+        SELECT id, title, description, slug, creator_id, 
+               visualization_type, is_public, is_collaborative, 
+               view_count, created_at, updated_at
+        FROM timelines
+        WHERE id = $1
+      `, timelineId);
+      
+      if (!timelineRows || timelineRows.length === 0) {
+        throw new Error('Failed to create timeline via raw SQL');
+      }
+      
+      const timelineRow = timelineRows[0];
+      
+      // Fetch relations separately using raw SQL to avoid missing column issues
+      const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+      
+      // Use raw SQL for events to avoid number column issue
+      const eventRows = await prisma.$queryRawUnsafe<Array<any>>(`
+        SELECT id, timeline_id, title, description, date, end_date, 
+               image_url, location_lat, location_lng, location_name, 
+               category, links, created_by, created_at, updated_at
+        FROM events
+        WHERE timeline_id = $1
+        ORDER BY date ASC
+      `, timelineRow.id);
+      
+      const events = eventRows.map((row: any) => ({
+        id: row.id,
+        timelineId: row.timeline_id,
+        title: row.title,
+        description: row.description,
+        date: row.date,
+        endDate: row.end_date,
+        number: null, // Column doesn't exist
+        numberLabel: null, // Column doesn't exist
+        imageUrl: row.image_url,
+        locationLat: row.location_lat,
+        locationLng: row.location_lng,
+        locationName: row.location_name,
+        category: row.category,
+        links: row.links || [],
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+      
+      const categories = await prisma.category.findMany({ where: { timelineId: timelineRow.id } });
+      
+      // Construct timeline object matching Prisma's format
+      const timeline = {
+        id: timelineRow.id,
+        title: timelineRow.title,
+        description: timelineRow.description,
+        slug: timelineRow.slug,
+        creatorId: timelineRow.creator_id,
+        visualizationType: timelineRow.visualization_type,
+        isPublic: timelineRow.is_public,
+        isCollaborative: timelineRow.is_collaborative,
+        isNumbered: false, // Default since column doesn't exist
+        numberLabel: 'Day', // Default since column doesn't exist
+        viewCount: timelineRow.view_count,
+        createdAt: timelineRow.created_at,
+        updatedAt: timelineRow.updated_at,
+        creator: creator ? {
+          id: creator.id,
+          clerkId: creator.clerkId,
+          username: creator.username,
+          email: creator.email,
+          avatarUrl: creator.avatarUrl,
+          credits: creator.credits,
+          createdAt: creator.createdAt,
+          updatedAt: creator.updatedAt,
+        } : null,
+        events: events,
+        categories: categories,
+      };
+      
+      return transformTimeline(timeline as any);
+    }
+    
+    throw error;
+  }
 }
 
 export async function getTimelineById(id: string): Promise<Timeline | null> {
