@@ -470,7 +470,7 @@ const Story = () => {
               <Avatar className="w-10 h-10 flex-shrink-0">
                 <AvatarImage src={timelineCreator?.avatar} />
                 <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                  {timelineCreator?.name ? timelineCreator.name[0].toUpperCase() : 'TC'}
+                  {timelineCreator?.name && timelineCreator.name.length > 0 ? timelineCreator.name[0].toUpperCase() : 'TC'}
                 </AvatarFallback>
               </Avatar>
               <div>
