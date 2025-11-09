@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar, Tag, ChevronLeft, ChevronRight, X, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById } from "@/lib/api/client";
+import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById, fetchFollowStatus, followUser, unfollowUser } from "@/lib/api/client";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -27,7 +27,7 @@ const Story = () => {
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
-  const [timelineCreator, setTimelineCreator] = useState<{ name: string; username?: string; avatar?: string } | null>(null);
+  const [timelineCreator, setTimelineCreator] = useState<{ id?: string; name: string; username?: string; avatar?: string } | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -104,11 +104,21 @@ const Story = () => {
               const creatorName = timeline.user?.username || timeline.user?.name || timeline.creator || "Timeline Creator";
               const creatorUsername = timeline.user?.username ? `@${timeline.user.username}` : timeline.user?.email?.split('@')[0] || "@historian";
               const creatorAvatar = timeline.user?.avatar_url || timeline.avatar;
+              const creatorId = timeline.user?.id;
               setTimelineCreator({
+                id: creatorId,
                 name: creatorName,
                 username: creatorUsername,
                 avatar: creatorAvatar
               });
+              
+              // Fetch follow status if user is signed in and creator ID is available
+              if (isSignedIn && creatorId) {
+                const followStatusResult = await fetchFollowStatus(creatorId);
+                if (followStatusResult.data) {
+                  setIsFollowing(followStatusResult.data.following);
+                }
+              }
             }
           }
           
@@ -474,7 +484,56 @@ const Story = () => {
               // @ts-ignore - Type inference issue with class-variance-authority
               size="sm"
               className="rounded-full h-8 px-4 text-sm font-bold"
-              onClick={() => setIsFollowing(!isFollowing)}
+              onClick={async () => {
+                if (!timelineCreator?.id || !isSignedIn) {
+                  toast({
+                    title: "Error",
+                    description: "Unable to follow user",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                try {
+                  if (isFollowing) {
+                    const result = await unfollowUser(timelineCreator.id);
+                    if (result.data) {
+                      setIsFollowing(false);
+                      toast({
+                        title: "Unfollowed",
+                        description: `You unfollowed ${timelineCreator.name}`,
+                      });
+                    } else {
+                      toast({
+                        title: "Error",
+                        description: result.error || "Failed to unfollow user",
+                        variant: "destructive",
+                      });
+                    }
+                  } else {
+                    const result = await followUser(timelineCreator.id);
+                    if (result.data) {
+                      setIsFollowing(true);
+                      toast({
+                        title: "Following",
+                        description: `You are now following ${timelineCreator.name}`,
+                      });
+                    } else {
+                      toast({
+                        title: "Error",
+                        description: result.error || "Failed to follow user",
+                        variant: "destructive",
+                      });
+                    }
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message || "Failed to update follow status",
+                    variant: "destructive",
+                  });
+                }
+              }}
             >
               {isFollowing ? "Following" : "Follow"}
             </Button>

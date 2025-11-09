@@ -22,10 +22,12 @@ model User {
 
   // Relations
   timelines      Timeline[]     @relation("TimelineCreator")
-  events         Event[]
+  events     Event[]
   collaborations Collaborator[]
-  comments       Comment[]
-  likes          Like[]
+  comments   Comment[]
+  likes      Like[]
+  following  Follow[]          @relation("UserFollowing")
+  followers  Follow[]          @relation("UserFollowers")
 
   @@map("users")
 }
@@ -169,4 +171,20 @@ model Like {
   @@index([eventId])
   @@index([commentId])
   @@map("likes")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower  User   @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User   @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
 }

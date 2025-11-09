@@ -789,3 +789,64 @@ export async function updateUserProfile(updates: {
   }
 }
 
+// Follow API calls
+export interface FollowStatus {
+  following: boolean;
+  follower_count: number;
+  following_count: number;
+}
+
+export async function fetchFollowStatus(userId: string): Promise<ApiResponse<FollowStatus>> {
+  try {
+    const response = await fetch(`/api/users/${userId}/follow`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch follow status' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch follow status' };
+  }
+}
+
+export async function followUser(userId: string): Promise<ApiResponse<FollowStatus>> {
+  try {
+    const response = await fetch(`/api/users/${userId}/follow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to follow user' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to follow user' };
+  }
+}
+
+export async function unfollowUser(userId: string): Promise<ApiResponse<FollowStatus>> {
+  try {
+    const response = await fetch(`/api/users/${userId}/follow`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to unfollow user' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to unfollow user' };
+  }
+}
+

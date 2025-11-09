@@ -142,6 +142,25 @@ export async function getUserByClerkId(clerkUserId: string) {
 }
 
 /**
+ * Get user by database ID with full profile information
+ */
+export async function getUserById(userId: string) {
+  return await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      clerkId: true,
+      username: true,
+      email: true,
+      avatarUrl: true,
+      credits: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+/**
  * Update user profile (username and/or avatarUrl)
  */
 export async function updateUserProfile(
