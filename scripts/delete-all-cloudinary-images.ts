@@ -20,11 +20,11 @@ async function deleteAllImages() {
   try {
     console.log('Fetching all images from Cloudinary...\n');
     
-    // Get all resources
+    // Get all resources (remove prefix to delete everything)
     const result = await cloudinary.api.resources({
       type: 'upload',
       max_results: 500,
-      prefix: 'storywall/ai-generated', // Only delete images in our folder
+      // prefix: 'storywall/ai-generated', // Delete ALL images, not just our folder
     });
     
     const imageCount = result.resources.length;
