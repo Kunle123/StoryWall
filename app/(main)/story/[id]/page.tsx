@@ -101,10 +101,12 @@ const Story = () => {
             if (timelineResult.data) {
               const timeline = timelineResult.data;
               // Extract creator info from timeline
-              const creatorName = timeline.user?.username || timeline.user?.name || timeline.creator || "Timeline Creator";
-              const creatorUsername = timeline.user?.username ? `@${timeline.user.username}` : timeline.user?.email?.split('@')[0] || "@historian";
-              const creatorAvatar = timeline.user?.avatar_url || timeline.avatar;
-              const creatorId = timeline.user?.id;
+              // API returns timeline.creator (not timeline.user)
+              const creator = timeline.creator;
+              const creatorName = creator?.username || creator?.email?.split('@')[0] || "Timeline Creator";
+              const creatorUsername = creator?.username ? `@${creator.username}` : creator?.email?.split('@')[0] ? `@${creator.email.split('@')[0]}` : "@historian";
+              const creatorAvatar = creator?.avatar_url;
+              const creatorId = creator?.id;
               setTimelineCreator({
                 id: creatorId,
                 name: creatorName,
