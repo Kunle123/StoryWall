@@ -82,21 +82,25 @@ async function extractPersonNamesFromEvent(event: { title: string; description?:
         
         if (Array.isArray(parsed)) {
           // Handle both old format (array of strings) and new format (array of objects)
-          const people = parsed.map((item: any) => {
-            if (typeof item === 'string') {
-              // Old format: just a string name
-              return { name: item, search_query: item };
-            } else if (item && typeof item === 'object' && item.name) {
-              // New format: object with name and search_query
-              return {
-                name: item.name,
-                search_query: item.search_query || item.name
-              };
-            }
-            return null;
-          }).filter((p: any) => p !== null && p.name && p.name.length > 0);
+          const people: Array<{name: string, search_query: string}> = parsed
+            .map((item: any) => {
+              if (typeof item === 'string') {
+                // Old format: just a string name
+                return { name: item, search_query: item };
+              } else if (item && typeof item === 'object' && item.name) {
+                // New format: object with name and search_query
+                return {
+                  name: item.name,
+                  search_query: item.search_query || item.name
+                };
+              }
+              return null;
+            })
+            .filter((p): p is {name: string, search_query: string} => 
+              p !== null && p.name && p.name.length > 0
+            );
           
-          console.log(`[ImageGen] Extracted ${people.length} person(s) from event: ${people.map((p: any) => p.name).join(', ')}`);
+          console.log(`[ImageGen] Extracted ${people.length} person(s) from event: ${people.map((p) => p.name).join(', ')}`);
           return people;
         } else {
           console.warn('[ImageGen] Parsed result is not an array:', typeof parsed);
@@ -163,11 +167,111 @@ function generateNameVariations(name: string): string[] {
   return [...new Set(variations)]; // Remove duplicates
 }
 
-// Helper to search Wikimedia Commons for person images
-async function searchWikimediaForPerson(searchQuery: string): Promise<string | null> {
+// Helper to check if a filename/title matches a person's name
+function matchesPersonName(filename: string, personName: string): boolean {
+  const filenameLower = filename.toLowerCase();
+  const nameParts = personName.toLowerCase().split(/\s+/).filter(p => p.length > 2); // Ignore short words like "de", "van", etc.
+  
+  // Check if all significant name parts appear in the filename
+  return nameParts.every(part => filenameLower.includes(part));
+}
+
+// Helper to use GPT-4o to find direct image URLs for people
+async function findImageUrlWithGPT4o(personName: string, searchQuery: string): Promise<string | null> {
   try {
-    // Search Wikimedia Commons API
-    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(searchQuery + ' portrait OR headshot OR official')}&srnamespace=6&srlimit=5&origin=*`;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      console.warn('[ImageGen] OPENAI_API_KEY not configured');
+      return null;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that finds direct image URLs (actual image files, not web pages) for public figures. Return ONLY a direct image URL (ending in .jpg, .png, .webp, etc.) from a reliable source like Wikimedia Commons (upload.wikimedia.org), official government sites, or news media. Return the URL as plain text, nothing else. If you cannot find a suitable image URL, return "null".'
+            },
+            {
+              role: 'user',
+              content: `Find a direct image URL (actual image file, not a webpage) for ${personName}. Search query: "${searchQuery}". Return only the URL, nothing else.`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 200,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`[ImageGen] GPT-4o image search failed: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content?.trim();
+      
+      if (!content || content.toLowerCase() === 'null') {
+        console.log(`[ImageGen] GPT-4o found no image URL for: ${personName}`);
+        return null;
+      }
+
+      // Extract URL from response (might have extra text)
+      const urlMatch = content.match(/https?:\/\/[^\s]+/);
+      if (!urlMatch) {
+        console.warn(`[ImageGen] No URL found in GPT-4o response: ${content}`);
+        return null;
+      }
+
+      const imageUrl = urlMatch[0];
+      console.log(`[ImageGen] GPT-4o found image URL for ${personName}: ${imageUrl.substring(0, 80)}...`);
+
+      // Validate it's actually an image
+      const isValid = await validateImageUrl(imageUrl);
+      if (isValid) {
+        console.log(`[ImageGen] ✓ Validated image URL for ${personName}`);
+        return imageUrl;
+      } else {
+        console.warn(`[ImageGen] GPT-4o URL failed validation: ${imageUrl}`);
+        return null;
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn(`[ImageGen] Timeout finding image URL for ${personName} (15s timeout)`);
+      } else {
+        console.error(`[ImageGen] Error finding image URL:`, error.message);
+      }
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[ImageGen] Error in findImageUrlWithGPT4o:`, error.message);
+    return null;
+  }
+}
+
+// Helper to search Wikimedia Commons for person images (fallback)
+async function searchWikimediaForPerson(searchQuery: string, personName: string): Promise<string | null> {
+  try {
+    // Use the person's name more directly in the search
+    const nameParts = personName.split(/\s+/).filter(p => p.length > 1);
+    const directNameSearch = nameParts.join(' ');
+    
+    // Search with both the search query and direct name
+    const searchTerms = `${directNameSearch} ${searchQuery}`.trim();
+    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(searchTerms + ' portrait OR headshot OR official photo')}&srnamespace=6&srlimit=10&origin=*`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -185,13 +289,28 @@ async function searchWikimediaForPerson(searchQuery: string): Promise<string | n
       const results = data.query?.search || [];
       
       if (results.length === 0) {
-        console.log(`[ImageGen] No Wikimedia results for: ${searchQuery}`);
+        console.log(`[ImageGen] No Wikimedia results for: ${searchTerms}`);
         return null;
       }
       
-      // Get image info for the first result to get the direct URL
-      const firstResult = results[0];
-      const pageTitle = firstResult.title;
+      // Find the first result that actually matches the person's name
+      let matchingResult = null;
+      for (const result of results) {
+        const pageTitle = result.title;
+        if (matchesPersonName(pageTitle, personName)) {
+          matchingResult = result;
+          console.log(`[ImageGen] Found matching result for ${personName}: ${pageTitle}`);
+          break;
+        }
+      }
+      
+      // If no exact match, try the first result but log a warning
+      if (!matchingResult) {
+        console.warn(`[ImageGen] No exact name match found for ${personName}, using first result: ${results[0].title}`);
+        matchingResult = results[0];
+      }
+      
+      const pageTitle = matchingResult.title;
       
       // Fetch image info to get the direct URL (create new controller for this request)
       const imageInfoUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(pageTitle)}&prop=imageinfo&iiprop=url&origin=*`;
@@ -255,22 +374,39 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
     // Try the search query first, then name variations
     const searchQueries = [search_query, ...nameVariations];
     
-    for (const query of searchQueries) {
-      if (found) break; // Stop if we found an image for this person
+    // Try GPT-4o first (most accurate)
+    try {
+      console.log(`[ImageGen] Using GPT-4o to find image URL for: ${name}`);
+      const imageUrl = await findImageUrlWithGPT4o(name, search_query);
       
-      try {
-        console.log(`[ImageGen] Searching Wikimedia for: ${query}`);
-        const imageUrl = await searchWikimediaForPerson(query);
+      if (imageUrl) {
+        references.push({ name, url: imageUrl });
+        console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
+        found = true;
+      }
+    } catch (error: any) {
+      console.error(`[ImageGen] Error with GPT-4o search for ${name}:`, error.message);
+    }
+    
+    // Fallback to Wikimedia search if GPT-4o didn't find anything
+    if (!found) {
+      for (const query of searchQueries) {
+        if (found) break; // Stop if we found an image for this person
         
-        if (imageUrl) {
-          references.push({ name, url: imageUrl });
-          console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
-          found = true;
-          break;
+        try {
+          console.log(`[ImageGen] Fallback: Searching Wikimedia for: ${query}`);
+          const imageUrl = await searchWikimediaForPerson(query, name);
+          
+          if (imageUrl) {
+            references.push({ name, url: imageUrl });
+            console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
+            found = true;
+            break;
+          }
+        } catch (error: any) {
+          console.error(`[ImageGen] Error searching for ${query}:`, error.message);
+          // Continue with next query
         }
-      } catch (error: any) {
-        console.error(`[ImageGen] Error searching for ${query}:`, error.message);
-        // Continue with next query
       }
     }
     
