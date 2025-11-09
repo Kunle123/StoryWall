@@ -348,21 +348,46 @@ const Story = () => {
   };
 
   // Format date for dial (number only for numbered events, no label)
-  const formatDateForDial = (event: TimelineEvent) => {
+  const formatDateForDial = (event: TimelineEvent, startDate?: Date, endDate?: Date): { type: 'numbered'; value: string } | { type: 'dated'; day: string | null; month: string | null; year: string; duration: string | null } | undefined => {
     // For numbered events, show only the number (no label)
     if (event.number !== undefined) {
-      return event.number.toString();
+      return { type: 'numbered', value: event.number.toString() };
     }
-    // For dated events, use formatEventDate
-    return formatEventDate(event.year || 0, event.month, event.day);
+    // For dated events, return structured format for 3-line display
+    if (event.year) {
+      const day = event.day || null;
+      const month = event.month ? new Date(event.year, event.month - 1).toLocaleDateString('en-US', { month: 'short' }) : null;
+      const year = event.year.toString();
+      
+      // Calculate duration (total span from start to end)
+      let duration: string | null = null;
+      if (startDate && endDate) {
+        const diffMs = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffYears = Math.floor(diffDays / 365);
+        if (diffYears > 0) {
+          duration = `${diffYears}y`;
+        } else if (diffDays > 0) {
+          duration = `${diffDays}d`;
+        }
+      }
+      
+      return { 
+        type: 'dated', 
+        day: day ? day.toString() : null,
+        month: month,
+        year,
+        duration
+      };
+    }
+    return undefined;
   };
 
   // Widget data - calculate dates for ExperimentalBottomMenuBar
-  const selectedDate = event ? formatDateForDial(event) : undefined;
-  const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
-
   const startDate = allEvents.length > 0 ? new Date(Math.min(...allEvents.map(e => new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime()))) : undefined;
   const endDate = allEvents.length > 0 ? new Date(Math.max(...allEvents.map(e => new Date(e.year, (e.month || 12) - 1, e.day || 31).getTime()))) : undefined;
+  const selectedDate = event ? formatDateForDial(event, startDate, endDate) : undefined;
+  const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
 
   return (
     <div className="min-h-screen bg-background">
