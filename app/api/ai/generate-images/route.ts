@@ -647,6 +647,8 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
 // Helper to upload image to Replicate's file storage
 async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
+    console.log(`[ImageGen] Starting upload to Replicate for: ${imageUrl.substring(0, 80)}...`);
+    
     // Download the image with proper headers to avoid 403
     const imageResponse = await fetch(imageUrl, {
       headers: {
@@ -662,12 +664,24 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     }
 
     const imageBuffer = await imageResponse.arrayBuffer();
-    const imageBlob = new Blob([imageBuffer], { type: imageResponse.headers.get('content-type') || 'image/jpeg' });
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    console.log(`[ImageGen] Downloaded image (${imageBuffer.byteLength} bytes, ${contentType})`);
 
-    // Upload to Replicate
+    // Convert ArrayBuffer to Buffer for Node.js
+    const buffer = Buffer.from(imageBuffer);
+    
+    // Create FormData - in Node.js 18+, FormData is available globally
     const formData = new FormData();
-    formData.append('file', imageBlob, 'image.jpg');
+    
+    // In Node.js, FormData can accept a Blob directly
+    // Create a Blob from the buffer
+    const blob = new Blob([buffer], { type: contentType });
+    
+    // Append the blob to FormData with a filename
+    // In Node.js FormData, we can append a Blob with options
+    formData.append('file', blob, 'image.jpg');
 
+    console.log(`[ImageGen] Uploading to Replicate...`);
     const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
       method: 'POST',
       headers: {
@@ -679,24 +693,28 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.warn(`[ImageGen] Failed to upload image to Replicate (${uploadResponse.status}): ${errorText}`);
+      console.error(`[ImageGen] Failed to upload image to Replicate (${uploadResponse.status}): ${errorText}`);
       return null;
     }
 
     const uploadData = await uploadResponse.json();
-    const replicateUrl = uploadData.url || uploadData.urls?.get || null;
+    console.log(`[ImageGen] Upload response:`, JSON.stringify(uploadData, null, 2));
+    
+    const replicateUrl = uploadData.url || uploadData.urls?.get || uploadData.urls?.get || null;
     
     if (replicateUrl) {
-      console.log(`[ImageGen] ✓ Uploaded image to Replicate: ${replicateUrl.substring(0, 80)}...`);
+      console.log(`[ImageGen] ✓ Successfully uploaded image to Replicate: ${replicateUrl.substring(0, 80)}...`);
       return replicateUrl;
     }
 
+    console.warn(`[ImageGen] No URL found in Replicate upload response`);
     return null;
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.warn(`[ImageGen] Timeout uploading image to Replicate: ${imageUrl.substring(0, 100)}`);
     } else {
       console.error(`[ImageGen] Error uploading image to Replicate: ${imageUrl.substring(0, 100)}`, error.message);
+      console.error(`[ImageGen] Error stack:`, error.stack);
     }
     return null;
   }
@@ -1273,12 +1291,15 @@ export async function POST(request: NextRequest) {
         const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
         if (hasReferenceImages) {
-          // For all styles with reference images: use Flux Kontext Pro (reliable, supports reference images)
-          // IP-Adapter was failing, so we use Flux Kontext Pro for both artistic and photorealistic
-          if (isArtistic || isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+          // For artistic styles: try SDXL with uploaded Replicate URLs (much cheaper: $0.0048 vs $0.04)
+          // For photorealistic: use Flux Kontext Pro (best quality for people)
+          if (isArtistic) {
+            // Keep SDXL for artistic styles - it should work with Replicate-hosted URLs
+            console.log(`[ImageGen] Using SDXL (${selectedModel}) for artistic style with reference images (uploaded to Replicate, $0.0048/image)`);
+          } else if (isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+            // Photorealistic styles use Flux Kontext Pro
             selectedModel = "black-forest-labs/flux-kontext-pro";
-            const styleType = isArtistic ? "artistic" : "photorealistic";
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (${styleType} style with reference images, $0.04/image)`);
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (photorealistic with reference images, $0.04/image)`);
           }
         } else {
           // No reference images - SDXL is fine to use
@@ -1311,8 +1332,24 @@ export async function POST(request: NextRequest) {
         const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         const hasReferenceImage = !!referenceImageUrl;
         
+        // Check if we have a reference image but it's a Wikimedia URL (upload failed)
+        // SDXL cannot use Wikimedia URLs directly - must use Replicate-hosted URLs
+        const isWikimediaUrl = referenceImageUrl && (
+          referenceImageUrl.includes('upload.wikimedia.org') || 
+          referenceImageUrl.includes('wikimedia.org')
+        );
+        const isUsingSDXL = selectedModel.includes('sdxl') || selectedModel === MODELS.ARTISTIC;
+        
         if (hasReferenceImage) {
-          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
+          if (isWikimediaUrl && isUsingSDXL) {
+            // SDXL cannot use Wikimedia URLs - fall back to Flux Kontext Pro
+            console.warn(`[ImageGen] ⚠ Reference image upload failed or returned Wikimedia URL. SDXL cannot use this. Switching to Flux Kontext Pro.`);
+            selectedModel = "black-forest-labs/flux-kontext-pro";
+            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+            console.log(`[ImageGen] Switched to Flux Kontext Pro: ${modelVersion}`);
+          } else {
+            console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
+          }
         } else {
           console.log(`[ImageGen] No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
         }
