@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -297,23 +296,20 @@ export const WritingStyleStep = ({
         )}
         <div className="flex flex-wrap gap-2">
           {writingStyles.map((style) => (
-            <Badge
+            <Button
               key={style}
+              type="button"
               variant={writingStyle === style ? "default" : "outline"}
-              className="cursor-pointer px-4 py-2 text-sm hover:bg-accent transition-colors"
+              className="px-4 py-2 text-sm"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('[WritingStyleStep] Badge clicked:', style);
+                console.log('[WritingStyleStep] Button clicked:', style);
                 setWritingStyle(style);
-              }}
-              onMouseDown={(e) => {
-                // Prevent default to ensure click fires
-                e.preventDefault();
               }}
             >
               {style}
-            </Badge>
+            </Button>
           ))}
         </div>
         <div className="mt-4">
