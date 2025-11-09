@@ -229,22 +229,27 @@ async function findImageUrlWithGPT4o(personName: string, searchQuery: string): P
       }
 
       // Extract URL from response (might have extra text)
-      const urlMatch = content.match(/https?:\/\/[^\s]+/);
-      if (!urlMatch) {
-        console.warn(`[ImageGen] No URL found in GPT-4o response: ${content}`);
+      const urlMatch = content.match(/https?:\/\/[^\s"']+/);
+      if (!urlMatch || urlMatch.length === 0) {
+        console.warn(`[ImageGen] No URL found in GPT-4o response: ${content.substring(0, 200)}`);
         return null;
       }
 
       const imageUrl = urlMatch[0];
       console.log(`[ImageGen] GPT-4o found image URL for ${personName}: ${imageUrl.substring(0, 80)}...`);
 
-      // Validate it's actually an image
-      const isValid = await validateImageUrl(imageUrl);
-      if (isValid) {
-        console.log(`[ImageGen] ✓ Validated image URL for ${personName}`);
-        return imageUrl;
-      } else {
-        console.warn(`[ImageGen] GPT-4o URL failed validation: ${imageUrl}`);
+      // Validate it's actually an image (with error handling)
+      try {
+        const isValid = await validateImageUrl(imageUrl);
+        if (isValid) {
+          console.log(`[ImageGen] ✓ Validated image URL for ${personName}`);
+          return imageUrl;
+        } else {
+          console.warn(`[ImageGen] GPT-4o URL failed validation: ${imageUrl}`);
+          return null;
+        }
+      } catch (validationError: any) {
+        console.error(`[ImageGen] Error validating GPT-4o URL:`, validationError.message);
         return null;
       }
     } catch (error: any) {
@@ -376,16 +381,21 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
     
     // Try GPT-4o first (most accurate)
     try {
-      console.log(`[ImageGen] Using GPT-4o to find image URL for: ${name}`);
+      console.log(`[ImageGen] Using GPT-4o to find image URL for: ${name} (search query: "${search_query}")`);
+      const startTime = Date.now();
       const imageUrl = await findImageUrlWithGPT4o(name, search_query);
+      const elapsed = Date.now() - startTime;
       
       if (imageUrl) {
         references.push({ name, url: imageUrl });
-        console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
+        console.log(`[ImageGen] ✓ Found reference image for ${name} in ${elapsed}ms: ${imageUrl.substring(0, 80)}...`);
         found = true;
+      } else {
+        console.log(`[ImageGen] GPT-4o did not find image URL for ${name} (took ${elapsed}ms)`);
       }
     } catch (error: any) {
-      console.error(`[ImageGen] Error with GPT-4o search for ${name}:`, error.message);
+      console.error(`[ImageGen] ✗ Error with GPT-4o search for ${name}:`, error.message);
+      console.error(`[ImageGen] GPT-4o error stack:`, error.stack);
     }
     
     // Fallback to Wikimedia search if GPT-4o didn't find anything
@@ -1047,35 +1057,62 @@ export async function POST(request: NextRequest) {
     let finalImageReferences = imageReferences && imageReferences.length > 0 ? imageReferences : [];
     
     if (finalImageReferences.length === 0) {
-      console.log('[ImageGen] No reference images provided - extracting person names from events...');
-      
-      // Extract person names from all events
-      const allPeople = new Map<string, {name: string, search_query: string}>();
-      for (const event of events) {
-        const people = await extractPersonNamesFromEvent(event);
-        people.forEach(person => {
-          // Use name as key to avoid duplicates
-          if (!allPeople.has(person.name.toLowerCase())) {
-            allPeople.set(person.name.toLowerCase(), person);
-          }
-        });
-      }
-      
-      const peopleArray = Array.from(allPeople.values());
-      if (peopleArray.length > 0) {
-        console.log(`[ImageGen] Extracted ${peopleArray.length} person(s): ${peopleArray.map(p => p.name).join(', ')}`);
+      try {
+        console.log(`[ImageGen] No reference images provided - extracting person names from events (style: ${imageStyle})...`);
         
-        // Fetch reference images for all people
-        const fetchedReferences = await fetchReferenceImagesForPeople(peopleArray);
-        if (fetchedReferences.length > 0) {
-          finalImageReferences = fetchedReferences;
-          console.log(`[ImageGen] Auto-fetched ${fetchedReferences.length} reference image(s)`);
-        } else {
-          console.log('[ImageGen] No reference images found for extracted person names');
+        // Extract person names from all events
+        const allPeople = new Map<string, {name: string, search_query: string}>();
+        for (const event of events) {
+          try {
+            console.log(`[ImageGen] Extracting names from event: "${event.title}"`);
+            const people = await extractPersonNamesFromEvent(event);
+            console.log(`[ImageGen] Extracted ${people.length} person(s) from "${event.title}": ${people.map(p => p.name).join(', ')}`);
+            people.forEach(person => {
+              // Use name as key to avoid duplicates
+              if (!allPeople.has(person.name.toLowerCase())) {
+                allPeople.set(person.name.toLowerCase(), person);
+              }
+            });
+          } catch (extractError: any) {
+            console.error(`[ImageGen] Error extracting names from event "${event.title}":`, extractError.message);
+            console.error(`[ImageGen] Extract error stack:`, extractError.stack);
+            // Continue with other events
+          }
         }
-      } else {
-        console.log('[ImageGen] No famous people detected in events');
+        
+        const peopleArray = Array.from(allPeople.values());
+        console.log(`[ImageGen] Total unique people extracted: ${peopleArray.length} - ${peopleArray.map(p => `${p.name} (query: ${p.search_query})`).join(', ')}`);
+        
+        if (peopleArray.length > 0) {
+          // Fetch reference images for all people
+          try {
+            console.log(`[ImageGen] Starting to fetch reference images for ${peopleArray.length} person(s)...`);
+            const startTime = Date.now();
+            const fetchedReferences = await fetchReferenceImagesForPeople(peopleArray);
+            const fetchTime = Date.now() - startTime;
+            console.log(`[ImageGen] Reference image fetch completed in ${fetchTime}ms`);
+            
+            if (fetchedReferences.length > 0) {
+              finalImageReferences = fetchedReferences;
+              console.log(`[ImageGen] ✓ Successfully fetched ${fetchedReferences.length} reference image(s):`, fetchedReferences.map(r => `${r.name}: ${r.url.substring(0, 60)}...`).join(', '));
+            } else {
+              console.warn(`[ImageGen] ⚠ No reference images found for ${peopleArray.length} person(s) after ${fetchTime}ms`);
+            }
+          } catch (fetchError: any) {
+            console.error('[ImageGen] ✗ Error fetching reference images:', fetchError.message);
+            console.error('[ImageGen] Fetch error stack:', fetchError.stack);
+            // Continue without reference images
+          }
+        } else {
+          console.log('[ImageGen] No famous people detected in events');
+        }
+      } catch (error: any) {
+        console.error('[ImageGen] ✗ Error in person extraction/image fetching:', error.message);
+        console.error('[ImageGen] Error stack:', error.stack);
+        // Continue without reference images - don't fail the whole request
       }
+    } else {
+      console.log(`[ImageGen] Using provided ${finalImageReferences.length} reference image(s)`);
     }
     
     const hasReferenceImages = finalImageReferences && finalImageReferences.length > 0;
@@ -1114,11 +1151,25 @@ export async function POST(request: NextRequest) {
     
     console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references`);
     
-    const referenceImagePromises = validImageReferences.length > 0
-      ? validImageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
-      : [];
-    const preparedReferences = await Promise.all(referenceImagePromises);
-    console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${validImageReferences.length} reference images for Replicate`);
+    // Prepare reference images with error handling
+    let preparedReferences: (string | null)[] = [];
+    if (validImageReferences.length > 0) {
+      try {
+        const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }) => {
+          try {
+            return await prepareImageForReplicate(ref.url, replicateApiKey);
+          } catch (error: any) {
+            console.error(`[ImageGen] Error preparing reference image for ${ref.name}:`, error.message);
+            return null;
+          }
+        });
+        preparedReferences = await Promise.all(referenceImagePromises);
+        console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${validImageReferences.length} reference images for Replicate`);
+      } catch (error: any) {
+        console.error('[ImageGen] Error preparing reference images:', error.message);
+        preparedReferences = [];
+      }
+    }
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
@@ -1181,8 +1232,20 @@ export async function POST(request: NextRequest) {
         };
         
         // Model-specific parameters
-        if (selectedModel.includes('flux')) {
-          // Flux models use different parameters
+        if (selectedModel.includes('flux-kontext-pro')) {
+          // Flux Kontext Pro supports reference images
+          input.num_outputs = 1;
+          input.guidance_scale = 3.5;
+          input.num_inference_steps = 28;
+          
+          if (referenceImageUrl) {
+            input.image = referenceImageUrl;
+            input.prompt_strength = 0.75;
+            input.strength = 0.75;
+            console.log(`[ImageGen] Using reference image with Flux Kontext Pro (strength: 0.75)`);
+          }
+        } else if (selectedModel.includes('flux')) {
+          // Other Flux models (Flux Dev, Flux Pro) don't support direct image input
           input.num_outputs = 1;
           // Flux Dev uses slightly different parameters than Flux Pro
           if (selectedModel.includes('flux-dev')) {
@@ -1198,8 +1261,6 @@ export async function POST(request: NextRequest) {
           }
           
           // Flux models don't support direct image input via Replicate API
-          // If reference images are needed, we could include URLs in prompt (less effective)
-          // For photorealistic with reference images, consider using SDXL or Flux Kontext Pro instead
           if (referenceImageUrl) {
             console.warn(`[ImageGen] Flux models don't support direct image input. Reference images will be ignored. For reference images, use SDXL or Flux Kontext Pro.`);
             // Note: We could add reference URLs to prompt, but it's less effective than direct input
@@ -1420,8 +1481,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
+    console.error('[ImageGen] Error stack:', error.stack);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate images' },
+      { 
+        error: error.message || 'Failed to generate images',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
