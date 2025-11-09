@@ -23,11 +23,10 @@ const imageStyles = [
 
 export default function TestImageGenPage() {
   const { toast } = useToast();
-  const [personName, setPersonName] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [imageStyle, setImageStyle] = useState("Photorealistic");
-  const [referenceImageUrl, setReferenceImageUrl] = useState("");
+  const [referenceImages, setReferenceImages] = useState<Array<{name: string, url: string}>>([]);
   const [customPrompt, setCustomPrompt] = useState("");
   const [useCustomPrompt, setUseCustomPrompt] = useState(false);
   
@@ -36,11 +35,12 @@ export default function TestImageGenPage() {
   const [finalPrompt, setFinalPrompt] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+
   const handleGenerate = async () => {
-    if (!personName && !eventTitle) {
+    if (!eventTitle && !eventDescription) {
       toast({
         title: "Missing information",
-        description: "Please enter at least a person name or event title.",
+        description: "Please enter an event title or description.",
         variant: "destructive",
       });
       return;
@@ -50,20 +50,20 @@ export default function TestImageGenPage() {
     setError(null);
     setGeneratedImageUrl(null);
     setFinalPrompt("");
+    setReferenceImages([]);
+
+    // Create an AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
 
     try {
-      // Build the event object
+      // Build the event object - API will extract person names and fetch reference images automatically
       const event = {
-        title: eventTitle || `${personName} - Test Event`,
-        description: eventDescription || `A scene featuring ${personName}`,
+        title: eventTitle || "Test Event",
+        description: eventDescription || "",
         year: 2024,
         imagePrompt: useCustomPrompt && customPrompt ? customPrompt : undefined,
       };
-
-      // Build image references if URL provided
-      const imageReferences = referenceImageUrl
-        ? [{ name: personName || "Person", url: referenceImageUrl }]
-        : [];
 
       const response = await fetch("/api/ai/generate-images", {
         method: "POST",
@@ -72,9 +72,11 @@ export default function TestImageGenPage() {
           events: [event],
           imageStyle,
           themeColor: "",
-          imageReferences: imageReferences.length > 0 ? imageReferences : undefined,
+          // Don't pass imageReferences - let the API extract person names and fetch them automatically
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -89,12 +91,25 @@ export default function TestImageGenPage() {
       setGeneratedImageUrl(data.images[0]);
       setFinalPrompt(data.prompts?.[0] || "Prompt not returned");
       
-      toast({
-        title: "Success!",
-        description: "Image generated successfully",
-      });
+      // Display auto-fetched reference images if available
+      if (data.referenceImages && data.referenceImages.length > 0) {
+        setReferenceImages(data.referenceImages);
+        toast({
+          title: "Success!",
+          description: `Image generated with ${data.referenceImages.length} reference image${data.referenceImages.length > 1 ? 's' : ''}`,
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: "Image generated successfully",
+        });
+      }
     } catch (err: any) {
-      const errorMsg = err.message || "Failed to generate image";
+      clearTimeout(timeoutId);
+      let errorMsg = err.message || "Failed to generate image";
+      if (err.name === 'AbortError') {
+        errorMsg = "Request timed out after 5 minutes. The image generation may still be processing.";
+      }
       setError(errorMsg);
       toast({
         title: "Generation failed",
@@ -111,7 +126,7 @@ export default function TestImageGenPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Image Generation Test Tool</h1>
         <p className="text-muted-foreground">
-          Test and tweak image generation prompts for famous people
+          Enter an event title/description - the API will automatically extract famous person names and fetch reference images
         </p>
       </div>
 
@@ -122,25 +137,17 @@ export default function TestImageGenPage() {
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="personName">Famous Person Name</Label>
-              <Input
-                id="personName"
-                value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
-                placeholder="e.g., Joe Biden, Taylor Swift"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
               <Label htmlFor="eventTitle">Event Title</Label>
               <Input
                 id="eventTitle"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
-                placeholder="e.g., Presidential announcement"
+                placeholder="e.g., Taylor Swift shouting at Kanye West"
                 className="mt-1"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Include famous person names in the title or description
+              </p>
             </div>
 
             <div>
@@ -149,10 +156,13 @@ export default function TestImageGenPage() {
                 id="eventDescription"
                 value={eventDescription}
                 onChange={(e) => setEventDescription(e.target.value)}
-                placeholder="Describe the scene or event..."
+                placeholder="Describe the scene or event... (e.g., Taylor Swift confronts Kanye West at the 2009 VMAs)"
                 rows={3}
                 className="mt-1"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                The API will automatically extract person names and fetch reference images
+              </p>
             </div>
 
             <div>
@@ -169,20 +179,6 @@ export default function TestImageGenPage() {
                   </Badge>
                 ))}
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="referenceImageUrl">Reference Image URL (Optional)</Label>
-              <Input
-                id="referenceImageUrl"
-                value={referenceImageUrl}
-                onChange={(e) => setReferenceImageUrl(e.target.value)}
-                placeholder="https://upload.wikimedia.org/..."
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Direct image URL for person matching
-              </p>
             </div>
 
             <div>
@@ -240,6 +236,56 @@ export default function TestImageGenPage() {
               <p className="text-sm text-destructive/80 mt-1">{error}</p>
             </div>
           )}
+
+          {/* Reference Images Section */}
+          <div className="mb-6">
+            <Label className="text-base font-semibold mb-2 block">
+              Reference Images {isGenerating && <Loader2 className="inline ml-2 h-4 w-4 animate-spin" />}
+            </Label>
+            {isGenerating && referenceImages.length === 0 && (
+              <div className="p-4 border-2 border-dashed rounded-lg">
+                <p className="text-sm text-muted-foreground text-center">Extracting person names and fetching reference images...</p>
+              </div>
+            )}
+            {!isGenerating && referenceImages.length === 0 && (
+              <div className="p-4 border-2 border-dashed rounded-lg bg-muted/30">
+                <p className="text-sm text-muted-foreground text-center">
+                  Reference images will appear here after generation (if famous people are detected)
+                </p>
+              </div>
+            )}
+            {referenceImages.length > 0 && (
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {referenceImages.map((ref, idx) => (
+                  <div key={idx} className="border-2 rounded-lg overflow-hidden shadow-sm">
+                    <div className="p-3 bg-primary/10 border-b">
+                      <p className="text-sm font-semibold">{ref.name}</p>
+                    </div>
+                    <div className="bg-muted/50 p-2">
+                      <img
+                        src={ref.url}
+                        alt={ref.name}
+                        className="w-full h-auto rounded border"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="p-8 text-center"><p class="text-sm text-muted-foreground">Failed to load image</p><p class="text-xs text-muted-foreground mt-2 break-all">' + ref.url.substring(0, 100) + '...</p></div>';
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="p-2 bg-muted/30">
+                      <p className="text-xs text-muted-foreground break-all truncate" title={ref.url}>
+                        {ref.url}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {finalPrompt && (
             <div className="mb-4">

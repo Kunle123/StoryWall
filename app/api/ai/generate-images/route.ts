@@ -3,6 +3,208 @@ import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFam
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
 
+// Helper to extract famous person names from event text using OpenAI
+async function extractPersonNamesFromEvent(event: { title: string; description?: string }): Promise<string[]> {
+  try {
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (!openaiApiKey) {
+      console.warn('[ImageGen] OPENAI_API_KEY not configured, skipping person extraction');
+      return [];
+    }
+
+    // Combine title and description, prioritizing title
+    const eventText = `${event.title}${event.description ? ' ' + event.description : ''}`.trim();
+    if (!eventText || eventText.length < 10) {
+      console.log(`[ImageGen] Event text too short for extraction: "${eventText}"`);
+      return [];
+    }
+
+    console.log(`[ImageGen] Extracting person names from event - Title: "${event.title}", Description: "${event.description || 'none'}"`);
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that extracts person names (famous or notable) from event descriptions. Extract ALL person names mentioned in BOTH the title and description, including politicians, celebrities, public figures, and any named individuals. Pay special attention to the title as it often contains the main people involved. Return ONLY a JSON array of person names (full names when possible, or last names if that\'s how they\'re referred to). Example: ["Taylor Swift", "Kanye West"] or ["Zohran Mamdani", "Andrew Cuomo"] or []. If only a last name is mentioned (like "Cuomo"), include it as-is. Fix common typos (e.g., "mamdanis" -> "Mamdani").'
+          },
+          {
+            role: 'user',
+            content: `Extract all person names from this event:\nTitle: "${event.title}"\nDescription: "${event.description || 'none'}"\n\nReturn only a JSON array of names, nothing else. Include all named people mentioned in the title or description, even if only by last name.`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 200,
+        }),
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.warn(`[ImageGen] Failed to extract person names: ${response.status}`);
+        return [];
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (!content) return [];
+
+      // Parse JSON array
+      try {
+        const names = JSON.parse(content);
+        if (Array.isArray(names)) {
+          const filtered = names.filter((n: any) => typeof n === 'string' && n.length > 0);
+          console.log(`[ImageGen] Extracted ${filtered.length} person name(s) from event: ${filtered.join(', ')}`);
+          return filtered;
+        }
+      } catch (parseError) {
+        console.warn('[ImageGen] Failed to parse person names JSON:', content);
+      }
+
+      return [];
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.warn('[ImageGen] Timeout extracting person names (20s timeout)');
+      } else {
+        console.error('[ImageGen] Error extracting person names:', error.message);
+      }
+      return [];
+    }
+  } catch (error: any) {
+    console.error('[ImageGen] Error in extractPersonNamesFromEvent:', error.message);
+    return [];
+  }
+}
+
+// Helper to normalize names (fix common typos)
+function normalizeName(name: string): string {
+  let normalized = name.trim();
+  
+  // Fix common typos
+  normalized = normalized.replace(/mamdanis/gi, 'Mamdani');
+  normalized = normalized.replace(/mamdani/gi, 'Mamdani');
+  
+  // Capitalize properly (first letter of each word)
+  const words = normalized.split(/\s+/);
+  normalized = words.map(word => {
+    if (word.length === 0) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+  
+  return normalized;
+}
+
+// Helper to generate name variations for better matching
+function generateNameVariations(name: string): string[] {
+  // First normalize the name
+  const normalized = normalizeName(name);
+  const variations = [normalized];
+  const parts = normalized.trim().split(/\s+/);
+  
+  // If it's a single word (like "Cuomo"), try common full names
+  if (parts.length === 1) {
+    const lastName = parts[0];
+    // Common first names for politicians/public figures
+    const commonFirstNames = ['Andrew', 'Chris', 'Mario', 'John', 'Michael', 'David', 'Robert'];
+    commonFirstNames.forEach(firstName => {
+      variations.push(`${firstName} ${lastName}`);
+    });
+  } else if (parts.length === 2) {
+    // If we have first and last, also try just last name
+    variations.push(parts[parts.length - 1]);
+  }
+  
+  return [...new Set(variations)]; // Remove duplicates
+}
+
+// Helper to fetch reference images for person names
+async function fetchReferenceImagesForPeople(personNames: string[]): Promise<Array<{ name: string; url: string }>> {
+  const references: Array<{ name: string; url: string }> = [];
+
+  for (const name of personNames) {
+    // Try name variations to improve matching
+    const nameVariations = generateNameVariations(name);
+    let found = false;
+    
+    for (const nameVariation of nameVariations) {
+      if (found) break; // Stop if we found an image for this person
+      
+      try {
+        console.log(`[ImageGen] Attempting to fetch reference image for: ${nameVariation}`);
+        
+        // Use generate-events API to get image references for this person
+        // Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout per person
+        
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-events`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              timelineName: `Reference: ${nameVariation}`,
+              timelineDescription: `A timeline about ${nameVariation}`,
+              maxEvents: 1,
+              isFactual: true,
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            console.warn(`[ImageGen] Failed to fetch reference for ${nameVariation}: ${response.status}`);
+            continue;
+          }
+
+          const data = await response.json();
+          if (data.image_references && Array.isArray(data.image_references) && data.image_references.length > 0) {
+            // Use the first reference image for this person
+            const ref = data.image_references[0];
+            if (ref.url && ref.name) {
+              references.push({ name: ref.name, url: ref.url });
+              console.log(`[ImageGen] ✓ Found reference image for ${nameVariation} (${ref.name}): ${ref.url.substring(0, 80)}...`);
+              found = true;
+              break;
+            }
+          } else {
+            console.log(`[ImageGen] No image references found for ${nameVariation}`);
+          }
+        } catch (fetchError: any) {
+          clearTimeout(timeoutId);
+          if (fetchError.name === 'AbortError') {
+            console.warn(`[ImageGen] Timeout fetching reference for ${nameVariation} (30s timeout)`);
+          } else {
+            console.error(`[ImageGen] Error fetching reference for ${nameVariation}:`, fetchError.message);
+          }
+          // Continue with next variation
+        }
+      } catch (error: any) {
+        console.error(`[ImageGen] Error processing ${nameVariation}:`, error.message);
+        // Continue with next variation
+      }
+    }
+    
+    if (!found) {
+      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried variations: ${nameVariations.join(', ')})`);
+    }
+  }
+
+  return references;
+}
+
 /**
  * Generate images for timeline events using style-appropriate models (via Replicate)
  * - Photorealistic styles: Flux Pro (best quality) or SDXL (cost-effective)
@@ -628,15 +830,44 @@ export async function POST(request: NextRequest) {
       console.log(`[ImageGen] ${textNeededCount} of ${events.length} events require text in images - will use text-capable models`);
     }
     
-    const hasReferenceImages = imageReferences && imageReferences.length > 0;
+    // Auto-extract person names and fetch reference images if not provided
+    let finalImageReferences = imageReferences && imageReferences.length > 0 ? imageReferences : [];
+    
+    if (finalImageReferences.length === 0) {
+      console.log('[ImageGen] No reference images provided - extracting person names from events...');
+      
+      // Extract person names from all events
+      const allPersonNames = new Set<string>();
+      for (const event of events) {
+        const names = await extractPersonNamesFromEvent(event);
+        names.forEach(name => allPersonNames.add(name));
+      }
+      
+      if (allPersonNames.size > 0) {
+        console.log(`[ImageGen] Extracted ${allPersonNames.size} person name(s): ${Array.from(allPersonNames).join(', ')}`);
+        
+        // Fetch reference images for all people
+        const fetchedReferences = await fetchReferenceImagesForPeople(Array.from(allPersonNames));
+        if (fetchedReferences.length > 0) {
+          finalImageReferences = fetchedReferences;
+          console.log(`[ImageGen] Auto-fetched ${fetchedReferences.length} reference image(s)`);
+        } else {
+          console.log('[ImageGen] No reference images found for extracted person names');
+        }
+      } else {
+        console.log('[ImageGen] No famous people detected in events');
+      }
+    }
+    
+    const hasReferenceImages = finalImageReferences && finalImageReferences.length > 0;
     
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
     // Prepare reference images for Replicate if available (one per event, or use first available)
     // Filter out invalid URLs (categories, articles, non-image URLs)
-    const validImageReferences = imageReferences && imageReferences.length > 0
-      ? imageReferences.filter((ref: { name: string; url: string }) => {
+    const validImageReferences = finalImageReferences && finalImageReferences.length > 0
+      ? finalImageReferences.filter((ref: { name: string; url: string }) => {
           // Must have a valid URL
           if (!ref.url || typeof ref.url !== 'string') return false;
           
@@ -662,7 +893,7 @@ export async function POST(request: NextRequest) {
         })
       : [];
     
-    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${imageReferences?.length || 0} valid image references`);
+    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references`);
     
     const referenceImagePromises = validImageReferences.length > 0
       ? validImageReferences.slice(0, events.length).map((ref: { name: string; url: string }) => prepareImageForReplicate(ref.url, replicateApiKey))
@@ -708,20 +939,20 @@ export async function POST(request: NextRequest) {
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         // Include person matching instructions when reference images are provided
-        const prompt = buildImagePrompt(
+        const prompt: string = buildImagePrompt(
           event, 
           imageStyle, 
           themeColor, 
           styleVisualLanguage, 
           needsText,
-          imageReferences,
+          finalImageReferences,
           hasReferenceImage
         );
         
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
         if (hasReferenceImage) {
-          const personNames = extractPersonNames(imageReferences);
+          const personNames = extractPersonNames(finalImageReferences);
           console.log(`[ImageGen] Person matching enabled for: ${personNames.join(', ') || 'person in reference image'}`);
         }
         
@@ -832,7 +1063,7 @@ export async function POST(request: NextRequest) {
         return { index, predictionId: prediction.id, event, prompt };
       } catch (error: any) {
         console.error(`[ImageGen] Error creating prediction for "${event.title}":`, error);
-        return { index, error, event, prompt: prompt || '' };
+        return { index, error, event, prompt: (typeof prompt === 'string' ? prompt : String(prompt || '')) };
       }
     });
 
@@ -862,7 +1093,7 @@ export async function POST(request: NextRequest) {
           imageUrl: null, 
           error: result.error, 
           event: result.event,
-          prompt: result.prompt || ''
+          prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       }
 
@@ -875,7 +1106,7 @@ export async function POST(request: NextRequest) {
           imageUrl, 
           error: null, 
           event: result.event,
-          prompt: result.prompt || ''
+          prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       } catch (error: any) {
         console.error(`[ImageGen] Error waiting for prediction "${result.event.title}" (ID: ${result.predictionId}):`, error);
@@ -885,7 +1116,7 @@ export async function POST(request: NextRequest) {
           imageUrl: null, 
           error, 
           event: result.event,
-          prompt: result.prompt || ''
+          prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       }
     });
@@ -899,7 +1130,11 @@ export async function POST(request: NextRequest) {
     const errors: (Error | null)[] = new Array(events.length).fill(null);
     imageResults.forEach((result) => {
       images[result.index] = result.imageUrl;
-      prompts[result.index] = result.prompt || null;
+      // Ensure prompt is always a string or null - explicitly convert to string
+      const promptValue: string | null = typeof result.prompt === 'string' 
+        ? result.prompt 
+        : (result.prompt != null ? String(result.prompt) : null);
+      prompts[result.index] = promptValue;
       errors[result.index] = result.error || null;
     });
     
@@ -961,7 +1196,8 @@ export async function POST(request: NextRequest) {
     // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
     return NextResponse.json({ 
       images: persistedImages,
-      prompts: prompts // Include prompts for debugging/testing
+      prompts: prompts, // Include prompts for debugging/testing
+      referenceImages: finalImageReferences // Include auto-fetched reference images
     });
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
