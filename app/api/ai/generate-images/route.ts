@@ -1337,8 +1337,8 @@ export async function POST(request: NextRequest) {
         let referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         const hasReferenceImage = !!referenceImageUrl;
         
-        if (hasReferenceImage) {
-          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
+        if (hasReferenceImage && referenceImageUrl) {
+          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl.substring(0, 80)}...`);
           
           // Upload to Replicate ONLY if using SDXL (which has 403 errors with Wikimedia)
           // Skip for Imagen which can fetch Wikimedia URLs directly
