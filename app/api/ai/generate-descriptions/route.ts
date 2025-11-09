@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
         temperature: 0.8,
         // Optimize token usage: ~150 tokens per description + ~150-200 per rich image prompt
         // Reserve extra for JSON structure and instructions
-        max_tokens: Math.min(4000, (events.length * 350) + 500),
+        // Increased to 40k to support long timelines (as requested)
+        max_tokens: Math.min(40000, (events.length * 350) + 500),
       }),
     });
 
