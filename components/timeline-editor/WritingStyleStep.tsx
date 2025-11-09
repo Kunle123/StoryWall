@@ -290,13 +290,27 @@ export const WritingStyleStep = ({
       {/* Writing Style Selection */}
       <div>
         <Label className="text-base mb-3 block">1. Select Writing Style</Label>
+        {writingStyle && (
+          <p className="text-sm text-muted-foreground mb-3">
+            Selected: <strong>{writingStyle}</strong>
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           {writingStyles.map((style) => (
             <Badge
               key={style}
               variant={writingStyle === style ? "default" : "outline"}
-              className="cursor-pointer px-4 py-2 text-sm"
-              onClick={() => setWritingStyle(style)}
+              className="cursor-pointer px-4 py-2 text-sm hover:bg-accent transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[WritingStyleStep] Badge clicked:', style);
+                setWritingStyle(style);
+              }}
+              onMouseDown={(e) => {
+                // Prevent default to ensure click fires
+                e.preventDefault();
+              }}
             >
               {style}
             </Badge>
