@@ -161,7 +161,7 @@ const TimelineEditor = () => {
           errorMessage = "Please add descriptions to all events.";
           break;
         case 4:
-          errorMessage = "Please select an image style.";
+          errorMessage = "Please select a preset image style or enter a custom style description.";
           break;
       }
       toast({
@@ -208,7 +208,9 @@ const TimelineEditor = () => {
         result = events.every(e => e.description);
         break;
       case 4:
-        result = !!imageStyle;
+        // Accept either preset style or custom style (from ImageStyleStep's customStyle textarea)
+        // ImageStyleStep syncs customStyle to imageStyle via useEffect, so check imageStyle
+        result = !!(imageStyle && imageStyle.trim().length > 0);
         console.log('[canProceed] Step 4 validation:', { imageStyle, result, imageStyleLength: imageStyle?.length });
         break;
       default:

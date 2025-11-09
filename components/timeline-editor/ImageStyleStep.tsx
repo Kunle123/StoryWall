@@ -48,11 +48,17 @@ export const ImageStyleStep = ({
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
 
   // Sync customStyle with imageStyle when customStyle is provided
+  // This ensures custom styles are immediately available for validation
   useEffect(() => {
     if (customStyle && customStyle.trim()) {
-      setImageStyle(customStyle.trim());
+      const trimmed = customStyle.trim();
+      setImageStyle(trimmed);
+      console.log('[ImageStyleStep] Synced custom style to imageStyle:', trimmed);
+    } else if (!imageStyle || imageStyles.includes(imageStyle)) {
+      // Only clear if no preset is selected (preset takes priority)
+      // Don't clear if a preset is selected
     }
-  }, [customStyle, setImageStyle]);
+  }, [customStyle, setImageStyle, imageStyle]);
 
   const handleStyleClick = (style: string) => {
     console.log('[ImageStyleStep] Setting image style:', style);
@@ -106,7 +112,15 @@ export const ImageStyleStep = ({
             <Textarea
               placeholder="e.g., in a comic book hero style"
               value={customStyle}
-              onChange={(e) => setCustomStyle(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCustomStyle(value);
+                // Immediately sync to imageStyle for validation
+                if (value && value.trim()) {
+                  setImageStyle(value.trim());
+                  console.log('[ImageStyleStep] Custom style changed, synced to imageStyle:', value.trim());
+                }
+              }}
               rows={2}
               className="resize-none"
             />

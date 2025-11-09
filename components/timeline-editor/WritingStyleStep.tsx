@@ -105,7 +105,7 @@ export const WritingStyleStep = ({
       
       // Create AbortController for timeout handling (important for mobile networks)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout (2 minutes) for longer timelines
       
       let response;
       try {
