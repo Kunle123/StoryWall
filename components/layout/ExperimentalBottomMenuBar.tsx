@@ -6,8 +6,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
+type SelectedDateFormat = 
+  | { type: 'numbered'; value: string }
+  | { type: 'dated'; day: string | null; month: string | null; year: string; duration: string | null }
+  | undefined;
+
 interface ExperimentalBottomMenuBarProps {
-  selectedDate?: string;
+  selectedDate?: SelectedDateFormat;
   timelinePosition?: number;
   startDate?: Date;
   endDate?: Date;
@@ -162,6 +167,9 @@ export const ExperimentalBottomMenuBar = ({
 
   // Check if there's a timeline component (has selectedDate)
   const hasTimeline = selectedDate !== undefined && selectedDate !== null;
+  
+  // Get duration from selectedDate if it's a dated event
+  const durationFromDate = selectedDate?.type === 'dated' ? selectedDate.duration : null;
   
   // Calculate arc angles for the dial (270-degree arc)
   const startAngle = -225;
@@ -390,18 +398,38 @@ export const ExperimentalBottomMenuBar = ({
               </svg>
               
               {/* Content centered in dial - plus sign if no timeline, date if timeline exists */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2">
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-2 gap-0.5">
                 {hasTimeline ? (
-                  <>
+                  selectedDate?.type === 'numbered' ? (
                     <div className="text-sm font-bold text-foreground text-center leading-tight">
-                      {selectedDate}
+                      {selectedDate.value}
                     </div>
-                    {dateRange && (
-                      <div className="text-[11px] text-muted-foreground font-medium mt-0.5">
-                        {dateRange}
+                  ) : selectedDate?.type === 'dated' ? (
+                    <>
+                      {/* 3-line date format: day (top), month (middle), year (bottom) */}
+                      <div className="flex flex-col items-center justify-center gap-0 leading-tight">
+                        {selectedDate.day && (
+                          <div className="text-[13px] font-bold text-foreground">
+                            {selectedDate.day}
+                          </div>
+                        )}
+                        {selectedDate.month && (
+                          <div className="text-[11px] font-medium text-foreground/80">
+                            {selectedDate.month}
+                          </div>
+                        )}
+                        <div className="text-[13px] font-bold text-foreground">
+                          {selectedDate.year}
+                        </div>
                       </div>
-                    )}
-                  </>
+                      {/* Duration below in the gap between the arc */}
+                      {durationFromDate && (
+                        <div className="text-[10px] text-muted-foreground font-medium mt-1">
+                          {durationFromDate}
+                        </div>
+                      )}
+                    </>
+                  ) : null
                 ) : (
                   <Plus className="w-8 h-8 text-foreground" strokeWidth={3} />
                 )}

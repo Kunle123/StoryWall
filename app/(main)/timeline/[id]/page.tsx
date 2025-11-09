@@ -44,15 +44,41 @@ const TimelinePage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  // Format the centered event date for dial (short format for constrained space)
-  const formatSelectedDate = (event: TimelineEvent | null) => {
+  // Format the centered event date for dial (3-line format: day, month, year)
+  const formatSelectedDate = (event: TimelineEvent | null, startDate?: Date, endDate?: Date) => {
     if (!event) return undefined;
     // For numbered events, show only the number (no label)
     if (event.number !== undefined) {
-      return event.number.toString();
+      return { type: 'numbered' as const, value: event.number.toString() };
     }
-    // For dated events, use short format (11/03/22) for dial display
-    return formatEventDateShort(event.year || 0, event.month, event.day);
+    // For dated events, return structured format for 3-line display
+    if (event.year) {
+      const day = event.day || null;
+      const month = event.month ? new Date(event.year, event.month - 1).toLocaleDateString('en-US', { month: 'short' }) : null;
+      const year = event.year.toString();
+      
+      // Calculate duration (total span from start to end)
+      let duration: string | null = null;
+      if (startDate && endDate) {
+        const diffMs = endDate.getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffYears = Math.floor(diffDays / 365);
+        if (diffYears > 0) {
+          duration = `${diffYears}y`;
+        } else if (diffDays > 0) {
+          duration = `${diffDays}d`;
+        }
+      }
+      
+      return { 
+        type: 'dated' as const, 
+        day: day ? day.toString() : null,
+        month: month,
+        year,
+        duration
+      };
+    }
+    return undefined;
   };
 
 
@@ -138,7 +164,9 @@ const TimelinePage = () => {
       <Header isVisible={showHeader} />
       <SubMenuBar 
         title={timeline.title} 
-        selectedDate={formatSelectedDate(centeredEvent)}
+        selectedDate={centeredEvent ? (centeredEvent.number !== undefined 
+          ? centeredEvent.number.toString() 
+          : formatEventDateShort(centeredEvent.year || 0, centeredEvent.month, centeredEvent.day)) : undefined}
         headerVisible={showHeader}
       />
       <Toaster />
@@ -152,7 +180,7 @@ const TimelinePage = () => {
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
         />
-        <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24">
+        <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24 relative z-10">
           <CommentsSection timelineId={timeline.id || timelineId} />
         </div>
       </main>
@@ -203,9 +231,10 @@ const TimelinePage = () => {
           }
           return 0.5;
         })();
+        const formattedDate = formatSelectedDate(centeredEvent, startDate, endDate);
         return (
           <ExperimentalBottomMenuBar
-            selectedDate={formatSelectedDate(centeredEvent)}
+            selectedDate={formattedDate}
             timelinePosition={timelinePosition}
             startDate={startDate}
             endDate={endDate}
