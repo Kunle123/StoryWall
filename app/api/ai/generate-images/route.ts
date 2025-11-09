@@ -479,8 +479,8 @@ const COLOR_NAMES: Record<string, string> = {
 // Models available on Replicate
 const MODELS = {
   // Photorealistic models (best for realistic photos)
-  // Google Imagen 4 Fast: Best quality/price ratio ($0.02/image) - requires Google Cloud setup
-  PHOTOREALISTIC: "google-imagen-4-fast", // $0.02/image - excellent quality, best price
+  // Google Imagen 4 Fast: Best quality/price ratio ($0.02/image) - available on Replicate, supports image input
+  PHOTOREALISTIC: "google/imagen-4-fast", // $0.02/image - excellent quality, best price, supports image-to-image
   PHOTOREALISTIC_FALLBACK: "black-forest-labs/flux-dev", // $0.025-0.030/image - fallback if Google not configured
   // Alternative photorealistic options:
   // - "google-imagen-4-standard": $0.04/image (higher quality)
@@ -1291,13 +1291,12 @@ export async function POST(request: NextRequest) {
         const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
         if (hasReferenceImages) {
-          // For artistic styles: try SDXL with uploaded Replicate URLs (much cheaper: $0.0048 vs $0.04)
-          // For photorealistic: use Flux Kontext Pro (best quality for people)
+          // For artistic styles with reference images: use Google Imagen (cheaper: $0.02 vs $0.04 for Flux Kontext Pro)
+          // For photorealistic styles: use Flux Kontext Pro (best quality for people)
           if (isArtistic) {
-            // Keep SDXL for artistic styles - it should work with Replicate-hosted URLs
-            console.log(`[ImageGen] Using SDXL (${selectedModel}) for artistic style with reference images (uploaded to Replicate, $0.0048/image)`);
+            selectedModel = MODELS.PHOTOREALISTIC; // Google Imagen 4 Fast
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Google Imagen 4 Fast (artistic style with reference images, $0.02/image)`);
           } else if (isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
-            // Photorealistic styles use Flux Kontext Pro
             selectedModel = "black-forest-labs/flux-kontext-pro";
             console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (photorealistic with reference images, $0.04/image)`);
           }
@@ -1332,24 +1331,8 @@ export async function POST(request: NextRequest) {
         const referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         const hasReferenceImage = !!referenceImageUrl;
         
-        // Check if we have a reference image but it's a Wikimedia URL (upload failed)
-        // SDXL cannot use Wikimedia URLs directly - must use Replicate-hosted URLs
-        const isWikimediaUrl = referenceImageUrl && (
-          referenceImageUrl.includes('upload.wikimedia.org') || 
-          referenceImageUrl.includes('wikimedia.org')
-        );
-        const isUsingSDXL = selectedModel.includes('sdxl') || selectedModel === MODELS.ARTISTIC;
-        
         if (hasReferenceImage) {
-          if (isWikimediaUrl && isUsingSDXL) {
-            // SDXL cannot use Wikimedia URLs - fall back to Flux Kontext Pro
-            console.warn(`[ImageGen] ⚠ Reference image upload failed or returned Wikimedia URL. SDXL cannot use this. Switching to Flux Kontext Pro.`);
-            selectedModel = "black-forest-labs/flux-kontext-pro";
-            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-            console.log(`[ImageGen] Switched to Flux Kontext Pro: ${modelVersion}`);
-          } else {
-            console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
-          }
+          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl?.substring(0, 80)}...`);
         } else {
           console.log(`[ImageGen] No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
         }
@@ -1403,11 +1386,20 @@ export async function POST(request: NextRequest) {
             input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines";
           }
         } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
-          // Google Imagen 4 Fast - simple prompt-based generation
-          // Imagen doesn't support reference images via Replicate API
+          // Google Imagen 4 Fast - supports image input for image-to-image
           input.prompt = prompt;
-          if (referenceImageUrl) {
-            console.warn(`[ImageGen] Google Imagen doesn't support reference images via Replicate. Reference image will be ignored.`);
+          
+          if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+            if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
+              input.image = referenceImageUrl;
+              // Google Imagen may support strength parameter for image-to-image
+              input.strength = 0.75; // Control how much to follow the reference image
+              console.log(`[ImageGen] Using reference image with Google Imagen 4 Fast (strength: 0.75, $0.02/image)`);
+            } else {
+              console.warn(`[ImageGen] Invalid reference image URL format for Google Imagen: ${referenceImageUrl.substring(0, 50)}`);
+            }
+          } else {
+            console.log(`[ImageGen] Using Google Imagen 4 Fast without reference image`);
           }
           console.log(`[ImageGen] Using Google Imagen 4 Fast parameters`);
         } else if (selectedModel.includes('flux-kontext-pro')) {
