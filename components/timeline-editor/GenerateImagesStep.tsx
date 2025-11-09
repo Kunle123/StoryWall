@@ -251,7 +251,7 @@ export const GenerateImagesStep = ({
 
     setIsGenerating(true);
     setProgress(0);
-    setTotalEvents(eventsToGenerate.length);
+    setTotalEvents(eventCount);
     setGeneratingCount(0);
     
     // Start progress simulation
@@ -264,7 +264,7 @@ export const GenerateImagesStep = ({
             return 95;
           }
           // Update generating count based on progress
-          const estimatedCount = Math.floor((prev / 100) * totalEvents);
+          const estimatedCount = Math.floor((prev / 100) * eventCount);
           setGeneratingCount(estimatedCount);
           return prev + 5;
         });
@@ -301,7 +301,7 @@ export const GenerateImagesStep = ({
       // Clear progress interval and complete progress
       if (progressInterval) clearInterval(progressInterval);
       setProgress(100);
-      setGeneratingCount(totalEvents);
+      setGeneratingCount(eventCount);
       
       if (!data.images || data.images.length === 0) {
         throw new Error("No images were generated");
