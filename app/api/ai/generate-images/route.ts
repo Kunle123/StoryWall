@@ -4,7 +4,8 @@ import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
 
 // Helper to extract famous person names from event text using OpenAI
-async function extractPersonNamesFromEvent(event: { title: string; description?: string }): Promise<string[]> {
+// Returns array of objects with {name, search_query}
+async function extractPersonNamesFromEvent(event: { title: string; description?: string }): Promise<Array<{name: string, search_query: string}>> {
   try {
     const openaiApiKey = process.env.OPENAI_API_KEY;
     if (!openaiApiKey) {
@@ -38,39 +39,71 @@ async function extractPersonNamesFromEvent(event: { title: string; description?:
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that extracts person names (famous or notable) from event descriptions. Extract ALL person names mentioned in BOTH the title and description, including politicians, celebrities, public figures, and any named individuals. Pay special attention to the title as it often contains the main people involved. Return ONLY a JSON array of person names (full names when possible, or last names if that\'s how they\'re referred to). Example: ["Taylor Swift", "Kanye West"] or ["Zohran Mamdani", "Andrew Cuomo"] or []. If only a last name is mentioned (like "Cuomo"), include it as-is. Fix common typos (e.g., "mamdanis" -> "Mamdani").'
+            content: 'You are a helpful assistant that extracts person names (famous or notable) from event descriptions. Extract ALL person names mentioned in BOTH the title and description, including politicians, celebrities, public figures, and any named individuals. Pay special attention to the title as it often contains the main people involved. Return ONLY a JSON array of objects, each with "name" (full name when possible) and "search_query" (best query to find their image). Example: [{"name": "Taylor Swift", "search_query": "Taylor Swift portrait"}, {"name": "Kanye West", "search_query": "Kanye West headshot"}] or [{"name": "Zohran Mamdani", "search_query": "Zohran Mamdani"}, {"name": "Andrew Cuomo", "search_query": "Andrew Cuomo official photo"}] or []. If only a last name is mentioned (like "Cuomo"), include it as-is. Fix common typos (e.g., "mamdanis" -> "Mamdani").'
           },
           {
             role: 'user',
-            content: `Extract all person names from this event:\nTitle: "${event.title}"\nDescription: "${event.description || 'none'}"\n\nReturn only a JSON array of names, nothing else. Include all named people mentioned in the title or description, even if only by last name.`
+            content: `Extract all person names from this event:\nTitle: "${event.title}"\nDescription: "${event.description || 'none'}"\n\nReturn only a JSON array of objects with "name" and "search_query" fields, nothing else. Include all named people mentioned in the title or description, even if only by last name.`
           }
         ],
         temperature: 0.3,
-        max_tokens: 200,
+        max_tokens: 300,
         }),
       });
 
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        console.warn(`[ImageGen] Failed to extract person names: ${response.status}`);
+        const errorText = await response.text();
+        console.warn(`[ImageGen] Failed to extract person names: ${response.status}`, errorText);
         return [];
       }
 
       const data = await response.json();
+      console.log(`[ImageGen] OpenAI response structure:`, JSON.stringify({
+        model: data.model,
+        usage: data.usage,
+        choices_count: data.choices?.length,
+        first_choice_finish_reason: data.choices?.[0]?.finish_reason,
+      }, null, 2));
+      
       const content = data.choices?.[0]?.message?.content?.trim();
-      if (!content) return [];
+      console.log(`[ImageGen] Raw OpenAI content:`, content);
+      
+      if (!content) {
+        console.warn('[ImageGen] No content in OpenAI response');
+        return [];
+      }
 
-      // Parse JSON array
+      // Parse JSON array - now expects array of objects with name and search_query
       try {
-        const names = JSON.parse(content);
-        if (Array.isArray(names)) {
-          const filtered = names.filter((n: any) => typeof n === 'string' && n.length > 0);
-          console.log(`[ImageGen] Extracted ${filtered.length} person name(s) from event: ${filtered.join(', ')}`);
-          return filtered;
+        const parsed = JSON.parse(content);
+        console.log(`[ImageGen] Parsed extraction result:`, parsed);
+        
+        if (Array.isArray(parsed)) {
+          // Handle both old format (array of strings) and new format (array of objects)
+          const people = parsed.map((item: any) => {
+            if (typeof item === 'string') {
+              // Old format: just a string name
+              return { name: item, search_query: item };
+            } else if (item && typeof item === 'object' && item.name) {
+              // New format: object with name and search_query
+              return {
+                name: item.name,
+                search_query: item.search_query || item.name
+              };
+            }
+            return null;
+          }).filter((p: any) => p !== null && p.name && p.name.length > 0);
+          
+          console.log(`[ImageGen] Extracted ${people.length} person(s) from event: ${people.map((p: any) => p.name).join(', ')}`);
+          return people;
+        } else {
+          console.warn('[ImageGen] Parsed result is not an array:', typeof parsed);
         }
-      } catch (parseError) {
+      } catch (parseError: any) {
         console.warn('[ImageGen] Failed to parse person names JSON:', content);
+        console.warn('[ImageGen] Parse error:', parseError.message);
       }
 
       return [];
@@ -130,75 +163,119 @@ function generateNameVariations(name: string): string[] {
   return [...new Set(variations)]; // Remove duplicates
 }
 
+// Helper to search Wikimedia Commons for person images
+async function searchWikimediaForPerson(searchQuery: string): Promise<string | null> {
+  try {
+    // Search Wikimedia Commons API
+    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(searchQuery + ' portrait OR headshot OR official')}&srnamespace=6&srlimit=5&origin=*`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    try {
+      const response = await fetch(searchUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.warn(`[ImageGen] Wikimedia search failed: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      const results = data.query?.search || [];
+      
+      if (results.length === 0) {
+        console.log(`[ImageGen] No Wikimedia results for: ${searchQuery}`);
+        return null;
+      }
+      
+      // Get image info for the first result to get the direct URL
+      const firstResult = results[0];
+      const pageTitle = firstResult.title;
+      
+      // Fetch image info to get the direct URL (create new controller for this request)
+      const imageInfoUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(pageTitle)}&prop=imageinfo&iiprop=url&origin=*`;
+      
+      const infoController = new AbortController();
+      const infoTimeoutId = setTimeout(() => infoController.abort(), 10000);
+      
+      const infoResponse = await fetch(imageInfoUrl, { signal: infoController.signal });
+      clearTimeout(infoTimeoutId);
+      if (!infoResponse.ok) {
+        console.warn(`[ImageGen] Failed to get image info: ${infoResponse.status}`);
+        return null;
+      }
+      
+      const infoData = await infoResponse.json();
+      const pages = infoData.query?.pages || {};
+      const pageId = Object.keys(pages)[0];
+      const imageInfo = pages[pageId]?.imageinfo?.[0];
+      
+      if (!imageInfo || !imageInfo.url) {
+        console.log(`[ImageGen] No image URL found for: ${pageTitle}`);
+        return null;
+      }
+      
+      const directUrl = imageInfo.url;
+      
+      // Validate it's actually an image
+      const isValid = await validateImageUrl(directUrl);
+      if (isValid) {
+        console.log(`[ImageGen] ✓ Found Wikimedia image for "${searchQuery}": ${directUrl.substring(0, 80)}...`);
+        return directUrl;
+      }
+      
+      return null;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.warn(`[ImageGen] Timeout searching Wikimedia for: ${searchQuery}`);
+      } else {
+        console.error(`[ImageGen] Error searching Wikimedia:`, fetchError.message);
+      }
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[ImageGen] Error in searchWikimediaForPerson:`, error.message);
+    return null;
+  }
+}
+
 // Helper to fetch reference images for person names
-async function fetchReferenceImagesForPeople(personNames: string[]): Promise<Array<{ name: string; url: string }>> {
+async function fetchReferenceImagesForPeople(people: Array<{name: string, search_query: string}>): Promise<Array<{ name: string; url: string }>> {
   const references: Array<{ name: string; url: string }> = [];
 
-  for (const name of personNames) {
+  for (const person of people) {
+    const { name, search_query } = person;
+    
     // Try name variations to improve matching
     const nameVariations = generateNameVariations(name);
     let found = false;
     
-    for (const nameVariation of nameVariations) {
+    // Try the search query first, then name variations
+    const searchQueries = [search_query, ...nameVariations];
+    
+    for (const query of searchQueries) {
       if (found) break; // Stop if we found an image for this person
       
       try {
-        console.log(`[ImageGen] Attempting to fetch reference image for: ${nameVariation}`);
+        console.log(`[ImageGen] Searching Wikimedia for: ${query}`);
+        const imageUrl = await searchWikimediaForPerson(query);
         
-        // Use generate-events API to get image references for this person
-        // Add timeout to prevent hanging
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout per person
-        
-        try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-events`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              timelineName: `Reference: ${nameVariation}`,
-              timelineDescription: `A timeline about ${nameVariation}`,
-              maxEvents: 1,
-              isFactual: true,
-            }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            console.warn(`[ImageGen] Failed to fetch reference for ${nameVariation}: ${response.status}`);
-            continue;
-          }
-
-          const data = await response.json();
-          if (data.image_references && Array.isArray(data.image_references) && data.image_references.length > 0) {
-            // Use the first reference image for this person
-            const ref = data.image_references[0];
-            if (ref.url && ref.name) {
-              references.push({ name: ref.name, url: ref.url });
-              console.log(`[ImageGen] ✓ Found reference image for ${nameVariation} (${ref.name}): ${ref.url.substring(0, 80)}...`);
-              found = true;
-              break;
-            }
-          } else {
-            console.log(`[ImageGen] No image references found for ${nameVariation}`);
-          }
-        } catch (fetchError: any) {
-          clearTimeout(timeoutId);
-          if (fetchError.name === 'AbortError') {
-            console.warn(`[ImageGen] Timeout fetching reference for ${nameVariation} (30s timeout)`);
-          } else {
-            console.error(`[ImageGen] Error fetching reference for ${nameVariation}:`, fetchError.message);
-          }
-          // Continue with next variation
+        if (imageUrl) {
+          references.push({ name, url: imageUrl });
+          console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
+          found = true;
+          break;
         }
       } catch (error: any) {
-        console.error(`[ImageGen] Error processing ${nameVariation}:`, error.message);
-        // Continue with next variation
+        console.error(`[ImageGen] Error searching for ${query}:`, error.message);
+        // Continue with next query
       }
     }
     
     if (!found) {
-      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried variations: ${nameVariations.join(', ')})`);
+      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried queries: ${searchQueries.join(', ')})`);
     }
   }
 
@@ -837,17 +914,23 @@ export async function POST(request: NextRequest) {
       console.log('[ImageGen] No reference images provided - extracting person names from events...');
       
       // Extract person names from all events
-      const allPersonNames = new Set<string>();
+      const allPeople = new Map<string, {name: string, search_query: string}>();
       for (const event of events) {
-        const names = await extractPersonNamesFromEvent(event);
-        names.forEach(name => allPersonNames.add(name));
+        const people = await extractPersonNamesFromEvent(event);
+        people.forEach(person => {
+          // Use name as key to avoid duplicates
+          if (!allPeople.has(person.name.toLowerCase())) {
+            allPeople.set(person.name.toLowerCase(), person);
+          }
+        });
       }
       
-      if (allPersonNames.size > 0) {
-        console.log(`[ImageGen] Extracted ${allPersonNames.size} person name(s): ${Array.from(allPersonNames).join(', ')}`);
+      const peopleArray = Array.from(allPeople.values());
+      if (peopleArray.length > 0) {
+        console.log(`[ImageGen] Extracted ${peopleArray.length} person(s): ${peopleArray.map(p => p.name).join(', ')}`);
         
         // Fetch reference images for all people
-        const fetchedReferences = await fetchReferenceImagesForPeople(Array.from(allPersonNames));
+        const fetchedReferences = await fetchReferenceImagesForPeople(peopleArray);
         if (fetchedReferences.length > 0) {
           finalImageReferences = fetchedReferences;
           console.log(`[ImageGen] Auto-fetched ${fetchedReferences.length} reference image(s)`);
