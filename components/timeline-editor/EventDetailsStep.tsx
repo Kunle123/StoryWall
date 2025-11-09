@@ -112,17 +112,32 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
     // No credit charge for description generation
     setIsGeneratingAll(true);
     try {
-      const response = await fetch("/api/ai/generate-descriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: events.map(e => ({ year: e.year, title: e.title })),
-          timelineDescription,
-          writingStyle,
-          imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
-          themeColor, // Include if available
-        }),
-      });
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout (2 minutes)
+      
+      let response;
+      try {
+        response = await fetch("/api/ai/generate-descriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            events: events.map(e => ({ year: e.year, title: e.title })),
+            timelineDescription,
+            writingStyle,
+            imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
+            themeColor, // Include if available
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error("Request timed out. Please check your connection and try again.");
+        }
+        throw fetchError;
+      }
 
       let data;
       try {

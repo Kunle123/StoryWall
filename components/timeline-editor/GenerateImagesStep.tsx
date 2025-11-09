@@ -53,6 +53,8 @@ export const GenerateImagesStep = ({
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [generatingCount, setGeneratingCount] = useState(0);
+  const [totalEvents, setTotalEvents] = useState(0);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   const [uploadingEventId, setUploadingEventId] = useState<string | null>(null);
@@ -249,8 +251,24 @@ export const GenerateImagesStep = ({
 
     setIsGenerating(true);
     setProgress(0);
+    setTotalEvents(eventsToGenerate.length);
+    setGeneratingCount(0);
     
+    // Start progress simulation
+    let progressInterval: NodeJS.Timeout | null = null;
     try {
+      progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            // Don't go above 95% until we get the response
+            return 95;
+          }
+          // Update generating count based on progress
+          const estimatedCount = Math.floor((prev / 100) * totalEvents);
+          setGeneratingCount(estimatedCount);
+          return prev + 5;
+        });
+      }, 1000); // Update every second
       const response = await fetch("/api/ai/generate-images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -280,6 +298,11 @@ export const GenerateImagesStep = ({
         throw new Error(errorMsg);
       }
 
+      // Clear progress interval and complete progress
+      if (progressInterval) clearInterval(progressInterval);
+      setProgress(100);
+      setGeneratingCount(totalEvents);
+      
       if (!data.images || data.images.length === 0) {
         throw new Error("No images were generated");
       }
@@ -325,20 +348,12 @@ export const GenerateImagesStep = ({
         });
       }
       
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            setIsGenerating(false);
-            return 100;
-          }
-          return prev + 10;
-        });
-      }, 500);
+      setIsGenerating(false);
     } catch (error: any) {
+      if (progressInterval) clearInterval(progressInterval);
       setIsGenerating(false);
       setProgress(0);
+      setGeneratingCount(0);
       console.error("Error generating images:", error);
       toast({
         title: "Failed to generate images",
@@ -597,7 +612,7 @@ export const GenerateImagesStep = ({
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating... {Math.round(progress)}%
+                  Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
                 </>
               ) : (
                 <>
@@ -616,7 +631,9 @@ export const GenerateImagesStep = ({
               <div className="mt-4 space-y-2">
                 <Progress value={progress} />
                 <p className="text-sm text-center text-muted-foreground">
-                  Generating {Math.round(progress)}%
+                  {generatingCount > 0 && totalEvents > 0 
+                    ? `Generating image ${generatingCount} of ${totalEvents} (${Math.round(progress)}%)`
+                    : `Generating... ${Math.round(progress)}%`}
                 </p>
               </div>
             )}
