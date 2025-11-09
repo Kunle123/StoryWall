@@ -10,6 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -52,6 +53,13 @@ export const TimelineInfoStep = ({
   maxEvents = 20,
   setMaxEvents,
 }: TimelineInfoStepProps) => {
+  const [maxEventsInput, setMaxEventsInput] = useState<string>(maxEvents.toString());
+  
+  // Sync external maxEvents changes to input
+  useEffect(() => {
+    setMaxEventsInput(maxEvents.toString());
+  }, [maxEvents]);
+  
   return (
     <div className="space-y-6">
       <div>
@@ -106,17 +114,49 @@ export const TimelineInfoStep = ({
                 </Label>
                 <Input
                   id="max-events"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={maxEvents}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={maxEventsInput}
                   onChange={(e) => {
-                    const value = parseInt(e.target.value, 10);
+                    const inputValue = e.target.value;
+                    // Allow empty string for deletion
+                    if (inputValue === '') {
+                      setMaxEventsInput('');
+                      return;
+                    }
+                    // Only allow digits
+                    if (!/^\d+$/.test(inputValue)) {
+                      return; // Ignore non-numeric input
+                    }
+                    // Update local state immediately for responsive UI
+                    setMaxEventsInput(inputValue);
+                    const value = parseInt(inputValue, 10);
                     if (!isNaN(value) && value >= 1 && value <= 100) {
                       setMaxEvents(value);
                     }
                   }}
-                  className="h-9 w-24"
+                  onBlur={(e) => {
+                    // Ensure value is valid on blur
+                    const inputValue = e.target.value;
+                    if (inputValue === '') {
+                      setMaxEventsInput('20');
+                      setMaxEvents(20); // Default to 20 if empty
+                      return;
+                    }
+                    const value = parseInt(inputValue, 10);
+                    if (isNaN(value) || value < 1) {
+                      setMaxEventsInput('1');
+                      setMaxEvents(1);
+                    } else if (value > 100) {
+                      setMaxEventsInput('100');
+                      setMaxEvents(100);
+                    } else {
+                      setMaxEventsInput(value.toString());
+                      setMaxEvents(value);
+                    }
+                  }}
+                  className="h-9 w-28"
                 />
                 <span className="text-xs text-muted-foreground">
                   (max 100)
