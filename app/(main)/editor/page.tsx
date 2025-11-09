@@ -544,69 +544,71 @@ const TimelineEditor = () => {
             </Card>
 
             {/* Navigation Buttons */}
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row justify-between gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleBack}
-                  disabled={currentStep === 1}
-                  className="w-full sm:w-auto"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-                {currentStep === 5 ? (
+            <Card className="p-6">
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row justify-between gap-3">
                   <Button
-                    onClick={handleNext}
-                    disabled={!canProceed()}
+                    variant="outline"
+                    onClick={handleBack}
+                    disabled={currentStep === 1}
                     className="w-full sm:w-auto"
                   >
-                    Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
                   </Button>
-                ) : currentStep === 6 ? (
-                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <Button 
-                      variant="outline"
-                      onClick={handlePreviewTimeline}
+                  {currentStep === 5 ? (
+                    <Button
+                      onClick={handleNext}
                       disabled={!canProceed()}
-                      className="flex-1 sm:flex-initial"
+                      className="w-full sm:w-auto"
                     >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Preview Timeline
+                      Next
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <Button 
-                      onClick={handleSaveTimeline}
-                      disabled={!canProceed() || isSaving}
-                      className="flex-1 sm:flex-initial"
+                  ) : currentStep === 6 ? (
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                      <Button 
+                        variant="outline"
+                        onClick={handlePreviewTimeline}
+                        disabled={!canProceed()}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Preview Timeline
+                      </Button>
+                      <Button 
+                        onClick={handleSaveTimeline}
+                        disabled={!canProceed() || isSaving}
+                        className="flex-1 sm:flex-initial"
+                      >
+                        {isSaving ? (
+                          <>Saving...</>
+                        ) : (
+                          <><Save className="mr-2 h-4 w-4" />Save Timeline</>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleNext}
+                      className="w-full sm:w-auto"
+                      variant={!canProceed() ? "outline" : "default"}
                     >
-                      {isSaving ? (
-                        <>Saving...</>
-                      ) : (
-                        <><Save className="mr-2 h-4 w-4" />Save Timeline</>
-                      )}
+                      Next
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                  </div>
-                ) : (
-                  <Button
-                    onClick={handleNext}
-                    className="w-full sm:w-auto"
-                    variant={!canProceed() ? "outline" : "default"}
-                  >
-                    Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                )}
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={handleCancel}
+                  className="w-full text-muted-foreground hover:text-destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                onClick={handleCancel}
-                className="w-full text-muted-foreground hover:text-destructive"
-              >
-                <X className="mr-2 h-4 w-4" />
-                Cancel
-              </Button>
-            </div>
+            </Card>
           </>
         )}
       </main>
