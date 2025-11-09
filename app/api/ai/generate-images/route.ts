@@ -1029,22 +1029,25 @@ function buildImagePrompt(
   }
   
   // Add person matching instructions when reference images are provided
+  // These instructions are critical for accurate person matching with Imagen
   if (hasReferenceImage && imageReferences && imageReferences.length > 0) {
     const personNames = extractPersonNames(imageReferences);
     if (personNames.length > 0) {
-      // Add specific person matching instructions
-      prompt += `. Match the facial features, appearance, and likeness of ${personNames.join(' and ')} from the reference image. Maintain accurate facial structure, distinctive features, and recognizable characteristics while adapting to the scene context`;
+      // Add specific person matching instructions - make them prominent
+      // Place at end of prompt so they're not truncated and have maximum impact
+      prompt += `. CRITICAL: Match the exact facial features, appearance, and likeness of ${personNames.join(' and ')} from the reference image. Maintain accurate facial structure, distinctive features, recognizable characteristics, and physical appearance. Preserve the person's unique identifying features while adapting to the scene context and style`;
     } else {
       // Generic person matching instruction if names can't be extracted
-      prompt += `. Match the person's appearance, facial features, and likeness from the reference image. Maintain accurate facial structure and distinctive characteristics while adapting to the scene context`;
+      prompt += `. CRITICAL: Match the exact person's appearance, facial features, and likeness from the reference image. Maintain accurate facial structure, distinctive characteristics, and physical appearance. Preserve unique identifying features while adapting to the scene context`;
     }
   }
   
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // Keep prompt concise and visual-focused (max 700 chars to accommodate person matching)
-  return prompt.substring(0, 700).trim();
+  // Imagen 4 Fast supports up to 480 tokens (~1,900 characters)
+  // Use 1,500 chars to be safe and ensure person matching instructions aren't cut off
+  return prompt.substring(0, 1500).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -1291,14 +1294,16 @@ export async function POST(request: NextRequest) {
         const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
         if (hasReferenceImages) {
-          // For artistic styles with reference images: use Google Imagen (cheaper: $0.02 vs $0.04 for Flux Kontext Pro)
-          // For photorealistic styles: use Flux Kontext Pro (best quality for people)
-          if (isArtistic) {
+          // For both artistic and photorealistic styles with reference images: use Google Imagen
+          // Imagen provides better person matching and is cheaper ($0.02 vs $0.04 for Flux Kontext Pro)
+          if (isArtistic || isPhotorealistic) {
             selectedModel = MODELS.PHOTOREALISTIC; // Google Imagen 4 Fast
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Google Imagen 4 Fast (artistic style with reference images, $0.02/image)`);
-          } else if (isPhotorealistic || selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+            const styleType = isArtistic ? 'artistic' : 'photorealistic';
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Google Imagen 4 Fast (${styleType} style with reference images, $0.02/image, better person matching)`);
+          } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+            // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (photorealistic with reference images, $0.04/image)`);
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (with reference images, $0.04/image)`);
           }
         } else {
           // No reference images - SDXL is fine to use
@@ -1389,19 +1394,23 @@ export async function POST(request: NextRequest) {
           // Google Imagen 4 Fast - supports image input for image-to-image
           input.prompt = prompt;
           
+          // Disable prompt rewriting for better person matching control
+          // enhancePrompt can interfere with specific person matching instructions
+          input.enhancePrompt = false;
+          
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
-              // Google Imagen may support strength parameter for image-to-image
-              input.strength = 0.75; // Control how much to follow the reference image
-              console.log(`[ImageGen] Using reference image with Google Imagen 4 Fast (strength: 0.75, $0.02/image)`);
+              // Note: Imagen 4 Fast on Replicate doesn't document a 'strength' parameter
+              // The model uses the reference image automatically when provided
+              console.log(`[ImageGen] Using reference image with Google Imagen 4 Fast (enhancePrompt: false for better person matching, $0.02/image)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for Google Imagen: ${referenceImageUrl.substring(0, 50)}`);
             }
           } else {
             console.log(`[ImageGen] Using Google Imagen 4 Fast without reference image`);
           }
-          console.log(`[ImageGen] Using Google Imagen 4 Fast parameters`);
+          console.log(`[ImageGen] Using Google Imagen 4 Fast parameters (prompt length: ${prompt.length} chars)`);
         } else if (selectedModel.includes('flux-kontext-pro')) {
           // Flux Kontext Pro supports reference images
           input.num_outputs = 1;
