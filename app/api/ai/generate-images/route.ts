@@ -1019,6 +1019,21 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
+  // Add person matching instructions when reference images are provided
+  // These instructions are critical for accurate person matching with Imagen
+  // Place BEFORE text instructions so they have more weight
+  if (hasReferenceImage && imageReferences && imageReferences.length > 0) {
+    const personNames = extractPersonNames(imageReferences);
+    if (personNames.length > 0) {
+      // Add specific person matching instructions - make them VERY prominent
+      // Explicitly preserve hair color, skin tone, and all physical attributes
+      prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames.join(' and ')} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
+    } else {
+      // Generic person matching instruction if names can't be extracted
+      prompt += `. CRITICAL PERSON MATCHING: Match the exact person's appearance from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Maintain accurate facial structure, distinctive characteristics, and physical appearance exactly as shown in reference`;
+    }
+  }
+  
   // Add text handling instructions - always minimize text
   if (needsText) {
     // When text is needed, limit to essential text only (headlines, signs)
@@ -1026,20 +1041,6 @@ function buildImagePrompt(
   } else {
     // For most images, avoid all text
     prompt += `. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters`;
-  }
-  
-  // Add person matching instructions when reference images are provided
-  // These instructions are critical for accurate person matching with Imagen
-  if (hasReferenceImage && imageReferences && imageReferences.length > 0) {
-    const personNames = extractPersonNames(imageReferences);
-    if (personNames.length > 0) {
-      // Add specific person matching instructions - make them prominent
-      // Place at end of prompt so they're not truncated and have maximum impact
-      prompt += `. CRITICAL: Match the exact facial features, appearance, and likeness of ${personNames.join(' and ')} from the reference image. Maintain accurate facial structure, distinctive features, recognizable characteristics, and physical appearance. Preserve the person's unique identifying features while adapting to the scene context and style`;
-    } else {
-      // Generic person matching instruction if names can't be extracted
-      prompt += `. CRITICAL: Match the exact person's appearance, facial features, and likeness from the reference image. Maintain accurate facial structure, distinctive characteristics, and physical appearance. Preserve unique identifying features while adapting to the scene context`;
-    }
   }
   
   // Note: Reference images are now handled separately via direct image input
