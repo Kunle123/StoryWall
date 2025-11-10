@@ -66,14 +66,24 @@ export async function POST(request: NextRequest) {
     // Normalize writing style to lowercase for lookup
     const normalizedStyle = writingStyle.toLowerCase();
 
-    // Build prompt for description generation
-    const descriptionPrompt = `Timeline Context: ${timelineDescription}\n\nGenerate descriptions for these ${events.length} events:\n${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n')}\n\nReturn JSON: { "descriptions": ["description 1", "description 2", ...] } with exactly ${events.length} descriptions in the same order.`;
+    // Build lean, optimized prompt to avoid repetition
+    // Combine style and color context concisely
+    const imageContextParts: string[] = [];
+    if (imageStyle) {
+      imageContextParts.push(`Image style: ${imageStyle}.`);
+    }
+    if (themeColor) {
+      imageContextParts.push(`Theme color: ${themeColor} (use as a subtle accent).`);
+    }
+    const imageContext = imageContextParts.join(' ');
     
-    // Always generate image prompts - focused on what should be visually depicted
-    const imageStyleContext = imageStyle ? `The image style will be ${imageStyle}.` : 'The image style will be determined later.';
-    const colorContext = themeColor ? `The theme color is ${themeColor} - use this color subtly as a minor accent or motif, not as the dominant color scheme.` : '';
-    
-    const imagePromptRequest = `\n\nAdditionally, generate a separate image description for each event that will be part of a visual narrative sequence. These images will work together to tell the story of the timeline, so create a BALANCED and VARIED sequence of scenes. ${imageStyleContext} ${colorContext}\n\nIMPORTANT: When creating the image descriptions, ensure VARIETY across the sequence:\n- Mix different LOCATION TYPES: indoor/outdoor, public/private, formal/casual, urban/natural, modern/historical\n- Vary COMPOSITIONS: wide shots, close-ups, different angles and perspectives\n- Balance MOODS: some bright and energetic, some moody and atmospheric, some warm and intimate\n- Include different ACTIVITIES: conversations, performances, work, leisure, travel, etc.\n- Vary TIME OF DAY: morning, afternoon, evening, night, sunset, dawn\n- Mix SETTINGS: studios, cafes, outdoor spaces, offices, homes, venues, etc.\n\nFor each event, create a rich, detailed image description that includes:\n- SPECIFIC LOCATION: Describe a vivid, concrete setting (e.g., "In a television studio", "Inside a moody, 1940s-style jazz bar", "At a rooftop garden cafe", "In a minimalist loft with floor-to-ceiling windows", "Outdoors in the Arctic Circle", "In an antique bookstore after hours")\n- VISUAL DETAILS: Include specific visual elements (e.g., "seated on a red sofa", "surrounded by sand dunes at sunset", "wood-paneled library filled with portraits", "neon-lit dive bar with graffiti-covered walls", "on eco-friendly stools surrounded by icebergs")\n- ATMOSPHERE/MOOD: Describe lighting, ambiance, and mood (e.g., "under bright lights and cameras", "warm lighting and jazz in the background", "moody", "neon-lit", "at dusk", "with candles lit")\n- ACTIVITIES/GESTURES: What are the subjects doing? (e.g., "chatting casually", "sipping herbal tea", "sitting on patterned rugs", "laughing over shots", "leaning on the balustrade")\n- ADDITIONAL ELEMENTS: Include environmental details that add richness (e.g., "piano playing", "crackling campfire", "holograms floating around", "LED panels pulsing to the beat", "candles lit", "typewriters clicking nearby", "smoke effects", "red velvet curtains")\n- Period-appropriate details if a year is provided\n\nFormat: Write as a single, flowing sentence or two that paints a complete visual scene. Be specific and evocative. Example: "In a television studio, seated on a red sofa, chatting casually under bright lights and cameras." or "Inside a moody, 1940s-style jazz bar with smoke effects, red velvet curtains, and piano playing." or "Outdoors in the Arctic Circle, seated on eco-friendly stools surrounded by icebergs."\n\nIMPORTANT: If the event involves famous people, focus on the setting, atmosphere, and context rather than specific facial features or direct likenesses.\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
+    // Build the lean user prompt
+    const userPrompt = `Timeline Context: ${timelineDescription}
+
+${imageContext ? imageContext + '\n\n' : ''}Generate descriptions and image prompts for these ${events.length} events:
+
+${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n')}
+`;
 
     // Use AI abstraction layer (supports OpenAI and Kimi)
     const startTime = Date.now();
@@ -104,7 +114,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: 'user',
-            content: descriptionPrompt + imagePromptRequest,
+            content: userPrompt,
           },
         ],
         response_format: { type: 'json_object' },
