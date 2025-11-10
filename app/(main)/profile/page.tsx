@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ interface Timeline {
 const Profile = () => {
   const router = useRouter();
   const { isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -184,6 +185,24 @@ const Profile = () => {
               <Button
                 variant="outline"
                 size="icon"
+                onClick={async () => {
+                  try {
+                    await signOut();
+                    toast({
+                      title: "Logged out",
+                      description: "You have been successfully signed out",
+                    });
+                    router.push("/");
+                  } catch (error: any) {
+                    console.error('[Profile] Logout error:', error);
+                    toast({
+                      title: "Error",
+                      description: error.message || "Failed to sign out. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
