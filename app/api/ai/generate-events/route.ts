@@ -203,66 +203,72 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       }
     }
 
-    // If not using web search (fictional) or content not set, fall back to Chat Completions
-    if (!contentText) {
-      if (isFactual && useWebSearch) {
-        // Web search was attempted but failed - log warning but continue with Chat Completions
-        console.warn('[GenerateEvents API] Web search failed, falling back to Chat Completions API for factual generation');
-      }
-      console.log('[GenerateEvents API] Using Chat Completions API' + (isFactual ? ' (fallback from web search)' : ''));
+      // Declare variables in outer scope
+      let isTruncatedByModel = false;
+      let finishReason: string | undefined;
       
-      // Use AI abstraction layer (supports OpenAI and Kimi)
-      // Increase max_tokens to prevent truncation - need enough for full JSON response
-      // For 20 events: ~30k tokens should be enough, but allow up to 40k for safety
-      const maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
-      
-      let data;
-      try {
-        // For factual events, try to use web search if available
-        // OpenAI Chat Completions supports tools, Kimi may also support web search
-        const tools = isFactual ? [{ type: 'web_search' }] : undefined;
+      // If not using web search (fictional) or content not set, fall back to Chat Completions
+      if (!contentText) {
+        if (isFactual && useWebSearch) {
+          // Web search was attempted but failed - log warning but continue with Chat Completions
+          console.warn('[GenerateEvents API] Web search failed, falling back to Chat Completions API for factual generation');
+        }
+        console.log('[GenerateEvents API] Using Chat Completions API' + (isFactual ? ' (fallback from web search)' : ''));
         
-        data = await createChatCompletion(client, {
-          model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.7,
-          max_tokens: maxTokens,
-          ...(tools && { tools }), // Include web search tool for factual events if supported
+        // Use AI abstraction layer (supports OpenAI and Kimi)
+        // Increase max_tokens to prevent truncation - need enough for full JSON response
+        // For 20 events: ~30k tokens should be enough, but allow up to 40k for safety
+        const maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
+        
+        let data;
+        try {
+          // For factual events, try to use web search if available
+          // OpenAI Chat Completions supports tools, Kimi may also support web search
+          const tools = isFactual ? [{ type: 'web_search' }] : undefined;
+          
+          data = await createChatCompletion(client, {
+            model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.7,
+            max_tokens: maxTokens,
+            ...(tools && { tools }), // Include web search tool for factual events if supported
+          });
+        } catch (error: any) {
+          console.error('AI API error:', error);
+          return NextResponse.json(
+            { error: 'Failed to generate events', details: error.message || 'Unknown error' },
+            { status: 500 }
+          );
+        }
+        
+        console.log('[GenerateEvents API] AI API response structure:', {
+          hasChoices: !!data.choices,
+          choicesLength: data.choices?.length,
+          hasFirstChoice: !!data.choices?.[0],
+          hasMessage: !!data.choices?.[0]?.message,
+          messageContentLength: data.choices?.[0]?.message?.content?.length,
+          finishReason: data.choices?.[0]?.finish_reason,
         });
-      } catch (error: any) {
-        console.error('AI API error:', error);
-        return NextResponse.json(
-          { error: 'Failed to generate events', details: error.message || 'Unknown error' },
-          { status: 500 }
-        );
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+          console.error('[GenerateEvents API] Invalid AI response structure:', data);
+        throw new Error('Invalid response format from AI API');
       }
-      
-      console.log('[GenerateEvents API] AI API response structure:', {
-        hasChoices: !!data.choices,
-        choicesLength: data.choices?.length,
-        hasFirstChoice: !!data.choices?.[0],
-        hasMessage: !!data.choices?.[0]?.message,
-        messageContentLength: data.choices?.[0]?.message?.content?.length,
-        finishReason: data.choices?.[0]?.finish_reason,
-      });
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('[GenerateEvents API] Invalid AI response structure:', data);
-      throw new Error('Invalid response format from AI API');
-    }
-      
-      // Check finish_reason to detect truncation
-      const finishReason = data.choices[0].finish_reason;
-      if (finishReason === 'length' || finishReason === 'max_tokens') {
-        console.warn('[GenerateEvents API] Response was truncated due to token limit (finish_reason:', finishReason + ')');
+        
+        // Check finish_reason to detect truncation BEFORE processing content
+        finishReason = data.choices[0].finish_reason;
+        isTruncatedByModel = finishReason === 'length' || finishReason === 'max_tokens';
+        
+        if (isTruncatedByModel) {
+          console.warn('[GenerateEvents API] Response was truncated by model (finish_reason:', finishReason + ')');
+        }
+        
+        contentText = data.choices[0].message.content;
       }
-      
-      contentText = data.choices[0].message.content;
-    }
 
     if (!contentText || typeof contentText !== 'string') {
       throw new Error('Empty assistant response');
@@ -270,7 +276,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
 
     // Check if content appears truncated (incomplete JSON)
     const trimmedContent = contentText.trim();
-    const isTruncated = (
+    const appearsTruncated = (
       trimmedContent.length > 0 &&
       !trimmedContent.endsWith('}') &&
       !trimmedContent.endsWith(']') &&
@@ -278,13 +284,83 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       trimmedContent.includes('{') // Has JSON start but no proper end
     );
 
-    if (isTruncated) {
+    if (appearsTruncated || isTruncatedByModel) {
       console.error('[GenerateEvents API] Response appears truncated:', {
+        finishReason,
+        isTruncatedByModel,
+        appearsTruncated,
         contentLength: contentText.length,
-        lastChars: contentText.substring(Math.max(0, contentText.length - 100)),
+        lastChars: contentText.substring(Math.max(0, contentText.length - 200)),
         contentPreview: contentText.substring(0, 500),
       });
-      throw new Error('OpenAI response appears incomplete (truncated JSON). The response may have exceeded token limits. Please try with fewer events or a shorter description.');
+      
+      // Try to salvage partial JSON if possible
+      try {
+        const jsonMatch = trimmedContent.match(/\{[\s\S]*/);
+        if (jsonMatch) {
+          // Try to find the last complete event in the JSON
+          const partialJson = jsonMatch[0];
+          // Find the last complete event object
+          const eventMatches = partialJson.match(/"events"\s*:\s*\[([\s\S]*)/);
+          if (eventMatches) {
+            const eventsText = eventMatches[1];
+            // Try to extract complete event objects
+            const completeEvents = [];
+            let depth = 0;
+            let currentEvent = '';
+            let inString = false;
+            let escapeNext = false;
+            
+            for (let i = 0; i < eventsText.length; i++) {
+              const char = eventsText[i];
+              if (escapeNext) {
+                currentEvent += char;
+                escapeNext = false;
+                continue;
+              }
+              if (char === '\\') {
+                escapeNext = true;
+                currentEvent += char;
+                continue;
+              }
+              if (char === '"') {
+                inString = !inString;
+                currentEvent += char;
+                continue;
+              }
+              if (!inString) {
+                if (char === '{') depth++;
+                if (char === '}') depth--;
+                currentEvent += char;
+                if (depth === 0 && currentEvent.trim().length > 0) {
+                  try {
+                    const eventObj = JSON.parse(currentEvent.trim());
+                    completeEvents.push(eventObj);
+                    currentEvent = '';
+                  } catch (e) {
+                    // Skip incomplete event
+                  }
+                }
+              } else {
+                currentEvent += char;
+              }
+            }
+            
+            if (completeEvents.length > 0) {
+              console.warn(`[GenerateEvents API] Salvaged ${completeEvents.length} complete events from truncated response`);
+              // Return what we have
+              return NextResponse.json({
+                events: completeEvents,
+                warning: `Response was truncated. Only ${completeEvents.length} of ${maxEvents} events were generated.`,
+              });
+            }
+          }
+        }
+      } catch (salvageError: any) {
+        console.error('[GenerateEvents API] Failed to salvage partial JSON:', salvageError.message);
+      }
+      
+      throw new Error('AI response appears incomplete (truncated JSON). The response may have exceeded token limits. Please try with fewer events or a shorter description.');
     }
 
     let content;
