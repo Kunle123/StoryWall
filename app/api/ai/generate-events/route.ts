@@ -212,7 +212,9 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       console.log('[GenerateEvents API] Using Chat Completions API' + (isFactual ? ' (fallback from web search)' : ''));
       
       // Use AI abstraction layer (supports OpenAI and Kimi)
-      const maxTokens = Math.min(40000, (maxEvents * 1500) + 10000);
+      // Increase max_tokens to prevent truncation - need enough for full JSON response
+      // For 20 events: ~30k tokens should be enough, but allow up to 40k for safety
+      const maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
       
       let data;
       try {
@@ -239,18 +241,26 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         );
       }
       
-      console.log('[GenerateEvents API] OpenAI API response structure:', {
+      console.log('[GenerateEvents API] AI API response structure:', {
         hasChoices: !!data.choices,
         choicesLength: data.choices?.length,
         hasFirstChoice: !!data.choices?.[0],
         hasMessage: !!data.choices?.[0]?.message,
         messageContentLength: data.choices?.[0]?.message?.content?.length,
+        finishReason: data.choices?.[0]?.finish_reason,
       });
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('[GenerateEvents API] Invalid OpenAI response structure:', data);
-      throw new Error('Invalid response format from OpenAI');
+        console.error('[GenerateEvents API] Invalid AI response structure:', data);
+      throw new Error('Invalid response format from AI API');
     }
+      
+      // Check finish_reason to detect truncation
+      const finishReason = data.choices[0].finish_reason;
+      if (finishReason === 'length' || finishReason === 'max_tokens') {
+        console.warn('[GenerateEvents API] Response was truncated due to token limit (finish_reason:', finishReason + ')');
+      }
+      
       contentText = data.choices[0].message.content;
     }
 
