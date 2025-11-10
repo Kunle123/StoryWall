@@ -222,17 +222,18 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         const startTime = Date.now();
         let maxTokens: number;
         if (client.provider === 'kimi') {
-          // For Kimi, respect model-specific output limits
-          // moonshot-v1-128k has max output of 16,384 tokens
-          // K2 models may have different limits, but be conservative
+          // For Kimi, try to use higher limits if available
+          // K2 models may support higher output limits than moonshot-v1-128k
+          // Try 32k for large requests - if it fails, the API will return an error
           if (maxEvents >= 100) {
-            // For 100 events, using moonshot-v1-128k which has 16k max output
-            maxTokens = Math.min(16384, (maxEvents * 150) + 2000); // ~17k calculation, capped at 16k
+            // For 100 events, try 32k tokens (K2 models may support this)
+            // If moonshot-v1-128k is used, it will error and we can fall back
+            maxTokens = Math.min(32000, (maxEvents * 300) + 2000);
           } else if (maxEvents > 50) {
-            // For large requests, try 16k tokens (moonshot-v1-128k limit)
-            maxTokens = Math.min(16384, (maxEvents * 800) + 4000);
+            // For large requests, try 32k tokens
+            maxTokens = Math.min(32000, (maxEvents * 800) + 4000);
           } else {
-            // For smaller requests, use 16k cap
+            // For smaller requests, use 16k cap (moonshot-v1-128k limit)
             maxTokens = Math.min(16384, (maxEvents * 800) + 4000);
           }
         } else {
