@@ -61,17 +61,17 @@ export function getModelForProvider(
     // Determine which Kimi model to use based on context needs
     // OpenAI models have 128k context, so we need Kimi models with similar capacity
     
-    // For 100 events, try K2 models first (may support higher output limits)
-    // If 32k tokens are requested, use K2 models which may support it
+    // For 100 events, try kimi-latest-128k which may support higher output limits
+    // According to docs, kimi-latest-128k may have 128k output tokens
     if (maxEvents && maxEvents >= 100) {
-      // Try K2 models for 100 events - they may support higher output limits
+      // Try kimi-latest-128k for 100 events - may support higher output limits
       const modelMap: Record<string, string> = {
-        'gpt-4o': 'kimi-k2-0905-preview', // 256k context, latest K2 model
-        'gpt-4o-mini': 'kimi-k2-turbo-preview', // 256k context, optimized for speed
-        'gpt-4': 'kimi-k2-0905-preview',
-        'gpt-3.5-turbo': 'kimi-k2-turbo-preview',
+        'gpt-4o': 'kimi-latest-128k', // May support 128k output tokens
+        'gpt-4o-mini': 'kimi-latest-128k', // May support 128k output tokens
+        'gpt-4': 'kimi-latest-128k',
+        'gpt-3.5-turbo': 'kimi-latest-128k',
       };
-      return modelMap[openAIModel] || 'kimi-k2-turbo-preview';
+      return modelMap[openAIModel] || 'kimi-latest-128k';
     }
     
     // For very long contexts (30k+ tokens), use the largest models
