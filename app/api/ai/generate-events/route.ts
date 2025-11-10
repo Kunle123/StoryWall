@@ -219,6 +219,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         // Calculate max_tokens based on provider
         // Kimi models may have lower output token limits (e.g., 8k-16k) despite large context windows
         // OpenAI models can handle much larger outputs (up to 128k)
+        const startTime = Date.now();
         let maxTokens: number;
         if (client.provider === 'kimi') {
           // For Kimi, try increasing the cap for large requests
@@ -235,6 +236,8 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           // For OpenAI, we can request much larger outputs
           maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
         }
+        
+        console.log(`[GenerateEvents API] Request config: provider=${client.provider}, maxEvents=${maxEvents}, maxTokens=${maxTokens}`);
         
         let data;
         try {
@@ -288,6 +291,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         
         contentText = data.choices[0].message.content;
         
+        const generationTime = Date.now() - startTime;
         // Log response details for debugging truncation
         console.log('[GenerateEvents API] Response details:', {
           provider: client.provider,
@@ -296,6 +300,8 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           contentLength: contentText?.length || 0,
           usage: data.usage || 'not provided',
           maxTokensRequested: maxTokens,
+          generationTimeMs: generationTime,
+          generationTimeSec: (generationTime / 1000).toFixed(2),
         });
       }
 
