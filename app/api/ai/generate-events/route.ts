@@ -436,24 +436,67 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       });
       
       // Try to extract JSON object from the text if it's embedded in other text
-      const jsonMatch = contentText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          // Check if extracted JSON is complete
-          const extracted = jsonMatch[0];
-          const openBraces = (extracted.match(/\{/g) || []).length;
-          const closeBraces = (extracted.match(/\}/g) || []).length;
-          if (openBraces === closeBraces) {
-            content = JSON.parse(extracted);
-            console.log('[GenerateEvents API] Successfully extracted JSON from text');
-          } else {
-            throw new Error(`Extracted JSON is incomplete: ${openBraces} opening braces but ${closeBraces} closing braces`);
-          }
-        } catch (e: any) {
-          throw new Error('Failed to parse OpenAI response content: ' + (e.message || parseError.message));
+      // Look for the first { and try to find matching closing }
+      let jsonStart = contentText.indexOf('{');
+      if (jsonStart === -1) {
+        throw new Error(`Failed to parse AI response: ${parseError.message}. No JSON object found in response (no opening brace).`);
+      }
+      
+      // Extract from first { to end, then try to find the matching closing }
+      let jsonCandidate = contentText.substring(jsonStart);
+      
+      // Try to find the last complete JSON object by matching braces (accounting for escaped braces)
+      let braceCount = 0;
+      let jsonEnd = -1;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = 0; i < jsonCandidate.length; i++) {
+        const char = jsonCandidate[i];
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
         }
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        if (!inString) {
+          if (char === '{') {
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (jsonEnd === -1) {
+        // No complete JSON found, try the whole thing anyway
+        console.warn('[GenerateEvents API] Could not find complete JSON, trying entire extracted text');
       } else {
-        throw new Error('Failed to parse OpenAI response content: ' + parseError.message);
+        jsonCandidate = jsonCandidate.substring(0, jsonEnd);
+      }
+      
+      try {
+        // Remove any trailing text after the JSON
+        const cleanedJson = jsonCandidate.trim();
+        content = JSON.parse(cleanedJson);
+        console.warn('[GenerateEvents API] Successfully extracted JSON from text response (had text before JSON)');
+      } catch (extractError: any) {
+        console.error('[GenerateEvents API] Failed to parse extracted JSON:', {
+          error: extractError.message,
+          jsonPreview: jsonCandidate.substring(0, 500),
+          jsonLength: jsonCandidate.length,
+        });
+        throw new Error(`Failed to parse AI response: ${parseError.message}. Extracted JSON also failed: ${extractError.message}`);
       }
     }
     
