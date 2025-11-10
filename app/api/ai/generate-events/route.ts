@@ -150,8 +150,6 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
               { role: 'user', content: userPrompt },
             ],
             tools: [{ type: 'web_search' }],
-            reasoning: { effort: 'low' },
-            text: { verbosity: 'low' },
             max_output_tokens: Math.min(40000, (maxEvents * 1500) + 10000),
           }),
         });
@@ -194,18 +192,14 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           }
         } else {
           const errText = await resp.text();
-          console.warn('[GenerateEvents API] Responses API failed (web_search required for factual):', errText);
-          return NextResponse.json(
-            { error: 'Web search failed for factual generation', details: errText },
-            { status: 502 }
-          );
+          console.warn('[GenerateEvents API] Responses API failed, will fall back to Chat Completions:', errText);
+          // Don't return error - let it fall through to Chat Completions fallback
+          contentText = null;
         }
       } catch (e) {
-        console.warn('[GenerateEvents API] Responses API error (web_search required):', (e as any)?.message);
-        return NextResponse.json(
-          { error: 'Web search error for factual generation', details: (e as any)?.message || 'Unknown error' },
-          { status: 502 }
-        );
+        console.warn('[GenerateEvents API] Responses API error, will fall back to Chat Completions:', (e as any)?.message);
+        // Don't return error - let it fall through to Chat Completions fallback
+        contentText = null;
       }
     }
 
