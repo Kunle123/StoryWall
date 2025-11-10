@@ -61,6 +61,18 @@ const TimelineEditor = () => {
   const [themeColor, setThemeColor] = useState("");
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
+  const [sourceRestrictions, setSourceRestrictions] = useState<string[]>([]);
+  const [referencePhoto, setReferencePhoto] = useState<{
+    file: File | null;
+    url: string | null;
+    personName: string;
+    hasPermission: boolean;
+  }>({
+    file: null,
+    url: null,
+    personName: "",
+    hasPermission: false,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -85,6 +97,13 @@ const TimelineEditor = () => {
         setThemeColor(state.themeColor || "");
         setEvents(state.events || []);
         setImageReferences(state.imageReferences || []);
+        setSourceRestrictions(state.sourceRestrictions || []);
+        setReferencePhoto(state.referencePhoto || {
+          file: null,
+          url: null,
+          personName: "",
+          hasPermission: false,
+        });
         setCurrentStep(state.currentStep || 1);
       } catch (e) {
         console.error('Failed to load saved state:', e);
@@ -110,10 +129,15 @@ const TimelineEditor = () => {
       themeColor,
       events,
       imageReferences,
+      sourceRestrictions,
+      referencePhoto: {
+        ...referencePhoto,
+        file: null, // Don't store File object in localStorage
+      },
       currentStep,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, currentStep]);
+      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, referencePhoto, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -459,7 +483,11 @@ const TimelineEditor = () => {
                       startDate={startDate}
                       setStartDate={setStartDate}
                       endDate={endDate}
-                      setEndDate={setEndDate}
+                      setEndDate={endDate}
+                      sourceRestrictions={sourceRestrictions}
+                      setSourceRestrictions={setSourceRestrictions}
+                      referencePhoto={referencePhoto}
+                      setReferencePhoto={setReferencePhoto}
                     />
                   )}
               {currentStep === 2 && (
@@ -477,6 +505,7 @@ const TimelineEditor = () => {
                   numberLabel={numberLabel}
                   maxEvents={maxEvents}
                   setImageReferences={setImageReferences}
+                  sourceRestrictions={sourceRestrictions}
                 />
               )}
               {currentStep === 3 && (
@@ -487,6 +516,7 @@ const TimelineEditor = () => {
                   writingStyle={writingStyle}
                   imageStyle={imageStyle} // Pass if already selected (user may have gone back)
                   themeColor={themeColor} // Pass if already selected
+                  sourceRestrictions={sourceRestrictions}
                 />
               )}
               {currentStep === 4 && (
@@ -507,6 +537,7 @@ const TimelineEditor = () => {
                   themeColor={themeColor}
                   setThemeColor={setThemeColor}
                   imageReferences={imageReferences}
+                  referencePhoto={referencePhoto}
                 />
               )}
               {currentStep === 6 && (

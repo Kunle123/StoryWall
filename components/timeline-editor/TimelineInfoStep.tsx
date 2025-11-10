@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CalendarIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CalendarIcon, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useRef } from "react";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -31,6 +33,20 @@ interface TimelineInfoStepProps {
   setNumberLabel?: (label: string) => void;
   maxEvents?: number;
   setMaxEvents?: (maxEvents: number) => void;
+  sourceRestrictions?: string[];
+  setSourceRestrictions?: (sources: string[]) => void;
+  referencePhoto?: {
+    file: File | null;
+    url: string | null;
+    personName: string;
+    hasPermission: boolean;
+  };
+  setReferencePhoto?: (photo: {
+    file: File | null;
+    url: string | null;
+    personName: string;
+    hasPermission: boolean;
+  }) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -52,13 +68,175 @@ export const TimelineInfoStep = ({
   setNumberLabel,
   maxEvents = 20,
   setMaxEvents,
+  sourceRestrictions = [],
+  setSourceRestrictions,
+  referencePhoto,
+  setReferencePhoto,
 }: TimelineInfoStepProps) => {
   const [maxEventsInput, setMaxEventsInput] = useState<string>(maxEvents.toString());
+  const [sourceInput, setSourceInput] = useState<string>("");
+  const [referencePhotoPersonName, setReferencePhotoPersonName] = useState<string>(referencePhoto?.personName || "");
+  const [referencePhotoHasPermission, setReferencePhotoHasPermission] = useState<boolean>(referencePhoto?.hasPermission || false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(referencePhoto?.url || null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const { toast } = useToast();
   
   // Sync external maxEvents changes to input
   useEffect(() => {
     setMaxEventsInput(maxEvents.toString());
   }, [maxEvents]);
+
+  // Sync reference photo state
+  useEffect(() => {
+    if (referencePhoto) {
+      setReferencePhotoPersonName(referencePhoto.personName);
+      setReferencePhotoHasPermission(referencePhoto.hasPermission);
+      setPreviewUrl(referencePhoto.url);
+    }
+  }, [referencePhoto]);
+
+  const handleAddSource = () => {
+    if (sourceInput.trim() && setSourceRestrictions) {
+      setSourceRestrictions([...sourceRestrictions, sourceInput.trim()]);
+      setSourceInput("");
+    }
+  };
+
+  const handleRemoveSource = (index: number) => {
+    if (setSourceRestrictions) {
+      setSourceRestrictions(sourceRestrictions.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a JPEG, PNG, GIF, or WebP image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create temporary preview URL for immediate feedback
+    const tempUrl = URL.createObjectURL(file);
+    setPreviewUrl(tempUrl);
+    setIsUploadingPhoto(true);
+
+    try {
+      // Upload to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'x-reference-photo': 'true', // Mark as reference photo for folder organization
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      const cloudinaryUrl = data.url;
+
+      // Revoke the temporary blob URL
+      URL.revokeObjectURL(tempUrl);
+
+      // Update preview with Cloudinary URL
+      setPreviewUrl(cloudinaryUrl);
+
+      // Update state with Cloudinary URL
+      if (setReferencePhoto) {
+        setReferencePhoto({
+          file: null, // Don't store the file object, just the URL
+          url: cloudinaryUrl,
+          personName: referencePhotoPersonName,
+          hasPermission: referencePhotoHasPermission,
+        });
+      }
+
+      toast({
+        title: "Photo uploaded",
+        description: "Reference photo has been uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Error uploading reference photo:", error);
+      // Revoke the temporary blob URL on error
+      URL.revokeObjectURL(tempUrl);
+      setPreviewUrl(null);
+      
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload reference photo. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    // Revoke blob URL if it's a temporary one (shouldn't happen after upload, but just in case)
+    if (previewUrl && previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    if (setReferencePhoto) {
+      setReferencePhoto({
+        file: null,
+        url: null,
+        personName: "",
+        hasPermission: false,
+      });
+    }
+    setReferencePhotoPersonName("");
+    setReferencePhotoHasPermission(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handlePersonNameChange = (name: string) => {
+    setReferencePhotoPersonName(name);
+    if (setReferencePhoto && referencePhoto) {
+      setReferencePhoto({
+        ...referencePhoto,
+        personName: name,
+      });
+    }
+  };
+
+  const handlePermissionChange = (hasPermission: boolean) => {
+    setReferencePhotoHasPermission(hasPermission);
+    if (setReferencePhoto && referencePhoto) {
+      setReferencePhoto({
+        ...referencePhoto,
+        hasPermission,
+      });
+    }
+  };
   
   return (
     <div className="space-y-6">
@@ -299,6 +477,161 @@ export const TimelineInfoStep = ({
                     </div>
                   </div>
                 )}
+
+                {/* Source Restrictions */}
+                <div className="space-y-3 p-4 border rounded-lg">
+                  <div className="space-y-2">
+                    <Label htmlFor="source-restrictions" className="text-base">
+                      Source Restrictions (Optional)
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Require that descriptions and titles are sourced solely from specific resources. 
+                      Examples: "The writings of Noam Chomsky", "Official publications from the NHS", 
+                      "www.example.com", "YouTube archive of Peter Crouch"
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        id="source-restrictions"
+                        placeholder="e.g., The writings of Noam Chomsky"
+                        value={sourceInput}
+                        onChange={(e) => setSourceInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSource();
+                          }
+                        }}
+                        className="h-9"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddSource}
+                        disabled={!sourceInput.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {sourceRestrictions.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {sourceRestrictions.map((source, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="flex items-center gap-1 pr-1"
+                          >
+                            <span className="max-w-xs truncate">{source}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSource(index)}
+                              className="hover:bg-secondary rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Reference Photo Upload */}
+                <div className="space-y-3 p-4 border rounded-lg">
+                  <div className="space-y-2">
+                    <Label className="text-base">
+                      Reference Photo (Optional)
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Upload a reference photo to base illustrations on. You must confirm who is in the photo 
+                      and that you have permission to use it.
+                    </p>
+                    
+                    {!previewUrl ? (
+                      <div>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          className="hidden"
+                          onChange={handleFileSelect}
+                          disabled={isUploadingPhoto}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploadingPhoto}
+                        >
+                          {isUploadingPhoto ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Reference Photo
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="relative w-full h-48 border rounded-lg overflow-hidden bg-muted">
+                          <img
+                            src={previewUrl}
+                            alt="Reference photo preview"
+                            className="w-full h-full object-contain"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={handleRemovePhoto}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="photo-person-name" className="text-sm">
+                            Who is in this photo? *
+                          </Label>
+                          <Input
+                            id="photo-person-name"
+                            placeholder="e.g., Taylor Swift, Zohran Mamdani, etc."
+                            value={referencePhotoPersonName}
+                            onChange={(e) => handlePersonNameChange(e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <Checkbox
+                            id="photo-permission"
+                            checked={referencePhotoHasPermission}
+                            onCheckedChange={(checked) => handlePermissionChange(checked === true)}
+                          />
+                          <Label
+                            htmlFor="photo-permission"
+                            className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            I confirm that I have permission to use this photo for image generation
+                          </Label>
+                        </div>
+                        
+                        {previewUrl && (!referencePhotoPersonName.trim() || !referencePhotoHasPermission) && (
+                          <p className="text-xs text-muted-foreground">
+                            Please provide the person's name and confirm you have permission to use this photo.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </AccordionContent>
           </AccordionItem>

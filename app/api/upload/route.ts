@@ -67,11 +67,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Check if this is a reference photo upload (optional query parameter)
+    const isReferencePhoto = request.headers.get('x-reference-photo') === 'true';
+    const folder = isReferencePhoto ? 'storywall/reference-photos' : 'storywall';
+
     // Upload to Cloudinary
     return new Promise<NextResponse>((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'storywall', // Organize uploads in a folder
+          folder: folder, // Organize uploads in a folder
           resource_type: 'image',
           transformation: [
             { quality: 'auto' }, // Auto-optimize quality

@@ -14,9 +14,10 @@ interface EventDetailsStepProps {
   writingStyle: string;
   imageStyle?: string; // Optional - if provided, generate image prompts too
   themeColor?: string; // Optional - if provided, include in image prompts
+  sourceRestrictions?: string[];
 }
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle, imageStyle, themeColor }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle, imageStyle, themeColor, sourceRestrictions = [] }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -44,12 +45,13 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       const response = await fetch("/api/ai/generate-descriptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+          body: JSON.stringify({
           events: [{ year: event.year, title: event.title }],
           timelineDescription,
           writingStyle,
           imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
           themeColor, // Include if available
+          sourceRestrictions: sourceRestrictions.length > 0 ? sourceRestrictions : undefined,
         }),
       });
 
@@ -127,6 +129,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
             writingStyle,
             imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
             themeColor, // Include if available
+            sourceRestrictions: sourceRestrictions.length > 0 ? sourceRestrictions : undefined,
           }),
           signal: controller.signal,
         });

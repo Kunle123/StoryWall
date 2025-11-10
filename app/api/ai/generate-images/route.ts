@@ -1122,7 +1122,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [] } = body;
+    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto } = body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -1151,8 +1151,17 @@ export async function POST(request: NextRequest) {
       console.log(`[ImageGen] ${textNeededCount} of ${events.length} events require text in images - will use text-capable models`);
     }
     
-    // Auto-extract person names and fetch reference images if not provided
-    let finalImageReferences = imageReferences && imageReferences.length > 0 ? imageReferences : [];
+    // Add user-provided reference photo if available
+    let finalImageReferences = imageReferences && imageReferences.length > 0 ? [...imageReferences] : [];
+    
+    // Add reference photo if provided and valid
+    if (referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission) {
+      console.log(`[ImageGen] Using user-provided reference photo for ${referencePhoto.personName}`);
+      finalImageReferences.push({
+        name: referencePhoto.personName,
+        url: referencePhoto.url,
+      });
+    }
     
     if (finalImageReferences.length === 0) {
       try {

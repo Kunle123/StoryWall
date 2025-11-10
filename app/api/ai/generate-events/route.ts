@@ -20,7 +20,7 @@ import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/clie
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    let { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day" } = body;
+    let { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day", sourceRestrictions } = body;
     
     // Validate and clamp maxEvents to 1-100
     maxEvents = Math.max(1, Math.min(100, parseInt(String(maxEvents), 10) || 20));
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
             numberLabel,
             client,
             openaiApiKey,
+            sourceRestrictions,
             batchNumber,
             batches.length
           );
@@ -174,10 +175,15 @@ CREATIVE GUIDELINES:
 
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
+    // Build source restrictions text if provided
+    const sourceRestrictionsText = sourceRestrictions && Array.isArray(sourceRestrictions) && sourceRestrictions.length > 0
+      ? `\n\nSOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:\n${sourceRestrictions.map((src: string, idx: number) => `  ${idx + 1}. ${src}`).join('\n')}\n\nIf information is not available in these sources, indicate that in the event description.`
+      : '';
+
     const userPrompt = isNumbered
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
       : isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
 - Include the most recent 48-hour developments (e.g., election-night result and victory announcement) when relevant
@@ -199,7 +205,7 @@ Include as many significant events as you can. If you know the specific date (mo
 IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
 
 Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
-      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
     // Only use if OpenAI key is available (Responses API is OpenAI-specific)
@@ -785,6 +791,7 @@ async function generateEventsBatch(
   numberLabel: string,
   client: AIClientConfig,
   openaiApiKey: string | undefined,
+  sourceRestrictions?: string[],
   batchNumber?: number,
   totalBatches?: number
 ): Promise<{ events: any[]; sources?: any[]; imageReferences?: any[] }> {
@@ -833,14 +840,14 @@ CREATIVE GUIDELINES:
 IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
 
   const userPrompt = isNumbered
-    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
     : isFactual
-    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
 IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
 Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
-    : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+    : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
   // Calculate max_tokens for this batch
   let maxTokens: number;

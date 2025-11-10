@@ -34,6 +34,7 @@ interface WritingStyleStepProps {
   numberLabel?: string;
   maxEvents?: number;
   setImageReferences?: (refs: Array<{ name: string; url: string }>) => void;
+  sourceRestrictions?: string[];
 }
 
 const writingStyles = [
@@ -59,6 +60,7 @@ export const WritingStyleStep = ({
   numberLabel = "Day",
   maxEvents = 20,
   setImageReferences,
+  sourceRestrictions = [],
 }: WritingStyleStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -93,6 +95,7 @@ export const WritingStyleStep = ({
         isFactual: Boolean(isFactual),
         isNumbered: Boolean(isNumbered),
         numberLabel: String(numberLabel || 'Day').trim(),
+        sourceRestrictions: sourceRestrictions.length > 0 ? sourceRestrictions : undefined,
       };
 
       // Additional validation

@@ -22,7 +22,7 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, timelineDescription, writingStyle = 'narrative', imageStyle, themeColor } = body;
+    const { events, timelineDescription, writingStyle = 'narrative', imageStyle, themeColor, sourceRestrictions } = body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -77,8 +77,13 @@ export async function POST(request: NextRequest) {
     }
     const imageContext = imageContextParts.join(' ');
     
+    // Build source restrictions text if provided
+    const sourceRestrictionsText = sourceRestrictions && Array.isArray(sourceRestrictions) && sourceRestrictions.length > 0
+      ? `\n\nSOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:\n${sourceRestrictions.map((src: string, idx: number) => `  ${idx + 1}. ${src}`).join('\n')}\n\nIf information is not available in these sources, indicate that in the event description.`
+      : '';
+    
     // Build the lean user prompt
-    const userPrompt = `Timeline Context: ${timelineDescription}
+    const userPrompt = `Timeline Context: ${timelineDescription}${sourceRestrictionsText}
 
 ${imageContext ? imageContext + '\n\n' : ''}Generate descriptions and image prompts for these ${events.length} events:
 
