@@ -89,12 +89,18 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     const startTime = Date.now();
     let maxTokens: number;
     if (client.provider === 'kimi') {
-      // For Kimi, use similar logic as generate-events
-      // Descriptions + image prompts need more tokens per event
-      if (events.length > 50) {
+      // For Kimi, use kimi-latest-128k for 100 events (supports 128k output)
+      // For smaller requests, use appropriate limits
+      if (events.length >= 100) {
+        // For 100 events, kimi-latest-128k supports 128k output tokens
+        // Use conservative calculation: (events * 300) + 2000, capped at reasonable limit
+        maxTokens = Math.min(64000, (events.length * 300) + 2000);
+      } else if (events.length > 50) {
+        // For large requests, try 32k tokens
         maxTokens = Math.min(32000, (events.length * 600) + 4000);
       } else {
-        maxTokens = Math.min(16000, (events.length * 600) + 4000);
+        // For smaller requests, use 16k cap (moonshot-v1-128k limit)
+        maxTokens = Math.min(16384, (events.length * 600) + 4000);
       }
     } else {
       // For OpenAI, we can request much larger outputs
