@@ -133,10 +133,13 @@ export async function createChatCompletion(
   };
   
   // Add optional parameters if provided
-  if (options.response_format) {
+  // Note: response_format might not be supported by all providers (e.g., Kimi)
+  // Kimi API may not support response_format, so we only include it for OpenAI
+  if (options.response_format && config.provider === 'openai') {
     requestBody.response_format = options.response_format;
   }
-  if (options.tools) {
+  // Tools (like web_search) - may not be supported by all providers
+  if (options.tools && options.tools.length > 0) {
     requestBody.tools = options.tools;
   }
   

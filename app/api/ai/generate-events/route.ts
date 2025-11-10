@@ -226,13 +226,20 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           // OpenAI Chat Completions supports tools, Kimi may also support web search
           const tools = isFactual ? [{ type: 'web_search' }] : undefined;
           
+          // For Kimi, we may not be able to use response_format, so we'll parse JSON from text
+          // Make the prompt more explicit about JSON format when using Kimi
+          const enhancedUserPrompt = client.provider === 'kimi' 
+            ? userPrompt + '\n\nIMPORTANT: You MUST return ONLY valid JSON. Do not include any explanatory text before or after the JSON. Start with { and end with }.'
+            : userPrompt;
+          
           data = await createChatCompletion(client, {
             model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
+              { role: 'user', content: enhancedUserPrompt },
             ],
-            response_format: { type: 'json_object' },
+            // Only use response_format for OpenAI (Kimi may not support it)
+            response_format: client.provider === 'openai' ? { type: 'json_object' } : undefined,
             temperature: 0.7,
             max_tokens: maxTokens,
             ...(tools && { tools }), // Include web search tool for factual events if supported
