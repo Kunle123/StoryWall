@@ -275,11 +275,24 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         }
         
         contentText = data.choices[0].message.content;
+        
+        // Log response details for debugging truncation
+        console.log('[GenerateEvents API] Response details:', {
+          provider: client.provider,
+          model: data.model || 'unknown',
+          finishReason: data.choices[0].finish_reason,
+          contentLength: contentText?.length || 0,
+          usage: data.usage || 'not provided',
+          maxTokensRequested: maxTokens,
+        });
       }
 
     if (!contentText || typeof contentText !== 'string') {
       throw new Error('Empty assistant response');
     }
+    
+    // Log content preview for debugging
+    console.log('[GenerateEvents API] Content preview (first 1000 chars):', contentText.substring(0, 1000));
 
     // Check if content appears truncated (incomplete JSON)
     const trimmedContent = contentText.trim();
