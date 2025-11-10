@@ -300,6 +300,19 @@ export const ExperimentalBottomMenuBar = ({
               strokeWidth="1"
               strokeOpacity="0.8"
             />
+            {/* Hairline orange border along upper edge (following the arc cutout) */}
+            <path
+              d={`
+                M 0 0
+                L ${arcLeftX} 0
+                A ${recessRadius} ${recessRadius} 0 0 0 ${arcRightX} 0
+                L ${screenWidth} 0
+              `}
+              fill="none"
+              stroke="#FF6B35"
+              strokeWidth="0.5"
+              strokeOpacity="1"
+            />
           </svg>
           
           {/* Backdrop blur layer with same cutout shape (no background, just blur effect) */}
