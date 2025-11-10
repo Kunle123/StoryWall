@@ -76,7 +76,22 @@ export async function POST(request: NextRequest) {
     const imagePromptRequest = `\n\nAdditionally, generate a separate image description for each event that will be part of a visual narrative sequence. These images will work together to tell the story of the timeline, so create a BALANCED and VARIED sequence of scenes. ${imageStyleContext} ${colorContext}\n\nIMPORTANT: When creating the image descriptions, ensure VARIETY across the sequence:\n- Mix different LOCATION TYPES: indoor/outdoor, public/private, formal/casual, urban/natural, modern/historical\n- Vary COMPOSITIONS: wide shots, close-ups, different angles and perspectives\n- Balance MOODS: some bright and energetic, some moody and atmospheric, some warm and intimate\n- Include different ACTIVITIES: conversations, performances, work, leisure, travel, etc.\n- Vary TIME OF DAY: morning, afternoon, evening, night, sunset, dawn\n- Mix SETTINGS: studios, cafes, outdoor spaces, offices, homes, venues, etc.\n\nFor each event, create a rich, detailed image description that includes:\n- SPECIFIC LOCATION: Describe a vivid, concrete setting (e.g., "In a television studio", "Inside a moody, 1940s-style jazz bar", "At a rooftop garden cafe", "In a minimalist loft with floor-to-ceiling windows", "Outdoors in the Arctic Circle", "In an antique bookstore after hours")\n- VISUAL DETAILS: Include specific visual elements (e.g., "seated on a red sofa", "surrounded by sand dunes at sunset", "wood-paneled library filled with portraits", "neon-lit dive bar with graffiti-covered walls", "on eco-friendly stools surrounded by icebergs")\n- ATMOSPHERE/MOOD: Describe lighting, ambiance, and mood (e.g., "under bright lights and cameras", "warm lighting and jazz in the background", "moody", "neon-lit", "at dusk", "with candles lit")\n- ACTIVITIES/GESTURES: What are the subjects doing? (e.g., "chatting casually", "sipping herbal tea", "sitting on patterned rugs", "laughing over shots", "leaning on the balustrade")\n- ADDITIONAL ELEMENTS: Include environmental details that add richness (e.g., "piano playing", "crackling campfire", "holograms floating around", "LED panels pulsing to the beat", "candles lit", "typewriters clicking nearby", "smoke effects", "red velvet curtains")\n- Period-appropriate details if a year is provided\n\nFormat: Write as a single, flowing sentence or two that paints a complete visual scene. Be specific and evocative. Example: "In a television studio, seated on a red sofa, chatting casually under bright lights and cameras." or "Inside a moody, 1940s-style jazz bar with smoke effects, red velvet curtains, and piano playing." or "Outdoors in the Arctic Circle, seated on eco-friendly stools surrounded by icebergs."\n\nIMPORTANT: If the event involves famous people, focus on the setting, atmosphere, and context rather than specific facial features or direct likenesses.\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
 
     // Use AI abstraction layer (supports OpenAI and Kimi)
-    const maxTokens = Math.min(40000, (events.length * 350) + 500);
+    const startTime = Date.now();
+    let maxTokens: number;
+    if (client.provider === 'kimi') {
+      // For Kimi, use similar logic as generate-events
+      // Descriptions + image prompts need more tokens per event
+      if (events.length > 50) {
+        maxTokens = Math.min(32000, (events.length * 600) + 4000);
+      } else {
+        maxTokens = Math.min(16000, (events.length * 600) + 4000);
+      }
+    } else {
+      // For OpenAI, we can request much larger outputs
+      maxTokens = Math.min(40000, (events.length * 350) + 500);
+    }
+    
+    console.log(`[GenerateDescriptions] Request config: provider=${client.provider}, events=${events.length}, maxTokens=${maxTokens}`);
     
     let data;
     try {
@@ -109,12 +124,19 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    const generationTime = Date.now() - startTime;
     console.log('[GenerateDescriptions] API response received:', {
+      provider: client.provider,
+      model: data.model || 'unknown',
       hasChoices: !!data.choices,
       choicesLength: data.choices?.length,
       hasFirstChoice: !!data.choices?.[0],
       hasMessage: !!data.choices?.[0]?.message,
       hasContent: !!data.choices?.[0]?.message?.content,
+      finishReason: data.choices?.[0]?.finish_reason,
+      usage: data.usage || 'not provided',
+      generationTimeMs: generationTime,
+      generationTimeSec: (generationTime / 1000).toFixed(2),
     });
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
