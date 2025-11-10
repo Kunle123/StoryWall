@@ -300,7 +300,7 @@ export const ExperimentalBottomMenuBar = ({
               strokeWidth="1"
               strokeOpacity="0.8"
             />
-            {/* Hairline orange border along upper edge (following the arc cutout) */}
+            {/* Orange border along upper edge (following the arc cutout) */}
             <path
               d={`
                 M 0 0
@@ -310,7 +310,7 @@ export const ExperimentalBottomMenuBar = ({
               `}
               fill="none"
               stroke="#FF6B35"
-              strokeWidth="0.5"
+              strokeWidth="1"
               strokeOpacity="1"
             />
           </svg>
