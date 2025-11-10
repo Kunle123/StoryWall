@@ -97,18 +97,45 @@ export async function POST(request: NextRequest) {
         max_tokens: maxTokens,
       });
     } catch (error: any) {
-      console.error('AI API error:', error);
+      console.error('[GenerateDescriptions] AI API error:', error);
+      console.error('[GenerateDescriptions] Error details:', {
+        message: error.message,
+        stack: error.stack?.substring(0, 500),
+        name: error.name,
+      });
       return NextResponse.json(
         { error: 'Failed to generate descriptions', details: error.message || 'Unknown error' },
         { status: 500 }
       );
     }
     
+    console.log('[GenerateDescriptions] API response received:', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasFirstChoice: !!data.choices?.[0],
+      hasMessage: !!data.choices?.[0]?.message,
+      hasContent: !!data.choices?.[0]?.message?.content,
+    });
+    
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('[GenerateDescriptions] Invalid response structure:', JSON.stringify(data, null, 2));
       throw new Error('Invalid response format from AI API');
     }
     
-    const content = JSON.parse(data.choices[0].message.content);
+    let content;
+    try {
+      const contentText = data.choices[0].message.content;
+      if (typeof contentText !== 'string') {
+        throw new Error(`Expected string content, got ${typeof contentText}`);
+      }
+      content = JSON.parse(contentText);
+    } catch (parseError: any) {
+      console.error('[GenerateDescriptions] Failed to parse JSON content:', {
+        content: data.choices[0].message.content?.substring(0, 500),
+        error: parseError.message,
+      });
+      throw new Error(`Failed to parse AI response: ${parseError.message}`);
+    }
     
     if (!content.descriptions || !Array.isArray(content.descriptions)) {
       throw new Error('Invalid descriptions format in OpenAI response');
