@@ -61,10 +61,23 @@ export function getModelForProvider(
     // OpenAI models have 128k context, so we need Kimi models with similar capacity
     
     // For very long contexts (30k+ tokens), use the largest models
+    // K2 models have 256k context and may support higher output limits
     if (maxTokens && maxTokens > 30000) {
       const modelMap: Record<string, string> = {
         'gpt-4o': 'kimi-k2-0905-preview', // 256k context, latest K2 model
         'gpt-4o-mini': 'kimi-k2-turbo-preview', // 256k context, optimized for speed (60-100 tokens/s)
+        'gpt-4': 'kimi-k2-0905-preview',
+        'gpt-3.5-turbo': 'kimi-k2-turbo-preview',
+      };
+      return modelMap[openAIModel] || 'kimi-k2-turbo-preview';
+    }
+    
+    // For large output requests (16k-30k tokens), also use K2 models
+    // They may support higher output limits than moonshot-v1 models
+    if (maxTokens && maxTokens > 16000) {
+      const modelMap: Record<string, string> = {
+        'gpt-4o': 'kimi-k2-0905-preview', // Try K2 for large outputs
+        'gpt-4o-mini': 'kimi-k2-turbo-preview', // Try K2 for large outputs
         'gpt-4': 'kimi-k2-0905-preview',
         'gpt-3.5-turbo': 'kimi-k2-turbo-preview',
       };

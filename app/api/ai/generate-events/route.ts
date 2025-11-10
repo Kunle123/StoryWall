@@ -221,9 +221,16 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         // OpenAI models can handle much larger outputs (up to 128k)
         let maxTokens: number;
         if (client.provider === 'kimi') {
-          // For Kimi, be more conservative with output tokens
-          // Most Kimi models have output limits around 8k-16k tokens
-          maxTokens = Math.min(16000, (maxEvents * 800) + 4000);
+          // For Kimi, try increasing the cap for large requests
+          // K2 models (kimi-k2-*) may support higher output limits
+          // Test with 32k cap for large requests (100 events)
+          if (maxEvents > 50) {
+            // For very large requests, try 32k tokens (K2 models may support this)
+            maxTokens = Math.min(32000, (maxEvents * 800) + 4000);
+          } else {
+            // For smaller requests, use 16k cap
+            maxTokens = Math.min(16000, (maxEvents * 800) + 4000);
+          }
         } else {
           // For OpenAI, we can request much larger outputs
           maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
