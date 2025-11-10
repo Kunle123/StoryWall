@@ -124,20 +124,29 @@ export async function createChatCompletion(
   
   const url = `${baseURL}/chat/completions`;
   
+  // Build request body - some parameters may not be supported by all providers
+  const requestBody: any = {
+    model,
+    messages: options.messages,
+    temperature: options.temperature ?? 0.7,
+    max_tokens: options.max_tokens,
+  };
+  
+  // Add optional parameters if provided
+  if (options.response_format) {
+    requestBody.response_format = options.response_format;
+  }
+  if (options.tools) {
+    requestBody.tools = options.tools;
+  }
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${config.apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model,
-      messages: options.messages,
-      temperature: options.temperature ?? 0.7,
-      max_tokens: options.max_tokens,
-      response_format: options.response_format,
-      ...(options.tools && { tools: options.tools }), // Include tools if provided (for web search)
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
