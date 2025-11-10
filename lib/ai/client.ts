@@ -54,11 +54,23 @@ function getBaseURL(provider: AIProvider): string {
 export function getModelForProvider(
   openAIModel: string,
   provider: AIProvider,
-  maxTokens?: number
+  maxTokens?: number,
+  maxEvents?: number // Add maxEvents parameter to help with model selection
 ): string {
   if (provider === 'kimi') {
     // Determine which Kimi model to use based on context needs
     // OpenAI models have 128k context, so we need Kimi models with similar capacity
+    
+    // For 100 events, use moonshot-v1-128k (may have better output limits than K2)
+    if (maxEvents && maxEvents >= 100) {
+      const modelMap: Record<string, string> = {
+        'gpt-4o': 'moonshot-v1-128k', // 128k context
+        'gpt-4o-mini': 'moonshot-v1-128k',
+        'gpt-4': 'moonshot-v1-128k',
+        'gpt-3.5-turbo': 'moonshot-v1-128k',
+      };
+      return modelMap[openAIModel] || 'moonshot-v1-128k';
+    }
     
     // For very long contexts (30k+ tokens), use the largest models
     // K2 models have 256k context and may support higher output limits
@@ -129,11 +141,11 @@ export function getKimiTurboModel(): string {
  */
 export async function createChatCompletion(
   config: AIClientConfig,
-  options: ChatCompletionOptions
+  options: ChatCompletionOptions & { maxEvents?: number } // Add maxEvents to options
 ): Promise<ChatCompletionResponse> {
   const baseURL = config.baseURL || getBaseURL(config.provider);
-  // Pass max_tokens to model selection to choose appropriate context window
-  const model = getModelForProvider(options.model, config.provider, options.max_tokens);
+  // Pass max_tokens and maxEvents to model selection to choose appropriate context window
+  const model = getModelForProvider(options.model, config.provider, options.max_tokens, options.maxEvents);
   
   const url = `${baseURL}/chat/completions`;
   

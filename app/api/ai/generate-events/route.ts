@@ -257,6 +257,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
             response_format: { type: 'json_object' },
             temperature: 0.7,
             max_tokens: maxTokens,
+            maxEvents: maxEvents, // Pass maxEvents to help with model selection
             ...(tools && { tools }), // Include web search tool for factual events if supported
           });
         } catch (error: any) {
