@@ -242,8 +242,9 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         let data;
         try {
           // For factual events, try to use web search if available
-          // OpenAI Chat Completions supports tools, Kimi may also support web search
-          const tools = isFactual ? [{ type: 'web_search' }] : undefined;
+          // OpenAI Chat Completions supports tools, but Kimi models don't support web_search
+          // Only include tools for OpenAI (Kimi only supports 'function' and 'custom' tool types)
+          const tools = isFactual && client.provider === 'openai' ? [{ type: 'web_search' }] : undefined;
           
           // Kimi supports JSON mode (response_format), so we can use it for both providers
           // See: https://platform.moonshot.ai/docs/guide/use-json-mode-feature-of-kimi-api
