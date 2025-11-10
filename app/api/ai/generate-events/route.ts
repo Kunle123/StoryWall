@@ -56,13 +56,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // For Responses API (web search), we need OpenAI key
-    if (isFactual && !openaiApiKey) {
-      return NextResponse.json(
-        { error: 'OPENAI_API_KEY is required for factual event generation with web search.' },
-        { status: 500 }
-      );
-    }
+    // For Responses API (web search), we prefer OpenAI key but can fall back to Chat Completions
+    // If OpenAI key is missing, we'll skip web search and use Chat Completions instead
 
     // Build prompts once
     const systemPrompt = isNumbered
@@ -134,9 +129,10 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
+    // Only use if OpenAI key is available (Responses API is OpenAI-specific)
     let response;
     let contentText: string | null = null;
-    const useWebSearch = !!isFactual;
+    const useWebSearch = !!isFactual && !!openaiApiKey;
 
     if (useWebSearch) {
       try {
@@ -213,15 +209,13 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       }
     }
 
-    // If not using web search (fictional) or content not set
+    // If not using web search (fictional) or content not set, fall back to Chat Completions
     if (!contentText) {
-      if (isFactual) {
-        return NextResponse.json(
-          { error: 'No content from web search for factual generation', details: 'Responses API returned no content' },
-          { status: 502 }
-        );
+      if (isFactual && useWebSearch) {
+        // Web search was attempted but failed - log warning but continue with Chat Completions
+        console.warn('[GenerateEvents API] Web search failed, falling back to Chat Completions API for factual generation');
       }
-      console.log('[GenerateEvents API] Using Chat Completions API');
+      console.log('[GenerateEvents API] Using Chat Completions API' + (isFactual ? ' (fallback from web search)' : ''));
       
       // Use AI abstraction layer (supports OpenAI and Kimi)
       const maxTokens = Math.min(40000, (maxEvents * 1500) + 10000);
