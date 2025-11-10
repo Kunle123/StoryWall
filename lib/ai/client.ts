@@ -146,10 +146,16 @@ export async function createChatCompletion(
   };
   
   // Add optional parameters if provided
-  // Note: response_format might not be supported by all providers (e.g., Kimi)
-  // Kimi API may not support response_format, so we only include it for OpenAI
-  if (options.response_format && config.provider === 'openai') {
-    requestBody.response_format = options.response_format;
+  // Kimi API supports JSON mode - see https://platform.moonshot.ai/docs/guide/use-json-mode-feature-of-kimi-api
+  // For Kimi, use response_format with type: 'json_object' to enable JSON mode
+  if (options.response_format) {
+    if (config.provider === 'kimi') {
+      // Kimi supports JSON mode - use the same format as OpenAI
+      requestBody.response_format = options.response_format;
+    } else {
+      // OpenAI also supports response_format
+      requestBody.response_format = options.response_format;
+    }
   }
   // Tools (like web_search) - may not be supported by all providers
   if (options.tools && options.tools.length > 0) {

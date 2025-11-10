@@ -242,28 +242,16 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           // OpenAI Chat Completions supports tools, Kimi may also support web search
           const tools = isFactual ? [{ type: 'web_search' }] : undefined;
           
-          // For Kimi, we may not be able to use response_format, so we'll parse JSON from text
-          // Make the prompt more explicit about JSON format when using Kimi
-          // For large requests (100 events), be even more explicit
-          const enhancedUserPrompt = client.provider === 'kimi' 
-            ? userPrompt + `\n\nCRITICAL JSON FORMAT REQUIREMENTS:
-- You MUST return ONLY valid JSON - no explanatory text, no markdown, no code blocks
-- Start your response with { and end with }
-- The JSON must contain an "events" array with exactly ${maxEvents} event objects
-- Each event must have: year (number), title (string), description (string)
-- Do NOT include any text before or after the JSON
-- Do NOT wrap the JSON in markdown code blocks (```json)
-- Return ONLY the raw JSON object starting with {`
-            : userPrompt;
-          
+          // Kimi supports JSON mode (response_format), so we can use it for both providers
+          // See: https://platform.moonshot.ai/docs/guide/use-json-mode-feature-of-kimi-api
           data = await createChatCompletion(client, {
             model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
             messages: [
               { role: 'system', content: systemPrompt },
-              { role: 'user', content: enhancedUserPrompt },
+              { role: 'user', content: userPrompt },
             ],
-            // Only use response_format for OpenAI (Kimi may not support it)
-            response_format: client.provider === 'openai' ? { type: 'json_object' } : undefined,
+            // Use JSON mode for both OpenAI and Kimi
+            response_format: { type: 'json_object' },
             temperature: 0.7,
             max_tokens: maxTokens,
             ...(tools && { tools }), // Include web search tool for factual events if supported
