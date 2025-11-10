@@ -22,6 +22,7 @@ export interface ChatCompletionOptions {
   temperature?: number;
   max_tokens?: number;
   response_format?: { type: 'json_object' | 'text' };
+  tools?: Array<{ type: string; [key: string]: any }>; // For web search and other tools
 }
 
 export interface ChatCompletionResponse {
@@ -135,6 +136,7 @@ export async function createChatCompletion(
       temperature: options.temperature ?? 0.7,
       max_tokens: options.max_tokens,
       response_format: options.response_format,
+      ...(options.tools && { tools: options.tools }), // Include tools if provided (for web search)
     }),
   });
 

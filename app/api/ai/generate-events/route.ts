@@ -216,6 +216,10 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       
       let data;
       try {
+        // For factual events, try to use web search if available
+        // OpenAI Chat Completions supports tools, Kimi may also support web search
+        const tools = isFactual ? [{ type: 'web_search' }] : undefined;
+        
         data = await createChatCompletion(client, {
           model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
           messages: [
@@ -225,6 +229,7 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           response_format: { type: 'json_object' },
           temperature: 0.7,
           max_tokens: maxTokens,
+          ...(tools && { tools }), // Include web search tool for factual events if supported
         });
       } catch (error: any) {
         console.error('AI API error:', error);
