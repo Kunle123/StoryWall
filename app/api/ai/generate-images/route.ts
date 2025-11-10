@@ -365,6 +365,146 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
   }
 }
 
+// Helper to search Unsplash for person images (supplement to Wikimedia)
+async function searchUnsplashForPerson(searchQuery: string, personName: string): Promise<string | null> {
+  try {
+    const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY;
+    if (!unsplashAccessKey) {
+      console.log(`[ImageGen] UNSPLASH_ACCESS_KEY not configured, skipping Unsplash search`);
+      return null;
+    }
+
+    // Search for portrait/headshot photos
+    const searchTerms = `${searchQuery} portrait OR ${searchQuery} headshot OR ${personName} official photo`;
+    const searchUrl = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerms)}&per_page=5&orientation=portrait`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    try {
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Authorization': `Client-ID ${unsplashAccessKey}`,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.warn(`[ImageGen] Unsplash search failed: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      const results = data.results || [];
+      
+      if (results.length === 0) {
+        console.log(`[ImageGen] No Unsplash results for: ${searchTerms}`);
+        return null;
+      }
+      
+      // Use the first result (Unsplash results are usually well-curated)
+      const firstResult = results[0];
+      const imageUrl = firstResult.urls?.regular || firstResult.urls?.full;
+      
+      if (!imageUrl) {
+        console.warn(`[ImageGen] No image URL in Unsplash result`);
+        return null;
+      }
+      
+      // Validate it's actually an image
+      const isValid = await validateImageUrl(imageUrl);
+      if (isValid) {
+        console.log(`[ImageGen] ✓ Found Unsplash image for "${searchQuery}": ${imageUrl.substring(0, 80)}...`);
+        return imageUrl;
+      }
+      
+      return null;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.warn(`[ImageGen] Timeout searching Unsplash for: ${searchQuery}`);
+      } else {
+        console.error(`[ImageGen] Error searching Unsplash:`, fetchError.message);
+      }
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[ImageGen] Error in searchUnsplashForPerson:`, error.message);
+    return null;
+  }
+}
+
+// Helper to search Pexels for person images (supplement to Wikimedia)
+async function searchPexelsForPerson(searchQuery: string, personName: string): Promise<string | null> {
+  try {
+    const pexelsApiKey = process.env.PEXELS_API_KEY;
+    if (!pexelsApiKey) {
+      console.log(`[ImageGen] PEXELS_API_KEY not configured, skipping Pexels search`);
+      return null;
+    }
+
+    // Search for portrait/headshot photos
+    const searchTerms = `${searchQuery} portrait OR ${searchQuery} headshot OR ${personName} official`;
+    const searchUrl = `https://api.pexels.com/v1/search?query=${encodeURIComponent(searchTerms)}&per_page=5&orientation=portrait`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    try {
+      const response = await fetch(searchUrl, {
+        headers: {
+          'Authorization': pexelsApiKey,
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.warn(`[ImageGen] Pexels search failed: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      const results = data.photos || [];
+      
+      if (results.length === 0) {
+        console.log(`[ImageGen] No Pexels results for: ${searchTerms}`);
+        return null;
+      }
+      
+      // Use the first result
+      const firstResult = results[0];
+      const imageUrl = firstResult.src?.large || firstResult.src?.original;
+      
+      if (!imageUrl) {
+        console.warn(`[ImageGen] No image URL in Pexels result`);
+        return null;
+      }
+      
+      // Validate it's actually an image
+      const isValid = await validateImageUrl(imageUrl);
+      if (isValid) {
+        console.log(`[ImageGen] ✓ Found Pexels image for "${searchQuery}": ${imageUrl.substring(0, 80)}...`);
+        return imageUrl;
+      }
+      
+      return null;
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.warn(`[ImageGen] Timeout searching Pexels for: ${searchQuery}`);
+      } else {
+        console.error(`[ImageGen] Error searching Pexels:`, fetchError.message);
+      }
+      return null;
+    }
+  } catch (error: any) {
+    console.error(`[ImageGen] Error in searchPexelsForPerson:`, error.message);
+    return null;
+  }
+}
+
 // Helper to fetch reference images for person names
 async function fetchReferenceImagesForPeople(people: Array<{name: string, search_query: string}>): Promise<Array<{ name: string; url: string }>> {
   const references: Array<{ name: string; url: string }> = [];
@@ -398,18 +538,39 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
       console.error(`[ImageGen] GPT-4o error stack:`, error.stack);
     }
     
-    // Fallback to Wikimedia search if GPT-4o didn't find anything
+    // Fallback to multiple sources if GPT-4o didn't find anything
+    // Try in order: Unsplash, Pexels, Wikimedia (for best quality and reliability)
     if (!found) {
       for (const query of searchQueries) {
         if (found) break; // Stop if we found an image for this person
         
         try {
-          console.log(`[ImageGen] Fallback: Searching Wikimedia for: ${query}`);
-          const imageUrl = await searchWikimediaForPerson(query, name);
+          // Try Unsplash first (high quality, free, reliable)
+          console.log(`[ImageGen] Fallback: Searching Unsplash for: ${query}`);
+          const unsplashUrl = await searchUnsplashForPerson(query, name);
+          if (unsplashUrl) {
+            references.push({ name, url: unsplashUrl });
+            console.log(`[ImageGen] ✓ Found Unsplash reference image for ${name}: ${unsplashUrl.substring(0, 80)}...`);
+            found = true;
+            break;
+          }
           
-          if (imageUrl) {
-            references.push({ name, url: imageUrl });
-            console.log(`[ImageGen] ✓ Found reference image for ${name}: ${imageUrl.substring(0, 80)}...`);
+          // Try Pexels second (high quality, free, reliable)
+          console.log(`[ImageGen] Fallback: Searching Pexels for: ${query}`);
+          const pexelsUrl = await searchPexelsForPerson(query, name);
+          if (pexelsUrl) {
+            references.push({ name, url: pexelsUrl });
+            console.log(`[ImageGen] ✓ Found Pexels reference image for ${name}: ${pexelsUrl.substring(0, 80)}...`);
+            found = true;
+            break;
+          }
+          
+          // Try Wikimedia last (can have 403 errors, but has good coverage)
+          console.log(`[ImageGen] Fallback: Searching Wikimedia for: ${query}`);
+          const wikimediaUrl = await searchWikimediaForPerson(query, name);
+          if (wikimediaUrl) {
+            references.push({ name, url: wikimediaUrl });
+            console.log(`[ImageGen] ✓ Found Wikimedia reference image for ${name}: ${wikimediaUrl.substring(0, 80)}...`);
             found = true;
             break;
           }
@@ -421,7 +582,7 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
     }
     
     if (!found) {
-      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried queries: ${searchQueries.join(', ')})`);
+      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried Unsplash, Pexels, and Wikimedia with queries: ${searchQueries.join(', ')})`);
     }
   }
 
