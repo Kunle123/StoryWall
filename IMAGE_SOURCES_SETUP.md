@@ -46,15 +46,26 @@ This document explains how to set up additional image sources to supplement Wiki
 
 When searching for reference images, the system tries sources in this order:
 
-1. **GPT-4o** - Finds direct URLs from various sources
-2. **Unsplash** - High-quality portraits/headshots
-3. **Pexels** - High-quality portraits/headshots
-4. **Wikimedia Commons** - Public domain images (fallback)
+1. **GPT-4o** - Finds direct URLs from various sources (most accurate)
+2. **Wikimedia Commons** - Best for celebrities, public figures, politicians (official/press photos)
+3. **Pexels** - Has some celebrity photos, good for famous people
+4. **Unsplash** - Primarily stock photos, better for generic portraits (not great for specific celebrities)
+
+**Why this order?**
+- **Wikimedia** is prioritized for celebrities/public figures because it has:
+  - Official government photos
+  - Press photos from news agencies
+  - Best coverage of famous people
+  - Public domain images
+  
+- **Pexels** has some celebrity content but less comprehensive than Wikimedia
+
+- **Unsplash** is primarily stock photography, not ideal for specific celebrities
 
 This ensures:
-- Best quality images first
+- Best coverage for famous people (Wikimedia)
 - Multiple fallbacks for reliability
-- Reduced dependency on Wikimedia (which can have 403 errors)
+- Wikimedia prioritized for celebrity/public figure searches
 
 ## Notes
 

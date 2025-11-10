@@ -539,23 +539,26 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
     }
     
     // Fallback to multiple sources if GPT-4o didn't find anything
-    // Try in order: Unsplash, Pexels, Wikimedia (for best quality and reliability)
+    // For celebrities/public figures: Wikimedia is best (official photos, press photos)
+    // For generic portraits: Unsplash/Pexels are better (stock photos)
+    // Try in order: Wikimedia (best for specific people) -> Pexels (some celebrities) -> Unsplash (generic portraits)
     if (!found) {
       for (const query of searchQueries) {
         if (found) break; // Stop if we found an image for this person
         
         try {
-          // Try Unsplash first (high quality, free, reliable)
-          console.log(`[ImageGen] Fallback: Searching Unsplash for: ${query}`);
-          const unsplashUrl = await searchUnsplashForPerson(query, name);
-          if (unsplashUrl) {
-            references.push({ name, url: unsplashUrl });
-            console.log(`[ImageGen] ✓ Found Unsplash reference image for ${name}: ${unsplashUrl.substring(0, 80)}...`);
+          // Try Wikimedia first (best for celebrities, public figures, politicians)
+          // Has official photos, press photos, and good coverage of famous people
+          console.log(`[ImageGen] Fallback: Searching Wikimedia for: ${query}`);
+          const wikimediaUrl = await searchWikimediaForPerson(query, name);
+          if (wikimediaUrl) {
+            references.push({ name, url: wikimediaUrl });
+            console.log(`[ImageGen] ✓ Found Wikimedia reference image for ${name}: ${wikimediaUrl.substring(0, 80)}...`);
             found = true;
             break;
           }
           
-          // Try Pexels second (high quality, free, reliable)
+          // Try Pexels second (has some celebrity photos, better than Unsplash for famous people)
           console.log(`[ImageGen] Fallback: Searching Pexels for: ${query}`);
           const pexelsUrl = await searchPexelsForPerson(query, name);
           if (pexelsUrl) {
@@ -565,12 +568,13 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
             break;
           }
           
-          // Try Wikimedia last (can have 403 errors, but has good coverage)
-          console.log(`[ImageGen] Fallback: Searching Wikimedia for: ${query}`);
-          const wikimediaUrl = await searchWikimediaForPerson(query, name);
-          if (wikimediaUrl) {
-            references.push({ name, url: wikimediaUrl });
-            console.log(`[ImageGen] ✓ Found Wikimedia reference image for ${name}: ${wikimediaUrl.substring(0, 80)}...`);
+          // Try Unsplash last (primarily stock photos, not great for specific celebrities)
+          // Better for generic portraits or less famous people
+          console.log(`[ImageGen] Fallback: Searching Unsplash for: ${query}`);
+          const unsplashUrl = await searchUnsplashForPerson(query, name);
+          if (unsplashUrl) {
+            references.push({ name, url: unsplashUrl });
+            console.log(`[ImageGen] ✓ Found Unsplash reference image for ${name}: ${unsplashUrl.substring(0, 80)}...`);
             found = true;
             break;
           }
@@ -582,7 +586,7 @@ async function fetchReferenceImagesForPeople(people: Array<{name: string, search
     }
     
     if (!found) {
-      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried Unsplash, Pexels, and Wikimedia with queries: ${searchQueries.join(', ')})`);
+      console.warn(`[ImageGen] ✗ Could not find reference image for ${name} (tried Wikimedia, Pexels, and Unsplash with queries: ${searchQueries.join(', ')})`);
     }
   }
 
