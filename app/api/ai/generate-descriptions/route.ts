@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 
 /**
  * Generate descriptions and image prompts for timeline events
@@ -37,11 +38,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const aiApiKey = process.env.OPENAI_API_KEY;
-    
-    if (!aiApiKey) {
+    // Get configured AI client (OpenAI or Kimi based on AI_PROVIDER env var)
+    let client;
+    try {
+      client = getAIClient();
+    } catch (error: any) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY is not configured. Please add it to your environment variables.' },
+        { error: error.message || 'AI provider not configured. Please set AI_PROVIDER and API key in environment variables.' },
         { status: 500 }
       );
     }
@@ -72,15 +75,13 @@ export async function POST(request: NextRequest) {
     
     const imagePromptRequest = `\n\nAdditionally, generate a separate image description for each event that will be part of a visual narrative sequence. These images will work together to tell the story of the timeline, so create a BALANCED and VARIED sequence of scenes. ${imageStyleContext} ${colorContext}\n\nIMPORTANT: When creating the image descriptions, ensure VARIETY across the sequence:\n- Mix different LOCATION TYPES: indoor/outdoor, public/private, formal/casual, urban/natural, modern/historical\n- Vary COMPOSITIONS: wide shots, close-ups, different angles and perspectives\n- Balance MOODS: some bright and energetic, some moody and atmospheric, some warm and intimate\n- Include different ACTIVITIES: conversations, performances, work, leisure, travel, etc.\n- Vary TIME OF DAY: morning, afternoon, evening, night, sunset, dawn\n- Mix SETTINGS: studios, cafes, outdoor spaces, offices, homes, venues, etc.\n\nFor each event, create a rich, detailed image description that includes:\n- SPECIFIC LOCATION: Describe a vivid, concrete setting (e.g., "In a television studio", "Inside a moody, 1940s-style jazz bar", "At a rooftop garden cafe", "In a minimalist loft with floor-to-ceiling windows", "Outdoors in the Arctic Circle", "In an antique bookstore after hours")\n- VISUAL DETAILS: Include specific visual elements (e.g., "seated on a red sofa", "surrounded by sand dunes at sunset", "wood-paneled library filled with portraits", "neon-lit dive bar with graffiti-covered walls", "on eco-friendly stools surrounded by icebergs")\n- ATMOSPHERE/MOOD: Describe lighting, ambiance, and mood (e.g., "under bright lights and cameras", "warm lighting and jazz in the background", "moody", "neon-lit", "at dusk", "with candles lit")\n- ACTIVITIES/GESTURES: What are the subjects doing? (e.g., "chatting casually", "sipping herbal tea", "sitting on patterned rugs", "laughing over shots", "leaning on the balustrade")\n- ADDITIONAL ELEMENTS: Include environmental details that add richness (e.g., "piano playing", "crackling campfire", "holograms floating around", "LED panels pulsing to the beat", "candles lit", "typewriters clicking nearby", "smoke effects", "red velvet curtains")\n- Period-appropriate details if a year is provided\n\nFormat: Write as a single, flowing sentence or two that paints a complete visual scene. Be specific and evocative. Example: "In a television studio, seated on a red sofa, chatting casually under bright lights and cameras." or "Inside a moody, 1940s-style jazz bar with smoke effects, red velvet curtains, and piano playing." or "Outdoors in the Arctic Circle, seated on eco-friendly stools surrounded by icebergs."\n\nIMPORTANT: If the event involves famous people, focus on the setting, atmosphere, and context rather than specific facial features or direct likenesses.\n\nReturn both descriptions and imagePrompts as JSON: { "descriptions": [...], "imagePrompts": [...] } with exactly ${events.length} items in each array.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // Use gpt-4o-mini for descriptions - much faster (3-5x) and cheaper, quality is still excellent
-                model: 'gpt-4o-mini',
+    // Use AI abstraction layer (supports OpenAI and Kimi)
+    const maxTokens = Math.min(40000, (events.length * 350) + 500);
+    
+    let data;
+    try {
+      data = await createChatCompletion(client, {
+        model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
         messages: [
           {
             role: 'system',
@@ -93,32 +94,18 @@ export async function POST(request: NextRequest) {
         ],
         response_format: { type: 'json_object' },
         temperature: 0.8,
-        // Optimize token usage: ~150 tokens per description + ~150-200 per rich image prompt
-        // Reserve extra for JSON structure and instructions
-        // Increased to 40k to support long timelines (as requested)
-        max_tokens: Math.min(40000, (events.length * 350) + 500),
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
-      }
-      console.error('OpenAI API error:', errorData);
+        max_tokens: maxTokens,
+      });
+    } catch (error: any) {
+      console.error('AI API error:', error);
       return NextResponse.json(
-        { error: 'Failed to generate descriptions from OpenAI API', details: errorData.message || errorData.error?.message || 'Unknown error' },
-        { status: response.status }
+        { error: 'Failed to generate descriptions', details: error.message || 'Unknown error' },
+        { status: 500 }
       );
     }
-
-    const data = await response.json();
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenAI');
+      throw new Error('Invalid response format from AI API');
     }
     
     const content = JSON.parse(data.choices[0].message.content);

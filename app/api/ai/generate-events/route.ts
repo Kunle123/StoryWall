@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 
 /**
  * Generate timeline events based on timeline description
@@ -41,11 +42,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const aiApiKey = process.env.OPENAI_API_KEY;
+    // Get configured AI client (OpenAI or Kimi based on AI_PROVIDER env var)
+    // Note: Responses API (web search) is OpenAI-specific, so we'll use OpenAI for that
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    let client;
     
-    if (!aiApiKey) {
+    try {
+      client = getAIClient();
+    } catch (error: any) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY is not configured. Please add it to your environment variables.' },
+        { error: error.message || 'AI provider not configured. Please set AI_PROVIDER and API key in environment variables.' },
+        { status: 500 }
+      );
+    }
+    
+    // For Responses API (web search), we need OpenAI key
+    if (isFactual && !openaiApiKey) {
+      return NextResponse.json(
+        { error: 'OPENAI_API_KEY is required for factual event generation with web search.' },
         { status: 500 }
       );
     }
@@ -130,11 +144,11 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         const resp = await fetch('https://api.openai.com/v1/responses', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${aiApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5-mini-2025-08-07',
+            model: 'gpt-4o-mini',
             input: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt },
@@ -208,42 +222,29 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         );
       }
       console.log('[GenerateEvents API] Using Chat Completions API');
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${aiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-          model: 'gpt-5-mini-2025-08-07',
-        messages: [
+      
+      // Use AI abstraction layer (supports OpenAI and Kimi)
+      const maxTokens = Math.min(40000, (maxEvents * 1500) + 10000);
+      
+      let data;
+      try {
+        data = await createChatCompletion(client, {
+          model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
+          messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
-          reasoning_effort: isFactual ? 'low' : 'low',
-          verbosity: 'low',
-          max_completion_tokens: Math.min(3000, (maxEvents * 100) + 500),
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+          max_tokens: maxTokens,
+        });
+      } catch (error: any) {
+        console.error('AI API error:', error);
+        return NextResponse.json(
+          { error: 'Failed to generate events', details: error.message || 'Unknown error' },
+          { status: 500 }
+        );
       }
-      console.error('OpenAI API error:', errorData);
-      const errorMessage = errorData.message || errorData.error?.message || errorText || 'Unknown error';
-      return NextResponse.json(
-        { error: 'Failed to generate events from OpenAI API', details: errorMessage },
-        { status: response.status >= 400 && response.status < 600 ? response.status : 500 }
-      );
-    }
-
-    const data = await response.json();
       
       console.log('[GenerateEvents API] OpenAI API response structure:', {
         hasChoices: !!data.choices,
