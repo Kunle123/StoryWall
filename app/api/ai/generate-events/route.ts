@@ -216,9 +216,18 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
         console.log('[GenerateEvents API] Using Chat Completions API' + (isFactual ? ' (fallback from web search)' : ''));
         
         // Use AI abstraction layer (supports OpenAI and Kimi)
-        // Increase max_tokens to prevent truncation - need enough for full JSON response
-        // For 20 events: ~30k tokens should be enough, but allow up to 40k for safety
-        const maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
+        // Calculate max_tokens based on provider
+        // Kimi models may have lower output token limits (e.g., 8k-16k) despite large context windows
+        // OpenAI models can handle much larger outputs (up to 128k)
+        let maxTokens: number;
+        if (client.provider === 'kimi') {
+          // For Kimi, be more conservative with output tokens
+          // Most Kimi models have output limits around 8k-16k tokens
+          maxTokens = Math.min(16000, (maxEvents * 800) + 4000);
+        } else {
+          // For OpenAI, we can request much larger outputs
+          maxTokens = Math.min(40000, (maxEvents * 2000) + 15000);
+        }
         
         let data;
         try {
