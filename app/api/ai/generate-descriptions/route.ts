@@ -92,9 +92,9 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
       // For Kimi, use kimi-latest-128k for 100 events (supports 128k output)
       // For smaller requests, use appropriate limits
       if (events.length >= 100) {
-        // For 100 events, kimi-latest-128k supports 128k output tokens
-        // Use conservative calculation: (events * 300) + 2000, capped at reasonable limit
-        maxTokens = Math.min(64000, (events.length * 300) + 2000);
+        // For 100 events, kimi-latest-32k supports 32k output tokens
+        // Use calculation: (events * 300) + 2000, capped at 32k
+        maxTokens = Math.min(32000, (events.length * 300) + 2000);
       } else if (events.length > 50) {
         // For large requests, try 32k tokens
         maxTokens = Math.min(32000, (events.length * 600) + 4000);

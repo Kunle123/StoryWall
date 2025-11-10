@@ -226,9 +226,9 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           // K2 models may support higher output limits than moonshot-v1-128k
           // Try 32k for large requests - if it fails, the API will return an error
           if (maxEvents >= 100) {
-            // For 100 events, kimi-latest-128k supports 128k output tokens
-            // Use conservative calculation: (maxEvents * 300) + 2000, capped at reasonable limit
-            maxTokens = Math.min(64000, (maxEvents * 300) + 2000);
+            // For 100 events, kimi-latest-32k supports 32k output tokens
+            // Use calculation: (maxEvents * 300) + 2000, capped at 32k
+            maxTokens = Math.min(32000, (maxEvents * 300) + 2000);
           } else if (maxEvents > 50) {
             // For large requests, try 32k tokens
             maxTokens = Math.min(32000, (maxEvents * 800) + 4000);
