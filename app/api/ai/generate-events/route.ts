@@ -237,8 +237,16 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
           
           // For Kimi, we may not be able to use response_format, so we'll parse JSON from text
           // Make the prompt more explicit about JSON format when using Kimi
+          // For large requests (100 events), be even more explicit
           const enhancedUserPrompt = client.provider === 'kimi' 
-            ? userPrompt + '\n\nIMPORTANT: You MUST return ONLY valid JSON. Do not include any explanatory text before or after the JSON. Start with { and end with }.'
+            ? userPrompt + `\n\nCRITICAL JSON FORMAT REQUIREMENTS:
+- You MUST return ONLY valid JSON - no explanatory text, no markdown, no code blocks
+- Start your response with { and end with }
+- The JSON must contain an "events" array with exactly ${maxEvents} event objects
+- Each event must have: year (number), title (string), description (string)
+- Do NOT include any text before or after the JSON
+- Do NOT wrap the JSON in markdown code blocks (```json)
+- Return ONLY the raw JSON object starting with {`
             : userPrompt;
           
           data = await createChatCompletion(client, {
