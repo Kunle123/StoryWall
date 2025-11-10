@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAIClient, createChatCompletion } from '@/lib/ai/client';
+import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 
 /**
  * Generate timeline events based on timeline description
@@ -55,7 +55,80 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Determine if we need to batch (for Kimi with 100 events, batch into 4x25)
+    const needsBatching = client.provider === 'kimi' && maxEvents >= 100;
+    const batchSize = 25; // Generate 25 events per batch for Kimi (4 batches for 100 events)
     
+    if (needsBatching) {
+      console.log(`[GenerateEvents API] Batching enabled: splitting ${maxEvents} events into batches of ${batchSize}`);
+      const batches: number[] = [];
+      let remaining = maxEvents;
+      while (remaining > 0) {
+        batches.push(Math.min(batchSize, remaining));
+        remaining -= batchSize;
+      }
+      console.log(`[GenerateEvents API] Will generate ${batches.length} batches: ${batches.join(', ')} events each`);
+      
+      // Generate batches in parallel (with concurrency limit to avoid rate limits)
+      const allEvents: any[] = [];
+      const allSources: any[] = [];
+      const allImageRefs: any[] = [];
+      
+      const CONCURRENCY_LIMIT = 2; // Run 2 batches in parallel at a time
+      
+      // Process batches in parallel groups
+      for (let i = 0; i < batches.length; i += CONCURRENCY_LIMIT) {
+        const batchGroup = batches.slice(i, i + CONCURRENCY_LIMIT);
+        const batchPromises = batchGroup.map((batchMaxEvents, groupIndex) => {
+          const batchNumber = i + groupIndex + 1;
+          console.log(`[GenerateEvents API] Generating batch ${batchNumber}/${batches.length}: ${batchMaxEvents} events`);
+          
+          return generateEventsBatch(
+            timelineDescription,
+            timelineName,
+            batchMaxEvents,
+            isFactual,
+            isNumbered,
+            numberLabel,
+            client,
+            openaiApiKey,
+            batchNumber,
+            batches.length
+          );
+        });
+        
+        // Wait for this group to complete before starting the next
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Combine results
+        for (const batchResponse of batchResults) {
+          if (batchResponse.events) {
+            allEvents.push(...batchResponse.events);
+          }
+          if (batchResponse.sources) {
+            allSources.push(...batchResponse.sources);
+          }
+          if (batchResponse.imageReferences) {
+            allImageRefs.push(...batchResponse.imageReferences);
+          }
+        }
+      }
+      
+      console.log(`[GenerateEvents API] Combined ${allEvents.length} events from ${batches.length} batches`);
+      
+      // Return combined results
+      const responsePayload: any = { events: allEvents.slice(0, maxEvents) };
+      if (allSources.length > 0) {
+        responsePayload.sources = allSources.slice(0, 10);
+      }
+      if (allImageRefs.length > 0) {
+        responsePayload.imageReferences = allImageRefs.slice(0, 12);
+      }
+      return NextResponse.json(responsePayload);
+    }
+    
+    // Original single-batch logic continues below
     // For Responses API (web search), we prefer OpenAI key but can fall back to Chat Completions
     // If OpenAI key is missing, we'll skip web search and use Chat Completions instead
 
@@ -700,5 +773,257 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
       { status: 500 }
     );
   }
+}
+
+// Helper function to generate a single batch of events
+async function generateEventsBatch(
+  timelineDescription: string,
+  timelineName: string,
+  batchMaxEvents: number,
+  isFactual: boolean,
+  isNumbered: boolean,
+  numberLabel: string,
+  client: AIClientConfig,
+  openaiApiKey: string | undefined,
+  batchNumber?: number,
+  totalBatches?: number
+): Promise<{ events: any[]; sources?: any[]; imageReferences?: any[] }> {
+  const batchLabel = batchNumber ? ` (batch ${batchNumber}/${totalBatches})` : '';
+  console.log(`[GenerateEventsBatch] Generating${batchLabel}: ${batchMaxEvents} events`);
+  
+  // Build prompts for this batch
+  const systemPrompt = isNumbered
+    ? `You are a numbered timeline event generator. Generate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
+    : isFactual 
+    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31).
+
+Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
+- Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
+- Official government/press image URLs ending in .jpg/.png
+- News agency photo URLs (Reuters, AP, Getty) - direct image links only
+NEVER use: commons.wikimedia.org/wiki/ URLs (these are pages, not images), Category pages, or article URLs.
+
+If you use web search, you MUST include a top-level "sources" array with 3-5 reputable news or official sources used (objects with { name: string, url: string }).
+- Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
+- Prefer AP, Reuters, PBS, official election sites, and major newspapers.
+
+RECENCY REQUIREMENT:
+- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results), you MUST include them via web search. Do not omit recent decisive outcomes when sources confirm them.
+
+ACCURACY REQUIREMENTS:
+- Generate events based on your knowledge of factual, well-documented information
+- Use your training data and web search to provide accurate events for the requested topic
+- If you are unsure about specific dates, use only the year (do not guess month/day)
+- For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
+- ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
+- If web search returns relevant information, you MUST use it to generate events - do not return an empty array
+- Only return an empty events array if the topic is completely unknown or impossible to research
+
+IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
+
+Events should be chronologically ordered and relevant to the timeline description.`
+    : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31). 
+
+CREATIVE GUIDELINES:
+- Generate imaginative, compelling events that fit the narrative theme
+- Create events that build upon each other to tell a coherent story
+- Use creative freedom to develop interesting plot points and developments
+- Events should be chronologically ordered and relevant to the timeline description
+- Feel free to include specific dates when they enhance the narrative
+IMPORTANT: Only include month and day when they add narrative significance. For most events, including the year is sufficient.`;
+
+  const userPrompt = isNumbered
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+    : isFactual
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
+- You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
+- If web search finds relevant news articles, you MUST use that information to create events
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
+Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
+    : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+
+  // Calculate max_tokens for this batch
+  let maxTokens: number;
+  if (client.provider === 'kimi') {
+    // For smaller batches (25 events), use more conservative token limits
+    // K2 models have 8k output token limits, so we need to be careful
+    if (batchMaxEvents >= 25) {
+      maxTokens = Math.min(8000, (batchMaxEvents * 300) + 2000);
+    } else {
+      maxTokens = Math.min(16384, (batchMaxEvents * 800) + 4000);
+    }
+  } else {
+    maxTokens = Math.min(40000, (batchMaxEvents * 2000) + 15000);
+  }
+  
+  console.log(`[GenerateEventsBatch] Request config${batchLabel}: provider=${client.provider}, batchMaxEvents=${batchMaxEvents}, maxTokens=${maxTokens}`);
+  
+  // Use Chat Completions with faster model for batches
+  // Use kimi-k2-turbo-preview explicitly for speed (60-100 tokens/s)
+  const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
+  
+  const data = await createChatCompletion(client, {
+    model: modelToUse,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.7,
+    max_tokens: maxTokens,
+    maxEvents: batchMaxEvents,
+  });
+  
+  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    throw new Error('Invalid response format from AI API');
+  }
+  
+  const contentText = data.choices[0].message.content;
+  if (!contentText || typeof contentText !== 'string') {
+    throw new Error('Empty assistant response');
+  }
+  
+  // Parse JSON response with error handling
+  let jsonText = contentText.trim();
+  if (jsonText.startsWith('```json')) {
+    jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+  }
+  
+  let content;
+  try {
+    content = JSON.parse(jsonText);
+  } catch (parseError: any) {
+    console.error(`[GenerateEventsBatch] JSON parse error${batchLabel}:`, {
+      error: parseError.message,
+      contentPreview: jsonText.substring(0, 500),
+      contentLength: jsonText.length,
+      lastChars: jsonText.substring(Math.max(0, jsonText.length - 200)),
+    });
+    
+    // Try to extract JSON object from the text if it's embedded in other text
+    let jsonStart = jsonText.indexOf('{');
+    if (jsonStart === -1) {
+      throw new Error(`Failed to parse AI response: ${parseError.message}. No JSON object found.`);
+    }
+    
+    // Extract from first { to end, then try to find the matching closing }
+    let jsonCandidate = jsonText.substring(jsonStart);
+    
+    // Try to find the last complete JSON object by matching braces
+    let braceCount = 0;
+    let jsonEnd = -1;
+    let inString = false;
+    let escapeNext = false;
+    
+    for (let i = 0; i < jsonCandidate.length; i++) {
+      const char = jsonCandidate[i];
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      if (char === '\\') {
+        escapeNext = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (char === '{') {
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0) {
+            jsonEnd = i + 1;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (jsonEnd === -1) {
+      throw new Error(`Failed to parse AI response: ${parseError.message}. Could not find complete JSON object.`);
+    }
+    
+    jsonCandidate = jsonCandidate.substring(0, jsonEnd);
+    
+    try {
+      content = JSON.parse(jsonCandidate.trim());
+      console.warn(`[GenerateEventsBatch] Successfully extracted JSON from text response${batchLabel}`);
+    } catch (extractError: any) {
+      throw new Error(`Failed to parse AI response: ${parseError.message}. Extracted JSON also failed: ${extractError.message}`);
+    }
+  }
+  
+  if (!content.events || !Array.isArray(content.events)) {
+    throw new Error('Invalid events format in AI response');
+  }
+  
+  // Map and validate events
+  const events = content.events.map((event: any, index: number) => {
+    const title = String(event.title || '').trim();
+    
+    if (isNumbered) {
+      const number = event.number ? parseInt(event.number) : (index + 1);
+      return {
+        number: number,
+        title: title || `${numberLabel} ${number}`,
+        description: event.description || '',
+      };
+    } else {
+      const year = parseInt(event.year);
+      return {
+        year: year || new Date().getFullYear(),
+        month: event.month ? parseInt(event.month) : undefined,
+        day: event.day ? parseInt(event.day) : undefined,
+        title: title || `Event ${index + 1}`,
+        description: event.description || '',
+      };
+    }
+  }).filter((event: any) => {
+    const hasTitle = event.title && event.title.trim() && event.title !== 'Untitled Event';
+    if (isNumbered) {
+      return hasTitle && event.number && !isNaN(event.number) && event.number > 0;
+    } else {
+      return hasTitle;
+    }
+  });
+  
+  // Normalize sources and image references
+  const normalizedSources: any[] = [];
+  const normalizedImageRefs: any[] = [];
+  
+  if (Array.isArray(content.sources)) {
+    const isArticleUrl = (url: string) => /^https?:\/\/[^\/]+\/.+/.test(url);
+    normalizedSources.push(...content.sources
+      .map((s: any) => {
+        if (typeof s === 'string') return { name: '', url: s };
+        return { name: String(s?.name || ''), url: String(s?.url || '') };
+      })
+      .filter((s: any) => s.url && isArticleUrl(s.url))
+      .slice(0, 10));
+  }
+  
+  if (Array.isArray(content.image_references)) {
+    const isUrl = (url: string) => /^https?:\/\//.test(url);
+    normalizedImageRefs.push(...content.image_references
+      .map((s: any) => {
+        if (typeof s === 'string') return { name: '', url: s };
+        return { name: String(s?.name || ''), url: String(s?.url || '') };
+      })
+      .filter((s: any) => s.url && isUrl(s.url))
+      .slice(0, 12));
+  }
+  
+  console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${events.length} events`);
+  
+  return {
+    events,
+    sources: normalizedSources.length > 0 ? normalizedSources : undefined,
+    imageReferences: normalizedImageRefs.length > 0 ? normalizedImageRefs : undefined,
+  };
 }
 

@@ -1,47 +1,45 @@
-import 'dotenv/config';
 import { prisma } from '../lib/db/prisma';
 
 async function addCredits() {
+  const email = 'storywall_editor@gmail.com';
+  const creditsToAdd = 2000;
+  
   try {
-    const email = 'bidunkunle@gmail.com';
-    const creditsToAdd = 2000;
-    
-    console.log(`🔧 Adding ${creditsToAdd} credits to: ${email}\n`);
-
     // Find user by email
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email },
+      select: { id: true, email: true, username: true, credits: true }
     });
-
+    
     if (!user) {
-      console.error(`❌ User with email "${email}" not found.`);
+      console.log(`❌ User with email ${email} not found in database`);
+      console.log(`Please check the email address or create the account first.`);
       await prisma.$disconnect();
       process.exit(1);
     }
-
-    // Update credits
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: { 
-        credits: creditsToAdd // Set to 2000 (not add to existing)
-      },
-    });
-
-    console.log('✅ Credits updated successfully:');
-    console.log(`   Email: ${updatedUser.email}`);
-    console.log(`   Username: ${updatedUser.username}`);
-    console.log(`   Previous Credits: ${user.credits}`);
-    console.log(`   New Credits: ${updatedUser.credits}`);
-    console.log(`   User ID: ${updatedUser.id}\n`);
     
-    await prisma.$disconnect();
-    return updatedUser;
+    console.log(`✓ Found user: ${user.username || user.email}`);
+    console.log(`  Current credits: ${user.credits}`);
+    console.log(`  Adding: ${creditsToAdd} credits`);
+    
+    // Update credits
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { credits: user.credits + creditsToAdd },
+      select: { email: true, username: true, credits: true }
+    });
+    
+    console.log(`\n✅ Successfully added ${creditsToAdd} credits`);
+    console.log(`  New total: ${updated.credits} credits`);
+    console.log(`  User: ${updated.username || updated.email}`);
+    
   } catch (error: any) {
-    console.error('❌ Error updating credits:', error);
-    await prisma.$disconnect();
+    console.error('❌ Error:', error.message);
+    console.error(error);
     process.exit(1);
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
 addCredits();
-

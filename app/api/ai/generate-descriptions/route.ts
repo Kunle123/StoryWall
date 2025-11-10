@@ -109,10 +109,13 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     
     console.log(`[GenerateDescriptions] Request config: provider=${client.provider}, events=${events.length}, maxTokens=${maxTokens}`);
     
+    // Use faster model for Kimi (kimi-k2-turbo-preview is optimized for speed: 60-100 tokens/s)
+    const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
+    
     let data;
     try {
       data = await createChatCompletion(client, {
-        model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
+        model: modelToUse, // Use faster turbo model for Kimi
         messages: [
           {
             role: 'system',
@@ -143,7 +146,7 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     const generationTime = Date.now() - startTime;
     console.log('[GenerateDescriptions] API response received:', {
       provider: client.provider,
-      model: data.model || 'unknown',
+      model: data.model || modelToUse || 'unknown',
       hasChoices: !!data.choices,
       choicesLength: data.choices?.length,
       hasFirstChoice: !!data.choices?.[0],

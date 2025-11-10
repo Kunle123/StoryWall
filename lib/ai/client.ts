@@ -30,7 +30,14 @@ export interface ChatCompletionResponse {
     message: {
       content: string;
     };
+    finish_reason?: string;
   }>;
+  model?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 /**
@@ -39,7 +46,8 @@ export interface ChatCompletionResponse {
 function getBaseURL(provider: AIProvider): string {
   switch (provider) {
     case 'kimi':
-      return 'https://api.moonshot.cn/v1';
+      // Support both .ai and .cn domains - prefer .ai if API key works with it
+      return process.env.KIMI_API_BASE_URL || 'https://api.moonshot.ai/v1';
     case 'openai':
       return 'https://api.openai.com/v1';
     default:
@@ -61,17 +69,17 @@ export function getModelForProvider(
     // Determine which Kimi model to use based on context needs
     // OpenAI models have 128k context, so we need Kimi models with similar capacity
     
-    // For 100 events, try kimi-latest-32k which supports 32k output tokens
-    // According to docs, kimi-latest-32k has 32k output limit (vs 16k for others)
+    // For 100 events, use kimi-k2 models which have 256k context
+    // These models can handle large outputs better than moonshot-v1 models
     if (maxEvents && maxEvents >= 100) {
-      // Try kimi-latest-32k for 100 events - supports 32k output tokens
+      // Use K2 models for 100 events - they have larger context windows
       const modelMap: Record<string, string> = {
-        'gpt-4o': 'kimi-latest-32k', // Supports 32k output tokens
-        'gpt-4o-mini': 'kimi-latest-32k', // Supports 32k output tokens
-        'gpt-4': 'kimi-latest-32k',
-        'gpt-3.5-turbo': 'kimi-latest-32k',
+        'gpt-4o': 'kimi-k2-0905-preview', // 256k context, latest K2 model
+        'gpt-4o-mini': 'kimi-k2-turbo-preview', // 256k context, optimized for speed
+        'gpt-4': 'kimi-k2-0905-preview',
+        'gpt-3.5-turbo': 'kimi-k2-turbo-preview',
       };
-      return modelMap[openAIModel] || 'kimi-latest-32k';
+      return modelMap[openAIModel] || 'kimi-k2-turbo-preview';
     }
     
     // For very long contexts (30k+ tokens), use the largest models
@@ -146,8 +154,11 @@ export async function createChatCompletion(
   options: ChatCompletionOptions & { maxEvents?: number } // Add maxEvents to options
 ): Promise<ChatCompletionResponse> {
   const baseURL = config.baseURL || getBaseURL(config.provider);
-  // Pass max_tokens and maxEvents to model selection to choose appropriate context window
-  const model = getModelForProvider(options.model, config.provider, options.max_tokens, options.maxEvents);
+  // If model is already a Kimi model name (e.g., kimi-k2-turbo-preview), use it directly
+  // Otherwise, map OpenAI model to Kimi equivalent
+  const model = options.model.startsWith('kimi-') || options.model.startsWith('moonshot-')
+    ? options.model
+    : getModelForProvider(options.model, config.provider, options.max_tokens, options.maxEvents);
   
   const url = `${baseURL}/chat/completions`;
   
@@ -194,6 +205,15 @@ export async function createChatCompletion(
       errorData = { error: errorText };
     }
     
+    // Enhanced logging for Kimi API errors
+    console.error(`[AI Client] ${config.provider.toUpperCase()} API error (${response.status}):`, {
+      status: response.status,
+      statusText: response.statusText,
+      errorData,
+      url: url,
+      model: requestBody.model,
+    });
+    
     throw new Error(
       `AI API error (${response.status}): ${errorData.error?.message || errorData.error || errorText}`
     );
@@ -216,7 +236,7 @@ export function getAIClient(): AIClientConfig {
     return {
       provider: 'kimi',
       apiKey,
-      baseURL: process.env.KIMI_API_BASE_URL || 'https://api.moonshot.cn/v1',
+      baseURL: process.env.KIMI_API_BASE_URL || 'https://api.moonshot.ai/v1',
     };
   } else {
     const apiKey = process.env.OPENAI_API_KEY;
