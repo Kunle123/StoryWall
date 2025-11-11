@@ -469,11 +469,12 @@ const TimelineEditor = () => {
   }));
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      <Toaster />
-      
-      <main className="flex-1 container mx-auto px-4 pt-16 pb-24 max-w-5xl">
+    <EditorErrorBoundary>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header />
+        <Toaster />
+        
+        <main className="flex-1 container mx-auto px-4 pt-16 pb-24 max-w-5xl">
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Create a Timeline</h1>
           <p className="text-muted-foreground">Create your AI-powered timeline in 6 simple steps</p>
@@ -727,8 +728,9 @@ const TimelineEditor = () => {
             </Card>
           </>
         )}
-      </main>
-    </div>
+        </main>
+      </div>
+    </EditorErrorBoundary>
   );
 };
 
