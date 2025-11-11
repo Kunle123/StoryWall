@@ -39,11 +39,11 @@ async function extractPersonNamesFromEvent(event: { title: string; description?:
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that extracts person names (famous or notable) from event descriptions. Extract ALL person names mentioned in BOTH the title and description, including politicians, celebrities, public figures, and any named individuals. Pay special attention to the title as it often contains the main people involved. Return ONLY a JSON array of objects, each with "name" (full name when possible) and "search_query" (best query to find their image). Example: [{"name": "Taylor Swift", "search_query": "Taylor Swift portrait"}, {"name": "Kanye West", "search_query": "Kanye West headshot"}] or [{"name": "Zohran Mamdani", "search_query": "Zohran Mamdani"}, {"name": "Andrew Cuomo", "search_query": "Andrew Cuomo official photo"}] or []. If only a last name is mentioned (like "Cuomo"), include it as-is. Fix common typos (e.g., "mamdanis" -> "Mamdani").'
+            content: 'You are a helpful assistant that extracts person names (famous or notable) from event descriptions. CRITICAL: Only extract person names if the event is actually ABOUT people (politicians, celebrities, public figures, named individuals). If the event is about concepts, processes, scientific phenomena, medical conditions, technical topics, or abstract ideas WITHOUT specific named people, return an empty array []. Examples: "Fetal development stages" = [] (no people), "Taylor Swift concert" = [{"name": "Taylor Swift", ...}], "The invention of the telephone" = [] (no specific person named), "Alexander Graham Bell invents telephone" = [{"name": "Alexander Graham Bell", ...}]. Return ONLY a JSON array of objects, each with "name" (full name when possible) and "search_query" (best query to find their image), or [] if no people are mentioned. Fix common typos (e.g., "mamdanis" -> "Mamdani").'
           },
           {
             role: 'user',
-            content: `Extract all person names from this event:\nTitle: "${event.title}"\nDescription: "${event.description || 'none'}"\n\nReturn only a JSON array of objects with "name" and "search_query" fields, nothing else. Include all named people mentioned in the title or description, even if only by last name.`
+            content: `Extract person names from this event ONLY if it mentions specific named people:\nTitle: "${event.title}"\nDescription: "${event.description || 'none'}"\n\nReturn only a JSON array of objects with "name" and "search_query" fields, or [] if this event is about concepts, processes, science, medicine, or topics without specific named people.`
           }
         ],
         temperature: 0.3,
@@ -955,16 +955,17 @@ function buildImagePrompt(
     }
   } else {
     // Build from scratch using event title and description directly
-    // This is more reliable than regex extraction
+    // Use the FULL description to ensure accuracy, not just first 15 words
     
     // Start with the event title as the main subject
     let visualDescription = event.title;
     
-    // Enhance with description if available (extract key visual elements)
+    // Use the full description to build a comprehensive, accurate prompt
     if (event.description) {
-      // Use description to add context, but keep it concise
-      const descWords = event.description.split(' ').slice(0, 15).join(' '); // First 15 words
-      visualDescription = `${event.title}: ${descWords}`;
+      // Use the full description (or at least more of it) to ensure accuracy
+      // For medical/scientific/technical content, we need the full context
+      const fullDescription = event.description.trim();
+      visualDescription = `${event.title}: ${fullDescription}`;
     }
     
     // Build base prompt
@@ -984,22 +985,13 @@ function buildImagePrompt(
   }
   
   // Add explicit visual instructions to ensure the image relates to the event
-  prompt += `. Depict the specific event: ${event.title}`;
+  // Make this more prominent and specific
+  prompt += `. CRITICAL: Accurately depict the specific event: ${event.title}`;
   
   if (event.description) {
-    // Add key visual elements from description
-    const descLower = event.description.toLowerCase();
-    // Extract key nouns that should be visible
-    const keyTerms: string[] = [];
-    const importantNouns = ['launch', 'announcement', 'election', 'war', 'treaty', 'discovery', 'invention', 'award', 'championship', 'tournament', 'conference', 'summit', 'meeting', 'ceremony', 'celebration', 'protest', 'rally', 'debate', 'speech', 'signing', 'opening', 'closing', 'victory', 'defeat'];
-    importantNouns.forEach(noun => {
-      if (descLower.includes(noun)) {
-        keyTerms.push(noun);
-      }
-    });
-    if (keyTerms.length > 0) {
-      prompt += `. Show ${keyTerms[0]}`;
-    }
+    // Add the full description context to ensure accuracy
+    // This is especially important for medical/scientific/technical content
+    prompt += `. Show the exact content described: ${event.description}`;
   }
   
   // Skip color prompting - let the style dictate natural colors

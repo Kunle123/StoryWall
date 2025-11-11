@@ -365,7 +365,6 @@ export const TimelineInfoStep = ({
               </div>
             )}
           </div>
-        </div>
 
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="more-options">
