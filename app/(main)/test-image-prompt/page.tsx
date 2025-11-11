@@ -49,14 +49,15 @@ export default function TestImagePromptPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate events: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || errorData.message || `Failed to generate events: ${response.statusText}`);
       }
 
       const data = await response.json();
       setEvents(data.events || []);
     } catch (error: any) {
       console.error("Error generating events:", error);
-      alert(`Error: ${error.message}`);
+      alert(`Error: ${error.message}\n\nCheck the browser console for more details.`);
     } finally {
       setLoading(false);
     }
@@ -87,7 +88,8 @@ export default function TestImagePromptPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate descriptions: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || errorData.message || `Failed to generate descriptions: ${response.statusText}`);
       }
 
       const data = await response.json();
