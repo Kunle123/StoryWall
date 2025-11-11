@@ -1411,6 +1411,8 @@ export async function POST(request: NextRequest) {
     // Add user-provided reference photo if available
     let finalImageReferences = imageReferences && imageReferences.length > 0 ? [...imageReferences] : [];
     
+    console.log(`[ImageGen] Initial state: includesPeople=${includesPeople}, provided imageReferences=${imageReferences?.length || 0}, finalImageReferences=${finalImageReferences.length}`);
+    
     // Add reference photo if provided and valid
     if (referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission) {
       console.log(`[ImageGen] Using user-provided reference photo for ${referencePhoto.personName}`);
@@ -1421,6 +1423,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (finalImageReferences.length === 0 && includesPeople) {
+      console.log(`[ImageGen] ✓ includesPeople=true and no reference images provided - will fetch reference images from events`);
       try {
         console.log(`[ImageGen] No reference images provided - extracting person names from events (style: ${imageStyle})...`);
         
@@ -1476,7 +1479,13 @@ export async function POST(request: NextRequest) {
         // Continue without reference images - don't fail the whole request
       }
     } else {
-      console.log(`[ImageGen] Using provided ${finalImageReferences.length} reference image(s)`);
+      if (finalImageReferences.length > 0) {
+        console.log(`[ImageGen] Using provided ${finalImageReferences.length} reference image(s)`);
+      } else if (!includesPeople) {
+        console.log(`[ImageGen] ⚠️ includesPeople=false - skipping reference image fetching. If timeline includes people, enable the "includesPeople" toggle.`);
+      } else {
+        console.log(`[ImageGen] ⚠️ includesPeople=true but no reference images were fetched (check logs above for extraction/fetch errors)`);
+      }
     }
     
     const hasReferenceImages = finalImageReferences && finalImageReferences.length > 0;
