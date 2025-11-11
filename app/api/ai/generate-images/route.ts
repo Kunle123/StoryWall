@@ -925,7 +925,8 @@ function buildImagePrompt(
   
   if (event.imagePrompt && event.imagePrompt.trim()) {
     // Use AI-generated prompt as base, but clean it up
-    prompt = event.imagePrompt;
+    // IMPORTANT: Preserve the detailed description from Step 3 - it contains specific visual details!
+    let basePrompt = event.imagePrompt;
     
     // Remove narrative/exclamatory phrases from AI prompt
     const narrativePatterns = [
@@ -937,22 +938,40 @@ function buildImagePrompt(
       /\.\.\./g,
     ];
     narrativePatterns.forEach(pattern => {
-      prompt = prompt.replace(pattern, '');
+      basePrompt = basePrompt.replace(pattern, '');
     });
     
-    // Check for famous people and make safe (only if timeline includes people)
-    if (includesPeople && (containsFamousPerson(prompt) || containsFamousPerson(event.title))) {
-      prompt = makePromptSafeForFamousPeople(prompt, imageStyle);
-      // Use safer style for famous people
-      const safeStyle = getSafeStyleForFamousPeople(imageStyle);
-      if (safeStyle !== imageStyle && !prompt.toLowerCase().includes(safeStyle.toLowerCase())) {
-        prompt = `${safeStyle} style: ${prompt}`;
-      }
-    }
+    // Check if this is a good, detailed prompt (contains specific visual details)
+    const hasSpecificDetails = basePrompt.toLowerCase().includes('showing') ||
+      basePrompt.toLowerCase().includes('with') ||
+      basePrompt.toLowerCase().includes('during') ||
+      basePrompt.toLowerCase().includes('at ') ||
+      basePrompt.toLowerCase().includes('gestation') ||
+      basePrompt.toLowerCase().includes('process of') ||
+      basePrompt.length > 60;
     
-    // Ensure it includes style if not already present
-    if (!prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
-      prompt = `${imageStyle} style: ${prompt}`;
+    // If it's a good detailed prompt, preserve it as-is (just add style prefix if needed)
+    if (hasSpecificDetails) {
+      // Check for famous people and make safe (only if timeline includes people)
+      if (includesPeople && (containsFamousPerson(basePrompt) || containsFamousPerson(event.title))) {
+        basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
+        const safeStyle = getSafeStyleForFamousPeople(imageStyle);
+        if (safeStyle !== imageStyle && !basePrompt.toLowerCase().includes(safeStyle.toLowerCase())) {
+          prompt = `${safeStyle} style: ${basePrompt}`;
+        } else {
+          prompt = basePrompt;
+        }
+      } else {
+        // For non-people content, just ensure style is present
+        if (!basePrompt.toLowerCase().includes(imageStyle.toLowerCase())) {
+          prompt = `${imageStyle} style: ${basePrompt}`;
+        } else {
+          prompt = basePrompt;
+        }
+      }
+    } else {
+      // If prompt is too generic, fall through to rebuilding logic below
+      prompt = '';
     }
   } else {
     // Build from scratch using event title and description directly
@@ -1096,8 +1115,9 @@ function buildImagePrompt(
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
   // Add series consistency instructions - images should look like they belong to the same photographic/documentary series
-  // This ensures visual continuity when images are viewed together in a timeline
-  prompt += `. SERIES CONSISTENCY: This image is part of a documentary series documenting stages of progression. Maintain consistent visual style across all images: same lighting approach (consistent direction and quality), consistent color palette and tone, consistent composition style (similar framing and perspective), consistent level of detail and focus. Images should look like they were photographed in the same session or series, with visual continuity that makes them feel cohesive when viewed together. Similar camera angle and distance, consistent background treatment, uniform visual language`;
+  // Since the model can't see other images, we need to specify the exact visual style to maintain
+  // Use a consistent, documentary-style approach that works for progression timelines
+  prompt += `. SERIES CONSISTENCY: Use a consistent documentary photography style: soft, even lighting from above (like a medical/scientific photograph), neutral background (white or light gray), centered subject composition, same scale and magnification level, clinical/educational aesthetic. Maintain this exact visual approach across all images in the series - same lighting direction, same background color, same composition style, same level of detail. Images should look like they were photographed in the same scientific documentation session`;
   
   // Add person matching instructions when reference images are provided AND timeline includes people
   // These instructions are critical for accurate person matching with Imagen
