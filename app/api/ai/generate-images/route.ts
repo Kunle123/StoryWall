@@ -505,9 +505,8 @@ const STYLE_TO_MODEL: Record<string, string> = {
   'realistic': MODELS.PHOTOREALISTIC,
   
   // Artistic styles -> use artistic model
-  // Illustration uses Imagen for better consistency and quality
-  'Illustration': MODELS.PHOTOREALISTIC, // Use Imagen for Illustration style
-  'illustration': MODELS.PHOTOREALISTIC,
+  'Illustration': MODELS.ARTISTIC, // Use SDXL for Illustration style
+  'illustration': MODELS.ARTISTIC,
   'Watercolor': MODELS.ARTISTIC,
   'watercolor': MODELS.ARTISTIC,
   'Minimalist': MODELS.ARTISTIC,
@@ -988,9 +987,15 @@ function buildImagePrompt(
     }
     
     // ALWAYS build prompt with Anchor + event-specific description
-    // This ensures consistency regardless of what the AI generated
-    prompt = `${normalizedAnchor}. The scene shows ${eventDescription}`;
-    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}"`);
+    // Keep Anchor concise - it should enhance, not dominate the prompt
+    // If Anchor is very long, truncate it to keep focus on the event content
+    const maxAnchorLength = 150; // Limit Anchor to ~150 chars to avoid drowning content
+    const truncatedAnchor = normalizedAnchor.length > maxAnchorLength 
+      ? normalizedAnchor.substring(0, maxAnchorLength).replace(/\s+\S*$/, '') + '...'
+      : normalizedAnchor;
+    
+    prompt = `${truncatedAnchor}. ${eventDescription}`;
+    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${truncatedAnchor.length} chars)`);
     
     // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
     // The prompt is now set above, so we can continue to the rest of the function

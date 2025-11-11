@@ -293,29 +293,25 @@ CRITICAL INSTRUCTIONS:
       const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
       const imagePromptInstructions = anchorStyle
         ? hasFactualDetails
-          ? `CRITICAL: This timeline is a progression series with factual grounding. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
+          ? `This is a progression series. For each event, create a concise image prompt that:
+1. Starts with the brief Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
+2. Accurately depicts the Factual Details for that specific stage (provided below)
+3. Focuses on the SUBJECT at that stage, not charts or abstract representations
 
-For each event, you MUST:
-1. Start with the Anchor Style
-2. Accurately depict the Factual Details provided for that specific stage
-3. Combine them into a single, clear visual scene
-
-The Factual Details are provided below for each event. You MUST accurately depict these facts - DO NOT improvise or add details not in the factual list.
+Keep prompts concise - the event-specific details should be the focus. The Anchor provides visual consistency but shouldn't dominate the prompt.
 
 Example:
-- Anchor Style: "Medically accurate 3D renderings with soft lighting"
 - Event: "Week 4: Neural Tube Forms"
 - Factual Details: ["The neural tube is closing", "A primitive S-shaped heart tube is forming", "The embryo is C-shaped"]
-- Final Prompt: "Medically accurate 3D renderings with soft lighting. The scene shows a 4-week old embryo, a tiny C-shaped form where the neural tube is closing along its back, and a primitive S-shaped heart tube is beginning to form."
+- Prompt: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back and a primitive S-shaped heart tube forming."`
+          : `This is a progression series. For each event, create a concise image prompt that:
+1. Starts with the brief Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
+2. Describes the specific event at that stage
+3. Focuses on the SUBJECT at that stage
 
-Each image prompt should show the SUBJECT at that specific stage with the exact factual characteristics listed, not charts, screens, or abstract representations.`
-          : `CRITICAL: This timeline is a progression series. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
+Keep prompts concise - the event content should be the focus. The Anchor provides visual consistency but shouldn't dominate.
 
-For each event, combine the Anchor Style with the specific event title to create a detailed image prompt. Each prompt MUST start with the Anchor Style, followed by a description of the specific event at that stage.
-
-Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. The scene shows a 4-week old embryo, a tiny C-shaped form where the neural tube is just closing along its back."
-
-Each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations.`
+Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back."`
         : `For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
 
 CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
