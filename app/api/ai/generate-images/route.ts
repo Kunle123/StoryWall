@@ -1794,15 +1794,21 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    // Step 2: Poll all predictions in parallel
-    const imagePromises = predictionResults.map(async (result) => {
+    // Step 2: Poll all predictions in parallel, with retry for failed ones
+    const MAX_RETRIES = 2; // Retry failed images up to 2 times
+    
+    // Helper function to wait for a prediction with retry
+    const waitForPredictionWithRetry = async (
+      result: { index: number; predictionId?: string; error?: Error; event: any; prompt: string; needsText?: boolean },
+      attempt: number = 0
+    ): Promise<{ index: number; imageUrl: string | null; error: Error | null; event: any; prompt: string }> => {
       if (result.error || !result.predictionId) {
         const errorMsg = result.error?.message || result.error || 'No prediction ID';
         console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
         return { 
           index: result.index, 
           imageUrl: null, 
-          error: result.error, 
+          error: result.error || new Error(errorMsg), 
           event: result.event,
           prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
@@ -1820,8 +1826,127 @@ export async function POST(request: NextRequest) {
           prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       } catch (error: any) {
-        console.error(`[ImageGen] Error waiting for prediction "${result.event.title}" (ID: ${result.predictionId}):`, error);
-        console.error(`[ImageGen] Error details:`, error.message, error.stack?.substring(0, 500));
+        console.error(`[ImageGen] Error waiting for prediction "${result.event.title}" (ID: ${result.predictionId}, attempt ${attempt + 1}):`, error);
+        
+        // Retry by creating a new prediction if we haven't exceeded max retries
+        if (attempt < MAX_RETRIES) {
+          console.log(`[ImageGen] Retrying image generation for "${result.event.title}" (attempt ${attempt + 2}/${MAX_RETRIES + 1})...`);
+          
+          // Wait a bit before retry
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Create a new prediction (reuse the original prediction creation logic)
+          // For simplicity, we'll create a new prediction with the same parameters
+          try {
+            const needsText = result.needsText ?? expectsTextInImage(result.event);
+            let selectedModel = getModelForStyle(imageStyle, needsText);
+            
+            // Apply same model selection logic as original
+            const isSDXL = selectedModel === MODELS.ARTISTIC || selectedModel.includes('sdxl');
+            const isArtistic = isSDXL || selectedModel === MODELS.ARTISTIC;
+            const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
+            
+            if (hasReferenceImages) {
+              if (isArtistic || isPhotorealistic) {
+                selectedModel = MODELS.PHOTOREALISTIC;
+              } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+                selectedModel = "black-forest-labs/flux-kontext-pro";
+              }
+            }
+            
+            const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+            const referenceImageUrl = preparedReferences[result.index] || preparedReferences[0] || null;
+            const hasReferenceImage = !!referenceImageUrl;
+            
+            // Rebuild prompt
+            const prompt = buildImagePrompt(
+              result.event,
+              imageStyle,
+              themeColor,
+              styleVisualLanguage,
+              needsText,
+              finalImageReferences,
+              hasReferenceImage,
+              includesPeople,
+              anchorStyle
+            );
+            
+            // Build input (simplified - reuse same logic as original)
+            const input: any = { prompt };
+            if (selectedModel.includes('ip-adapter') || selectedModel === MODELS.ARTISTIC_WITH_REF) {
+              input.num_outputs = 1;
+              input.guidance_scale = 7.5;
+              input.num_inference_steps = 25;
+              if (referenceImageUrl) input.image = referenceImageUrl;
+              if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines";
+            } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
+              input.enhancePrompt = false;
+              if (referenceImageUrl) input.image = referenceImageUrl;
+            } else if (selectedModel.includes('flux-kontext-pro')) {
+              input.num_outputs = 1;
+              input.guidance_scale = 3.5;
+              input.num_inference_steps = 28;
+              if (referenceImageUrl) {
+                input.image = referenceImageUrl;
+                input.prompt_strength = 0.75;
+                input.strength = 0.75;
+              }
+            } else if (selectedModel.includes('flux')) {
+              input.num_outputs = 1;
+              input.guidance_scale = 3.5;
+              input.num_inference_steps = selectedModel.includes('flux-pro') ? 50 : 28;
+            } else {
+              // SDXL
+              input.num_outputs = 1;
+              input.guidance_scale = 7.5;
+              input.num_inference_steps = 25;
+              if (!needsText) {
+                input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions";
+              }
+              if (referenceImageUrl) {
+                input.image = referenceImageUrl;
+                input.prompt_strength = 0.75;
+                input.strength = 0.75;
+              }
+            }
+            
+            // Create new prediction
+            const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Token ${replicateApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                version: modelVersion,
+                input: input,
+              }),
+            });
+            
+            if (!createResponse.ok) {
+              throw new Error(`Retry prediction creation failed: ${createResponse.statusText}`);
+            }
+            
+            const newPrediction = await createResponse.json();
+            if (!newPrediction.id) {
+              throw new Error('No prediction ID in retry');
+            }
+            
+            // Wait for the new prediction
+            const retryResult = { ...result, predictionId: newPrediction.id, needsText };
+            return waitForPredictionWithRetry(retryResult, attempt + 1);
+          } catch (retryError: any) {
+            console.error(`[ImageGen] Retry failed for "${result.event.title}":`, retryError.message);
+            return { 
+              index: result.index, 
+              imageUrl: null, 
+              error: error, 
+              event: result.event,
+              prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
+            };
+          }
+        }
+        
         return { 
           index: result.index, 
           imageUrl: null, 
@@ -1830,9 +1955,17 @@ export async function POST(request: NextRequest) {
           prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       }
-    });
-
-    // Wait for all images to complete
+    };
+    
+    // Poll all predictions in parallel (with retry logic built in)
+    const imagePromises = predictionResults.map(result => 
+      waitForPredictionWithRetry({
+        ...result,
+        needsText: eventsWithTextNeeds[result.index]?.needsText
+      })
+    );
+    
+    // Wait for all images to complete (with retries)
     const imageResults = await Promise.all(imagePromises);
     
     // Step 3: Assemble results in correct order
