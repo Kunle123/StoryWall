@@ -483,7 +483,7 @@ const TimelineEditor = () => {
                       startDate={startDate}
                       setStartDate={setStartDate}
                       endDate={endDate}
-                      setEndDate={endDate}
+                      setEndDate={setEndDate}
                       sourceRestrictions={sourceRestrictions}
                       setSourceRestrictions={setSourceRestrictions}
                       referencePhoto={referencePhoto}
