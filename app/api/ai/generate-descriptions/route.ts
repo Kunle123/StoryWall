@@ -113,6 +113,10 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     }
     
     console.log(`[GenerateDescriptions] Request config: provider=${client.provider}, events=${events.length}, maxTokens=${maxTokens}`);
+    console.log(`[GenerateDescriptions] Timeline description: ${timelineDescription.substring(0, 200)}...`);
+    console.log(`[GenerateDescriptions] Writing style: ${writingStyle}`);
+    console.log(`[GenerateDescriptions] Image style: ${imageStyle || 'not provided'}`);
+    console.log(`[GenerateDescriptions] Theme color: ${themeColor || 'not provided'}`);
     
     // Use faster model for Kimi (kimi-k2-turbo-preview is optimized for speed: 60-100 tokens/s)
     const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';

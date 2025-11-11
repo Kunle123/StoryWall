@@ -1375,6 +1375,9 @@ export async function POST(request: NextRequest) {
         
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
+        console.log(`[ImageGen] Full prompt for "${event.title}":`, prompt);
+        console.log(`[ImageGen] Prompt length: ${prompt.length} characters`);
+        console.log(`[ImageGen] includesPeople: ${includesPeople}, hasReferenceImage: ${hasReferenceImage}`);
         if (hasReferenceImage) {
           const personNames = extractPersonNames(finalImageReferences);
           console.log(`[ImageGen] Person matching enabled for: ${personNames.join(', ') || 'person in reference image'}`);
