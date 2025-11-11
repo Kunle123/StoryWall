@@ -177,11 +177,11 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
             },
             {
               role: 'user',
-              content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n\nCreate a consistent visual style (Anchor) for this documentary series in the style of "${imageStyle || 'Illustration'}". Define:\n- Style: Adapt "${imageStyle || 'Illustration'}" style to this subject (e.g., "medically accurate ${imageStyle?.toLowerCase() || 'illustration'}s", "${imageStyle?.toLowerCase() || 'illustration'} style documentary series")\n- Lighting: (e.g., "soft, even lighting from above", "backlit to highlight features", "consistent lighting direction")\n- Color Palette: (e.g., "soft pinks and reds", "neutral grays and whites", "consistent color tone")\n- Composition: (e.g., "centered subject, tight close-up", "consistent camera angle and distance")\n- Background: (e.g., "clean, dark background", "neutral white background", "consistent background treatment")\n\nOutput ONLY the Anchor style description as a single, reusable text block that will be prepended to all image prompts. Make it specific to the "${imageStyle || 'Illustration'}" style.`,
+              content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n\nCreate a CONCISE visual style (Anchor) for this documentary series. Keep it brief (2-3 sentences max, ~100-150 characters). Focus on:\n- Style adaptation: "${imageStyle || 'Illustration'}" style adapted to this subject\n- Key visual consistency: lighting direction, color tone, composition approach\n- Background treatment\n\nOutput ONLY a brief, reusable style description (2-3 sentences) that will be prepended to event-specific descriptions. Be concise - the event content should be the focus, not the style guide.`,
             },
           ],
           temperature: 0.7,
-          max_tokens: 300,
+          max_tokens: 150, // Reduced to encourage concise Anchor generation
         });
         
         if (anchorResponse.choices?.[0]?.message?.content) {
