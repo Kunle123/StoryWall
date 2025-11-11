@@ -1202,6 +1202,55 @@ function buildImagePrompt(
   if (includesPeople && hasReferenceImage && imageReferences && imageReferences.length > 0) {
     const personNames = extractPersonNames(imageReferences);
     if (personNames.length > 0) {
+      // CRITICAL: Ensure the prompt uses FULL person names, not just last names
+      // Replace instances of just last names with full names in the prompt
+      personNames.forEach(personName => {
+        const nameParts = personName.split(' ');
+        if (nameParts.length >= 2) {
+          const firstName = nameParts[0];
+          const lastName = nameParts[nameParts.length - 1];
+          const promptLower = prompt.toLowerCase();
+          const personNameLower = personName.toLowerCase();
+          
+          // Check if full name is already in prompt
+          if (promptLower.includes(personNameLower)) {
+            // Full name is present - good!
+            return;
+          }
+          
+          // Replace standalone last name with full name (case-insensitive, word boundary)
+          // This handles cases like "Wonder on stage" -> "Stevie Wonder on stage"
+          const lastNameRegex = new RegExp(`\\b${lastName}\\b`, 'gi');
+          if (prompt.match(lastNameRegex)) {
+            prompt = prompt.replace(lastNameRegex, personName);
+            console.log(`[ImageGen] Replaced "${lastName}" with "${personName}" in prompt`);
+          }
+          
+          // Also check for first name only and replace with full name
+          const firstNameRegex = new RegExp(`\\b${firstName}\\b`, 'gi');
+          if (prompt.match(firstNameRegex) && !promptLower.includes(personNameLower)) {
+            prompt = prompt.replace(firstNameRegex, personName);
+            console.log(`[ImageGen] Replaced "${firstName}" with "${personName}" in prompt`);
+          }
+          
+          // If person still isn't mentioned at all, add them explicitly
+          if (!promptLower.includes(personNameLower)) {
+            // Try to add after style prefix or at the start of the main description
+            // Look for pattern like "Watercolor style: Wonder on stage" -> "Watercolor style: Stevie Wonder on stage"
+            const stylePrefixRegex = /(Watercolor|Illustration|Minimalist|Photorealistic|Sketch|Vintage|3D Render|Abstract)\s+style:\s*/i;
+            if (prompt.match(stylePrefixRegex)) {
+              // Add person name right after style prefix
+              prompt = prompt.replace(stylePrefixRegex, `$1 style: ${personName} `);
+              console.log(`[ImageGen] Added "${personName}" after style prefix`);
+            } else {
+              // Add at the beginning if no style prefix
+              prompt = `${personName} ${prompt}`;
+              console.log(`[ImageGen] Added "${personName}" at the start of prompt`);
+            }
+          }
+        }
+      });
+      
       // Add specific person matching instructions - make them VERY prominent
       // Explicitly preserve hair color, skin tone, and all physical attributes
       prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames.join(' and ')} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
