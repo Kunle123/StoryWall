@@ -1605,7 +1605,8 @@ export async function POST(request: NextRequest) {
         const hasReferenceImage = !!referenceImageUrl;
         
         if (hasReferenceImage && referenceImageUrl) {
-          console.log(`[ImageGen] Reference image URL for "${event.title}": ${referenceImageUrl.substring(0, 80)}...`);
+          console.log(`[ImageGen] ✓ Reference image URL for "${event.title}" (index ${index}): ${referenceImageUrl.substring(0, 80)}...`);
+          console.log(`[ImageGen] Reference image will be INJECTED into model input for this event`);
           
           // Upload to Replicate ONLY if using SDXL (which has 403 errors with Wikimedia)
           // Skip for Imagen which can fetch Wikimedia URLs directly
@@ -1621,7 +1622,8 @@ export async function POST(request: NextRequest) {
             }
           }
         } else {
-          console.log(`[ImageGen] No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
+          console.log(`[ImageGen] ⚠️ No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
+          console.log(`[ImageGen] Prepared references: ${preparedReferences.map((r, i) => `[${i}]: ${r ? '✓' : '✗'}`).join(', ')}`);
         }
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
@@ -1690,12 +1692,12 @@ export async function POST(request: NextRequest) {
               input.image = referenceImageUrl;
               // Note: Imagen 4 Fast on Replicate doesn't document a 'strength' parameter
               // The model uses the reference image automatically when provided
-              console.log(`[ImageGen] Using reference image with Google Imagen 4 Fast (enhancePrompt: false for better person matching, $0.02/image)`);
+              console.log(`[ImageGen] ✓ INJECTING reference image into Google Imagen 4 Fast for "${event.title}" (URL: ${referenceImageUrl.substring(0, 80)}..., enhancePrompt: false for better person matching, $0.02/image)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for Google Imagen: ${referenceImageUrl.substring(0, 50)}`);
             }
           } else {
-            console.log(`[ImageGen] Using Google Imagen 4 Fast without reference image`);
+            console.log(`[ImageGen] ⚠️ NO reference image for "${event.title}" - using Google Imagen 4 Fast without reference image`);
           }
           console.log(`[ImageGen] Using Google Imagen 4 Fast parameters (prompt length: ${prompt.length} chars)`);
         } else if (selectedModel.includes('flux-kontext-pro')) {
