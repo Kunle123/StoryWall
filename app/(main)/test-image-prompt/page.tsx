@@ -93,7 +93,7 @@ export default function TestImagePromptPage() {
           timelineDescription: timelineDescription,
           imageStyle: imageStyle,
           themeColor: themeColor,
-          includesPeople: false, // Default to false for testing
+          includesPeople: includesPeople,
         }),
       });
 
