@@ -294,13 +294,17 @@ export default function TestImagePromptPage() {
 
                     <div>
                       <Label className="text-sm font-semibold text-gray-500">Image Prompt</Label>
-                      <div className="mt-1 p-3 bg-gray-100 rounded text-sm font-mono">
+                      <div className="mt-1 p-3 bg-gray-100 rounded text-sm font-mono break-words whitespace-pre-wrap">
                         {event.imagePrompt || "No prompt generated yet"}
                       </div>
                       {event.imagePrompt && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          Length: {event.imagePrompt.length} characters
-                        </p>
+                        <div className="mt-2 text-xs text-muted-foreground space-y-1">
+                          <p>Length: {event.imagePrompt.length} characters</p>
+                          <p>Limit: 1,500 characters</p>
+                          <p className={event.imagePrompt.length > 1500 ? "text-red-600 font-semibold" : "text-green-600"}>
+                            {event.imagePrompt.length > 1500 ? "⚠️ Exceeds limit (will be truncated)" : "✓ Within limit"}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
