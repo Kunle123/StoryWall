@@ -916,7 +916,8 @@ function buildImagePrompt(
   needsText: boolean = false,
   imageReferences?: Array<{ name: string; url: string }>,
   hasReferenceImage: boolean = false,
-  includesPeople: boolean = true
+  includesPeople: boolean = true,
+  anchorStyle?: string | null
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
@@ -1224,7 +1225,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true } = body;
+    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -1479,7 +1480,8 @@ export async function POST(request: NextRequest) {
           needsText,
           finalImageReferences,
           hasReferenceImage,
-          includesPeople
+          includesPeople,
+          anchorStyle // Pass Anchor if available
         );
         
         // Log the prompt being sent (for debugging)
