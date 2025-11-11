@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
@@ -23,6 +23,7 @@ interface TimelineCardProps {
 
 export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false }: TimelineCardProps) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { isSignedIn } = useUser();
   const { toast } = useToast();
   const [stats, setStats] = useState({ likes: 0, comments: 0, shares: 0 });
@@ -194,7 +195,13 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
               className="h-8 px-2 hover:bg-muted gap-1"
               onClick={(e) => {
                 e.stopPropagation();
-                router.push(`/story/${event.id}#comments`);
+                // If on timeline page, dispatch custom event to show comments
+                // Otherwise navigate to story page
+                if (pathname?.startsWith('/timeline/')) {
+                  window.dispatchEvent(new CustomEvent('show-comments'));
+                } else {
+                  router.push(`/story/${event.id}#comments`);
+                }
               }}
             >
               <MessageCircle className="w-4 h-4" />

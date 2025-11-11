@@ -28,17 +28,13 @@ const TimelinePage = () => {
   
   // Handle header hide/show on scroll and comments visibility
   useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Hide comments when user starts scrolling (unless they just clicked comments button)
-      if (commentsRequested) {
-        // Reset the flag after a short delay
-        setTimeout(() => setCommentsRequested(false), 100);
-      } else if (currentScrollY !== lastScrollY) {
-        // User is scrolling - hide comments
-        setShowComments(false);
-      }
+      // Clear any pending timeout
+      clearTimeout(scrollTimeout);
       
       // Check if at bottom of page
       const windowHeight = window.innerHeight;
@@ -46,8 +42,21 @@ const TimelinePage = () => {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
       const isAtBottom = scrollTop + windowHeight >= documentHeight - 100; // 100px threshold
       
-      if (isAtBottom) {
+      // Show comments if at bottom OR if comments were requested
+      if (isAtBottom || commentsRequested) {
         setShowComments(true);
+        // Reset the flag after showing
+        if (commentsRequested) {
+          scrollTimeout = setTimeout(() => setCommentsRequested(false), 500);
+        }
+      } else {
+        // Hide comments when scrolling away from bottom (unless just requested)
+        if (!commentsRequested) {
+          // Small delay to avoid flickering
+          scrollTimeout = setTimeout(() => {
+            setShowComments(false);
+          }, 150);
+        }
       }
       
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
@@ -62,7 +71,10 @@ const TimelinePage = () => {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
   }, [lastScrollY, commentsRequested]);
   
   // Handle comments button click from event cards
@@ -219,9 +231,11 @@ const TimelinePage = () => {
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
         />
-        <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24 relative z-10">
-          <CommentsSection timelineId={timeline.id || timelineId} />
-        </div>
+        {showComments && (
+          <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24 relative z-10">
+            <CommentsSection timelineId={timeline.id || timelineId} />
+          </div>
+        )}
       </main>
       {(() => {
         // Filter to only dated events (numbered events don't have years)

@@ -4,6 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pipette } from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ImageStyleStepProps {
   imageStyle: string;
@@ -14,11 +24,11 @@ interface ImageStyleStepProps {
 }
 
 const imageStyles = [
-  "Photorealistic",
-  "Illustration",
   "Minimalist",
-  "Vintage",
+  "Illustration",
   "Watercolor",
+  "Photorealistic",
+  "Vintage",
   "3D Render",
   "Sketch",
   "Abstract",
@@ -45,6 +55,15 @@ export const ImageStyleStep = ({
 }: ImageStyleStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
+  const [showPhotorealisticWarning, setShowPhotorealisticWarning] = useState(false);
+  const [pendingStyle, setPendingStyle] = useState<string | null>(null);
+  
+  // Set default to "Minimalist" if imageStyle is empty
+  useEffect(() => {
+    if (!imageStyle || imageStyle.trim() === "") {
+      setImageStyle("Minimalist");
+    }
+  }, [imageStyle, setImageStyle]);
 
   // Sync customStyle with imageStyle when customStyle is provided
   // This ensures custom styles are immediately available for validation
@@ -61,9 +80,30 @@ export const ImageStyleStep = ({
 
   const handleStyleClick = (style: string) => {
     console.log('[ImageStyleStep] Setting image style:', style);
-    setImageStyle(style);
-    // Clear custom style when preset is selected
-    setCustomStyle("");
+    
+    // Show warning for Photorealistic style
+    if (style === "Photorealistic") {
+      setPendingStyle(style);
+      setShowPhotorealisticWarning(true);
+    } else {
+      setImageStyle(style);
+      // Clear custom style when preset is selected
+      setCustomStyle("");
+    }
+  };
+  
+  const handleConfirmPhotorealistic = () => {
+    if (pendingStyle) {
+      setImageStyle(pendingStyle);
+      setCustomStyle("");
+    }
+    setShowPhotorealisticWarning(false);
+    setPendingStyle(null);
+  };
+  
+  const handleCancelPhotorealistic = () => {
+    setShowPhotorealisticWarning(false);
+    setPendingStyle(null);
   };
 
   return (
@@ -175,6 +215,23 @@ export const ImageStyleStep = ({
           </div>
         </div>
       </div>
+      
+      {/* Photorealistic Warning Dialog */}
+      <AlertDialog open={showPhotorealisticWarning} onOpenChange={setShowPhotorealisticWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Copyright Warning</AlertDialogTitle>
+            <AlertDialogDescription>
+              Images that depict celebrities may be deleted if they infringe copyright. 
+              Please ensure you have permission to use any celebrity likenesses in your timeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelPhotorealistic}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmPhotorealistic}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

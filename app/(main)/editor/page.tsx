@@ -57,7 +57,7 @@ const TimelineEditor = () => {
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [writingStyle, setWritingStyle] = useState("");
   const [customStyle, setCustomStyle] = useState("");
-  const [imageStyle, setImageStyle] = useState("");
+  const [imageStyle, setImageStyle] = useState("Minimalist");
   const [themeColor, setThemeColor] = useState("");
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
@@ -93,7 +93,7 @@ const TimelineEditor = () => {
             setEndDate(state.endDate ? new Date(state.endDate) : undefined);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
-        setImageStyle(state.imageStyle || "");
+        setImageStyle(state.imageStyle || "Minimalist");
         setThemeColor(state.themeColor || "");
         setEvents(state.events || []);
         setImageReferences(state.imageReferences || []);
