@@ -123,24 +123,40 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     
     // STEP 2: Detect if this is a progression and generate Anchor if needed
     // Check if events suggest a progression (stage-based titles, sequential development)
-    // CRITICAL: Exclude episodic/competition content - only detect CUMULATIVE progressions
+    // CRITICAL: Exclude episodic/competition/seasonal content - only detect CUMULATIVE progressions
+    // A true progression means each stage builds on the previous (e.g., fetus grows, building is constructed)
+    // NOT just sequential events (e.g., weekly competitions, decorations being put up, episodes)
     const progressionKeywords = ['development', 'formation', 'stage', 'phase', 'growth', 'progression', 'evolution', 'construction', 'building', 'formation', 'begins', 'appears', 'develops'];
-    const exclusionKeywords = ['competition', 'dancing', 'bake off', 'strictly', 'episode', 'season', 'series', 'game', 'match', 'round', 'contest', 'award', 'ceremony', 'show', 'reality'];
+    const exclusionKeywords = [
+      'competition', 'dancing', 'bake off', 'strictly', 'episode', 'season', 'series', 'game', 'match', 'round', 'contest', 
+      'award', 'ceremony', 'show', 'reality', 'decoration', 'decorating', 'christmas', 'xmas', 'holiday', 'festival',
+      'event', 'performance', 'concert', 'tournament', 'league', 'championship', 'election', 'campaign', 'release',
+      'announcement', 'launch', 'premiere', 'episode', 'installment'
+    ];
     const eventTitles = events.map((e: any) => e.title?.toLowerCase() || '').join(' ');
     const timelineDescLower = timelineDescription.toLowerCase();
     
-    // Check for exclusion patterns first (competition shows, episodic content)
+    // Check for exclusion patterns first (competition shows, episodic content, seasonal events)
     const isExcluded = exclusionKeywords.some(keyword => 
       timelineDescLower.includes(keyword) || 
       eventTitles.includes(keyword)
     );
     
-    // Only detect as progression if it has progression keywords AND is NOT excluded
-    const appearsToBeProgression = !isExcluded && (
-      progressionKeywords.some(keyword => timelineDescLower.includes(keyword)) ||
-      progressionKeywords.some(keyword => eventTitles.includes(keyword)) ||
-      (events.length > 3 && eventTitles.match(/\b(week|month|day|stage|phase)\s+\d+/i) && 
-       !timelineDescLower.match(/\b(competition|dancing|bake|strictly|episode|season|game|match|round|contest)\b/i))
+    // Only detect as progression if:
+    // 1. NOT excluded
+    // 2. Has strong progression keywords (not just generic "stage" or "phase")
+    // 3. Events suggest cumulative building (e.g., "neural tube forms" → "heart begins beating" → "limbs develop")
+    //    NOT just sequential independent events (e.g., "Week 1: First Dance" → "Week 2: Second Dance")
+    const hasStrongProgressionKeywords = ['development', 'formation', 'growth', 'progression', 'evolution', 'construction', 'building', 'develops', 'forms', 'grows'].some(keyword => 
+      timelineDescLower.includes(keyword) || eventTitles.includes(keyword)
+    );
+    
+    const appearsToBeProgression = !isExcluded && hasStrongProgressionKeywords && (
+      // Must have progression keywords AND events that suggest cumulative stages
+      (timelineDescLower.match(/\b(development|formation|construction|progression|evolution)\b/i) ||
+       eventTitles.match(/\b(forms|develops|grows|begins|appears|emerges)\b/i)) &&
+      // Exclude if it's clearly episodic (weekly episodes, rounds, matches)
+      !timelineDescLower.match(/\b(week|episode|round|match|game|competition|dancing|bake|strictly)\s+\d+/i)
     );
     
     let anchorStyle: string | null = null;

@@ -157,6 +157,9 @@ Examples of FALSE progressions (episodic/sequential but NOT cumulative):
 - Sports seasons with weekly games → isProgression: false (each game is independent)
 - Political campaigns, historical events → isProgression: false
 - Award ceremonies → isProgression: false
+- Seasonal decorations (Christmas decorations, holiday setup) → isProgression: false (each decoration is independent)
+- Product launches/releases → isProgression: false (each release is independent)
+- Concert tours → isProgression: false (each concert is independent)
 
 If it is a progression, identify the single, core subject of the progression (e.g., "a human fetus", "a skyscraper", "a piece of steel").
 
