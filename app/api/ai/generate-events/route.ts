@@ -140,12 +140,23 @@ export async function POST(request: NextRequest) {
       ? `You are a timeline analyst and subject matter expert. Your task is to analyze a user's request and determine if it describes a sequential process or progression.
 
 STEP 1: PROGRESSION DETECTION
-Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear stages. Examples:
+Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear CUMULATIVE stages. 
+
+CRITICAL: Only mark as progression if the stages are CUMULATIVE (each stage builds on the previous). Do NOT mark episodic, competition, or series content as progressions, even if they have sequential events.
+
+Examples of TRUE progressions (cumulative):
 - Fetal development → isProgression: true, progressionSubject: "a human fetus inside the womb"
 - Construction of a building → isProgression: true, progressionSubject: "a skyscraper under construction"
 - A disease progression → isProgression: true, progressionSubject: "a patient with [disease]"
 - A scientific process → isProgression: true, progressionSubject: "[the process subject]"
+- Manufacturing process → isProgression: true, progressionSubject: "[the product being made]"
+
+Examples of FALSE progressions (episodic/sequential but NOT cumulative):
+- Competition shows (Strictly Come Dancing, Bake Off, etc.) → isProgression: false (each week/episode is independent)
+- TV series episodes → isProgression: false (each episode is independent)
+- Sports seasons with weekly games → isProgression: false (each game is independent)
 - Political campaigns, historical events → isProgression: false
+- Award ceremonies → isProgression: false
 
 If it is a progression, identify the single, core subject of the progression (e.g., "a human fetus", "a skyscraper", "a piece of steel").
 

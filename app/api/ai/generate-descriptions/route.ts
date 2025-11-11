@@ -123,13 +123,25 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     
     // STEP 2: Detect if this is a progression and generate Anchor if needed
     // Check if events suggest a progression (stage-based titles, sequential development)
+    // CRITICAL: Exclude episodic/competition content - only detect CUMULATIVE progressions
     const progressionKeywords = ['development', 'formation', 'stage', 'phase', 'growth', 'progression', 'evolution', 'construction', 'building', 'formation', 'begins', 'appears', 'develops'];
+    const exclusionKeywords = ['competition', 'dancing', 'bake off', 'strictly', 'episode', 'season', 'series', 'game', 'match', 'round', 'contest', 'award', 'ceremony', 'show', 'reality'];
     const eventTitles = events.map((e: any) => e.title?.toLowerCase() || '').join(' ');
     const timelineDescLower = timelineDescription.toLowerCase();
-    const appearsToBeProgression = 
+    
+    // Check for exclusion patterns first (competition shows, episodic content)
+    const isExcluded = exclusionKeywords.some(keyword => 
+      timelineDescLower.includes(keyword) || 
+      eventTitles.includes(keyword)
+    );
+    
+    // Only detect as progression if it has progression keywords AND is NOT excluded
+    const appearsToBeProgression = !isExcluded && (
       progressionKeywords.some(keyword => timelineDescLower.includes(keyword)) ||
       progressionKeywords.some(keyword => eventTitles.includes(keyword)) ||
-      events.length > 3 && eventTitles.match(/\b(week|month|day|stage|phase)\s+\d+/i);
+      (events.length > 3 && eventTitles.match(/\b(week|month|day|stage|phase)\s+\d+/i) && 
+       !timelineDescLower.match(/\b(competition|dancing|bake|strictly|episode|season|game|match|round|contest)\b/i))
+    );
     
     let anchorStyle: string | null = null;
     let progressionSubject: string | null = null;
