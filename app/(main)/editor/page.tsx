@@ -12,6 +12,7 @@ import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/Wr
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
 import { ImageStyleStep } from "@/components/timeline-editor/ImageStyleStep";
 import { GenerateImagesStep } from "@/components/timeline-editor/GenerateImagesStep";
+import { EditorErrorBoundary } from "@/components/timeline-editor/EditorErrorBoundary";
 import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 import { createTimeline, createEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
