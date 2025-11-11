@@ -144,7 +144,7 @@ export default function TestImagePromptPage() {
           })),
           imageStyle: imageStyle,
           themeColor: themeColor,
-          includesPeople: false,
+          includesPeople: includesPeople,
           imageReferences: [],
           anchorStyle: anchorStyle, // Pass anchor style for consistent visual linking
         }),
