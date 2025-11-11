@@ -929,11 +929,22 @@ function buildImagePrompt(
     // For progression timelines with Anchor: combine Anchor + event-specific details
     console.log(`[ImageGen] Using Anchor style for progression timeline`);
     
+    // Normalize Anchor text (remove "Anchor:" prefix if AI added it)
+    const normalizedAnchor = anchorStyle.replace(/^Anchor:\s*/i, '').trim();
+    
     // Check if the imagePrompt already includes the Anchor (from generate-descriptions)
-    // If so, use it as-is. Otherwise, prepend the Anchor.
-    if (event.imagePrompt && event.imagePrompt.trim().toLowerCase().includes(anchorStyle.toLowerCase().substring(0, 50))) {
-      // Anchor already included in the prompt from generate-descriptions
+    // The prompt might start with "Anchor:" prefix, so check for both
+    const promptLower = event.imagePrompt?.toLowerCase() || '';
+    const anchorLower = normalizedAnchor.toLowerCase();
+    const hasAnchorInPrompt = event.imagePrompt && (
+      promptLower.includes(anchorLower.substring(0, 50)) ||
+      promptLower.startsWith('anchor:') && promptLower.includes(anchorLower.substring(0, 30))
+    );
+    
+    if (hasAnchorInPrompt) {
+      // Anchor already included in the prompt from generate-descriptions - use it as-is
       prompt = event.imagePrompt;
+      console.log(`[ImageGen] Prompt already includes Anchor, using as-is`);
     } else {
       // Combine Anchor with event-specific description
       let eventDescription = event.title;
@@ -948,7 +959,8 @@ function buildImagePrompt(
       }
       
       // Build prompt: Anchor + specific event at this stage
-      prompt = `${anchorStyle}. The scene shows ${eventDescription}`;
+      // Use normalized Anchor (without "Anchor:" prefix)
+      prompt = `${normalizedAnchor}. The scene shows ${eventDescription}`;
     }
   } else if (event.imagePrompt && event.imagePrompt.trim()) {
     // Use AI-generated prompt as base, but clean it up

@@ -131,7 +131,15 @@ async function createFetalDevelopmentTimeline() {
 
     const descriptionsData = await descriptionsResponse.json();
     console.log(`✅ Generated ${descriptionsData.descriptions.length} descriptions`);
-    console.log(`✅ Generated ${descriptionsData.imagePrompts.length} image prompts\n`);
+    console.log(`✅ Generated ${descriptionsData.imagePrompts.length} image prompts`);
+    
+    // Check if Anchor was generated (for progression timelines)
+    if (descriptionsData.anchorStyle) {
+      console.log(`✅ Anchor style generated: ${descriptionsData.anchorStyle.substring(0, 100)}...`);
+      console.log(`✅ Progression subject: ${descriptionsData.progressionSubject || 'N/A'}\n`);
+    } else {
+      console.log(`ℹ️  No Anchor generated (not a progression timeline)\n`);
+    }
 
     // Log all image prompts from Step 3
     console.log('📋 Image Prompts from Step 3 (generate-descriptions):');
@@ -159,6 +167,9 @@ async function createFetalDevelopmentTimeline() {
 
     // Step 4: Generate images (with includesPeople=false)
     console.log('🎨 Step 4: Generating images (includesPeople=false)...');
+    if (descriptionsData.anchorStyle) {
+      console.log(`📌 Using Anchor style for visual consistency`);
+    }
     const imagesResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-images`, {
       method: 'POST',
       headers: {
@@ -176,6 +187,7 @@ async function createFetalDevelopmentTimeline() {
         imageReferences: [],
         referencePhoto: undefined,
         includesPeople: false, // CRITICAL: Set to false for fetal development
+        anchorStyle: descriptionsData.anchorStyle || undefined, // Pass Anchor if available
       }),
     });
 
