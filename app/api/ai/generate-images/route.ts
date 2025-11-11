@@ -1003,9 +1003,23 @@ function buildImagePrompt(
      !event.imagePrompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0]))
   );
 
+  // Check if the existing prompt is already good (contains specific subject details, not just title)
+  // Good prompts: "A detailed illustration of a zygote showing the fusion of sperm and egg with visible pronuclei"
+  // Bad prompts: "Illustration of a chart showing development" or just the title
+  const promptIsGood = event.imagePrompt && 
+    !promptIsAbstract &&
+    (event.imagePrompt.toLowerCase().includes('showing') ||
+     event.imagePrompt.toLowerCase().includes('with') ||
+     event.imagePrompt.toLowerCase().includes('during') ||
+     event.imagePrompt.toLowerCase().includes('at ') ||
+     event.imagePrompt.toLowerCase().includes('gestation') ||
+     event.imagePrompt.toLowerCase().includes('process of') ||
+     event.imagePrompt.length > 60); // Longer prompts usually have more detail
+
   // If prompt is abstract or doesn't exist, rebuild it to center the actual subject
   // The goal is to show the SUBJECT at this specific stage/moment, not charts/screens/abstract representations
-  if ((promptIsAbstract || !event.imagePrompt) && !includesPeople) {
+  // BUT: If the prompt is already good and specific, preserve it!
+  if ((promptIsAbstract || !event.imagePrompt) && !includesPeople && !promptIsGood) {
     // Extract the core subject from the title (remove meta words like "Updated", "Released", "Published")
     const titleWords = event.title.split(' ');
     const coreSubject = titleWords.filter(word => 
@@ -1037,9 +1051,11 @@ function buildImagePrompt(
     // Replace with a direct, subject-centered prompt that shows the subject at this stage
     prompt = `${imageStyle} style: A detailed image of ${directSubject}`;
   } else if (event.imagePrompt && !includesPeople) {
-    // Use existing prompt but ensure it centers on the subject, not abstract representations
-    // Check if it's still too abstract (mentions charts, screens, etc.)
-    if (promptIsAbstract || !prompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0])) {
+    // If the prompt is already good and specific, preserve it (just add style if needed)
+    if (promptIsGood && !prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
+      // Just prepend the style, don't rebuild the whole prompt
+      prompt = `${imageStyle} style: ${event.imagePrompt}`;
+    } else if (promptIsAbstract || !prompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0])) {
       // Rebuild to center on subject
       const titleWords = event.title.split(' ');
       const coreSubject = titleWords.filter(word => 
@@ -1053,6 +1069,7 @@ function buildImagePrompt(
       
       prompt = `${imageStyle} style: A detailed image of ${subjectDesc}${event.description ? `: ${event.description.split(' ').slice(0, 25).join(' ')}` : ''}`;
     }
+    // If prompt is good and already has style, use it as-is
   } else {
     // For people content, use existing logic
     prompt += `. CRITICAL: Accurately depict the specific event: ${event.title}`;
