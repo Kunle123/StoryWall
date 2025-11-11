@@ -133,6 +133,7 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     
     let anchorStyle: string | null = null;
     let progressionSubject: string | null = null;
+    let factualDetails: Record<string, string[]> = {}; // Factual details from Knowledge Injection step
     
     if (appearsToBeProgression) {
       console.log('[GenerateDescriptions] Detected progression timeline, generating Anchor style...');
@@ -166,13 +167,121 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
       } catch (anchorError: any) {
         console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
       }
+      
+      // ✨ NEW: Knowledge Injection Step - Get factual details for each event
+      // This ensures accuracy for scientific/medical topics
+      try {
+        console.log('[GenerateDescriptions] Starting Knowledge Injection step for factual accuracy...');
+        
+        // Build the fact-checking prompt with all events
+        const factCheckingPrompt = `You are a medical fact-checker and researcher. Your ONLY task is to provide a concise, factual, and clinical description of the key physical developments for the given stages.
+
+CRITICAL INSTRUCTIONS:
+- DO NOT IMPROVISE. Base your description only on established, verifiable medical and embryological knowledge.
+- BE OBJECTIVE & CLINICAL. Use precise terminology (e.g., "limb buds," "optic vesicles," "somites").
+- FOCUS ON VISUALS. Describe the key observable, physical characteristics.
+- NO PROSE. Output only factual bullet points.
+
+Provide key factual developments for the following stages:
+${events.map((e: any, idx: number) => {
+          const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
+          return `- ${eventLabel}`;
+        }).join('\n')}
+
+Return as JSON with keys matching the event labels (e.g., "Week 4: Neural Tube Forms" or just the title if no year), and values as arrays of factual bullet points.`;
+
+        // Determine the domain for fact-checking (medical, construction, scientific, etc.)
+        const isMedical = timelineDescription.toLowerCase().match(/\b(fetal|embryo|development|gestation|pregnancy|medical|anatomy|physiology|disease|health)\b/i);
+        const isConstruction = timelineDescription.toLowerCase().match(/\b(construction|building|structure|foundation|framing)\b/i);
+        const domainContext = isMedical 
+          ? 'medical and embryological' 
+          : isConstruction 
+          ? 'construction and engineering' 
+          : 'scientific and technical';
+        
+        const factCheckResponse = await createChatCompletion(client, {
+          model: modelToUse,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a fact-checker and researcher specializing in ${domainContext} knowledge. Your ONLY task is to provide a concise, factual, and objective description of the key observable characteristics for each given stage.
+
+CRITICAL INSTRUCTIONS:
+- DO NOT IMPROVISE. Base your description only on established, verifiable ${domainContext} knowledge.
+- BE OBJECTIVE & PRECISE. Use accurate terminology specific to this domain.
+- FOCUS ON VISUALS. Describe the key observable, physical characteristics that can be visually depicted.
+- NO PROSE. Output only factual bullet points.
+- Return ONLY valid JSON, no explanatory text.`,
+            },
+            {
+              role: 'user',
+              content: factCheckingPrompt,
+            },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.3, // Lower temperature for factual accuracy
+          max_tokens: Math.min(4000, events.length * 200), // Enough tokens for factual details
+        });
+        
+        if (factCheckResponse.choices?.[0]?.message?.content) {
+          try {
+            const factContent = JSON.parse(factCheckResponse.choices[0].message.content);
+            // Map the factual details to events by matching keys
+            events.forEach((e: any, idx: number) => {
+              const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
+              // Try multiple key formats
+              const key1 = eventLabel;
+              const key2 = e.title;
+              const key3 = e.year ? `Week ${e.year}: ${e.title}` : e.title;
+              
+              const facts = factContent[key1] || factContent[key2] || factContent[key3] || 
+                           factContent[`Event ${idx + 1}`] || factContent[`${idx + 1}`] || [];
+              
+              if (Array.isArray(facts) && facts.length > 0) {
+                factualDetails[eventLabel] = facts.map((f: any) => String(f));
+              } else if (typeof facts === 'string') {
+                factualDetails[eventLabel] = [facts];
+              }
+            });
+            
+            console.log(`[GenerateDescriptions] Knowledge Injection: Retrieved factual details for ${Object.keys(factualDetails).length}/${events.length} events`);
+            if (Object.keys(factualDetails).length > 0) {
+              console.log('[GenerateDescriptions] Sample factual details:', JSON.stringify(Object.entries(factualDetails)[0]));
+            }
+          } catch (parseError: any) {
+            console.warn('[GenerateDescriptions] Failed to parse factual details JSON:', parseError.message);
+            console.warn('[GenerateDescriptions] Raw response:', factCheckResponse.choices[0].message.content.substring(0, 500));
+          }
+        }
+      } catch (factError: any) {
+        console.warn('[GenerateDescriptions] Knowledge Injection failed, continuing without factual details:', factError.message);
+        // Continue without factual details - not a fatal error
+      }
     }
     
     let data;
     try {
-      // Build image prompt instructions - use Anchor if available
+      // Build image prompt instructions - use Anchor and factual details if available
+      const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
       const imagePromptInstructions = anchorStyle
-        ? `CRITICAL: This timeline is a progression series. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
+        ? hasFactualDetails
+          ? `CRITICAL: This timeline is a progression series with factual grounding. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
+
+For each event, you MUST:
+1. Start with the Anchor Style
+2. Accurately depict the Factual Details provided for that specific stage
+3. Combine them into a single, clear visual scene
+
+The Factual Details are provided below for each event. You MUST accurately depict these facts - DO NOT improvise or add details not in the factual list.
+
+Example:
+- Anchor Style: "Medically accurate 3D renderings with soft lighting"
+- Event: "Week 4: Neural Tube Forms"
+- Factual Details: ["The neural tube is closing", "A primitive S-shaped heart tube is forming", "The embryo is C-shaped"]
+- Final Prompt: "Medically accurate 3D renderings with soft lighting. The scene shows a 4-week old embryo, a tiny C-shaped form where the neural tube is closing along its back, and a primitive S-shaped heart tube is beginning to form."
+
+Each image prompt should show the SUBJECT at that specific stage with the exact factual characteristics listed, not charts, screens, or abstract representations.`
+          : `CRITICAL: This timeline is a progression series. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
 
 For each event, combine the Anchor Style with the specific event title to create a detailed image prompt. Each prompt MUST start with the Anchor Style, followed by a description of the specific event at that stage.
 
@@ -217,7 +326,16 @@ Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each
           },
           {
             role: 'user',
-            content: userPrompt,
+            content: hasFactualDetails
+              ? `${userPrompt}\n\n**FACTUAL DETAILS FOR EACH EVENT (MUST BE ACCURATELY DEPICTED):**\n${events.map((e: any, idx: number) => {
+                  const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
+                  const facts = factualDetails[eventLabel] || [];
+                  if (facts.length > 0) {
+                    return `\n**Event ${idx + 1}: ${eventLabel}**\nFactual Details:\n${facts.map((f: string) => `- ${f}`).join('\n')}`;
+                  }
+                  return `\n**Event ${idx + 1}: ${eventLabel}**\n(No specific factual details available - use general knowledge)`;
+                }).join('\n')}`
+              : userPrompt,
           },
         ],
         response_format: { type: 'json_object' },
@@ -311,6 +429,12 @@ Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each
     if (anchorStyle) {
       responseData.anchorStyle = anchorStyle;
       responseData.progressionSubject = progressionSubject;
+    }
+    
+    // Include factual details if available (for debugging and potential future use)
+    if (Object.keys(factualDetails).length > 0) {
+      responseData.factualDetails = factualDetails;
+      console.log('[GenerateDescriptions] Including factual details in response');
     }
     
     return NextResponse.json(responseData);

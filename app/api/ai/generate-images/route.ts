@@ -505,8 +505,9 @@ const STYLE_TO_MODEL: Record<string, string> = {
   'realistic': MODELS.PHOTOREALISTIC,
   
   // Artistic styles -> use artistic model
-  'Illustration': MODELS.ARTISTIC,
-  'illustration': MODELS.ARTISTIC,
+  // Illustration uses Imagen for better consistency and quality
+  'Illustration': MODELS.PHOTOREALISTIC, // Use Imagen for Illustration style
+  'illustration': MODELS.PHOTOREALISTIC,
   'Watercolor': MODELS.ARTISTIC,
   'watercolor': MODELS.ARTISTIC,
   'Minimalist': MODELS.ARTISTIC,
@@ -926,30 +927,57 @@ function buildImagePrompt(
   let prompt = '';
   
   if (anchorStyle && anchorStyle.trim()) {
-    // For progression timelines with Anchor: combine Anchor + event-specific details
-    console.log(`[ImageGen] Using Anchor style for progression timeline`);
+    // For progression timelines with Anchor: ALWAYS use it for consistency
+    // We don't rely on the AI to include it - we enforce it here
+    console.log(`[ImageGen] Using Anchor style for progression timeline (enforcing consistency)`);
     
     // Normalize Anchor text (remove "Anchor:" prefix if AI added it)
     const normalizedAnchor = anchorStyle.replace(/^Anchor:\s*/i, '').trim();
     
-    // Check if the imagePrompt already includes the Anchor (from generate-descriptions)
-    // The prompt might start with "Anchor:" prefix, so check for both
-    const promptLower = event.imagePrompt?.toLowerCase() || '';
-    const anchorLower = normalizedAnchor.toLowerCase();
-    const hasAnchorInPrompt = event.imagePrompt && (
-      promptLower.includes(anchorLower.substring(0, 50)) ||
-      promptLower.startsWith('anchor:') && promptLower.includes(anchorLower.substring(0, 30))
-    );
+    // Extract event-specific description from the AI-generated prompt (if available)
+    // or build it from title + description
+    let eventDescription = event.title;
     
-    if (hasAnchorInPrompt) {
-      // Anchor already included in the prompt from generate-descriptions - use it as-is
-      prompt = event.imagePrompt;
-      console.log(`[ImageGen] Prompt already includes Anchor, using as-is`);
+    if (event.imagePrompt && event.imagePrompt.trim()) {
+      // Try to extract the event-specific part from the existing prompt
+      // Remove style prefixes and generic phrases
+      let eventSpecificPart = event.imagePrompt
+        .replace(/^(?:Anchor:\s*)?/i, '') // Remove "Anchor:" prefix if present
+        .replace(/^(?:Illustration|Minimalist|Watercolor|Photorealistic|Vintage|3D Render|Sketch|Abstract)\s+style:\s*/i, '')
+        .replace(/^A detailed image of\s*/i, '')
+        .replace(/^The scene shows\s*/i, '')
+        .trim();
+      
+      // Check if this part contains the Anchor (if so, extract just the event-specific part)
+      const anchorLower = normalizedAnchor.toLowerCase();
+      const partLower = eventSpecificPart.toLowerCase();
+      
+      // If the prompt starts with the Anchor, extract what comes after
+      if (partLower.startsWith(anchorLower.substring(0, 50))) {
+        eventSpecificPart = eventSpecificPart.substring(normalizedAnchor.length).trim();
+        // Remove leading "The scene shows" or similar phrases
+        eventSpecificPart = eventSpecificPart.replace(/^(?:The scene shows|\.|,)\s*/i, '').trim();
+      }
+      
+      // If we have meaningful event-specific content (not just generic), use it
+      if (eventSpecificPart.length > 15 && 
+          !eventSpecificPart.toLowerCase().startsWith('illustration style') &&
+          !eventSpecificPart.toLowerCase().startsWith('hand-drawn')) {
+        eventDescription = eventSpecificPart;
+      } else {
+        // Fall back to building from title + description
+        if (event.description) {
+          const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|stages?|phases?))/i);
+          if (stageMatch) {
+            eventDescription = `${event.title} at ${stageMatch[1]}`;
+          } else {
+            eventDescription = `${event.title}: ${event.description.split(' ').slice(0, 20).join(' ')}`;
+          }
+        }
+      }
     } else {
-      // Combine Anchor with event-specific description
-      let eventDescription = event.title;
+      // No imagePrompt - build from title + description
       if (event.description) {
-        // Extract key details about what's happening at this stage
         const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|stages?|phases?))/i);
         if (stageMatch) {
           eventDescription = `${event.title} at ${stageMatch[1]}`;
@@ -957,11 +985,15 @@ function buildImagePrompt(
           eventDescription = `${event.title}: ${event.description.split(' ').slice(0, 20).join(' ')}`;
         }
       }
-      
-      // Build prompt: Anchor + specific event at this stage
-      // Use normalized Anchor (without "Anchor:" prefix)
-      prompt = `${normalizedAnchor}. The scene shows ${eventDescription}`;
     }
+    
+    // ALWAYS build prompt with Anchor + event-specific description
+    // This ensures consistency regardless of what the AI generated
+    prompt = `${normalizedAnchor}. The scene shows ${eventDescription}`;
+    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}"`);
+    
+    // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
+    // The prompt is now set above, so we can continue to the rest of the function
   } else if (event.imagePrompt && event.imagePrompt.trim()) {
     // Use AI-generated prompt as base, but clean it up
     // IMPORTANT: Preserve the detailed description from Step 3 - it contains specific visual details!
@@ -1077,7 +1109,8 @@ function buildImagePrompt(
   // If prompt is abstract or doesn't exist, rebuild it to center the actual subject
   // The goal is to show the SUBJECT at this specific stage/moment, not charts/screens/abstract representations
   // BUT: If the prompt is already good and specific, preserve it!
-  if ((promptIsAbstract || !event.imagePrompt) && !includesPeople && !promptIsGood) {
+  // CRITICAL: Skip this logic if anchorStyle is provided (we've already handled it above)
+  if (!anchorStyle && (promptIsAbstract || !event.imagePrompt) && !includesPeople && !promptIsGood) {
     // Extract the core subject from the title (remove meta words like "Updated", "Released", "Published")
     const titleWords = event.title.split(' ');
     const coreSubject = titleWords.filter(word => 
@@ -1112,7 +1145,7 @@ function buildImagePrompt(
     // If the prompt is already good and specific, preserve it (just add style if needed)
     if (promptIsGood && !prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
       // Just prepend the style, don't rebuild the whole prompt
-      prompt = `${imageStyle} style: ${event.imagePrompt}`;
+      prompt = `${imageStyle} style: ${event.imagePrompt || event.title}`;
     } else if (promptIsAbstract || !prompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0])) {
       // Rebuild to center on subject
       const titleWords = event.title.split(' ');
@@ -1264,6 +1297,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
+    
+    // Log Anchor status for debugging
+    if (anchorStyle) {
+      console.log(`[ImageGen] Anchor style provided: ${anchorStyle.substring(0, 100)}...`);
+    } else {
+      console.log(`[ImageGen] No Anchor style provided`);
+    }
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(

@@ -140,6 +140,17 @@ async function createFetalDevelopmentTimeline() {
     } else {
       console.log(`ℹ️  No Anchor generated (not a progression timeline)\n`);
     }
+    
+    // Check if factual details were retrieved (Knowledge Injection step)
+    if (descriptionsData.factualDetails && Object.keys(descriptionsData.factualDetails).length > 0) {
+      console.log(`✅ Knowledge Injection: Retrieved factual details for ${Object.keys(descriptionsData.factualDetails).length} events`);
+      console.log(`📋 Sample factual details:`);
+      const firstKey = Object.keys(descriptionsData.factualDetails)[0];
+      console.log(`   ${firstKey}:`, descriptionsData.factualDetails[firstKey].slice(0, 3).join(', '));
+      console.log('');
+    } else {
+      console.log(`⚠️  No factual details retrieved (Knowledge Injection may not have run)\n`);
+    }
 
     // Log all image prompts from Step 3
     console.log('📋 Image Prompts from Step 3 (generate-descriptions):');
