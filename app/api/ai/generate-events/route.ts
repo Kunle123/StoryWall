@@ -734,14 +734,14 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
                   content = { events: eventsArray };
                   console.warn('[GenerateEvents API] Successfully extracted events array as fallback');
                 } catch (eventsParseError: any) {
-                  throw extractError;
+                  throw secondParseError;
                 }
               } else {
-                throw extractError;
+                throw secondParseError;
               }
             }
           } else {
-            throw extractError;
+            throw firstParseError;
           }
         }
       } catch (extractError: any) {
