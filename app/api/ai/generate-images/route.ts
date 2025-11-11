@@ -1234,8 +1234,10 @@ function buildImagePrompt(
 
 // Helper to wait for Replicate prediction to complete
 async function waitForPrediction(predictionId: string, replicateApiKey: string): Promise<string | null> {
-  const maxAttempts = 120; // 5 minutes max (120 * 2.5 seconds)
+  const maxAttempts = 180; // 3 minutes max (180 * 1 second)
   let attempts = 0;
+  // Adaptive polling: start fast (1s), slow down if taking long (2s after 30 attempts)
+  const getPollInterval = (attempt: number) => attempt < 30 ? 1000 : 2000;
 
   while (attempts < maxAttempts) {
     const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -1294,8 +1296,9 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
       throw new Error(prediction.error || 'Prediction failed');
     }
 
-    // Wait 2.5 seconds before checking again
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    // Adaptive polling: faster at start, slower if taking long
+    const pollInterval = getPollInterval(attempts);
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
     attempts++;
   }
 
@@ -1592,7 +1595,7 @@ export async function POST(request: NextRequest) {
           input.prompt = prompt;
           input.num_outputs = 1;
           input.guidance_scale = 7.5;
-          input.num_inference_steps = 30;
+          input.num_inference_steps = 25; // Reduced from 30 for faster generation (minimal quality impact)
           
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
@@ -1689,7 +1692,7 @@ export async function POST(request: NextRequest) {
           // SDXL and similar models
           input.num_outputs = 1;
           input.guidance_scale = 7.5;
-          input.num_inference_steps = 30;
+          input.num_inference_steps = 25; // Reduced from 30 for faster generation (minimal quality impact)
           
           // Add negative prompt for SDXL - strongly discourage text in all cases
           // Most images should be pure visual without any text

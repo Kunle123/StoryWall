@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     // Build prompts once
     const systemPrompt = isNumbered
-      ? `You are a numbered timeline event generator. Generate ${maxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
+      ? `You are a numbered timeline event generator. Generate ${maxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string). Events should be ordered sequentially and relevant to the timeline description.`
       : isFactual 
       ? `You are a timeline analyst and subject matter expert. Your task is to analyze a user's request and determine if it describes a sequential process or progression.
 
@@ -205,7 +205,7 @@ If isProgression is true: Generate events that show stages of the progression. E
 
 If isProgression is false: Include major milestones, key dates, and significant events related to this topic.
 
-Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31).
+Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
 Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
 - Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
@@ -232,7 +232,7 @@ ACCURACY REQUIREMENTS:
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
-      : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31). 
+      : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step. 
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
@@ -249,7 +249,7 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
       : '';
 
     const userPrompt = isNumbered
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include only a number and title - descriptions will be generated separately.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event" }, { "number": 2, "title": "Second event" }, ...] }`
       : isFactual
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events.\n\nCRITICAL: Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear stages. Examples:\n- Fetal development → Generate events showing developmental stages (conception, implantation, neural tube formation, heart beating, limb buds, etc.)\n- Construction of a building → Generate events showing construction phases (planning, foundation, framing, completion, etc.)\n- A disease progression → Generate events showing disease stages (onset, symptoms, treatment, recovery, etc.)\n- A scientific process → Generate events showing process steps (hypothesis, experiment, results, conclusion, etc.)\n\nWhen a clear progression exists, generate events that tell that story through its stages. Each event should represent a distinct stage or milestone in the progression. The events should allow the user to see how the subject progresses through time.\n\nFor topics WITHOUT a clear progression (e.g., political campaigns, historical events), include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
@@ -276,13 +276,13 @@ IMPORTANT: If web search returns news articles about this topic, you MUST create
 Return as JSON with these keys:
 - "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)
 - "progressionSubject": string (the core subject of the progression, e.g., "a human fetus inside the womb" - only include if isProgression is true, otherwise omit or set to null)
-- "events": array of event objects, each with: year (required, number), title (required, string), description (required, string, 1-3 sentences)
+- "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions - those will be generated separately.
 - "sources": array (optional, only if web search was used) of objects with { name: string, url: string }
 - "image_references": array (optional, only if people are mentioned) of objects with { name: string, url: string }
 
 Example for progression: { "isProgression": true, "progressionSubject": "a human fetus inside the womb", "events": [{ "year": 2025, "title": "Neural Tube Formation", "description": "..." }, ...] }
 Example for non-progression: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title", "description": "..." }, ...], "sources": [...], "image_references": [...] }`
-      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include only a title and date - descriptions will be generated separately.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery" }, { "year": 2021, "title": "The First Conflict" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
     // Only use if OpenAI key is available (Responses API is OpenAI-specific)
@@ -984,7 +984,7 @@ async function generateEventsBatch(
   const systemPrompt = isNumbered
     ? `You are a numbered timeline event generator. Generate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
     : isFactual 
-    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31).
+    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
 Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
 - Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
@@ -1011,7 +1011,7 @@ ACCURACY REQUIREMENTS:
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
-    : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), description (required, string, 1-3 sentences explaining the event), and optionally month (number 1-12) and day (number 1-31). 
+    : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step. 
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
@@ -1037,7 +1037,7 @@ IMPORTANT: If web search returns news articles about this topic, you MUST create
 Return as JSON with these keys:
 - "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)
 - "progressionSubject": string (the core subject of the progression, e.g., "a human fetus inside the womb" - only include if isProgression is true, otherwise omit or set to null)
-- "events": array of event objects, each with: year (required, number), title (required, string), description (required, string, 1-3 sentences)
+- "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions - those will be generated separately.
 - "sources": array (optional, only if web search was used) of objects with { name: string, url: string }
 - "image_references": array (optional, only if people are mentioned) of objects with { name: string, url: string }
 
