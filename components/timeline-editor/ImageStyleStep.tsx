@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Pipette } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -21,6 +22,8 @@ interface ImageStyleStepProps {
   themeColor: string;
   setThemeColor: (color: string) => void;
   hasRealPeople?: boolean; // If true, disable photorealistic option
+  includesPeople?: boolean;
+  setIncludesPeople?: (includes: boolean) => void;
 }
 
 const imageStyles = [
@@ -51,7 +54,9 @@ export const ImageStyleStep = ({
   setImageStyle,
   themeColor,
   setThemeColor,
-  hasRealPeople = false // Keep prop for compatibility but don't use it
+  hasRealPeople = false, // Keep prop for compatibility but don't use it
+  includesPeople = true,
+  setIncludesPeople
 }: ImageStyleStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
@@ -214,6 +219,28 @@ export const ImageStyleStep = ({
             </Button>
           </div>
         </div>
+
+        {/* People Checkbox */}
+        {setIncludesPeople && (
+          <div className="flex items-start space-x-2 p-4 border rounded-lg">
+            <Checkbox
+              id="includes-people"
+              checked={includesPeople}
+              onCheckedChange={(checked) => setIncludesPeople(checked === true)}
+            />
+            <div className="space-y-0.5 flex-1">
+              <Label
+                htmlFor="includes-people"
+                className="text-base font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                This timeline includes people (celebrities, politicians, public figures)
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Uncheck this if your timeline is about concepts, processes, science, medicine, or topics without specific named people. This helps generate more accurate images.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Photorealistic Warning Dialog */}

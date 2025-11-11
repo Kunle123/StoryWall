@@ -46,6 +46,7 @@ const TimelineEditor = () => {
   const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
   const [sourceRestrictions, setSourceRestrictions] = useState<string[]>([]);
   const [hashtags, setHashtags] = useState<string[]>([]);
+  const [includesPeople, setIncludesPeople] = useState(true); // Default to true for backward compatibility
   const [referencePhoto, setReferencePhoto] = useState<{
     file: File | null;
     url: string | null;
@@ -101,6 +102,7 @@ const TimelineEditor = () => {
         setImageReferences(state.imageReferences || []);
         setSourceRestrictions(state.sourceRestrictions || []);
         setHashtags(state.hashtags || []);
+        setIncludesPeople(state.includesPeople !== undefined ? state.includesPeople : true);
         setReferencePhoto(state.referencePhoto || {
           file: null,
           url: null,
@@ -135,6 +137,7 @@ const TimelineEditor = () => {
       imageReferences,
       sourceRestrictions,
       hashtags,
+      includesPeople,
       referencePhoto: {
         ...referencePhoto,
         file: null, // Don't store File object in localStorage
@@ -145,7 +148,7 @@ const TimelineEditor = () => {
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
     }
-  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, referencePhoto, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -549,6 +552,7 @@ const TimelineEditor = () => {
                   setThemeColor={setThemeColor}
                   imageReferences={imageReferences}
                   referencePhoto={referencePhoto}
+                  includesPeople={includesPeople}
                 />
               )}
               {currentStep === 6 && (

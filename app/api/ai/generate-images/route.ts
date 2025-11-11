@@ -1114,7 +1114,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto } = body;
+    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true } = body;
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -1155,7 +1155,7 @@ export async function POST(request: NextRequest) {
       });
     }
     
-    if (finalImageReferences.length === 0) {
+    if (finalImageReferences.length === 0 && includesPeople) {
       try {
         console.log(`[ImageGen] No reference images provided - extracting person names from events (style: ${imageStyle})...`);
         

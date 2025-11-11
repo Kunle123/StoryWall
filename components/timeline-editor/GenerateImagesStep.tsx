@@ -41,6 +41,7 @@ interface GenerateImagesStepProps {
     personName: string;
     hasPermission: boolean;
   };
+  includesPeople?: boolean;
 }
 
 const CREDIT_COST_IMAGE_BATCH = 10; // 10 credits for up to 20 images
@@ -54,6 +55,7 @@ export const GenerateImagesStep = ({
   setThemeColor,
   imageReferences = [],
   referencePhoto,
+  includesPeople = true,
 }: GenerateImagesStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
@@ -190,6 +192,7 @@ export const GenerateImagesStep = ({
           imageStyle,
           themeColor,
           imageReferences,
+          includesPeople,
           referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
             ? {
                 url: referencePhoto.url,
@@ -317,6 +320,7 @@ export const GenerateImagesStep = ({
           imageStyle,
           themeColor,
           imageReferences,
+          includesPeople,
           referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
             ? {
                 url: referencePhoto.url,
