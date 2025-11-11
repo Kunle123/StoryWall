@@ -121,19 +121,87 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     // Use faster model for Kimi (kimi-k2-turbo-preview is optimized for speed: 60-100 tokens/s)
     const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
     
+    // STEP 2: Detect if this is a progression and generate Anchor if needed
+    // Check if events suggest a progression (stage-based titles, sequential development)
+    const progressionKeywords = ['development', 'formation', 'stage', 'phase', 'growth', 'progression', 'evolution', 'construction', 'building', 'formation', 'begins', 'appears', 'develops'];
+    const eventTitles = events.map((e: any) => e.title?.toLowerCase() || '').join(' ');
+    const timelineDescLower = timelineDescription.toLowerCase();
+    const appearsToBeProgression = 
+      progressionKeywords.some(keyword => timelineDescLower.includes(keyword)) ||
+      progressionKeywords.some(keyword => eventTitles.includes(keyword)) ||
+      events.length > 3 && eventTitles.match(/\b(week|month|day|stage|phase)\s+\d+/i);
+    
+    let anchorStyle: string | null = null;
+    let progressionSubject: string | null = null;
+    
+    if (appearsToBeProgression) {
+      console.log('[GenerateDescriptions] Detected progression timeline, generating Anchor style...');
+      
+      // Generate Anchor: visual style guide for the series
+      try {
+        const anchorResponse = await createChatCompletion(client, {
+          model: modelToUse,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a Director of Photography. Based on the subject, create a consistent visual style for a documentary series. Define the style, lighting, color, and camera rules. The output must be a single, reusable text block that will be applied to all images in the series.`,
+            },
+            {
+              role: 'user',
+              content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nCreate a consistent visual style (Anchor) for this documentary series. Define:\n- Style: (e.g., "medically accurate 3D renderings", "documentary photography", "scientific illustration")\n- Lighting: (e.g., "soft, even lighting from above", "backlit to highlight features")\n- Color Palette: (e.g., "soft pinks and reds", "neutral grays and whites")\n- Composition: (e.g., "centered subject, tight close-up", "consistent camera angle")\n- Background: (e.g., "clean, dark background", "neutral white background")\n\nOutput ONLY the Anchor style description, nothing else.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        });
+        
+        if (anchorResponse.choices?.[0]?.message?.content) {
+          anchorStyle = anchorResponse.choices[0].message.content.trim();
+          // Extract progression subject from timeline description
+          const subjectMatch = timelineDescription.match(/(?:a|an|the)\s+([^,\.]+?)(?:\s+(?:inside|within|during|from|to|at|in)|$)/i);
+          progressionSubject = subjectMatch ? subjectMatch[1].trim() : timelineDescription.split(' ').slice(0, 5).join(' ');
+          console.log('[GenerateDescriptions] Generated Anchor:', anchorStyle.substring(0, 100) + '...');
+          console.log('[GenerateDescriptions] Progression subject:', progressionSubject);
+        }
+      } catch (anchorError: any) {
+        console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
+      }
+    }
+    
     let data;
     try {
+      // Build image prompt instructions - use Anchor if available
+      const imagePromptInstructions = anchorStyle
+        ? `CRITICAL: This timeline is a progression series. Use this Anchor Style for ALL image prompts: "${anchorStyle}"
+
+For each event, combine the Anchor Style with the specific event title to create a detailed image prompt. Each prompt MUST start with the Anchor Style, followed by a description of the specific event at that stage.
+
+Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. The scene shows a 4-week old embryo, a tiny C-shaped form where the neural tube is just closing along its back."
+
+Each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations.`
+        : `For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
+
+CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
+- "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing neural tube formation"
+- "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"
+- "Heart Begins Beating" (Week 5) → "A detailed image of a fetus at 5 weeks gestation showing the developing heart"
+- "Framing Complete" (Construction) → "A detailed image of a building showing the completed structural framing"
+
+For non-progression events:
+- "A concert" → "A concert with musicians performing on stage"
+- "A bomb explosion" → "A bomb explosion with debris and smoke"
+- "A man giving a speech" → "A man standing and giving a speech to an audience"
+
+The image prompt should be a clear, direct statement of what to depict at this specific moment/stage, centered on the subject from the title and description. Be specific and concrete, showing the actual subject at this point in the progression, not abstract artistic interpretations or meta-representations (charts, screens, etc.).`;
+      
       data = await createChatCompletion(client, {
         model: modelToUse, // Use faster turbo model for Kimi
         messages: [
           {
             role: 'system',
-            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context. 
+            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context.
 
-For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
-
-CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
-- "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing neural tube formation"
+${imagePromptInstructions}
 - "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"
 - "Heart Begins Beating" (Week 5) → "A detailed image of a fetus at 5 weeks gestation showing the developing heart"
 - "Framing Complete" (Construction) → "A detailed image of a building showing the completed structural framing"
@@ -234,10 +302,16 @@ Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each
       console.log(`[GenerateDescriptions] Image prompt ${idx + 1} for "${eventTitle}": ${prompt.substring(0, 300)}${prompt.length > 300 ? '...' : ''}`);
     });
     
-    const responseData: { descriptions: string[]; imagePrompts: string[] } = {
+    const responseData: any = {
       descriptions: descriptions.slice(0, events.length),
       imagePrompts: imagePrompts
     };
+    
+    // Include Anchor if generated
+    if (anchorStyle) {
+      responseData.anchorStyle = anchorStyle;
+      responseData.progressionSubject = progressionSubject;
+    }
     
     return NextResponse.json(responseData);
   } catch (error: any) {
