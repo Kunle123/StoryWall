@@ -1867,7 +1867,7 @@ export async function POST(request: NextRequest) {
       attempt: number = 0
     ): Promise<{ index: number; imageUrl: string | null; error: Error | null; event: any; prompt: string }> => {
       if (result.error || !result.predictionId) {
-        const errorMsg = result.error?.message || result.error || 'No prediction ID';
+        const errorMsg = result.error?.message || (result.error instanceof Error ? result.error.toString() : String(result.error || 'No prediction ID'));
         console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
         return { 
           index: result.index, 
