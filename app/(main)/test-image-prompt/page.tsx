@@ -18,15 +18,23 @@ interface Event {
   year?: number;
 }
 
+interface DescriptionResponse {
+  descriptions: string[];
+  imagePrompts: string[];
+  anchorStyle?: string;
+}
+
 export default function TestImagePromptPage() {
   const [timelineTitle, setTimelineTitle] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
   const [imageStyle, setImageStyle] = useState("Illustration");
   const [themeColor, setThemeColor] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingDescriptions, setLoadingDescriptions] = useState(false);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
+  const [anchorStyle, setAnchorStyle] = useState<string | null>(null);
 
   const handleGenerateEvents = async () => {
     if (!timelineTitle || !timelineDescription) {
@@ -34,7 +42,7 @@ export default function TestImagePromptPage() {
       return;
     }
 
-    setLoading(true);
+    setLoadingEvents(true);
     try {
       const response = await fetch("/api/ai/generate-events", {
         method: "POST",
@@ -59,7 +67,7 @@ export default function TestImagePromptPage() {
       console.error("Error generating events:", error);
       alert(`Error: ${error.message}\n\nCheck the browser console for more details.`);
     } finally {
-      setLoading(false);
+      setLoadingEvents(false);
     }
   };
 
@@ -69,7 +77,7 @@ export default function TestImagePromptPage() {
       return;
     }
 
-    setLoading(true);
+    setLoadingDescriptions(true);
     try {
       const response = await fetch("/api/ai/generate-descriptions", {
         method: "POST",
@@ -92,18 +100,23 @@ export default function TestImagePromptPage() {
         throw new Error(errorData.error || errorData.message || `Failed to generate descriptions: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data: DescriptionResponse = await response.json();
       const updatedEvents = events.map((event, idx) => ({
         ...event,
         description: data.descriptions?.[idx] || event.description,
         imagePrompt: data.imagePrompts?.[idx] || event.imagePrompt,
       }));
       setEvents(updatedEvents);
+      // Store anchor style for image generation
+      if (data.anchorStyle) {
+        setAnchorStyle(data.anchorStyle);
+        console.log('[TestPage] Received anchor style:', data.anchorStyle.substring(0, 100) + '...');
+      }
     } catch (error: any) {
       console.error("Error generating descriptions:", error);
       alert(`Error: ${error.message}`);
     } finally {
-      setLoading(false);
+      setLoadingDescriptions(false);
     }
   };
 
@@ -131,6 +144,7 @@ export default function TestImagePromptPage() {
           themeColor: themeColor,
           includesPeople: false,
           imageReferences: [],
+          anchorStyle: anchorStyle, // Pass anchor style for consistent visual linking
         }),
       });
 
@@ -140,14 +154,25 @@ export default function TestImagePromptPage() {
       }
 
       const data = await response.json();
+      console.log('[TestPage] Image generation response:', data);
       
       // Update events with image URLs
+      // The API returns images array with { url: string } objects
       const updatedEvents = events.map((event, idx) => ({
         ...event,
-        imageUrl: data.images?.[idx]?.url || null,
+        imageUrl: data.images?.[idx]?.url || data.images?.[idx] || null,
       }));
       setEvents(updatedEvents);
-      setImageProgress(events.length);
+      
+      // Count successful images
+      const successfulImages = updatedEvents.filter(e => e.imageUrl).length;
+      setImageProgress(successfulImages);
+      
+      if (successfulImages === 0) {
+        alert('No images were generated. Check the console for error details.');
+      } else {
+        console.log(`[TestPage] Successfully generated ${successfulImages}/${events.length} images`);
+      }
     } catch (error: any) {
       console.error("Error generating images:", error);
       alert(`Error: ${error.message}`);
@@ -226,9 +251,9 @@ export default function TestImagePromptPage() {
             <div className="flex gap-3">
               <Button
                 onClick={handleGenerateEvents}
-                disabled={loading || !timelineTitle || !timelineDescription}
+                disabled={loadingEvents || loadingDescriptions || generatingImages || !timelineTitle || !timelineDescription}
               >
-                {loading ? (
+                {loadingEvents ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating...
@@ -240,10 +265,10 @@ export default function TestImagePromptPage() {
 
               <Button
                 onClick={handleGenerateDescriptions}
-                disabled={loading || events.length === 0}
+                disabled={loadingEvents || loadingDescriptions || generatingImages || events.length === 0}
                 variant="outline"
               >
-                {loading ? (
+                {loadingDescriptions ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating...
@@ -255,13 +280,13 @@ export default function TestImagePromptPage() {
 
               <Button
                 onClick={handleGenerateImages}
-                disabled={generatingImages || events.length === 0}
+                disabled={loadingEvents || loadingDescriptions || generatingImages || events.length === 0}
                 variant="outline"
               >
                 {generatingImages ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Images... ({imageProgress}/10)
+                    Generating Images... ({imageProgress}/{events.length})
                   </>
                 ) : (
                   "3. Generate Images"
