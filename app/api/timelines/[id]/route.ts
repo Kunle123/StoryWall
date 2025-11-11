@@ -14,6 +14,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log('[API] GET /api/timelines/[id] - Route handler called');
   try {
     const { id } = await params;
     console.log('[API] Fetching timeline with id:', id);
