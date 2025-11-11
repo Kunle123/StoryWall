@@ -181,7 +181,7 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
       : '';
 
     const userPrompt = isNumbered
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
       : isFactual
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
@@ -202,10 +202,8 @@ For political campaigns, elections, or public figures: include ALL major events 
 
 Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
-
-Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
-      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
+      : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${maxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
     // Prefer Responses API with web_search tool for factual timelines (helps with post-2024 knowledge)
     // Only use if OpenAI key is available (Responses API is OpenAI-specific)
@@ -845,14 +843,13 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
     : '';
 
   const userPrompt = isNumbered
-    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
     : isFactual
     ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
-IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.
-Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
-    : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences). Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "description": "Brief explanation of the event" }, ...], "sources": [{ "name": "Associated Press", "url": "https://apnews.com/article/..." }, { "name": "Reuters", "url": "https://www.reuters.com/world/us/..." }, ...], "image_references": [{ "name": "Zohran Mamdani", "url": "https://commons.wikimedia.org/..." }, ...] }`
+    : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
   // Calculate max_tokens for this batch
   let maxTokens: number;
@@ -895,6 +892,9 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
     throw new Error('Empty assistant response');
   }
   
+  // Log the raw response for debugging
+  console.log(`[GenerateEventsBatch] Raw response${batchLabel} (first 500 chars):`, contentText.substring(0, 500));
+  
   // Parse JSON response with error handling
   let jsonText = contentText.trim();
   if (jsonText.startsWith('```json')) {
@@ -909,15 +909,24 @@ Return as JSON: { "events": [{ "year": 2020, "title": "Event title", "descriptio
   } catch (parseError: any) {
     console.error(`[GenerateEventsBatch] JSON parse error${batchLabel}:`, {
       error: parseError.message,
-      contentPreview: jsonText.substring(0, 500),
+      contentPreview: jsonText.substring(0, 1000),
       contentLength: jsonText.length,
+      firstChars: jsonText.substring(0, 100),
       lastChars: jsonText.substring(Math.max(0, jsonText.length - 200)),
     });
+    
+    // Check if the response is an error message or explanation
+    if (jsonText.toLowerCase().includes('i cannot') || jsonText.toLowerCase().includes('i am unable') || 
+        jsonText.toLowerCase().includes('i apologize') || jsonText.toLowerCase().startsWith('i ')) {
+      console.error(`[GenerateEventsBatch] AI returned explanation instead of JSON${batchLabel}. Full response:`, jsonText);
+      throw new Error(`AI returned explanation instead of JSON: ${jsonText.substring(0, 200)}`);
+    }
     
     // Try to extract JSON object from the text if it's embedded in other text
     let jsonStart = jsonText.indexOf('{');
     if (jsonStart === -1) {
-      throw new Error(`Failed to parse AI response: ${parseError.message}. No JSON object found.`);
+      console.error(`[GenerateEventsBatch] No JSON object found in response${batchLabel}. Full response:`, jsonText);
+      throw new Error(`Failed to parse AI response: ${parseError.message}. No JSON object found in response (response starts with: "${jsonText.substring(0, 50)}")`);
     }
     
     // Extract from first { to end, then try to find the matching closing }
