@@ -210,6 +210,13 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     }
     imagePrompts = imagePrompts.slice(0, events.length);
     
+    // Log generated image prompts for debugging
+    console.log(`[GenerateDescriptions] Generated ${imagePrompts.length} image prompts:`);
+    imagePrompts.forEach((prompt: string, idx: number) => {
+      const eventTitle = events[idx]?.title || `Event ${idx + 1}`;
+      console.log(`[GenerateDescriptions] Image prompt ${idx + 1} for "${eventTitle}": ${prompt.substring(0, 300)}${prompt.length > 300 ? '...' : ''}`);
+    });
+    
     const responseData: { descriptions: string[]; imagePrompts: string[] } = {
       descriptions: descriptions.slice(0, events.length),
       imagePrompts: imagePrompts
