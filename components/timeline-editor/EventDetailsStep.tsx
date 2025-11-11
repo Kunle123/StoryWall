@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";

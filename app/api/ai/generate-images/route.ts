@@ -915,7 +915,8 @@ function buildImagePrompt(
   styleVisualLanguage: string,
   needsText: boolean = false,
   imageReferences?: Array<{ name: string; url: string }>,
-  hasReferenceImage: boolean = false
+  hasReferenceImage: boolean = false,
+  includesPeople: boolean = true
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
@@ -939,8 +940,8 @@ function buildImagePrompt(
       prompt = prompt.replace(pattern, '');
     });
     
-    // Check for famous people and make safe
-    if (containsFamousPerson(prompt) || containsFamousPerson(event.title)) {
+    // Check for famous people and make safe (only if timeline includes people)
+    if (includesPeople && (containsFamousPerson(prompt) || containsFamousPerson(event.title))) {
       prompt = makePromptSafeForFamousPeople(prompt, imageStyle);
       // Use safer style for famous people
       const safeStyle = getSafeStyleForFamousPeople(imageStyle);
@@ -972,8 +973,8 @@ function buildImagePrompt(
     const yearContext = event.year ? `, historical period ${event.year}` : '';
     let basePrompt = `${imageStyle} style: ${visualDescription}${yearContext}`;
     
-    // Check for famous people and make safe
-    if (containsFamousPerson(visualDescription) || containsFamousPerson(event.title)) {
+    // Check for famous people and make safe (only if timeline includes people)
+    if (includesPeople && (containsFamousPerson(visualDescription) || containsFamousPerson(event.title))) {
       basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
       const safeStyle = getSafeStyleForFamousPeople(imageStyle);
       if (safeStyle !== imageStyle) {
@@ -1009,10 +1010,10 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
-  // Add person matching instructions when reference images are provided
+  // Add person matching instructions when reference images are provided AND timeline includes people
   // These instructions are critical for accurate person matching with Imagen
   // Place BEFORE text instructions so they have more weight
-  if (hasReferenceImage && imageReferences && imageReferences.length > 0) {
+  if (includesPeople && hasReferenceImage && imageReferences && imageReferences.length > 0) {
     const personNames = extractPersonNames(imageReferences);
     if (personNames.length > 0) {
       // Add specific person matching instructions - make them VERY prominent
@@ -1368,7 +1369,8 @@ export async function POST(request: NextRequest) {
           styleVisualLanguage, 
           needsText,
           finalImageReferences,
-          hasReferenceImage
+          hasReferenceImage,
+          includesPeople
         );
         
         // Log the prompt being sent (for debugging)
