@@ -1095,6 +1095,10 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
+  // Add series consistency instructions - images should look like they belong to the same photographic/documentary series
+  // This ensures visual continuity when images are viewed together in a timeline
+  prompt += `. SERIES CONSISTENCY: This image is part of a documentary series documenting stages of progression. Maintain consistent visual style across all images: same lighting approach (consistent direction and quality), consistent color palette and tone, consistent composition style (similar framing and perspective), consistent level of detail and focus. Images should look like they were photographed in the same session or series, with visual continuity that makes them feel cohesive when viewed together. Similar camera angle and distance, consistent background treatment, uniform visual language`;
+  
   // Add person matching instructions when reference images are provided AND timeline includes people
   // These instructions are critical for accurate person matching with Imagen
   // Place BEFORE text instructions so they have more weight
