@@ -133,7 +133,8 @@ export default function TestImagePromptPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to generate images: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Failed to generate images: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -144,12 +145,12 @@ export default function TestImagePromptPage() {
         imageUrl: data.images?.[idx]?.url || null,
       }));
       setEvents(updatedEvents);
+      setImageProgress(events.length);
     } catch (error: any) {
       console.error("Error generating images:", error);
       alert(`Error: ${error.message}`);
     } finally {
       setGeneratingImages(false);
-      setImageProgress(0);
     }
   };
 
