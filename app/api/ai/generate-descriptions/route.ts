@@ -163,37 +163,44 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     let progressionSubject: string | null = null;
     let factualDetails: Record<string, string[]> = {}; // Factual details from Knowledge Injection step
     
-    // ALWAYS generate Anchor style for visual consistency across all timelines
-    // This ensures all images in a timeline share the same visual aesthetic
-    console.log('[GenerateDescriptions] Generating Anchor style for visual consistency...');
+    // Only generate Anchor style for progression timelines (not for people-centric timelines)
+    // For people-centric timelines, the reference images provide visual consistency
+    // For progression timelines, the Anchor ensures consistent visual style across stages
+    const shouldGenerateAnchor = appearsToBeProgression && !isExcluded;
     
-    try {
-      const anchorResponse = await createChatCompletion(client, {
-        model: modelToUse,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a Director of Photography. Based on the subject, create a consistent visual style for a documentary series. Define the style, lighting, color, and camera rules. The output must be a single, reusable text block that will be applied to all images in the series.`,
-          },
-          {
-            role: 'user',
-            content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n\nCreate a CONCISE visual style (Anchor) for this documentary series. Keep it brief (2-3 sentences max, ~100-150 characters). Focus on:\n- Style adaptation: "${imageStyle || 'Illustration'}" style adapted to this subject\n- Key visual consistency: lighting direction, color tone, composition approach\n- Background treatment\n\nOutput ONLY a brief, reusable style description (2-3 sentences) that will be prepended to event-specific descriptions. Be concise - the event content should be the focus, not the style guide.`,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 150, // Reduced to encourage concise Anchor generation
-      });
+    if (shouldGenerateAnchor) {
+      console.log('[GenerateDescriptions] Detected progression timeline - generating Anchor style for visual consistency...');
       
-      if (anchorResponse.choices?.[0]?.message?.content) {
-        anchorStyle = anchorResponse.choices[0].message.content.trim();
-        // Extract progression subject from timeline description
-        const subjectMatch = timelineDescription.match(/(?:a|an|the)\s+([^,\.]+?)(?:\s+(?:inside|within|during|from|to|at|in)|$)/i);
-        progressionSubject = subjectMatch ? subjectMatch[1].trim() : timelineDescription.split(' ').slice(0, 5).join(' ');
-        console.log('[GenerateDescriptions] Generated Anchor:', anchorStyle.substring(0, 100) + '...');
-        console.log('[GenerateDescriptions] Progression subject:', progressionSubject);
+      try {
+        const anchorResponse = await createChatCompletion(client, {
+          model: modelToUse,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a Director of Photography. Based on the subject, create a consistent visual style for a documentary series. Define the style, lighting, color, and camera rules. The output must be a single, reusable text block that will be applied to all images in the series.`,
+            },
+            {
+              role: 'user',
+              content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n\nCreate a CONCISE visual style (Anchor) for this documentary series. Keep it brief (2-3 sentences max, ~100-150 characters). Focus on:\n- Style adaptation: "${imageStyle || 'Illustration'}" style adapted to this subject\n- Key visual consistency: lighting direction, color tone, composition approach\n- Background treatment\n\nOutput ONLY a brief, reusable style description (2-3 sentences) that will be prepended to event-specific descriptions. Be concise - the event content should be the focus, not the style guide.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 150, // Reduced to encourage concise Anchor generation
+        });
+        
+        if (anchorResponse.choices?.[0]?.message?.content) {
+          anchorStyle = anchorResponse.choices[0].message.content.trim();
+          // Extract progression subject from timeline description
+          const subjectMatch = timelineDescription.match(/(?:a|an|the)\s+([^,\.]+?)(?:\s+(?:inside|within|during|from|to|at|in)|$)/i);
+          progressionSubject = subjectMatch ? subjectMatch[1].trim() : timelineDescription.split(' ').slice(0, 5).join(' ');
+          console.log('[GenerateDescriptions] Generated Anchor:', anchorStyle.substring(0, 100) + '...');
+          console.log('[GenerateDescriptions] Progression subject:', progressionSubject);
+        }
+      } catch (anchorError: any) {
+        console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
       }
-    } catch (anchorError: any) {
-      console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
+    } else {
+      console.log('[GenerateDescriptions] Not a progression timeline - skipping Anchor generation (will use reference images or standard prompts)');
     }
     
     if (appearsToBeProgression) {
