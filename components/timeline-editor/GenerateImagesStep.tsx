@@ -375,6 +375,7 @@ export const GenerateImagesStep = ({
           let retryAttempt = 0;
           const maxRetries = 2;
           let remainingFailedEvents = [...failedEvents];
+          let currentEvents = [...eventsWithImages]; // Track events state during retries
           
           while (remainingFailedEvents.length > 0 && retryAttempt < maxRetries) {
             retryAttempt++;
@@ -421,24 +422,24 @@ export const GenerateImagesStep = ({
               let retryImageIndex = 0;
               const stillFailed: TimelineEvent[] = [];
               
-              setEvents((prevEvents) => {
-                return prevEvents.map((e) => {
-                  const isFailed = remainingFailedEvents.some(fe => fe.id === e.id);
-                  if (isFailed) {
-                    const retryImageUrl = retryData.images[retryImageIndex];
-                    retryImageIndex++;
-                    
-                    if (retryImageUrl) {
-                      return { ...e, imageUrl: retryImageUrl };
-                    } else {
-                      stillFailed.push(e);
-                      return e;
-                    }
+              // Update currentEvents with retried images
+              currentEvents = currentEvents.map((e) => {
+                const isFailed = remainingFailedEvents.some(fe => fe.id === e.id);
+                if (isFailed) {
+                  const retryImageUrl = retryData.images[retryImageIndex];
+                  retryImageIndex++;
+                  
+                  if (retryImageUrl) {
+                    return { ...e, imageUrl: retryImageUrl };
+                  } else {
+                    stillFailed.push(e);
+                    return e;
                   }
-                  return e;
-                });
+                }
+                return e;
               });
               
+              setEvents(currentEvents);
               remainingFailedEvents = stillFailed;
               
               if (stillFailed.length === 0) {

@@ -27,24 +27,7 @@ const TimelineEditor = () => {
   const { toast } = useToast();
   const { isSignedIn, isLoaded } = useUser();
   
-  // Redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/sign-in');
-    }
-  }, [isSignedIn, isLoaded, router]);
-  
-  // Show loading while checking authentication
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-  
+  // All hooks must be declared before any conditional returns
   const [currentStep, setCurrentStep] = useState(1);
   const [timelineName, setTimelineName] = useState("");
   const [timelineDescription, setTimelineDescription] = useState("");
@@ -75,12 +58,30 @@ const TimelineEditor = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  
+  // Redirect to sign-in if not authenticated
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isSignedIn, isLoaded, router]);
+  
+  // Show loading while checking authentication
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Load state from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
         const state = JSON.parse(saved);
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
@@ -105,15 +106,16 @@ const TimelineEditor = () => {
           hasPermission: false,
         });
         setCurrentStep(state.currentStep || 1);
-      } catch (e) {
-        console.error('Failed to load saved state:', e);
       }
+    } catch (e) {
+      console.error('Failed to load saved state:', e);
     }
   }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-        const state = {
+    try {
+      const state = {
           timelineName,
           timelineDescription,
           isPublic,
@@ -136,8 +138,11 @@ const TimelineEditor = () => {
       },
       currentStep,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, referencePhoto, currentStep]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('Failed to save state to localStorage:', e);
+    }
+  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, referencePhoto, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
