@@ -332,16 +332,15 @@ export const GenerateImagesStep = ({
       
       // Map images back to selected events only
       let imageIndex = 0;
-      setEvents(
-        events.map((e) => {
-          if (selectedEvents.has(e.id)) {
-            const imageUrl = data.images[imageIndex] || e.imageUrl;
-            imageIndex++;
-            return { ...e, imageUrl };
-          }
-          return e;
-        })
-      );
+      const eventsWithImages = events.map((e) => {
+        if (selectedEvents.has(e.id)) {
+          const imageUrl = data.images[imageIndex] || e.imageUrl;
+          imageIndex++;
+          return { ...e, imageUrl };
+        }
+        return e;
+      });
+      setEvents(eventsWithImages);
       
       // Deduct credits AFTER successful generation
       const creditsDeducted = await deductCredits(
@@ -353,13 +352,134 @@ export const GenerateImagesStep = ({
         console.warn('Failed to deduct credits after image generation');
       }
       
-      // Show warning if some images failed
+      // Retry failed images automatically
       if (failedCount > 0) {
-        toast({
-          title: "Partial success",
-          description: `Generated ${successfulImages.length} of ${eventCount} images. Some prompts may have been rejected by content policy.`,
-          variant: "default",
+        // Find events that failed (have null images)
+        // Map images back to events by index
+        const failedEvents: TimelineEvent[] = [];
+        selectedEventsList.forEach((e, idx) => {
+          if (!data.images[idx]) {
+            failedEvents.push(e);
+          }
         });
+        
+        if (failedEvents.length > 0) {
+          console.log(`[GenerateImages] Retrying ${failedEvents.length} failed images...`);
+          toast({
+            title: "Retrying failed images",
+            description: `Generated ${successfulImages.length} of ${eventCount} images. Retrying ${failedEvents.length} failed images...`,
+            variant: "default",
+          });
+          
+          // Retry failed images (max 2 retries)
+          let retryAttempt = 0;
+          const maxRetries = 2;
+          let remainingFailedEvents = [...failedEvents];
+          
+          while (remainingFailedEvents.length > 0 && retryAttempt < maxRetries) {
+            retryAttempt++;
+            console.log(`[GenerateImages] Retry attempt ${retryAttempt}/${maxRetries} for ${remainingFailedEvents.length} events`);
+            
+            // Update progress for retry
+            setGeneratingCount(eventCount - remainingFailedEvents.length);
+            setProgress(Math.floor(((eventCount - remainingFailedEvents.length) / eventCount) * 100));
+            
+            try {
+              const retryResponse = await fetch("/api/ai/generate-images", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  events: remainingFailedEvents.map(e => ({ 
+                    title: e.title, 
+                    description: e.description || "",
+                    year: e.year,
+                    imagePrompt: e.imagePrompt,
+                  })),
+                  imageStyle,
+                  themeColor,
+                  imageReferences,
+                  referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
+                    ? {
+                        url: referencePhoto.url,
+                        personName: referencePhoto.personName,
+                      }
+                    : undefined,
+                }),
+              });
+
+              const retryData = await retryResponse.json();
+
+              if (!retryResponse.ok) {
+                throw new Error(retryData?.error || 'Retry failed');
+              }
+
+              if (!retryData.images || retryData.images.length === 0) {
+                break; // Stop retrying if no images returned
+              }
+
+              // Update events with retried images
+              let retryImageIndex = 0;
+              const stillFailed: TimelineEvent[] = [];
+              
+              setEvents((prevEvents) => {
+                return prevEvents.map((e) => {
+                  const isFailed = remainingFailedEvents.some(fe => fe.id === e.id);
+                  if (isFailed) {
+                    const retryImageUrl = retryData.images[retryImageIndex];
+                    retryImageIndex++;
+                    
+                    if (retryImageUrl) {
+                      return { ...e, imageUrl: retryImageUrl };
+                    } else {
+                      stillFailed.push(e);
+                      return e;
+                    }
+                  }
+                  return e;
+                });
+              });
+              
+              remainingFailedEvents = stillFailed;
+              
+              if (stillFailed.length === 0) {
+                console.log(`[GenerateImages] All images successfully generated after retry ${retryAttempt}`);
+                break;
+              }
+              
+              // Wait a bit before next retry
+              if (retryAttempt < maxRetries && stillFailed.length > 0) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+              }
+            } catch (retryError: any) {
+              console.error(`[GenerateImages] Retry attempt ${retryAttempt} failed:`, retryError);
+              // Continue to next retry attempt
+            }
+          }
+          
+          // Final update
+          setProgress(100);
+          setGeneratingCount(eventCount);
+          
+          const finalSuccessful = eventCount - remainingFailedEvents.length;
+          
+          if (remainingFailedEvents.length > 0) {
+            toast({
+              title: "Partial success",
+              description: `Generated ${finalSuccessful} of ${eventCount} images. ${remainingFailedEvents.length} images could not be generated after ${maxRetries} retries.`,
+              variant: "default",
+            });
+          } else {
+            toast({
+              title: "Success!",
+              description: `Generated all ${finalSuccessful} images (${retryAttempt > 0 ? `after ${retryAttempt} retry${retryAttempt > 1 ? 'ies' : ''}` : ''})`,
+            });
+          }
+        } else {
+          toast({
+            title: "Success!",
+            description: `Generated ${successfulImages.length} images`,
+          });
+        }
       } else {
         toast({
           title: "Success!",

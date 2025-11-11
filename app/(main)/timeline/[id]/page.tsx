@@ -23,11 +23,32 @@ const TimelinePage = () => {
   const [centeredEvent, setCenteredEvent] = useState<TimelineEvent | null>(null);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsRequested, setCommentsRequested] = useState(false);
   
-  // Handle header hide/show on scroll
+  // Handle header hide/show on scroll and comments visibility
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
+      
+      // Hide comments when user starts scrolling (unless they just clicked comments button)
+      if (commentsRequested) {
+        // Reset the flag after a short delay
+        setTimeout(() => setCommentsRequested(false), 100);
+      } else if (currentScrollY !== lastScrollY) {
+        // User is scrolling - hide comments
+        setShowComments(false);
+      }
+      
+      // Check if at bottom of page
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const isAtBottom = scrollTop + windowHeight >= documentHeight - 100; // 100px threshold
+      
+      if (isAtBottom) {
+        setShowComments(true);
+      }
       
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
         // Scrolling down
@@ -42,7 +63,25 @@ const TimelinePage = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [lastScrollY, commentsRequested]);
+  
+  // Handle comments button click from event cards
+  useEffect(() => {
+    const handleCommentsClick = () => {
+      setCommentsRequested(true);
+      setShowComments(true);
+      // Scroll to comments section
+      setTimeout(() => {
+        const commentsElement = document.getElementById('comments');
+        if (commentsElement) {
+          commentsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    };
+    
+    window.addEventListener('show-comments', handleCommentsClick);
+    return () => window.removeEventListener('show-comments', handleCommentsClick);
+  }, []);
 
   // Format the centered event date for dial (3-line format: day, month, year)
   const formatSelectedDate = (event: TimelineEvent | null, startDate?: Date, endDate?: Date) => {
