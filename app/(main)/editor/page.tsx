@@ -82,71 +82,121 @@ const TimelineEditor = () => {
   // Load state from localStorage on mount
   useEffect(() => {
     try {
+      if (typeof window === 'undefined') return; // SSR safety check
+      
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const state = JSON.parse(saved);
+        
+        // Safely parse dates - handle invalid dates
+        let parsedStartDate: Date | undefined;
+        let parsedEndDate: Date | undefined;
+        
+        if (state.startDate) {
+          try {
+            parsedStartDate = new Date(state.startDate);
+            if (isNaN(parsedStartDate.getTime())) {
+              parsedStartDate = undefined;
+            }
+          } catch {
+            parsedStartDate = undefined;
+          }
+        }
+        
+        if (state.endDate) {
+          try {
+            parsedEndDate = new Date(state.endDate);
+            if (isNaN(parsedEndDate.getTime())) {
+              parsedEndDate = undefined;
+            }
+          } catch {
+            parsedEndDate = undefined;
+          }
+        }
+        
         setTimelineName(state.timelineName || "");
         setTimelineDescription(state.timelineDescription || "");
-            setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
-            setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
-            setIsNumbered(state.isNumbered !== undefined ? state.isNumbered : false);
-            setNumberLabel(state.numberLabel || "Day");
-            setMaxEvents(state.maxEvents !== undefined ? state.maxEvents : 20);
-            setStartDate(state.startDate ? new Date(state.startDate) : undefined);
-            setEndDate(state.endDate ? new Date(state.endDate) : undefined);
+        setIsPublic(state.isPublic !== undefined ? state.isPublic : true);
+        setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
+        setIsNumbered(state.isNumbered !== undefined ? state.isNumbered : false);
+        setNumberLabel(state.numberLabel || "Day");
+        setMaxEvents(state.maxEvents !== undefined ? state.maxEvents : 20);
+        setStartDate(parsedStartDate);
+        setEndDate(parsedEndDate);
         setWritingStyle(state.writingStyle || "");
         setCustomStyle(state.customStyle || "");
         setImageStyle(state.imageStyle || "Minimalist");
         setThemeColor(state.themeColor || "");
-        setEvents(state.events || []);
-        setImageReferences(state.imageReferences || []);
-        setSourceRestrictions(state.sourceRestrictions || []);
-        setHashtags(state.hashtags || []);
+        setEvents(Array.isArray(state.events) ? state.events : []);
+        setImageReferences(Array.isArray(state.imageReferences) ? state.imageReferences : []);
+        setSourceRestrictions(Array.isArray(state.sourceRestrictions) ? state.sourceRestrictions : []);
+        setHashtags(Array.isArray(state.hashtags) ? state.hashtags : []);
         setIncludesPeople(state.includesPeople !== undefined ? state.includesPeople : true);
-        setReferencePhoto(state.referencePhoto || {
+        setReferencePhoto(state.referencePhoto && typeof state.referencePhoto === 'object' ? {
+          file: null, // File objects can't be stored in localStorage
+          url: state.referencePhoto.url || null,
+          personName: state.referencePhoto.personName || "",
+          hasPermission: state.referencePhoto.hasPermission || false,
+        } : {
           file: null,
           url: null,
           personName: "",
           hasPermission: false,
         });
-        setCurrentStep(state.currentStep || 1);
+        setCurrentStep(typeof state.currentStep === 'number' && state.currentStep >= 1 && state.currentStep <= 6 ? state.currentStep : 1);
       }
     } catch (e) {
       console.error('Failed to load saved state:', e);
+      // Clear corrupted localStorage data
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore errors when clearing
+      }
     }
   }, []);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
     try {
+      if (typeof window === 'undefined') return; // SSR safety check
+      
       const state = {
-          timelineName,
-          timelineDescription,
-          isPublic,
-          isFactual,
-          isNumbered,
-          numberLabel,
-          maxEvents,
-          startDate: startDate?.toISOString(),
-          endDate: endDate?.toISOString(),
-      writingStyle,
-      customStyle,
-      imageStyle,
-      themeColor,
-      events,
-      imageReferences,
-      sourceRestrictions,
-      hashtags,
-      includesPeople,
-      referencePhoto: {
-        ...referencePhoto,
-        file: null, // Don't store File object in localStorage
-      },
-      currentStep,
-    };
+        timelineName,
+        timelineDescription,
+        isPublic,
+        isFactual,
+        isNumbered,
+        numberLabel,
+        maxEvents,
+        startDate: startDate?.toISOString(),
+        endDate: endDate?.toISOString(),
+        writingStyle,
+        customStyle,
+        imageStyle,
+        themeColor,
+        events: Array.isArray(events) ? events : [],
+        imageReferences: Array.isArray(imageReferences) ? imageReferences : [],
+        sourceRestrictions: Array.isArray(sourceRestrictions) ? sourceRestrictions : [],
+        hashtags: Array.isArray(hashtags) ? hashtags : [],
+        includesPeople,
+        referencePhoto: {
+          url: referencePhoto?.url || null,
+          personName: referencePhoto?.personName || "",
+          hasPermission: referencePhoto?.hasPermission || false,
+          // Don't store File object in localStorage
+        },
+        currentStep,
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
+      // If localStorage is full or unavailable, try to clear old data
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore errors when clearing
+      }
     }
   }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep]);
 
