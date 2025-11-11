@@ -1223,8 +1223,12 @@ function buildImagePrompt(
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
   
-  // Imagen 4 Fast supports up to 480 tokens (~1,900 characters)
-  // Use 1,500 chars to be safe and ensure person matching instructions aren't cut off
+  // Model prompt limits:
+  // - SDXL (used for Illustration, Watercolor, Sketch, etc.): ~77 tokens (~400-500 characters on Replicate)
+  // - Imagen 4 Fast: 480 tokens (~1,900 characters)
+  // - Flux models: ~200 tokens (~1,000 characters)
+  // Use 1,500 chars as a safe limit that works across all models
+  // This ensures person matching instructions and detailed descriptions aren't cut off
   return prompt.substring(0, 1500).trim();
 }
 
