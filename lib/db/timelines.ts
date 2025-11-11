@@ -25,6 +25,11 @@ export async function createTimeline(
       timelineData.numberLabel = input.number_label;
     }
     
+    // Include hashtags if provided
+    if (input.hashtags !== undefined) {
+      timelineData.hashtags = input.hashtags;
+    }
+    
     const timeline = await prisma.timeline.create({
       data: timelineData,
       include: {
@@ -300,12 +305,33 @@ export async function listTimelines(options: {
   offset?: number;
   isPublic?: boolean;
   creatorId?: string;
+  hashtag?: string;
+  searchQuery?: string;
 }): Promise<Timeline[]> {
+  const where: any = {
+    ...(options.isPublic !== undefined && { isPublic: options.isPublic }),
+    ...(options.creatorId && { creatorId: options.creatorId }),
+  };
+
+  // Filter by hashtag if provided
+  if (options.hashtag) {
+    where.hashtags = {
+      has: options.hashtag.toLowerCase(),
+    };
+  }
+
+  // Search in title, description, or hashtags
+  if (options.searchQuery) {
+    const query = options.searchQuery.toLowerCase();
+    where.OR = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } },
+      { hashtags: { hasSome: [query] } },
+    ];
+  }
+
   const timelines = await prisma.timeline.findMany({
-    where: {
-      ...(options.isPublic !== undefined && { isPublic: options.isPublic }),
-      ...(options.creatorId && { creatorId: options.creatorId }),
-    },
+    where,
     include: {
       creator: true,
       events: {
@@ -342,6 +368,9 @@ function transformTimeline(timeline: any): Timeline {
     visualization_type: timeline.visualizationType as 'horizontal' | 'vertical' | 'grid',
     is_public: timeline.isPublic,
     is_collaborative: timeline.isCollaborative,
+    is_numbered: timeline.isNumbered !== undefined ? timeline.isNumbered : undefined,
+    number_label: timeline.numberLabel || undefined,
+    hashtags: timeline.hashtags || [],
     view_count: timeline.viewCount,
     created_at: timeline.createdAt.toISOString(),
     updated_at: timeline.updatedAt.toISOString(),

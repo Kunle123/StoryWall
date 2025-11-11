@@ -107,6 +107,7 @@ export async function createTimeline(timelineData: {
   is_public?: boolean;
   is_collaborative?: boolean;
   is_numbered?: boolean;
+  hashtags?: string[];
   number_label?: string | null;
   start_date?: string | null;
   end_date?: string | null;

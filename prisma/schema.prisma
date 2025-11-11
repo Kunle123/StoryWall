@@ -43,6 +43,7 @@ model Timeline {
   isCollaborative   Boolean  @default(false) @map("is_collaborative")
   isNumbered        Boolean  @default(false) @map("is_numbered")
   numberLabel       String?  @default("Day") @map("number_label") @db.VarChar(50)
+  hashtags          String[] @default([]) @map("hashtags")
   viewCount         Int      @default(0) @map("view_count")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")

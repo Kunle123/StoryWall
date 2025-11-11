@@ -267,21 +267,43 @@ export const GenerateImagesStep = ({
     setTotalEvents(eventCount);
     setGeneratingCount(0);
     
-    // Start progress simulation
+    // Start progress simulation with realistic timing
+    // Estimate: ~3-5 seconds per image, so for 20 images = 60-100 seconds
+    const estimatedTimePerImage = 4; // seconds
+    const estimatedTotalTime = eventCount * estimatedTimePerImage; // seconds
+    const startTime = Date.now();
+    
     let progressInterval: NodeJS.Timeout | null = null;
     try {
       progressInterval = setInterval(() => {
+        const elapsed = (Date.now() - startTime) / 1000; // seconds
+        // Calculate progress based on elapsed time vs estimated time
+        // Use a logarithmic curve to slow down as we approach 90%
+        let calculatedProgress = Math.min(90, (elapsed / estimatedTotalTime) * 90);
+        
+        // Apply logarithmic curve to make progress slow down as it approaches 90%
+        // This makes it more realistic - fast at first, slower near the end
+        calculatedProgress = 90 * (1 - Math.exp(-elapsed / (estimatedTotalTime * 0.6)));
+        
+        // If we've exceeded estimated time, slowly continue to 95%
+        if (elapsed > estimatedTotalTime) {
+          const extraTime = elapsed - estimatedTotalTime;
+          // Add up to 5% more progress (90% -> 95%) over the next estimated time period
+          const additionalProgress = Math.min(5, (extraTime / estimatedTotalTime) * 5);
+          calculatedProgress = 90 + additionalProgress;
+        }
+        
         setProgress((prev) => {
-          if (prev >= 95) {
-            // Don't go above 95% until we get the response
-            return 95;
-          }
+          // Only update if calculated progress is higher than current, but cap at 95%
+          const newProgress = Math.min(95, Math.max(prev, calculatedProgress));
+          
           // Update generating count based on progress
-          const estimatedCount = Math.floor((prev / 100) * eventCount);
-          setGeneratingCount(estimatedCount);
-          return prev + 5;
+          const estimatedCount = Math.floor((newProgress / 100) * eventCount);
+          setGeneratingCount(Math.min(estimatedCount, eventCount));
+          
+          return newProgress;
         });
-      }, 1000); // Update every second
+      }, 500); // Update every 500ms for smoother progress
       const response = await fetch("/api/ai/generate-images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -381,9 +403,12 @@ export const GenerateImagesStep = ({
             retryAttempt++;
             console.log(`[GenerateImages] Retry attempt ${retryAttempt}/${maxRetries} for ${remainingFailedEvents.length} events`);
             
-            // Update progress for retry
-            setGeneratingCount(eventCount - remainingFailedEvents.length);
-            setProgress(Math.floor(((eventCount - remainingFailedEvents.length) / eventCount) * 100));
+            // Update progress for retry - show progress based on successful images
+            const successfulCount = eventCount - remainingFailedEvents.length;
+            setGeneratingCount(successfulCount);
+            // Progress should be between 90-95% during retries
+            const retryProgress = 90 + (successfulCount / eventCount) * 5;
+            setProgress(Math.min(95, retryProgress));
             
             try {
               const retryResponse = await fetch("/api/ai/generate-images", {

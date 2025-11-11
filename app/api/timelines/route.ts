@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await getOrCreateUser(userId);
 
     const body = await request.json();
-    const { title, description, visualization_type, is_public, is_collaborative, is_numbered, number_label, start_date, end_date } = body;
+    const { title, description, visualization_type, is_public, is_collaborative, is_numbered, number_label, start_date, end_date, hashtags } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       number_label: number_label || null,
       start_date: start_date || null,
       end_date: end_date || null,
+      hashtags: hashtags || [],
     });
 
     return NextResponse.json(timeline, { status: 201 });
@@ -71,6 +72,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const isPublic = searchParams.get('is_public');
     const creatorId = searchParams.get('creator_id');
+    const hashtag = searchParams.get('hashtag');
+    const searchQuery = searchParams.get('q') || searchParams.get('search');
     const mine = searchParams.get('mine') === 'true'; // Special parameter to get current user's timelines
 
     let finalCreatorId = creatorId;
@@ -97,6 +100,8 @@ export async function GET(request: NextRequest) {
       offset,
       isPublic: isPublic ? isPublic === 'true' : undefined,
       creatorId: finalCreatorId || undefined,
+      hashtag: hashtag || undefined,
+      searchQuery: searchQuery || undefined,
     });
 
     // Return as array (client expects array directly, not wrapped in { data })

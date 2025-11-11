@@ -45,6 +45,7 @@ const TimelineEditor = () => {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
   const [sourceRestrictions, setSourceRestrictions] = useState<string[]>([]);
+  const [hashtags, setHashtags] = useState<string[]>([]);
   const [referencePhoto, setReferencePhoto] = useState<{
     file: File | null;
     url: string | null;
@@ -99,6 +100,7 @@ const TimelineEditor = () => {
         setEvents(state.events || []);
         setImageReferences(state.imageReferences || []);
         setSourceRestrictions(state.sourceRestrictions || []);
+        setHashtags(state.hashtags || []);
         setReferencePhoto(state.referencePhoto || {
           file: null,
           url: null,
@@ -132,6 +134,7 @@ const TimelineEditor = () => {
       events,
       imageReferences,
       sourceRestrictions,
+      hashtags,
       referencePhoto: {
         ...referencePhoto,
         file: null, // Don't store File object in localStorage
@@ -142,7 +145,7 @@ const TimelineEditor = () => {
     } catch (e) {
       console.error('Failed to save state to localStorage:', e);
     }
-  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, referencePhoto, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, referencePhoto, currentStep]);
 
   // Handle Stripe success return
   useEffect(() => {
@@ -287,6 +290,7 @@ const TimelineEditor = () => {
         number_label: isNumbered ? numberLabel : null,
         start_date: startDate?.toISOString() || null,
         end_date: endDate?.toISOString() || null,
+        hashtags: hashtags.length > 0 ? hashtags : undefined,
       });
 
       console.log('[Timeline Save] Timeline creation result:', timelineResult);
@@ -493,6 +497,8 @@ const TimelineEditor = () => {
                       setSourceRestrictions={setSourceRestrictions}
                       referencePhoto={referencePhoto}
                       setReferencePhoto={setReferencePhoto}
+                      hashtags={hashtags}
+                      setHashtags={setHashtags}
                     />
                   )}
               {currentStep === 2 && (

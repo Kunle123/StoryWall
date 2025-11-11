@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
+import { HashtagInput } from "./HashtagInput";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -47,6 +48,8 @@ interface TimelineInfoStepProps {
     personName: string;
     hasPermission: boolean;
   }) => void;
+  hashtags?: string[];
+  setHashtags?: (hashtags: string[]) => void;
 }
 
 export const TimelineInfoStep = ({
@@ -72,6 +75,8 @@ export const TimelineInfoStep = ({
   setSourceRestrictions,
   referencePhoto,
   setReferencePhoto,
+  hashtags = [],
+  setHashtags,
 }: TimelineInfoStepProps) => {
   const [maxEventsInput, setMaxEventsInput] = useState<string>(maxEvents.toString());
   const [sourceInput, setSourceInput] = useState<string>("");
@@ -275,7 +280,25 @@ export const TimelineInfoStep = ({
             className="min-h-[120px] resize-none"
             rows={5}
           />
-          <div className="mt-2 space-y-2">
+        </div>
+
+        <div>
+          <Label htmlFor="hashtags" className="text-base mb-2 block">
+            Hashtags
+          </Label>
+          <p className="text-sm text-muted-foreground mb-2">
+            Add hashtags to help others discover your timeline. Press Enter or comma to add.
+          </p>
+          {setHashtags && (
+            <HashtagInput
+              hashtags={hashtags}
+              onChange={setHashtags}
+              placeholder="Type to search or add hashtags..."
+            />
+          )}
+        </div>
+
+        <div className="mt-2 space-y-2">
             {maxEvents <= 20 ? (
               <p className="text-sm text-muted-foreground">
                 AI will generate up to 20 events based on your timeline description

@@ -25,6 +25,7 @@ interface TimelineDisplay {
   createdAt: string;
   previewImage?: string;
   isPublic: boolean;
+  hashtags?: string[];
 }
 
 const Discover = () => {
@@ -177,7 +178,8 @@ const Discover = () => {
           t.title.toLowerCase().includes(query) ||
           t.description?.toLowerCase().includes(query) ||
           t.creator.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query)
+          t.category.toLowerCase().includes(query) ||
+          (t.hashtags && t.hashtags.some(tag => tag.toLowerCase().includes(query)))
       );
     }
 

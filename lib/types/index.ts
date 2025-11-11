@@ -50,6 +50,7 @@ export interface Timeline {
   is_collaborative: boolean;
   is_numbered?: boolean;
   number_label?: string;
+  hashtags?: string[];
   view_count: number;
   created_at: string;
   updated_at: string;
@@ -76,6 +77,7 @@ export interface CreateTimelineInput {
   number_label?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  hashtags?: string[];
 }
 
 export interface CreateEventInput {
