@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Header } from "@/components/layout/Header";
 import { Loader2 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export default function TestImagePromptPage() {
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState(0);
   const [anchorStyle, setAnchorStyle] = useState<string | null>(null);
+  const [includesPeople, setIncludesPeople] = useState(false);
 
   const handleGenerateEvents = async () => {
     if (!timelineTitle || !timelineDescription) {
@@ -246,6 +248,20 @@ export default function TestImagePromptPage() {
                   className="mt-1"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includesPeople"
+                checked={includesPeople}
+                onCheckedChange={(checked) => setIncludesPeople(checked === true)}
+              />
+              <Label
+                htmlFor="includesPeople"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Timeline includes people (enables reference image fetching)
+              </Label>
             </div>
 
             <div className="flex gap-3">
