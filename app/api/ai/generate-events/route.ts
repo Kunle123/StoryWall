@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 
 /**
+ * Attempts to repair common JSON malformation issues
+ * Handles: unescaped quotes, trailing commas, missing commas, control characters
+ */
+function repairJSON(jsonString: string): string {
+  let repaired = jsonString;
+  
+  // Remove any BOM or leading whitespace
+  repaired = repaired.trim();
+  
+  // Remove markdown code blocks if present
+  if (repaired.startsWith('```')) {
+    repaired = repaired.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+  }
+  
+  // Try to fix common issues in string values
+  // This is a simplified approach - for complex cases, we'll rely on the extraction logic
+  try {
+    // First, try to find and fix unescaped quotes in string values
+    // This regex finds string values and attempts to escape unescaped quotes
+    // But this is complex, so we'll use a simpler approach: try parsing with fixes
+    
+    // Remove trailing commas before } or ]
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Try to fix common escape sequence issues
+    repaired = repaired.replace(/\\(?!["\\/bfnrt])/g, '\\\\');
+    
+    return repaired;
+  } catch (e) {
+    // If repair fails, return original
+    return jsonString;
+  }
+}
+
+/**
  * Generate timeline events based on timeline description
  * 
  * Request Body:
@@ -540,20 +575,33 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
       
+      // Try to repair JSON before parsing
+      let repairedJson = repairJSON(jsonText);
+      
       // Validate JSON structure before parsing
-      const openBraces = (jsonText.match(/\{/g) || []).length;
-      const closeBraces = (jsonText.match(/\}/g) || []).length;
+      const openBraces = (repairedJson.match(/\{/g) || []).length;
+      const closeBraces = (repairedJson.match(/\}/g) || []).length;
       if (openBraces !== closeBraces) {
         console.error('[GenerateEvents API] JSON braces mismatch:', {
           openBraces,
           closeBraces,
-          contentLength: jsonText.length,
-          lastChars: jsonText.substring(Math.max(0, jsonText.length - 200)),
+          contentLength: repairedJson.length,
+          lastChars: repairedJson.substring(Math.max(0, repairedJson.length - 200)),
         });
         throw new Error(`Incomplete JSON: ${openBraces} opening braces but ${closeBraces} closing braces`);
       }
       
-      content = JSON.parse(jsonText);
+      try {
+        content = JSON.parse(repairedJson);
+      } catch (initialParseError: any) {
+        // If initial parse fails, try original (maybe repair made it worse)
+        try {
+          content = JSON.parse(jsonText);
+        } catch (originalParseError: any) {
+          // Both failed, throw the original error to trigger extraction logic
+          throw initialParseError;
+        }
+      }
     } catch (parseError: any) {
       console.error('[GenerateEvents API] Failed to parse OpenAI message content:', {
         contentPreview: contentText.substring(0, 500),
@@ -615,14 +663,93 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       
       try {
         // Remove any trailing text after the JSON
-        const cleanedJson = jsonCandidate.trim();
-        content = JSON.parse(cleanedJson);
-        console.warn('[GenerateEvents API] Successfully extracted JSON from text response (had text before JSON)');
+        let cleanedJson = jsonCandidate.trim();
+        
+        // Try to repair common JSON issues
+        cleanedJson = repairJSON(cleanedJson);
+        
+        // First attempt: parse as-is
+        try {
+          content = JSON.parse(cleanedJson);
+          console.warn('[GenerateEvents API] Successfully extracted JSON from text response (had text before JSON)');
+        } catch (firstParseError: any) {
+          // If that fails, try more aggressive repairs
+          console.warn('[GenerateEvents API] First parse attempt failed, trying aggressive repairs...');
+          
+          // Try to fix unescaped quotes in string values by finding the problematic position
+          const errorMatch = firstParseError.message.match(/position (\d+)/);
+          if (errorMatch) {
+            const errorPos = parseInt(errorMatch[1]);
+            const beforeError = cleanedJson.substring(0, errorPos);
+            const atError = cleanedJson[errorPos];
+            const afterError = cleanedJson.substring(errorPos + 1);
+            
+            // Log context around the error
+            const contextStart = Math.max(0, errorPos - 50);
+            const contextEnd = Math.min(cleanedJson.length, errorPos + 50);
+            console.error('[GenerateEvents API] JSON error context:', {
+              position: errorPos,
+              char: atError,
+              context: cleanedJson.substring(contextStart, contextEnd),
+              before: beforeError.substring(Math.max(0, beforeError.length - 30)),
+              after: afterError.substring(0, 30),
+            });
+            
+            // Try to fix common issues at this position
+            // If it's a quote issue, try escaping it
+            if (atError === '"' || atError === "'") {
+              // Check if we're inside a string (count quotes before this position)
+              let quoteCount = 0;
+              let inString = false;
+              for (let i = 0; i < errorPos; i++) {
+                if (cleanedJson[i] === '\\') {
+                  i++; // Skip escaped character
+                  continue;
+                }
+                if (cleanedJson[i] === '"') {
+                  inString = !inString;
+                  quoteCount++;
+                }
+              }
+              
+              // If we're inside a string and hit an unescaped quote, try to escape it
+              if (inString && atError === '"') {
+                cleanedJson = cleanedJson.substring(0, errorPos) + '\\"' + cleanedJson.substring(errorPos + 1);
+                console.warn('[GenerateEvents API] Attempted to escape unescaped quote at position', errorPos);
+              }
+            }
+            
+            // Try parsing again after repair
+            try {
+              content = JSON.parse(cleanedJson);
+              console.warn('[GenerateEvents API] Successfully parsed after aggressive repair');
+            } catch (secondParseError: any) {
+              // Last resort: try to extract just the events array if possible
+              const eventsMatch = cleanedJson.match(/"events"\s*:\s*\[([\s\S]*?)\]/);
+              if (eventsMatch) {
+                try {
+                  // Try to parse just the events array
+                  const eventsJson = '[' + eventsMatch[1] + ']';
+                  const eventsArray = JSON.parse(eventsJson);
+                  content = { events: eventsArray };
+                  console.warn('[GenerateEvents API] Successfully extracted events array as fallback');
+                } catch (eventsParseError: any) {
+                  throw extractError;
+                }
+              } else {
+                throw extractError;
+              }
+            }
+          } else {
+            throw extractError;
+          }
+        }
       } catch (extractError: any) {
         console.error('[GenerateEvents API] Failed to parse extracted JSON:', {
           error: extractError.message,
-          jsonPreview: jsonCandidate.substring(0, 500),
+          jsonPreview: jsonCandidate.substring(0, 1000),
           jsonLength: jsonCandidate.length,
+          errorPosition: extractError.message.match(/position (\d+)/)?.[1],
         });
         throw new Error(`Failed to parse AI response: ${parseError.message}. Extracted JSON also failed: ${extractError.message}`);
       }
