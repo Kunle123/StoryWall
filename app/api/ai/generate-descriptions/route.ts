@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     const sourceRestrictionsText = sourceRestrictions && Array.isArray(sourceRestrictions) && sourceRestrictions.length > 0
       ? `\n\nSOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:\n${sourceRestrictions.map((src: string, idx: number) => `  ${idx + 1}. ${src}`).join('\n')}\n\nIf information is not available in these sources, indicate that in the event description.`
       : '';
-    
+
     // Build the lean user prompt
     const userPrompt = `Timeline Context: ${timelineDescription}${sourceRestrictionsText}
 
@@ -128,7 +128,24 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
         messages: [
           {
             role: 'system',
-            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context. Additionally, create a balanced and varied sequence of rich, detailed image descriptions that work together as a visual narrative. Vary locations (indoor/outdoor, public/private), compositions, moods, activities, time of day, and settings across the sequence. Each image description should be a single flowing sentence or two that paints a complete, evocative visual scene with specific locations, visual details, atmosphere, activities, and environmental elements. Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each containing exactly ${events.length} items.`,
+            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context. 
+
+For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
+
+CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
+- "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing neural tube formation"
+- "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"
+- "Heart Begins Beating" (Week 5) → "A detailed image of a fetus at 5 weeks gestation showing the developing heart"
+- "Framing Complete" (Construction) → "A detailed image of a building showing the completed structural framing"
+
+For non-progression events:
+- "A concert" → "A concert with musicians performing on stage"
+- "A bomb explosion" → "A bomb explosion with debris and smoke"
+- "A man giving a speech" → "A man standing and giving a speech to an audience"
+
+The image prompt should be a clear, direct statement of what to depict at this specific moment/stage, centered on the subject from the title and description. Be specific and concrete, showing the actual subject at this point in the progression, not abstract artistic interpretations or meta-representations (charts, screens, etc.).
+
+Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each containing exactly ${events.length} items.`,
           },
           {
             role: 'user',

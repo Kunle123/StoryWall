@@ -985,14 +985,82 @@ function buildImagePrompt(
     prompt = basePrompt;
   }
   
-  // Add explicit visual instructions to ensure the image relates to the event
-  // Make this more prominent and specific
-  prompt += `. CRITICAL: Accurately depict the specific event: ${event.title}`;
+  // Always ensure the prompt centers the subject from title and description
+  // Abstract prompts often describe scenes, charts, screens, or artistic interpretations instead of the actual subject
+  // Examples of abstract: "Illustration of a chart", "screen showing", "displaying", "presenting"
+  // We want: "A detailed image of a fetus at 4 weeks showing neural tube formation"
+  const promptIsAbstract = event.imagePrompt && (
+    event.imagePrompt.toLowerCase().includes('illustration of a') ||
+    event.imagePrompt.toLowerCase().includes('illustration of an') ||
+    event.imagePrompt.toLowerCase().includes('chart') ||
+    event.imagePrompt.toLowerCase().includes('screen showing') ||
+    event.imagePrompt.toLowerCase().includes('displaying') ||
+    event.imagePrompt.toLowerCase().includes('presenting') ||
+    event.imagePrompt.toLowerCase().includes('video frame') ||
+    event.imagePrompt.toLowerCase().includes('monitor showing') ||
+    event.imagePrompt.toLowerCase().includes('computer screen') ||
+    (event.imagePrompt.toLowerCase().startsWith('minimalist') && 
+     !event.imagePrompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0]))
+  );
+
+  // If prompt is abstract or doesn't exist, rebuild it to center the actual subject
+  // The goal is to show the SUBJECT at this specific stage/moment, not charts/screens/abstract representations
+  if ((promptIsAbstract || !event.imagePrompt) && !includesPeople) {
+    // Extract the core subject from the title (remove meta words like "Updated", "Released", "Published")
+    const titleWords = event.title.split(' ');
+    const coreSubject = titleWords.filter(word => 
+      !['updated', 'released', 'published', 'launched', 'created', 'announced', 'draft', 'of', 'the', 'first', 'second', 'third'].includes(word.toLowerCase())
+    ).join(' ').trim();
+    
+    // Build direct subject description - show the subject at this specific stage
+    let directSubject = coreSubject;
+    
+    if (event.description) {
+      // Extract key content from description, focusing on what the subject looks like at this stage
+      // Remove meta descriptions about "released", "updated", etc.
+      // Focus on the actual state/condition/appearance of the subject
+      const descWords = event.description
+        .split(' ')
+        .filter(word => !['released', 'updated', 'published', 'launched', 'offering', 'allowing', 'debuts', 'is', 'are', 'the', 'a', 'an'].includes(word.toLowerCase()))
+        .slice(0, 30)
+        .join(' ');
+      
+      // If description contains stage/age/time info (e.g., "4 weeks", "week 4", "at 25 weeks"), include it
+      const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|years?|stages?|phases?))/i);
+      if (stageMatch) {
+        directSubject = `${coreSubject} at ${stageMatch[1]}: ${descWords}`;
+      } else {
+        directSubject = `${coreSubject}: ${descWords}`;
+      }
+    }
+    
+    // Replace with a direct, subject-centered prompt that shows the subject at this stage
+    prompt = `${imageStyle} style: A detailed image of ${directSubject}`;
+  } else if (event.imagePrompt && !includesPeople) {
+    // Use existing prompt but ensure it centers on the subject, not abstract representations
+    // Check if it's still too abstract (mentions charts, screens, etc.)
+    if (promptIsAbstract || !prompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0])) {
+      // Rebuild to center on subject
+      const titleWords = event.title.split(' ');
+      const coreSubject = titleWords.filter(word => 
+        !['updated', 'released', 'published', 'launched', 'created', 'announced'].includes(word.toLowerCase())
+      ).join(' ').trim();
+      
+      const stageMatch = event.description?.match(/(\d+\s*(?:weeks?|months?|days?|years?|stages?|phases?))/i);
+      const subjectDesc = stageMatch 
+        ? `${coreSubject} at ${stageMatch[1]}`
+        : coreSubject;
+      
+      prompt = `${imageStyle} style: A detailed image of ${subjectDesc}${event.description ? `: ${event.description.split(' ').slice(0, 25).join(' ')}` : ''}`;
+    }
+  } else {
+    // For people content, use existing logic
+    prompt += `. CRITICAL: Accurately depict the specific event: ${event.title}`;
+  }
   
-  if (event.description) {
-    // Add the full description context to ensure accuracy
-    // This is especially important for medical/scientific/technical content
-    prompt += `. Show the exact content described: ${event.description}`;
+  if (event.description && !includesPeople && !prompt.includes(event.description.substring(0, 30))) {
+    // Add description context, but keep it focused on showing the subject
+    prompt += `. Show: ${event.description}`;
   }
   
   // Skip color prompting - let the style dictate natural colors

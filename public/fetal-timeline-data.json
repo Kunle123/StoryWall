@@ -1,0 +1,150 @@
+{
+  "timelineId": "19c60098-79ba-4559-b87b-68f5e960f2c6",
+  "timelineTitle": "Fetal Development: From Conception to Birth",
+  "events": [
+    {
+      "title": "Fertilization",
+      "description": "Fertilization occurs when a single sperm penetrates the ovum, restoring the diploid chromosome number and establishing the unique genetic identity of the new organism. Within hours, the zygote initiates cleavage divisions that will ultimately form the embryo and its supporting membranes.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864704/storywall/ai-generated/ij8zwg2homs2ewzcackb.jpg",
+      "prompt": "Illustration style: A detailed image of Fertilization. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a single sperm penetrating an ovum during fertilization",
+      "promptFromStep4": "Illustration style: A detailed image of Fertilization. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Implantation",
+      "description": "Six to seven days after conception, the blastocyst breaches the zona pellucida and adheres to the uterine lining, initiating implantation. Trophoblastic cells invade the endometrium, anchoring the embryo and creating the foundation for placental circulation.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864700/storywall/ai-generated/hpw4r06jleeivncjxfzj.jpg",
+      "prompt": "A medical illustration showing a blastocyst embedding into the uterine lining during implantation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration showing a blastocyst embedding into the uterine lining during implantation",
+      "promptFromStep4": "A medical illustration showing a blastocyst embedding into the uterine lining during implantation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Neural Tube Formation",
+      "description": "By day 21 post-fertilization, the neural plate folds to form the neural tube, the progenitor of the central nervous system. Closure begins in the cervical region and proceeds bidirectionally; failure at either neuropore can yield severe congenital anomalies.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864703/storywall/ai-generated/zup8xzuabpiph7nj9ngy.jpg",
+      "prompt": "Illustration style: A detailed image of Neural Tube Formation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a 21-day embryo highlighting the folding neural tube",
+      "promptFromStep4": "Illustration style: A detailed image of Neural Tube Formation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Heartbeat Initiation",
+      "description": "The primitive heart tube starts rhythmic contractions at 22–23 days, propelling nutritive fluid through the embryonic circulation before the placenta assumes full support. This early heartbeat is detectable by high-resolution transvaginal ultrasound and marks the functional onset of the cardiovascular system.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864705/storywall/ai-generated/lnxlzlynu4unjjr36xlh.jpg",
+      "prompt": "Illustration style: A detailed image of Heartbeat Initiation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a 22-day embryonic heart tube beginning to beat",
+      "promptFromStep4": "Illustration style: A detailed image of Heartbeat Initiation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Limb Bud Development",
+      "description": "During the fifth week, paddle-shaped limb buds emerge from the lateral body wall, demarcating future appendicular segments. Apical ectodermal ridges orchestrate proximo-distal outgrowth, while zone of polarizing activity signals pattern the developing digits.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864703/storywall/ai-generated/k5sptigkzfalmqcjhtkd.jpg",
+      "prompt": "A medical illustration of limb buds emerging from the body wall of a 5-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of limb buds emerging from the body wall of a 5-week embryo",
+      "promptFromStep4": "A medical illustration of limb buds emerging from the body wall of a 5-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Facial Features Formation",
+      "description": "Branchial arches reorganize into distinct facial prominences—frontonasal, maxillary, and mandibular—yielding recognizable human features by the end of the embryonic period. Fusion of these processes must occur precisely; misalignment results in cleft lip or palate.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864701/storywall/ai-generated/dx96q2nguunrtlmnxj9f.jpg",
+      "prompt": "A medical illustration of facial prominences forming the human face on a 6-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of facial prominences forming the human face on a 6-week embryo",
+      "promptFromStep4": "A medical illustration of facial prominences forming the human face on a 6-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Organ Development",
+      "description": "Between weeks 5 and 8, the three germ layers differentiate into major organ rudiments: the heart septates, hepatic and pancreatic buds arise, metanephric kidneys ascend, and the diaphragm separates thoracic and abdominal cavities. Organogenesis concludes as the embryonic phase transitions to the fetal phase.",
+      "year": 2025,
+      "imageUrl": null,
+      "prompt": "A medical illustration showing major organ rudiments developing inside an 8-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration showing major organ rudiments developing inside an 8-week embryo",
+      "promptFromStep4": "A medical illustration showing major organ rudiments developing inside an 8-week embryo. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Fetal Stage Commencement",
+      "description": "At week 9, the embryo graduates to fetal status; the head now constitutes half of crown-rump length, and all organ systems are present in primitive form. Subsequent development emphasizes histological maturation and proportional growth rather than de novo structure formation.",
+      "year": 2025,
+      "imageUrl": null,
+      "prompt": "Illustration style: A detailed image of Fetal Stage Commencement. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a 9-week fetus with all basic organ systems present",
+      "promptFromStep4": "Illustration style: A detailed image of Fetal Stage Commencement. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Sensory Development",
+      "description": "Otic and optic vesicles mature into functioning receptors; by week 12, the fetus reflexively recoils from tactile stimuli, and taste buds respond to chemical cues in swallowed amniotic fluid. Sensory pathways lay the groundwork for postnatal bonding and feeding behaviors.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864703/storywall/ai-generated/rctuzk8romikbe82pitp.jpg",
+      "prompt": "Illustration style: A detailed image of Sensory Development. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a 12-week fetus with developing sensory organs",
+      "promptFromStep4": "Illustration style: A detailed image of Sensory Development. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Movement and Reflexes",
+      "description": "Coordinated limb movements become discernible on ultrasound at 10–12 weeks, reflecting establishment of neuromuscular synapses and myelination of peripheral nerves. Reflex arcs—including the startle, grasp, and suck—are demonstrable and serve as clinical indices of neurologic integrity.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864703/storywall/ai-generated/v6wfv1jvyhmu5uxtbs1f.jpg",
+      "prompt": "Illustration style: A detailed image of Movement and Reflexes. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a fetus exhibiting limb movements and reflexes",
+      "promptFromStep4": "Illustration style: A detailed image of Movement and Reflexes. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Viability Milestone",
+      "description": "The 24th week denotes the threshold of extrauterine survival; pulmonary surfactant production by type II pneumocytes reaches minimal adequate levels, and the subcortical respiratory rhythm generator achieves functional capacity. Below this gestational age, neonatal intensive care mortality and morbidity rise steeply.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864704/storywall/ai-generated/dfstjoibhgfd4rwp0p8g.jpg",
+      "prompt": "Illustration style: A detailed image of Viability Milestone. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a 24-week fetus showing pulmonary surfactant production",
+      "promptFromStep4": "Illustration style: A detailed image of Viability Milestone. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Brain Development",
+      "description": "Cortical gyri and sulci appear between 24 and 34 weeks, accompanied by rapid glial proliferation and synaptogenesis. Myelination accelerates in a caudo-cephalad sequence, enabling progressively complex behavioral states observable on fetal magnetoencephalography.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864703/storywall/ai-generated/lhgpsvrdnloi1bdgksae.jpg",
+      "prompt": "Illustration style: A detailed image of Brain Development. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a fetal brain displaying cortical gyri and sulci",
+      "promptFromStep4": "Illustration style: A detailed image of Brain Development. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Lung Maturation",
+      "description": "Surfactant phospholipid composition shifts from immature phosphatidylglycerol-poor to mature lecithin-rich profiles after week 32. Antenatal corticosteroid administration can expedite this biochemical maturation, reducing the incidence of respiratory distress syndrome in preterm neonates.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864704/storywall/ai-generated/vzok9pwxdnldwiveyfme.jpg",
+      "prompt": "A medical illustration of maturing fetal lungs with surfactant-rich alveoli. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of maturing fetal lungs with surfactant-rich alveoli",
+      "promptFromStep4": "A medical illustration of maturing fetal lungs with surfactant-rich alveoli. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Fat Accumulation",
+      "description": "Adipocyte accretion under fetal skin and within visceral depots increases from 5 % to 15 % of total body weight between weeks 32 and 38. This white fat serves as critical thermal insulation and caloric reserve for the transition from placental to oral nutrition.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864704/storywall/ai-generated/wgbhaospn2mhyqhkmeys.jpg",
+      "prompt": "Illustration style: A detailed image of Fat Accumulation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a late-term fetus with subcutaneous fat deposits",
+      "promptFromStep4": "Illustration style: A detailed image of Fat Accumulation. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Final Growth Phase",
+      "description": "From week 36 onward, somatic growth prioritizes glycogen storage in liver and skeletal muscle, brown fat deposition for thermogenesis, and descent of the fetal presenting part into the maternal pelvis. Cesarean delivery prior to 39 weeks without medical indication is discouraged to allow full physiologic maturation.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864704/storywall/ai-generated/fsgw6azjrbeca64y7hwe.jpg",
+      "prompt": "Illustration style: A detailed image of Final Growth Phase. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a full-term fetus in the final growth phase",
+      "promptFromStep4": "Illustration style: A detailed image of Final Growth Phase. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    },
+    {
+      "title": "Birth",
+      "description": "Partition is completed through coordinated maternal-fetal neuroendocrine cascades: placental corticotropin-releasing hormone surges, fetal adrenal activation, and myometrial oxytocin sensitivity culminate in labor. Successful transit through the birth canal establishes independent respiration and circulatory transition from fetal to neonatal patterns.",
+      "year": 2025,
+      "imageUrl": "https://res.cloudinary.com/dnybzkkfn/image/upload/v1762864702/storywall/ai-generated/juelvyjbkub7oxbmpyro.jpg",
+      "prompt": "Illustration style: A detailed image of Birth. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters",
+      "promptFromStep3": "A medical illustration of a fetus exiting the birth canal during delivery",
+      "promptFromStep4": "Illustration style: A detailed image of Birth. hand-drawn illustration style, detailed linework, rich textures, artistic composition, storybook aesthetic. 21th century period detail, historically accurate. Balanced composition, centered focal point, clear visual storytelling. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters"
+    }
+  ]
+}
