@@ -921,10 +921,36 @@ function buildImagePrompt(
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
-  // Start with AI-generated prompt if available (from description step)
+  // STEP 4: If Anchor is provided (for progression timelines), use it as the base
+  // The Anchor defines the consistent visual style for the entire series
   let prompt = '';
   
-  if (event.imagePrompt && event.imagePrompt.trim()) {
+  if (anchorStyle && anchorStyle.trim()) {
+    // For progression timelines with Anchor: combine Anchor + event-specific details
+    console.log(`[ImageGen] Using Anchor style for progression timeline`);
+    
+    // Check if the imagePrompt already includes the Anchor (from generate-descriptions)
+    // If so, use it as-is. Otherwise, prepend the Anchor.
+    if (event.imagePrompt && event.imagePrompt.trim().toLowerCase().includes(anchorStyle.toLowerCase().substring(0, 50))) {
+      // Anchor already included in the prompt from generate-descriptions
+      prompt = event.imagePrompt;
+    } else {
+      // Combine Anchor with event-specific description
+      let eventDescription = event.title;
+      if (event.description) {
+        // Extract key details about what's happening at this stage
+        const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|stages?|phases?))/i);
+        if (stageMatch) {
+          eventDescription = `${event.title} at ${stageMatch[1]}`;
+        } else {
+          eventDescription = `${event.title}: ${event.description.split(' ').slice(0, 20).join(' ')}`;
+        }
+      }
+      
+      // Build prompt: Anchor + specific event at this stage
+      prompt = `${anchorStyle}. The scene shows ${eventDescription}`;
+    }
+  } else if (event.imagePrompt && event.imagePrompt.trim()) {
     // Use AI-generated prompt as base, but clean it up
     // IMPORTANT: Preserve the detailed description from Step 3 - it contains specific visual details!
     let basePrompt = event.imagePrompt;
