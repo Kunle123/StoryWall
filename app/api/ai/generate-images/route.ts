@@ -1220,10 +1220,17 @@ function buildImagePrompt(
           
           // Replace standalone last name with full name (case-insensitive, word boundary)
           // This handles cases like "Wonder on stage" -> "Stevie Wonder on stage"
+          // IMPORTANT: Use a more specific regex that doesn't match if the full name is already nearby
+          // e.g., don't replace "Wonder" in "Stevie Wonder" but do replace standalone "Wonder"
+          const fullNameRegex = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, 'gi');
           const lastNameRegex = new RegExp(`\\b${lastName}\\b`, 'gi');
-          if (prompt.match(lastNameRegex)) {
-            prompt = prompt.replace(lastNameRegex, personName);
-            console.log(`[ImageGen] Replaced "${lastName}" with "${personName}" in prompt`);
+          
+          // Only replace if full name isn't already present nearby
+          if (!prompt.match(fullNameRegex)) {
+            if (prompt.match(lastNameRegex)) {
+              prompt = prompt.replace(lastNameRegex, personName);
+              console.log(`[ImageGen] Replaced "${lastName}" with "${personName}" in prompt`);
+            }
           }
           
           // Also check for first name only and replace with full name
@@ -1253,7 +1260,15 @@ function buildImagePrompt(
       
       // Add specific person matching instructions - make them VERY prominent
       // Explicitly preserve hair color, skin tone, and all physical attributes
-      prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames.join(' and ')} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
+      const isMultiplePeople = personNames.length > 1;
+      if (isMultiplePeople) {
+        // For multiple people, be VERY explicit about showing all of them
+        prompt += `. CRITICAL: Show ${personNames.length} DISTINCT people: ${personNames.join(', ')}. Each person must be clearly visible and recognizable. Do NOT merge or combine their features. Each person must have their own distinct appearance matching their reference image. `;
+        prompt += `CRITICAL PERSON MATCHING FOR EACH PERSON: Match the exact appearance of ${personNames.join(' and ')} from their reference images. For each person, PRESERVE EXACT HAIR COLOR from their reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics for EACH person. DO NOT alter hair color, skin tone, or any physical attributes. Each person must match their facial structure, distinctive features, and recognizable characteristics exactly. Show all ${personNames.length} people clearly and distinctly in the scene`;
+      } else {
+        // Single person - simpler instructions
+        prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames[0]} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
+      }
     } else {
       // Generic person matching instruction if names can't be extracted
       prompt += `. CRITICAL PERSON MATCHING: Match the exact person's appearance from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Maintain accurate facial structure, distinctive characteristics, and physical appearance exactly as shown in reference`;
