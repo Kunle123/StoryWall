@@ -987,14 +987,11 @@ function buildImagePrompt(
     }
     
     // ALWAYS build prompt with Anchor + event-specific description
-    // Keep Anchor concise - it should enhance, not dominate the prompt
-    // If Anchor is very long, truncate it to keep focus on the event content
-    const maxAnchorLength = 150; // Limit Anchor to ~150 chars to avoid drowning content
-    const truncatedAnchor = normalizedAnchor.length > maxAnchorLength 
-      ? normalizedAnchor.substring(0, maxAnchorLength).replace(/\s+\S*$/, '') + '...'
-      : normalizedAnchor;
+    // The Anchor contains specific visual instructions (color washes, vignettes, lighting) that MUST be preserved
+    // Don't truncate the Anchor - it needs to include all visual consistency instructions
+    // The Anchor should be prepended in full to ensure all visual effects are applied
     
-    prompt = `${truncatedAnchor}. ${eventDescription}`;
+    prompt = `${normalizedAnchor}. ${eventDescription}`;
     console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${truncatedAnchor.length} chars)`);
     
     // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
