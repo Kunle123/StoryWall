@@ -323,6 +323,8 @@ Keep prompts concise - the event content should be the focus. The Anchor provide
 Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back."`
         : `For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
 
+${themeColor ? `IMPORTANT: Incorporate the theme color (${themeColor}) as a subtle visual motif throughout the image prompts. Use it as an accent color, lighting tone, or atmospheric element - not as the dominant color, but as a subtle thematic element that ties the series together.` : ''}
+
 CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
 - "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing neural tube formation"
 - "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"

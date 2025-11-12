@@ -1176,8 +1176,11 @@ function buildImagePrompt(
     prompt += `. Show: ${event.description}`;
   }
   
-  // Skip color prompting - let the style dictate natural colors
-  // Color guidance was making images too monochromatic
+  // Add theme color as a subtle accent (if provided and not default blue)
+  // Use it as a subtle motif, not the dominant color
+  if (themeColor && themeColor !== '#3B82F6' && colorName !== 'thematic color') {
+    prompt += `. Use ${colorName} as a subtle accent color or lighting tone - not dominant, but as a thematic element`;
+  }
   
   // Add style-specific visual language
   prompt += `. ${styleVisualLanguage}`;
