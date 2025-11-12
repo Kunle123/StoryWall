@@ -992,7 +992,7 @@ function buildImagePrompt(
     // The Anchor should be prepended in full to ensure all visual effects are applied
     
     prompt = `${normalizedAnchor}. ${eventDescription}`;
-    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${truncatedAnchor.length} chars)`);
+    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${normalizedAnchor.length} chars)`);
     
     // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
     // The prompt is now set above, so we can continue to the rest of the function
