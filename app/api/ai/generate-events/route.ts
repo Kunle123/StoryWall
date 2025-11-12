@@ -294,12 +294,12 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       try {
         console.log('[GenerateEvents API] Using Responses API with web_search tool');
         const resp = await fetch('https://api.openai.com/v1/responses', {
-          method: 'POST',
-          headers: {
+      method: 'POST',
+      headers: {
             'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
             model: 'gpt-4o-mini',
             input: [
               { role: 'system', content: systemPrompt },
@@ -410,13 +410,13 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           // See: https://platform.moonshot.ai/docs/guide/use-json-mode-feature-of-kimi-api
           data = await createChatCompletion(client, {
             model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
-            messages: [
+        messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt },
             ],
             // Use JSON mode for both OpenAI and Kimi
-            response_format: { type: 'json_object' },
-            temperature: 0.7,
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
             max_tokens: maxTokens,
             maxEvents: maxEvents, // Pass maxEvents to help with model selection
             ...(tools && { tools }), // Include web search tool for factual events if supported
@@ -802,8 +802,8 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         
         return {
           year: year || new Date().getFullYear(),
-          month: event.month ? parseInt(event.month) : undefined,
-          day: event.day ? parseInt(event.day) : undefined,
+      month: event.month ? parseInt(event.month) : undefined,
+      day: event.day ? parseInt(event.day) : undefined,
           title: title || `Event ${index + 1}`,
           description: event.description || '',
         };

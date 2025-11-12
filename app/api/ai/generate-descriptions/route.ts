@@ -440,11 +440,11 @@ Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each
       imagePrompts = content.imagePrompts.map((prompt: any) => String(prompt || ''));
     }
     
-    // Ensure we have the same number of image prompts as events
-    while (imagePrompts.length < events.length) {
-      imagePrompts.push('');
-    }
-    imagePrompts = imagePrompts.slice(0, events.length);
+      // Ensure we have the same number of image prompts as events
+        while (imagePrompts.length < events.length) {
+          imagePrompts.push('');
+        }
+        imagePrompts = imagePrompts.slice(0, events.length);
     
     // Log generated image prompts for debugging
     console.log(`[GenerateDescriptions] Generated ${imagePrompts.length} image prompts:`);

@@ -1262,9 +1262,9 @@ function buildImagePrompt(
       // Explicitly preserve hair color, skin tone, and all physical attributes
       const isMultiplePeople = personNames.length > 1;
       if (isMultiplePeople) {
-        // For multiple people, be VERY explicit about showing all of them
-        prompt += `. CRITICAL: Show ${personNames.length} DISTINCT people: ${personNames.join(', ')}. Each person must be clearly visible and recognizable. Do NOT merge or combine their features. Each person must have their own distinct appearance matching their reference image. `;
-        prompt += `CRITICAL PERSON MATCHING FOR EACH PERSON: Match the exact appearance of ${personNames.join(' and ')} from their reference images. For each person, PRESERVE EXACT HAIR COLOR from their reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics for EACH person. DO NOT alter hair color, skin tone, or any physical attributes. Each person must match their facial structure, distinctive features, and recognizable characteristics exactly. Show all ${personNames.length} people clearly and distinctly in the scene`;
+        // For multiple people, be VERY explicit about showing all of them in a SINGLE unified scene (not a grid)
+        prompt += `. CRITICAL: Show ${personNames.length} DISTINCT people: ${personNames.join(', ')} together in a SINGLE unified scene. Each person must be clearly visible and recognizable in the same image. Do NOT create grids, panels, or separate images. Do NOT merge or combine their features. Each person must have their own distinct appearance matching their reference image. `;
+        prompt += `CRITICAL PERSON MATCHING FOR EACH PERSON: Match the exact appearance of ${personNames.join(' and ')} from their reference images. For each person, PRESERVE EXACT HAIR COLOR from their reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics for EACH person. DO NOT alter hair color, skin tone, or any physical attributes. Each person must match their facial structure, distinctive features, and recognizable characteristics exactly. Show all ${personNames.length} people together in one unified scene, not in separate panels or grids`;
       } else {
         // Single person - simpler instructions
         prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames[0]} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
@@ -1685,8 +1685,9 @@ export async function POST(request: NextRequest) {
           }
           
           // Add negative prompt for artistic styles
+          // Prevent grids, panels, and multiple images
           if (!needsText) {
-            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines";
+            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
           }
         } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
           // Google Imagen 4 Fast - supports image input for image-to-image
@@ -1771,11 +1772,12 @@ export async function POST(request: NextRequest) {
           
           // Add negative prompt for SDXL - strongly discourage text in all cases
           // Most images should be pure visual without any text
+          // Also prevent grids, panels, multiple images, comic strips
           if (!needsText) {
-            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions";
+            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
           } else {
             // Even when text is needed, minimize it and avoid errors
-            input.negative_prompt = "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling";
+            input.negative_prompt = "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
           }
           
           // Add reference image if available (for image-to-image transformation)
@@ -1953,7 +1955,7 @@ export async function POST(request: NextRequest) {
               input.guidance_scale = 7.5;
               input.num_inference_steps = 25;
               if (referenceImageUrl) input.image = referenceImageUrl;
-              if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines";
+              if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
             } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
               input.enhancePrompt = false;
               if (referenceImageUrl) input.image = referenceImageUrl;
@@ -1976,7 +1978,7 @@ export async function POST(request: NextRequest) {
               input.guidance_scale = 7.5;
               input.num_inference_steps = 25;
               if (!needsText) {
-                input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions";
+                input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
               }
               if (referenceImageUrl) {
                 input.image = referenceImageUrl;
