@@ -163,44 +163,37 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     let progressionSubject: string | null = null;
     let factualDetails: Record<string, string[]> = {}; // Factual details from Knowledge Injection step
     
-    // Only generate Anchor style for progression timelines (not for people-centric timelines)
-    // For people-centric timelines, the reference images provide visual consistency
-    // For progression timelines, the Anchor ensures consistent visual style across stages
-    const shouldGenerateAnchor = appearsToBeProgression && !isExcluded;
+    // ALWAYS generate Anchor style for ALL timelines to ensure visual consistency
+    // The Anchor provides a common visual theme that links all frames together
+    console.log('[GenerateDescriptions] Generating Anchor style for visual consistency across all images...');
     
-    if (shouldGenerateAnchor) {
-      console.log('[GenerateDescriptions] Detected progression timeline - generating Anchor style for visual consistency...');
+    try {
+      const anchorResponse = await createChatCompletion(client, {
+        model: modelToUse,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a Director of Photography. Based on the subject, create a consistent visual style for a documentary series. Define the style, lighting, color, and camera rules. The output must be a single, reusable text block that will be applied to all images in the series.`,
+          },
+          {
+            role: 'user',
+            content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n${themeColor ? `Theme color: ${themeColor} (use as a subtle accent).` : ''}\n\nCreate a CONCISE visual style (Anchor) for this documentary series. Keep it brief (2-3 sentences max, ~100-150 characters). Focus on:\n- Style adaptation: "${imageStyle || 'Illustration'}" style adapted to this subject\n- Key visual consistency: lighting direction, color tone, composition approach\n- Background treatment\n${themeColor ? `- Subtle use of ${themeColor} as an accent or atmospheric element` : ''}\n\nOutput ONLY a brief, reusable style description (2-3 sentences) that will be prepended to event-specific descriptions. Be concise - the event content should be the focus, not the style guide.`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150, // Reduced to encourage concise Anchor generation
+      });
       
-      try {
-        const anchorResponse = await createChatCompletion(client, {
-          model: modelToUse,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a Director of Photography. Based on the subject, create a consistent visual style for a documentary series. Define the style, lighting, color, and camera rules. The output must be a single, reusable text block that will be applied to all images in the series.`,
-            },
-            {
-              role: 'user',
-              content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n\nCreate a CONCISE visual style (Anchor) for this documentary series. Keep it brief (2-3 sentences max, ~100-150 characters). Focus on:\n- Style adaptation: "${imageStyle || 'Illustration'}" style adapted to this subject\n- Key visual consistency: lighting direction, color tone, composition approach\n- Background treatment\n\nOutput ONLY a brief, reusable style description (2-3 sentences) that will be prepended to event-specific descriptions. Be concise - the event content should be the focus, not the style guide.`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 150, // Reduced to encourage concise Anchor generation
-        });
-        
-        if (anchorResponse.choices?.[0]?.message?.content) {
-          anchorStyle = anchorResponse.choices[0].message.content.trim();
-          // Extract progression subject from timeline description
-          const subjectMatch = timelineDescription.match(/(?:a|an|the)\s+([^,\.]+?)(?:\s+(?:inside|within|during|from|to|at|in)|$)/i);
-          progressionSubject = subjectMatch ? subjectMatch[1].trim() : timelineDescription.split(' ').slice(0, 5).join(' ');
-          console.log('[GenerateDescriptions] Generated Anchor:', anchorStyle.substring(0, 100) + '...');
-          console.log('[GenerateDescriptions] Progression subject:', progressionSubject);
-        }
-      } catch (anchorError: any) {
-        console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
+      if (anchorResponse.choices?.[0]?.message?.content) {
+        anchorStyle = anchorResponse.choices[0].message.content.trim();
+        // Extract subject from timeline description
+        const subjectMatch = timelineDescription.match(/(?:a|an|the)\s+([^,\.]+?)(?:\s+(?:inside|within|during|from|to|at|in)|$)/i);
+        progressionSubject = subjectMatch ? subjectMatch[1].trim() : timelineDescription.split(' ').slice(0, 5).join(' ');
+        console.log('[GenerateDescriptions] Generated Anchor:', anchorStyle.substring(0, 100) + '...');
+        console.log('[GenerateDescriptions] Visual theme subject:', progressionSubject);
       }
-    } else {
-      console.log('[GenerateDescriptions] Not a progression timeline - skipping Anchor generation (will use reference images or standard prompts)');
+    } catch (anchorError: any) {
+      console.warn('[GenerateDescriptions] Failed to generate Anchor, continuing without it:', anchorError.message);
     }
     
     if (appearsToBeProgression) {
@@ -298,12 +291,12 @@ CRITICAL INSTRUCTIONS:
     
     let data;
     try {
-      // Build image prompt instructions - use Anchor and factual details if available
+      // Build image prompt instructions - ALWAYS use Anchor if available for visual consistency
       const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
       const imagePromptInstructions = anchorStyle
         ? hasFactualDetails
-          ? `This is a progression series. For each event, create a concise image prompt that:
-1. Starts with the brief Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
+          ? `For each event, create a concise image prompt that:
+1. ALWAYS starts with the Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
 2. Accurately depicts the Factual Details for that specific stage (provided below)
 3. Focuses on the SUBJECT at that stage, not charts or abstract representations
 
@@ -313,14 +306,16 @@ Example:
 - Event: "Week 4: Neural Tube Forms"
 - Factual Details: ["The neural tube is closing", "A primitive S-shaped heart tube is forming", "The embryo is C-shaped"]
 - Prompt: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back and a primitive S-shaped heart tube forming."`
-          : `This is a progression series. For each event, create a concise image prompt that:
-1. Starts with the brief Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
-2. Describes the specific event at that stage
-3. Focuses on the SUBJECT at that stage
+          : `For each event, create a concise image prompt that:
+1. ALWAYS starts with the Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
+2. Describes the specific event at that moment/stage
+3. Focuses on the SUBJECT, not abstract representations
 
 Keep prompts concise - the event content should be the focus. The Anchor provides visual consistency but shouldn't dominate.
 
-Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back."`
+Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back."
+
+CRITICAL: The Anchor Style must be included at the start of EVERY image prompt to maintain visual consistency across all images in the timeline.`
         : `For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
 
 ${themeColor ? `IMPORTANT: Incorporate the theme color (${themeColor}) as a subtle visual motif throughout the image prompts. Use it as an accent color, lighting tone, or atmospheric element - not as the dominant color, but as a subtle thematic element that ties the series together.` : ''}
