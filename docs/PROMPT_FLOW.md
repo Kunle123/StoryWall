@@ -344,11 +344,6 @@ const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
 - `{{writingStyleInstructions}}` - Style-specific instructions (narrative, jovial, etc.)
 - `{{imagePromptInstructions}}` - **Varies based on Anchor/factual status**
 - `{{eventCount}}` - Number of events
-
-**Variables**:
-- `{{writingStyleInstructions}}` - Style-specific instructions (narrative, jovial, etc.)
-- `{{imagePromptInstructions}}` - **Varies based on Anchor/factual status**
-- `{{eventCount}}` - Number of events
 - `{{canUseCelebrityLikeness}}` - Boolean from newsworthiness test
 
 **Key Content**:
