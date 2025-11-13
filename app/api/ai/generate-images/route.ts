@@ -1730,7 +1730,7 @@ export async function POST(request: NextRequest) {
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
-              input.ip_adapter_scale = 0.75; // Control strength of reference image (0.5-1.0)
+              input.scale = 0.75; // Control strength of reference image (0.5-1.0) - parameter is "scale" not "ip_adapter_scale"
               console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.028/image)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for IP-Adapter: ${referenceImageUrl.substring(0, 50)}`);
@@ -1997,12 +1997,20 @@ export async function POST(request: NextRequest) {
             const isArtistic = isSDXL || selectedModel === MODELS.ARTISTIC;
             const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
             
+            // For retries, use the same model selection logic as original
+            // BUT: Don't use Imagen (google/imagen-4-fast) as it doesn't expose versions via Replicate API
             if (hasReferenceImages) {
-              if (isArtistic || isPhotorealistic) {
-                selectedModel = MODELS.PHOTOREALISTIC;
-              } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
+              const isSDXL = originalSelectedModel === MODELS.ARTISTIC || 
+                             originalSelectedModel.includes('sdxl') || 
+                             originalSelectedModel === "stability-ai/sdxl";
+              const isArtistic = isSDXL || originalSelectedModel === MODELS.ARTISTIC;
+              
+              if (isSDXL || isArtistic) {
+                selectedModel = MODELS.ARTISTIC_WITH_REF; // Use IP-Adapter, not Imagen
+              } else if (originalSelectedModel.includes('flux') && !originalSelectedModel.includes('kontext')) {
                 selectedModel = "black-forest-labs/flux-kontext-pro";
               }
+              // Don't use Imagen for retries - it doesn't expose versions via Replicate API
             }
             
             const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
@@ -2028,7 +2036,13 @@ export async function POST(request: NextRequest) {
               input.num_outputs = 1;
               input.guidance_scale = 7.5;
               input.num_inference_steps = 25;
-              if (referenceImageUrl) input.image = referenceImageUrl;
+              // Only use reference image if we have a valid URL
+              if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+                if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
+                  input.image = referenceImageUrl;
+                  input.scale = 0.75; // Use "scale" parameter, not "ip_adapter_scale"
+                }
+              }
               if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
             } else if (selectedModel.includes('imagen')) {
               // Google Imagen - only used if explicitly selected
@@ -2196,6 +2210,19 @@ export async function POST(request: NextRequest) {
       prompts: prompts, // Include prompts for debugging/testing
       referenceImages: finalImageReferences // Include auto-fetched reference images
     });
+  } catch (error: any) {
+    console.error('[ImageGen] Error generating images:', error);
+    console.error('[ImageGen] Error stack:', error.stack);
+    return NextResponse.json(
+      { 
+        error: error.message || 'Failed to generate images',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
+      { status: 500 }
+    );
+  }
+}
+
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
     console.error('[ImageGen] Error stack:', error.stack);
