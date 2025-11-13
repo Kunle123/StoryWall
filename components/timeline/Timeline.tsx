@@ -103,6 +103,8 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       // For dated events, position based on date
       const eventDate = new Date(event.year, event.month || 0, event.day || 1);
       const timeDiff = eventDate.getTime() - startDate.getTime();
+      // Guard against division by zero (all events at same date)
+      if (totalTimeSpan === 0) return 0;
       return (timeDiff / totalTimeSpan) * 100;
     }
     return 0;

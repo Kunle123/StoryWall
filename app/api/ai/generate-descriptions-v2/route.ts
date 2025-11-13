@@ -131,18 +131,15 @@ export async function POST(request: NextRequest) {
 
     const progression = progressionInfo.status === 'fulfilled' ? progressionInfo.value : null;
     
-    // Get factual details if progression detected (parallel with main call if possible)
+    // Get factual details if progression detected (run in parallel with prompt loading)
+    // We'll start it here but wait for it only if we need it before generation
     let factualDetails: Record<string, string[]> = {};
-    if (progression?.isProgression) {
-      const factualStartTime = Date.now();
-      try {
-        factualDetails = await getFactualDetails(client, events, timelineDescription);
-        const factualTime = Date.now() - factualStartTime;
-        console.log(`[GenerateDescriptionsV2] Factual details retrieved in ${factualTime}ms`);
-      } catch (factError: any) {
-        console.warn('[GenerateDescriptionsV2] Factual details failed, continuing:', factError.message);
-      }
-    }
+    const factualDetailsPromise = progression?.isProgression
+      ? getFactualDetails(client, events, timelineDescription).catch((factError: any) => {
+          console.warn('[GenerateDescriptionsV2] Factual details failed, continuing:', factError.message);
+          return {};
+        })
+      : Promise.resolve({});
 
     // Build image context (trimmed)
     const imageContextParts: string[] = [];
@@ -150,6 +147,14 @@ export async function POST(request: NextRequest) {
     if (themeColor) imageContextParts.push(`Theme: ${themeColor} (accent)`);
     const imageContext = imageContextParts.join('. ');
 
+    // Wait for factual details if needed (should be ready by now if progression detected)
+    const factualStartTime = Date.now();
+    factualDetails = await factualDetailsPromise;
+    const factualTime = Date.now() - factualStartTime;
+    if (Object.keys(factualDetails).length > 0) {
+      console.log(`[GenerateDescriptionsV2] Factual details retrieved in ${factualTime}ms`);
+    }
+    
     // Build events with factual details
     const eventsWithFacts = events.map((e: any) => {
       const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Batching: For long timelines (>10 events), process in chunks
     const BATCH_SIZE = 10;
-    const MAX_CONCURRENT_BATCHES = 3;
+    const MAX_CONCURRENT_BATCHES = 5; // Increased from 3 to 5 for faster processing
     
     if (events.length > BATCH_SIZE) {
       console.log(`[GenerateDescriptionsV2] Batching ${events.length} events into chunks of ${BATCH_SIZE}`);
@@ -198,7 +203,7 @@ export async function POST(request: NextRequest) {
     // Calculate max tokens (optimized)
     const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
     const baseTokens = 2000; // Base overhead
-    const perEventTokens = 400; // Descriptions + image prompts per event
+    const perEventTokens = 300; // Descriptions + image prompts per event (reduced from 400)
     const anchorTokens = 300; // Anchor style
     const maxTokens = Math.min(
       client.provider === 'kimi' ? 32000 : 40000,
@@ -403,7 +408,7 @@ async function generateBatched(
   }
 ): Promise<NextResponse> {
   const BATCH_SIZE = 10;
-  const MAX_CONCURRENT = 3;
+  const MAX_CONCURRENT = 5; // Increased from 3 to 5 for faster processing
   
   // Split events into batches
   const batches: Array<Array<{ year?: number; title: string; facts?: string[] }>> = [];
@@ -484,7 +489,7 @@ async function generateBatched(
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 2000 + (batch.length * 400),
+        max_tokens: 2000 + (batch.length * 300), // Reduced from 400 to 300 per event
       });
       
       if (!response.choices?.[0]?.message?.content) {
