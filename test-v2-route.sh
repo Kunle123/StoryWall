@@ -44,7 +44,8 @@ time curl -X POST http://localhost:3000/api/ai/generate-descriptions-v2 \
   }' > /dev/null 2>&1
 
 echo ""
-echo "Test 3: Newsworthiness heuristic (should be fast)"
+echo "Test 3: Newsworthiness heuristic (heuristic should be instant, but full generation takes ~9s)"
+echo "Note: This measures total time including description generation, not just newsworthiness test"
 time curl -X POST http://localhost:3000/api/ai/generate-descriptions-v2 \
   -H "Content-Type: application/json" \
   -d '{
@@ -52,7 +53,7 @@ time curl -X POST http://localhost:3000/api/ai/generate-descriptions-v2 \
     "timelineDescription": "The election of Governor Cuomo",
     "writingStyle": "narrative",
     "timelineTitle": "The Election of Governor Cuomo"
-  }' > /dev/null 2>&1
+  }' 2>&1 | grep -o '"descriptions":\[.*\]' | head -1 > /dev/null
 
 echo ""
 echo "Tests complete!"

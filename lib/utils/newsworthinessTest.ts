@@ -90,16 +90,20 @@ export async function testNewsworthiness(
   timelineTitle: string,
   timelineDescription: string
 ): Promise<NewsworthinessTestResult> {
+  const heuristicStartTime = Date.now();
   try {
     // Quick heuristic check first (no API call)
     const quickResult = quickNewsworthinessCheck(timelineTitle, timelineDescription);
+    const heuristicTime = Date.now() - heuristicStartTime;
+    
     if (quickResult) {
-      console.log('[NewsworthinessTest] Quick heuristic result:', quickResult.riskLevel);
+      console.log(`[NewsworthinessTest] Quick heuristic result (${heuristicTime}ms):`, quickResult.riskLevel);
       return quickResult;
     }
     
     // Ambiguous case - need full AI test
-    console.log('[NewsworthinessTest] Ambiguous case, running full AI test');
+    console.log(`[NewsworthinessTest] Ambiguous case (heuristic took ${heuristicTime}ms), running full AI test`);
+    const aiTestStartTime = Date.now();
     const client = getAIClient();
     
     // Load newsworthiness test prompts
@@ -149,7 +153,8 @@ export async function testNewsworthiness(
         inferredAttributes: result.inferredAttributes,
       };
       
-      console.log('[NewsworthinessTest] Result:', {
+      const aiTestTime = Date.now() - aiTestStartTime;
+      console.log(`[NewsworthinessTest] Full AI test completed (${aiTestTime}ms):`, {
         canUseLikeness: testResult.canUseLikeness,
         riskLevel: testResult.riskLevel,
         title: timelineTitle,

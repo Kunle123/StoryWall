@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Parallel: Newsworthiness test + progression detection
     const startTime = Date.now();
+    const newsworthinessStartTime = Date.now();
     
     const [newsworthinessResult, progressionInfo] = await Promise.allSettled([
       // Newsworthiness test (only if timeline title provided)
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
       // Progression detection (rule-based, no API call)
       Promise.resolve(detectProgression(timelineDescription, events)),
     ]);
+    
+    const newsworthinessTime = Date.now() - newsworthinessStartTime;
+    console.log(`[GenerateDescriptionsV2] Newsworthiness test completed in ${newsworthinessTime}ms`);
 
     // Extract results
     let canUseCelebrityLikeness = false;
@@ -130,8 +134,11 @@ export async function POST(request: NextRequest) {
     // Get factual details if progression detected (parallel with main call if possible)
     let factualDetails: Record<string, string[]> = {};
     if (progression?.isProgression) {
+      const factualStartTime = Date.now();
       try {
         factualDetails = await getFactualDetails(client, events, timelineDescription);
+        const factualTime = Date.now() - factualStartTime;
+        console.log(`[GenerateDescriptionsV2] Factual details retrieved in ${factualTime}ms`);
       } catch (factError: any) {
         console.warn('[GenerateDescriptionsV2] Factual details failed, continuing:', factError.message);
       }
@@ -199,6 +206,7 @@ export async function POST(request: NextRequest) {
     );
 
     console.log(`[GenerateDescriptionsV2] Single unified call: events=${events.length}, maxTokens=${maxTokens}`);
+    const generationStartTime = Date.now();
 
     // SINGLE UNIFIED CALL: Anchor + Descriptions + Image Prompts
     const response = await createChatCompletion(client, {
@@ -218,8 +226,12 @@ export async function POST(request: NextRequest) {
       max_tokens: maxTokens,
     });
 
-    const generationTime = Date.now() - startTime;
-    console.log(`[GenerateDescriptionsV2] Generated in ${generationTime}ms`);
+    const generationTime = Date.now() - generationStartTime;
+    const totalTime = Date.now() - startTime;
+    console.log(`[GenerateDescriptionsV2] Timing breakdown:`);
+    console.log(`  - Newsworthiness test: ${newsworthinessTime}ms`);
+    console.log(`  - Description generation: ${generationTime}ms`);
+    console.log(`  - Total time: ${totalTime}ms`);
 
     if (!response.choices?.[0]?.message?.content) {
       throw new Error('Invalid response format from AI API');
