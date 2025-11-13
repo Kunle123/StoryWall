@@ -68,17 +68,6 @@ const TimelineEditor = () => {
       router.push('/sign-in');
     }
   }, [isSignedIn, isLoaded, router]);
-  
-  // Show loading while checking authentication
-  if (!isLoaded || !isSignedIn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -226,6 +215,30 @@ const TimelineEditor = () => {
     }
   }, [router, toast]);
 
+  // Scroll to top on step change (matching design)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [currentStep]);
+
+  // Debug: Log imageStyle changes
+  useEffect(() => {
+    console.log('[Editor] imageStyle changed:', imageStyle);
+  }, [imageStyle]);
+
+  // Show loading while checking authentication
+  // NOTE: This conditional return must come AFTER all hooks
+  if (!isLoaded || !isSignedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   const steps = [
     { number: 1, title: "Timeline Info" },
     { number: 2, title: "Writing Style & Events" },
@@ -234,16 +247,6 @@ const TimelineEditor = () => {
     { number: 5, title: "Generate Images" },
     { number: 6, title: "Review & Publish" },
   ];
-
-  // Scroll to top on step change (matching design)
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentStep]);
-
-  // Debug: Log imageStyle changes
-  useEffect(() => {
-    console.log('[Editor] imageStyle changed:', imageStyle);
-  }, [imageStyle]);
 
   const handleNext = () => {
     if (!canProceed()) {
