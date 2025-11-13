@@ -480,9 +480,10 @@ const COLOR_NAMES: Record<string, string> = {
 // Models available on Replicate
 const MODELS = {
   // Photorealistic models (best for realistic photos)
-  // Google Imagen 4 Fast: Best quality/price ratio ($0.02/image) - available on Replicate, supports image input
-  PHOTOREALISTIC: "google/imagen-4-fast", // $0.02/image - excellent quality, best price, supports image-to-image
-  PHOTOREALISTIC_FALLBACK: "black-forest-labs/flux-dev", // $0.025-0.030/image - fallback if Google not configured
+  // SDXL is PRIMARY - good quality, low cost, reliable
+  // Imagen on Replicate is FALLBACK - use if SDXL fails (note: may not expose versions via API)
+  PHOTOREALISTIC: "stability-ai/sdxl", // $0.0048/image - PRIMARY: excellent quality, best price, reliable
+  PHOTOREALISTIC_FALLBACK: "google/imagen-4-fast", // $0.02/image - FALLBACK: available on Replicate, supports image input
   // Alternative photorealistic options:
   // - "google-imagen-4-standard": $0.04/image (higher quality)
   // - "black-forest-labs/flux-pro": $0.05-0.10/image (highest quality, expensive)
@@ -1603,7 +1604,10 @@ export async function POST(request: NextRequest) {
                        selectedModel === "stability-ai/sdxl" ||
                        selectedModel.includes('stability-ai/sdxl');
         const isArtistic = isSDXL || selectedModel === MODELS.ARTISTIC;
-        const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
+        const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || 
+                                 selectedModel === MODELS.PHOTOREALISTIC_FALLBACK ||
+                                 selectedModel.includes('flux-dev') ||
+                                 selectedModel.includes('imagen');
         
         if (hasReferenceImages) {
           // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
@@ -1662,17 +1666,20 @@ export async function POST(request: NextRequest) {
           console.log(`[ImageGen] ✓ Reference image URL for "${event.title}" (index ${index}): ${referenceImageUrl.substring(0, 80)}...`);
           console.log(`[ImageGen] Reference image will be INJECTED into model input for this event`);
           
-          // Upload to Replicate ONLY if using SDXL (which has 403 errors with Wikimedia)
+          // Upload to Replicate if using IP-Adapter or SDXL (which have 403 errors with Wikimedia)
           // Skip for Imagen which can fetch Wikimedia URLs directly
-          const isSDXL = selectedModel.includes('sdxl') || selectedModel === MODELS.ARTISTIC;
-          if (isSDXL && referenceImageUrl.includes('wikimedia.org')) {
-            console.log(`[ImageGen] SDXL detected - uploading Wikimedia image to Replicate...`);
+          const needsUpload = selectedModel.includes('ip-adapter') || 
+                             selectedModel === MODELS.ARTISTIC_WITH_REF ||
+                             (selectedModel.includes('sdxl') || selectedModel === MODELS.ARTISTIC);
+          if (needsUpload && referenceImageUrl.includes('wikimedia.org')) {
+            console.log(`[ImageGen] IP-Adapter/SDXL detected - uploading Wikimedia image to Replicate...`);
             const uploadedUrl = await uploadImageToReplicate(referenceImageUrl, replicateApiKey);
             if (uploadedUrl) {
               referenceImageUrl = uploadedUrl;
-              console.log(`[ImageGen] ✓ Using uploaded Replicate URL for SDXL`);
+              console.log(`[ImageGen] ✓ Using uploaded Replicate URL: ${uploadedUrl.substring(0, 80)}...`);
             } else {
-              console.warn(`[ImageGen] Upload failed, SDXL may have 403 errors with direct Wikimedia URL`);
+              console.warn(`[ImageGen] Upload failed, will skip reference image to avoid 403 errors`);
+              referenceImageUrl = null; // Don't use direct Wikimedia URL - it will fail
             }
           }
         } else {
@@ -1722,22 +1729,41 @@ export async function POST(request: NextRequest) {
         // Model-specific parameters
         if (selectedModel.includes('ip-adapter') || selectedModel === MODELS.ARTISTIC_WITH_REF) {
           // IP-Adapter (SDXL + IP-Adapter) - cheap option for artistic styles with reference images
-          input.prompt = prompt;
-          input.num_outputs = 1;
-          input.guidance_scale = 7.5;
-          input.num_inference_steps = 25; // Reduced from 30 for faster generation (minimal quality impact)
-          
-          if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+          // CRITICAL: IP-Adapter model requires an image parameter - if we don't have one, fall back to regular SDXL
+          if (!referenceImageUrl || typeof referenceImageUrl !== 'string' || referenceImageUrl.length === 0) {
+            console.warn(`[ImageGen] IP-Adapter requires a reference image, but none available. Falling back to regular SDXL.`);
+            selectedModel = MODELS.ARTISTIC; // Use regular SDXL instead
+            // Re-fetch version for SDXL
+            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+            // Continue with SDXL input setup below
+          } else {
+            // We have a reference image - use IP-Adapter
+            input.prompt = prompt;
+            input.num_outputs = 1;
+            input.guidance_scale = 7.5;
+            input.num_inference_steps = 25;
+            
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
               input.scale = 0.75; // Control strength of reference image (0.5-1.0) - parameter is "scale" not "ip_adapter_scale"
               console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.028/image)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for IP-Adapter: ${referenceImageUrl.substring(0, 50)}`);
+              // Fall back to SDXL
+              selectedModel = MODELS.ARTISTIC;
+              modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
             }
-          } else {
-            console.log(`[ImageGen] No valid reference image for IP-Adapter, generating without reference`);
           }
+        }
+        
+        // If we fell back to SDXL or are using SDXL directly (not IP-Adapter)
+        if ((selectedModel === MODELS.ARTISTIC || selectedModel.includes('sdxl')) && 
+            !selectedModel.includes('ip-adapter') && selectedModel !== MODELS.ARTISTIC_WITH_REF) {
+          // Regular SDXL (not IP-Adapter)
+          input.prompt = prompt;
+          input.num_outputs = 1;
+          input.guidance_scale = 7.5;
+          input.num_inference_steps = 25;
           
           // Add negative prompt for artistic styles
           // Prevent grids, panels, multiple images, text, brand names, logos
@@ -1746,6 +1772,16 @@ export async function POST(request: NextRequest) {
           const facelessNegativePrompt = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
           if (!needsText) {
             input.negative_prompt = baseNegativePrompt + facelessNegativePrompt;
+          }
+          
+          // SDXL can optionally use reference images (but not required like IP-Adapter)
+          if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
+            if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
+              input.image = referenceImageUrl;
+              input.prompt_strength = 0.75;
+              input.strength = 0.75;
+              console.log(`[ImageGen] Using reference image with SDXL (optional, not required)`);
+            }
           }
         } else if (selectedModel.includes('imagen')) {
           // Google Imagen 4 Fast - supports image input for image-to-image
@@ -2206,16 +2242,6 @@ export async function POST(request: NextRequest) {
       prompts: prompts, // Include prompts for debugging/testing
       referenceImages: finalImageReferences // Include auto-fetched reference images
     });
-  } catch (error: any) {
-    console.error('[ImageGen] Error generating images:', error);
-    console.error('[ImageGen] Error stack:', error.stack);
-    return NextResponse.json(
-      { 
-        error: error.message || 'Failed to generate images',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      },
-      { status: 500 }
-    );
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
     console.error('[ImageGen] Error stack:', error.stack);
