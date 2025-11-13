@@ -292,7 +292,8 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
   }, [viewMode, sortedEvents.length]);
 
   // Calculate box position based on visible cards
-  const getVisibleMarkerBox = useCallback(() => {
+  // Removed getVisibleMarkerBox - no longer needed after removing vertical timeline
+  const _getVisibleMarkerBox = useCallback(() => {
     // Build range from currently visible cards
     const visibleEvents = sortedEvents.filter((e) => visibleCardIds.has(e.id));
 
@@ -487,29 +488,6 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Vertical Timeline - Hidden on mobile, shown on md+ */}
-      <div className="hidden md:block absolute md:relative right-[-6px] h-[calc(100%-3.5rem)] w-3 flex-shrink-0 pt-0 pb-0 z-10">
-        {/* Timeline container with line, outline, and markers */}
-        <div className="relative h-full flex items-center justify-center">
-          {/* Main vertical line - 8px, centered */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-[8px] bg-border top-0 bottom-0 z-0" />
-
-          {/* Visible cards highlight box */}
-          {getVisibleMarkerBox() && (
-            <div
-              className="absolute w-full bg-primary/80 rounded-full pointer-events-none transition-all duration-500 ease-out z-10"
-              style={{
-                left: 0,
-                top: `${getVisibleMarkerBox()!.top}%`,
-                height: `${Math.max(getVisibleMarkerBox()!.height, 2)}%`,
-              }}
-            />
-          )}
-
-          {/* Markers removed per design requirements */}
         </div>
       </div>
     </div>
