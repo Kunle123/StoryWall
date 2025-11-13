@@ -29,7 +29,7 @@ const themeColors = [
 
 interface GenerateImagesStepProps {
   events: TimelineEvent[];
-  setEvents: (events: TimelineEvent[]) => void;
+  setEvents: (events: TimelineEvent[] | ((prev: TimelineEvent[]) => TimelineEvent[])) => void;
   imageStyle: string;
   setImageStyle?: (style: string) => void;
   themeColor: string;
@@ -272,44 +272,9 @@ export const GenerateImagesStep = ({
     setTotalEvents(eventCount);
     setGeneratingCount(0);
     
-    // Start progress simulation with realistic timing
-    // Estimate: ~3-5 seconds per image, so for 20 images = 60-100 seconds
-    const estimatedTimePerImage = 4; // seconds
-    const estimatedTotalTime = eventCount * estimatedTimePerImage; // seconds
-    const startTime = Date.now();
-    
-    let progressInterval: NodeJS.Timeout | null = null;
     try {
-      progressInterval = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000; // seconds
-        // Calculate progress based on elapsed time vs estimated time
-        // Use a logarithmic curve to slow down as we approach 90%
-        let calculatedProgress = Math.min(90, (elapsed / estimatedTotalTime) * 90);
-        
-        // Apply logarithmic curve to make progress slow down as it approaches 90%
-        // This makes it more realistic - fast at first, slower near the end
-        calculatedProgress = 90 * (1 - Math.exp(-elapsed / (estimatedTotalTime * 0.6)));
-        
-        // If we've exceeded estimated time, slowly continue to 95%
-        if (elapsed > estimatedTotalTime) {
-          const extraTime = elapsed - estimatedTotalTime;
-          // Add up to 5% more progress (90% -> 95%) over the next estimated time period
-          const additionalProgress = Math.min(5, (extraTime / estimatedTotalTime) * 5);
-          calculatedProgress = 90 + additionalProgress;
-        }
-        
-        setProgress((prev) => {
-          // Only update if calculated progress is higher than current, but cap at 95%
-          const newProgress = Math.min(95, Math.max(prev, calculatedProgress));
-          
-          // Update generating count based on progress
-          const estimatedCount = Math.floor((newProgress / 100) * eventCount);
-          setGeneratingCount(Math.min(estimatedCount, eventCount));
-          
-          return newProgress;
-        });
-      }, 500); // Update every 500ms for smoother progress
-      const response = await fetch("/api/ai/generate-images", {
+      // Use streaming API for progressive loading
+      const response = await fetch("/api/ai/generate-images?stream=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -332,43 +297,87 @@ export const GenerateImagesStep = ({
         }),
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        const text = await response.text();
-        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
       if (!response.ok) {
-        const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMsg);
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Clear progress interval and complete progress
-      if (progressInterval) clearInterval(progressInterval);
-      setProgress(100);
-      setGeneratingCount(eventCount);
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
       
-      if (!data.images || data.images.length === 0) {
+      if (!reader) {
+        throw new Error("Streaming not supported");
+      }
+
+      // Create a map of event IDs to their index in selectedEventsList for quick lookup
+      const eventIdToIndex = new Map<string, number>();
+      selectedEventsList.forEach((e, idx) => {
+        eventIdToIndex.set(e.id, idx);
+      });
+      
+      let finalData: any = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'image') {
+                // Update progress based on completed images
+                setGeneratingCount(data.completed);
+                setProgress((data.completed / data.total) * 100);
+                
+                // Update event with image as soon as it's ready
+                // data.index is the index in the selectedEventsList array
+                if (data.imageUrl && data.index < selectedEventsList.length) {
+                  const event = selectedEventsList[data.index];
+                  setEvents(prevEvents => 
+                    prevEvents.map(e => 
+                      e.id === event.id ? { ...e, imageUrl: data.imageUrl } : e
+                    )
+                  );
+                }
+              } else if (data.type === 'complete') {
+                // All images complete
+                finalData = data;
+                setProgress(100);
+                setGeneratingCount(eventCount);
+                
+                // Ensure all events are updated (in case any were missed)
+                // data.images array corresponds to selectedEventsList order
+                setEvents(prevEvents => 
+                  prevEvents.map(e => {
+                    const selectedIndex = eventIdToIndex.get(e.id);
+                    if (selectedIndex !== undefined && data.images[selectedIndex]) {
+                      return { ...e, imageUrl: data.images[selectedIndex] };
+                    }
+                    return e;
+                  })
+                );
+              } else if (data.type === 'error') {
+                throw new Error(data.error || 'Streaming error');
+              }
+            } catch (parseError) {
+              console.warn('Failed to parse SSE data:', line, parseError);
+            }
+          }
+        }
+      }
+
+      if (!finalData || !finalData.images || finalData.images.length === 0) {
         throw new Error("No images were generated");
       }
       
-      // Update events with images immediately (filter out null values)
-      const successfulImages = data.images.filter((img: any) => img !== null);
-      const failedCount = data.images.length - successfulImages.length;
-      
-      // Map images back to selected events only
-      let imageIndex = 0;
-      const eventsWithImages = events.map((e) => {
-        if (selectedEvents.has(e.id)) {
-          const imageUrl = data.images[imageIndex] || e.imageUrl;
-          imageIndex++;
-          return { ...e, imageUrl };
-        }
-        return e;
-      });
-      setEvents(eventsWithImages);
+      const successfulImages = finalData.images.filter((img: any) => img !== null);
+      const failedCount = finalData.images.length - successfulImages.length;
       
       // Deduct credits AFTER successful generation
       const creditsDeducted = await deductCredits(
@@ -380,13 +389,15 @@ export const GenerateImagesStep = ({
         console.warn('Failed to deduct credits after image generation');
       }
       
+      setIsGenerating(false);
+      
       // Retry failed images automatically
       if (failedCount > 0) {
         // Find events that failed (have null images)
         // Map images back to events by index
         const failedEvents: TimelineEvent[] = [];
         selectedEventsList.forEach((e, idx) => {
-          if (!data.images[idx]) {
+          if (!finalData.images[idx]) {
             failedEvents.push(e);
           }
         });
@@ -403,7 +414,13 @@ export const GenerateImagesStep = ({
           let retryAttempt = 0;
           const maxRetries = 2;
           let remainingFailedEvents = [...failedEvents];
-          let currentEvents = [...eventsWithImages]; // Track events state during retries
+          
+          // Get current events state for retry tracking
+          let currentEvents: TimelineEvent[] = [];
+          setEvents(prev => {
+            currentEvents = [...prev];
+            return prev;
+          });
           
           while (remainingFailedEvents.length > 0 && retryAttempt < maxRetries) {
             retryAttempt++;
@@ -518,10 +535,7 @@ export const GenerateImagesStep = ({
           description: `Generated ${successfulImages.length} images`,
         });
       }
-      
-      setIsGenerating(false);
     } catch (error: any) {
-      if (progressInterval) clearInterval(progressInterval);
       setIsGenerating(false);
       setProgress(0);
       setGeneratingCount(0);

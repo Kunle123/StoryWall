@@ -1670,7 +1670,7 @@ export async function POST(request: NextRequest) {
             const personName = ref.name.toLowerCase();
             const nameParts = personName.split(' ');
             // Check if event mentions the person (full name or last name)
-            return nameParts.some(part => part.length > 2 && eventText.includes(part)) ||
+            return nameParts.some((part: string) => part.length > 2 && eventText.includes(part)) ||
                    eventText.includes(personName);
           });
           
@@ -2085,7 +2085,7 @@ export async function POST(request: NextRequest) {
               ? finalImageReferences.filter(ref => {
                   const personName = ref.name.toLowerCase();
                   const nameParts = personName.split(' ');
-                  return nameParts.some(part => part.length > 2 && eventText.includes(part)) ||
+                  return nameParts.some((part: string) => part.length > 2 && eventText.includes(part)) ||
                          eventText.includes(personName);
                 })
               : [];
@@ -2206,6 +2206,9 @@ export async function POST(request: NextRequest) {
       }
     };
     
+    // Check if client wants streaming (progressive loading)
+    const stream = request.nextUrl.searchParams.get('stream') === 'true';
+    
     // Poll all predictions in parallel (with retry logic built in)
     const imagePromises = predictionResults.map(result => 
       waitForPredictionWithRetry({
@@ -2214,7 +2217,106 @@ export async function POST(request: NextRequest) {
       })
     );
     
-    // Wait for all images to complete (with retries)
+    // If streaming, process results as they complete and send updates
+    if (stream) {
+      // Create a readable stream for Server-Sent Events
+      const encoder = new TextEncoder();
+      const readableStream = new ReadableStream({
+        async start(controller) {
+          try {
+            const images: (string | null)[] = new Array(events.length).fill(null);
+            const prompts: (string | null)[] = new Array(events.length).fill(null);
+            const errors: (Error | null)[] = new Array(events.length).fill(null);
+            let completedCount = 0;
+            const totalEvents = events.length;
+            
+            // Process each promise as it completes
+            imagePromises.forEach((promise, promiseIndex) => {
+              promise.then(async (result) => {
+                try {
+                  // Persist image to Cloudinary immediately
+                  const persistedImage = result.imageUrl 
+                    ? (await persistImagesToCloudinary([result.imageUrl]))[0]
+                    : null;
+                  
+                  images[result.index] = persistedImage;
+                  prompts[result.index] = typeof result.prompt === 'string' 
+                    ? result.prompt 
+                    : (result.prompt != null ? String(result.prompt) : null);
+                  errors[result.index] = result.error || null;
+                  completedCount++;
+                  
+                  // Send update to client
+                  const update = {
+                    type: 'image',
+                    index: result.index,
+                    imageUrl: persistedImage,
+                    prompt: prompts[result.index],
+                    error: result.error?.message || null,
+                    completed: completedCount,
+                    total: totalEvents,
+                    eventTitle: result.event.title
+                  };
+                  
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(update)}\n\n`));
+                  
+                  // If all done, send final message and close
+                  if (completedCount === totalEvents) {
+                    const finalUpdate = {
+                      type: 'complete',
+                      images: images,
+                      prompts: prompts,
+                      successful: images.filter(img => img !== null).length,
+                      failed: errors.filter(err => err !== null).length
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalUpdate)}\n\n`));
+                    controller.close();
+                  }
+                } catch (error: any) {
+                  console.error('[ImageGen] Error processing streaming result:', error);
+                  errors[result.index] = error;
+                  completedCount++;
+                  
+                  // Send error update
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'image',
+                    index: result.index,
+                    imageUrl: null,
+                    error: error.message,
+                    completed: completedCount,
+                    total: totalEvents,
+                    eventTitle: result.event.title
+                  })}\n\n`));
+                  
+                  if (completedCount === totalEvents) {
+                    controller.close();
+                  }
+                }
+              }).catch((error) => {
+                console.error('[ImageGen] Error in streaming promise:', error);
+                completedCount++;
+                if (completedCount === totalEvents) {
+                  controller.close();
+                }
+              });
+            });
+          } catch (error: any) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`));
+            controller.close();
+          }
+        }
+      });
+      
+      return new Response(readableStream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
+      });
+    }
+    
+    // Non-streaming: Wait for all images to complete (with retries)
     const imageResults = await Promise.all(imagePromises);
     
     // Step 3: Assemble results in correct order

@@ -13,11 +13,15 @@ If information is not available in these sources, indicate that in the event des
 {{#each events}}{{@index}}. {{year}}: {{title}}
 {{/each}}
 
-CRITICAL ALIGNMENT REQUIREMENT:
-- For EACH event, the DESCRIPTION and IMAGE PROMPT must describe the SAME SCENE/MOMENT
-- The description narrates what's happening in that specific scene
-- The image prompt describes what you would SEE in that exact same scene
-- They must be perfectly aligned - do NOT create a description about one moment and an image prompt about a different moment
+CRITICAL DISTINCTION:
+- The DESCRIPTION explains the EVENT (what happened, why it matters, its historical/educational significance) - NOT what the scene looks like
+- The IMAGE PROMPT describes the VISUAL SCENE (what you would see in an image of that event)
+- They should be about the SAME event, but serve different purposes:
+  * Description = explanation of the event's meaning, impact, and context
+  * ImagePrompt = visual representation of what that event would look like
+- Example: For "Invention of the Printing Press"
+  * Description: "Johannes Gutenberg's invention of the printing press in the 15th century revolutionized the spread of information. This innovation made books affordable and accessible, breaking the monopoly of handwritten manuscripts."
+  * ImagePrompt: "A 15th-century workshop with a wooden printing press, metal type blocks arranged in a case, a printer in period clothing operating the press"
 
 CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene:
 

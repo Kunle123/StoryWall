@@ -5,7 +5,8 @@ Policies:
 - If {{canUseCelebrityLikeness}} is false, do not reference celebrities
 - If factualDetails present → FACTUAL MODE (physical, literal, no metaphors)
 - Anchor Style must be comprehensive (5-7 sentences covering all visual parameters)
-- Descriptions must align with image prompts (same scene/moment)
+- Descriptions explain the EVENT (what happened, why it matters) - NOT the visual scene
+- Image prompts describe the VISUAL SCENE (what you would see) - they are about the same event but serve different purposes
 
 {{#if canUseCelebrityLikeness}}
 CELEBRITY LIKENESS: This timeline passed newsworthiness test. You MAY use celebrity likenesses when appropriate.
@@ -32,8 +33,11 @@ Output Schema (JSON):
 }
 
 Constraints:
-- Descriptions and imagePrompts must describe the SAME scene/moment
-- Image prompts must be LITERAL, CONCRETE, RECOGNIZABLE - no poetry or metaphors
+- Descriptions must EXPLAIN THE EVENT (what happened, why it matters, its significance) - NOT describe the visual scene
+- Image prompts must describe the VISUAL SCENE (what you would see in an image) - LITERAL, CONCRETE, RECOGNIZABLE - no poetry or metaphors
+- Descriptions and imagePrompts should be about the SAME event, but serve different purposes:
+  * Description = explanation of the event's meaning, impact, and context
+  * ImagePrompt = visual representation of what that event would look like
 - Anchor Style must ensure visual consistency across ALL images
 - After generating anchorStyle, include a 60-80 character preview in each imagePrompt
 - CRITICAL: Anchor Style must be GENERAL - do NOT include specific event titles, event names, or event-specific content. The Anchor describes the overall visual style for the timeline subject, NOT individual events.
