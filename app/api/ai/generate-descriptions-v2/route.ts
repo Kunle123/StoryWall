@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
     // Calculate max tokens (optimized)
     const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
     const baseTokens = 2000; // Base overhead
-    const perEventTokens = 300; // Descriptions + image prompts per event (reduced from 400)
+    const perEventTokens = 400; // Descriptions + image prompts per event (400 provides comfortable safety margin for 4-sentence descriptions + detailed image prompts)
     const anchorTokens = 300; // Anchor style
     const maxTokens = Math.min(
       client.provider === 'kimi' ? 32000 : 40000,
@@ -443,7 +443,7 @@ async function generateBatched(
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,
-      max_tokens: 2000 + (batches[0].length * 400) + 300,
+      max_tokens: 2000 + (batches[0].length * 400) + 300, // 400 per event for anchor generation
     });
     
     if (anchorResponse.choices?.[0]?.message?.content) {
@@ -489,7 +489,7 @@ async function generateBatched(
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
-        max_tokens: 2000 + (batch.length * 300), // Reduced from 400 to 300 per event
+        max_tokens: 2000 + (batch.length * 400), // 400 per event provides comfortable safety margin for detailed outputs
       });
       
       if (!response.choices?.[0]?.message?.content) {
