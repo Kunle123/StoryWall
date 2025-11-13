@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
 import { auth } from '@clerk/nextjs/server';
-import { getOrCreateUser } from '@/lib/db/users';
+import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
 
 // Helper to check if a string is a UUID
 function isUUID(str: string): boolean {
@@ -101,6 +101,10 @@ export async function PATCH(
     }
 
     const user = await getOrCreateUser(userId);
+    
+    // Get user's email for admin check
+    const userProfile = await getUserByClerkId(userId);
+    const userEmail = userProfile?.email || null;
 
     const body = await request.json();
     const { title, description, visualization_type, is_public, is_collaborative } = body;
@@ -112,7 +116,7 @@ export async function PATCH(
     if (is_public !== undefined) updates.is_public = is_public;
     if (is_collaborative !== undefined) updates.is_collaborative = is_collaborative;
 
-    const timeline = await updateTimeline(id, user.id, updates);
+    const timeline = await updateTimeline(id, user.id, updates, userEmail);
 
     return NextResponse.json(timeline);
   } catch (error: any) {
@@ -145,8 +149,12 @@ export async function DELETE(
     }
 
     const user = await getOrCreateUser(userId);
+    
+    // Get user's email for admin check
+    const userProfile = await getUserByClerkId(userId);
+    const userEmail = userProfile?.email || null;
 
-    await deleteTimeline(id, user.id);
+    await deleteTimeline(id, user.id, userEmail);
 
     return NextResponse.json({ message: 'Timeline deleted successfully' });
   } catch (error: any) {

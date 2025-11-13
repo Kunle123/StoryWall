@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { Timeline, CreateTimelineInput } from '@/lib/types';
+import { isAdminEmail } from '@/lib/utils/admin';
 
 export async function createTimeline(
   input: CreateTimelineInput & { slug: string; creator_id: string }
@@ -551,15 +552,24 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
 export async function updateTimeline(
   id: string,
   userId: string,
-  updates: Partial<CreateTimelineInput>
+  updates: Partial<CreateTimelineInput>,
+  userEmail?: string | null
 ): Promise<Timeline> {
-  // First check if user owns timeline
+  // First check if user owns timeline or is an admin
   const timeline = await prisma.timeline.findUnique({
     where: { id },
     select: { creatorId: true },
   });
 
-  if (!timeline || timeline.creatorId !== userId) {
+  if (!timeline) {
+    throw new Error('Timeline not found');
+  }
+
+  // Allow if user owns timeline OR is an admin
+  const isOwner = timeline.creatorId === userId;
+  const isAdmin = userEmail ? isAdminEmail(userEmail) : false;
+
+  if (!isOwner && !isAdmin) {
     throw new Error('Unauthorized');
   }
 
@@ -582,14 +592,26 @@ export async function updateTimeline(
   return transformTimeline(updated);
 }
 
-export async function deleteTimeline(id: string, userId: string): Promise<void> {
-  // Check ownership
+export async function deleteTimeline(
+  id: string,
+  userId: string,
+  userEmail?: string | null
+): Promise<void> {
+  // Check ownership or admin status
   const timeline = await prisma.timeline.findUnique({
     where: { id },
     select: { creatorId: true },
   });
 
-  if (!timeline || timeline.creatorId !== userId) {
+  if (!timeline) {
+    throw new Error('Timeline not found');
+  }
+
+  // Allow if user owns timeline OR is an admin
+  const isOwner = timeline.creatorId === userId;
+  const isAdmin = userEmail ? isAdminEmail(userEmail) : false;
+
+  if (!isOwner && !isAdmin) {
     throw new Error('Unauthorized');
   }
 
