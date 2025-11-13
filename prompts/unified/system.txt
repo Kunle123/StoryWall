@@ -36,4 +36,5 @@ Constraints:
 - Image prompts must be LITERAL, CONCRETE, RECOGNIZABLE - no poetry or metaphors
 - Anchor Style must ensure visual consistency across ALL images
 - After generating anchorStyle, include a 60-80 character preview in each imagePrompt
+- CRITICAL: Anchor Style must be GENERAL - do NOT include specific event titles, event names, or event-specific content. The Anchor describes the overall visual style for the timeline subject, NOT individual events.
 

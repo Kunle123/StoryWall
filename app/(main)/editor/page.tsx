@@ -321,6 +321,10 @@ const TimelineEditor = () => {
         result = !!(imageStyle && imageStyle.trim().length > 0);
         console.log('[canProceed] Step 4 validation:', { imageStyle, result, imageStyleLength: imageStyle?.length });
         break;
+      case 5:
+        // Step 5: Can proceed only if at least one image has been generated
+        result = events.some(e => e.imageUrl);
+        break;
       default:
         result = true;
     }

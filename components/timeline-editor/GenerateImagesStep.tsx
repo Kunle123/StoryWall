@@ -70,6 +70,7 @@ export const GenerateImagesStep = ({
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set(events.map(e => e.id)));
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [regenerationCount, setRegenerationCount] = useState<Record<string, number>>({});
+  const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
   const { deductCredits, credits } = useCredits();
 
   const handleSaveEdit = () => {
@@ -266,6 +267,7 @@ export const GenerateImagesStep = ({
     }
 
     setIsGenerating(true);
+    setHasStartedGeneration(true); // Hide the selection card once generation starts
     setProgress(0);
     setTotalEvents(eventCount);
     setGeneratingCount(0);
@@ -725,9 +727,10 @@ export const GenerateImagesStep = ({
             </div>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="font-semibold mb-4">Select Events to Generate Images For</h3>
-            <div className="space-y-2 mb-4">
+          {!hasStartedGeneration && (
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Select Events to Generate Images For</h3>
+              <div className="space-y-2 mb-4">
               {events.map((event) => (
                 <label 
                   key={event.id} 
@@ -773,42 +776,43 @@ export const GenerateImagesStep = ({
               </p>
             </div>
 
-            <Button
-              onClick={handleGenerateImages}
-              disabled={isGenerating || selectedEvents.size === 0 || !imageStyle}
-              className="w-full"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Images ({(() => {
-                    const baseCost = CREDIT_COST_IMAGE_BATCH;
-                    const additionalImages = Math.max(0, selectedEvents.size - 20);
-                    const additionalCost = additionalImages * 0.5;
-                    return baseCost + additionalCost;
-                  })()} credits)
-                </>
+              <Button
+                onClick={handleGenerateImages}
+                disabled={isGenerating || selectedEvents.size === 0 || !imageStyle || events.some(e => e.imageUrl)}
+                className="w-full"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Generate Images ({(() => {
+                      const baseCost = CREDIT_COST_IMAGE_BATCH;
+                      const additionalImages = Math.max(0, selectedEvents.size - 20);
+                      const additionalCost = additionalImages * 0.5;
+                      return baseCost + additionalCost;
+                    })()} credits)
+                  </>
+                )}
+              </Button>
+
+              {isGenerating && (
+                <div className="mt-4 space-y-2">
+                  <Progress value={progress} />
+                  <p className="text-sm text-center text-muted-foreground">
+                    {generatingCount > 0 && totalEvents > 0 
+                      ? `Generating image ${generatingCount} of ${totalEvents} (${Math.round(progress)}%)`
+                      : `Generating... ${Math.round(progress)}%`}
+                  </p>
+                </div>
               )}
-            </Button>
+            </Card>
+          )}
 
-            {isGenerating && (
-              <div className="mt-4 space-y-2">
-                <Progress value={progress} />
-                <p className="text-sm text-center text-muted-foreground">
-                  {generatingCount > 0 && totalEvents > 0 
-                    ? `Generating image ${generatingCount} of ${totalEvents} (${Math.round(progress)}%)`
-                    : `Generating... ${Math.round(progress)}%`}
-                </p>
-              </div>
-            )}
-          </Card>
-
-          {events.some(e => e.imageUrl) && (
+          {(hasStartedGeneration || events.some(e => e.imageUrl)) && (
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Generated Images</h3>
               <div className="space-y-4">

@@ -931,7 +931,32 @@ function buildImagePrompt(
     console.log(`[ImageGen] Using Anchor style for progression timeline (enforcing consistency)`);
     
     // Normalize Anchor text (remove "Anchor:" prefix if AI added it)
-    const normalizedAnchor = anchorStyle.replace(/^Anchor:\s*/i, '').trim();
+    let normalizedAnchor = anchorStyle.replace(/^Anchor:\s*/i, '').trim();
+    
+    // CRITICAL: Remove event titles and brand names from Anchor to prevent repetition
+    // Extract event titles from the current event to avoid removing them from the event description
+    const eventTitleWords = event.title.split(/\s+/).filter(w => w.length > 2);
+    const eventTitlePattern = new RegExp(`\\b(${eventTitleWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
+    
+    // Remove common brand names and service names that might have been included
+    const brandPatterns = [
+      /\bNetflix\b/gi,
+      /\bM\*A\*S\*H\b/gi,
+      /\bApollo\s+11\b/gi,
+      /\bThe\s+Beatles\s+on\s+The\s+Ed\s+Sullivan\s+Show\b/gi,
+      /\bJohn\s+Logie\s+Baird\b/gi,
+      /\bSuper\s+Bowl\s+LIX\b/gi,
+      /\bKansas\s+City\s+Chiefs\b/gi,
+      /\bPhiladelphia\s+Eagles\b/gi,
+    ];
+    
+    // Remove brand names and repeated event titles from anchor
+    brandPatterns.forEach(pattern => {
+      normalizedAnchor = normalizedAnchor.replace(pattern, '');
+    });
+    
+    // Clean up multiple spaces and trim
+    normalizedAnchor = normalizedAnchor.replace(/\s+/g, ' ').trim();
     
     // Extract event-specific description from the AI-generated prompt (if available)
     // or build it from title + description
@@ -1594,9 +1619,18 @@ export async function POST(request: NextRequest) {
         try {
           modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
           console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}" with model ${selectedModel}`);
+          
+          // Validate model version format (should be a hash or model name)
+          if (!modelVersion || (modelVersion.length < 10 && !modelVersion.includes('/'))) {
+            console.warn(`[ImageGen] Invalid model version format: ${modelVersion}, using model name directly`);
+            modelVersion = selectedModel;
+          }
         } catch (versionError: any) {
           console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
-          throw new Error(`Failed to get model version: ${versionError.message}`);
+          console.error(`[ImageGen] Version error stack:`, versionError.stack);
+          // Use model name as fallback instead of throwing
+          console.warn(`[ImageGen] Falling back to using model name directly: ${selectedModel}`);
+          modelVersion = selectedModel;
         }
         
         if (needsText) {

@@ -25,6 +25,8 @@ Generate:
    - Emotional Tone (primary emotion and progression)
    - Cinematography (shot type, angles, lens, vignette){{#if themeColor}}
    - Incorporate {{themeColor}} as subtle accent{{/if}}
+   
+   CRITICAL: The Anchor Style must be GENERAL and apply to ALL events. DO NOT include specific event titles, event names, brand names, or event-specific content in the Anchor. For example, if the timeline is about TV history, describe the visual style for "television history" in general - do NOT mention "Netflix", "M*A*S*H", "Apollo 11", or other specific event titles. The Anchor should describe the overall aesthetic, NOT individual events.
 
 2. For each event:
    - Description: 2-4 sentences narrating the scene

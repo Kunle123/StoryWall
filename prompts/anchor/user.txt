@@ -1,11 +1,13 @@
 Timeline Description: {{timelineDescription}}
 
-Event Titles: {{eventTitles}}
+Event Titles: {{eventTitles}} (FOR CONTEXT ONLY - DO NOT include these specific event titles in your Anchor output)
 
 User's chosen image style: {{imageStyle}}
 {{#if themeColor}}User's theme color: {{themeColor}}{{/if}}
 
 Analyze this subject matter and create a COMPREHENSIVE visual style guide (Anchor) covering ALL five mood parameters. This Anchor will be applied to every image in this timeline.
+
+CRITICAL: The Anchor Style must be a GENERAL visual guide that applies to ALL events. DO NOT include specific event titles, event names, or event-specific content in the Anchor. The Anchor should describe the overall visual style, mood, and aesthetic - NOT individual events. For example, if the timeline is about TV history, the Anchor should describe the visual style for "television history" in general, NOT mention "Netflix", "M*A*S*H", "Apollo 11", or other specific event titles.
 
 REQUIRED OUTPUT - Address ALL 5 parameters (adapt to subject matter):
 
