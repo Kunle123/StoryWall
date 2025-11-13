@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
               const timeout = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
               
               const generateDescriptionsResponse = await fetch(
-                `${baseUrl}/api/ai/generate-descriptions`,
+                `${baseUrl}/api/ai/generate-descriptions-v2`,
                 {
                   method: 'POST',
                   headers: {

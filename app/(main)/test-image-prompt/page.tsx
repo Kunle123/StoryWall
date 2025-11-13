@@ -81,7 +81,7 @@ export default function TestImagePromptPage() {
 
     setLoadingDescriptions(true);
     try {
-      const response = await fetch("/api/ai/generate-descriptions", {
+      const response = await fetch("/api/ai/generate-descriptions-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

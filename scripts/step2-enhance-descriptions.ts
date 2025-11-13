@@ -38,7 +38,7 @@ async function enhanceDescriptions() {
         console.log(`   📝 Enhancing ${events.length} events...`);
         
         // Call description enhancement API
-        const enhanceResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions`, {
+        const enhanceResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions-v2`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -36,7 +36,7 @@ async function testStep2Single() {
     console.log(`   🔧 Calling description enhancement API...`);
     
     // Call description enhancement
-    const enhanceResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions`, {
+    const enhanceResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions-v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

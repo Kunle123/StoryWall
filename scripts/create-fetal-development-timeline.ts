@@ -109,7 +109,7 @@ async function createFetalDevelopmentTimeline() {
 
     // Step 3: Generate descriptions and image prompts
     console.log('📝 Step 3: Generating descriptions and image prompts...');
-    const descriptionsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-descriptions`, {
+    const descriptionsResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-descriptions-v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

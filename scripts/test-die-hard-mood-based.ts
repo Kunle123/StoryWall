@@ -137,7 +137,7 @@ async function createDieHardTimeline() {
     console.log('📝 Step 3: Generating descriptions and mood-based image prompts...');
     console.log('   🎨 Using mood-based approach: archetypal characters, emotional atmosphere, no specific likenesses\n');
     
-    const descriptionsResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions`, {
+    const descriptionsResponse = await fetch(`${apiUrl}/api/ai/generate-descriptions-v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
