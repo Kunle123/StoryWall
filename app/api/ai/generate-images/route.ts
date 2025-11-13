@@ -782,22 +782,30 @@ async function getLatestModelVersion(modelName: string, replicateApiKey: string)
     });
 
     if (!response.ok) {
-      // If version listing fails, try using model name directly
-      // Replicate might auto-resolve in some cases
-      console.warn(`[Flux] Could not fetch model versions, will try using model name directly`);
+      const errorText = await response.text();
+      console.warn(`[ImageGen] Could not fetch model versions for ${modelName} (${response.status}): ${errorText}`);
+      // Return model name - caller will use 'model' field instead of 'version'
       return modelName;
     }
 
     const data = await response.json();
     if (data.results && data.results.length > 0) {
-      // Return the latest version (first in results)
-      return data.results[0].id;
+      const versionId = data.results[0].id;
+      // Validate version ID format (should be a hash, typically 64 characters)
+      if (versionId && versionId.length >= 20 && !versionId.includes('/')) {
+        console.log(`[ImageGen] ✓ Fetched version ${versionId.substring(0, 20)}... for ${modelName}`);
+        return versionId;
+      } else {
+        console.warn(`[ImageGen] Invalid version ID format: ${versionId}, using model name`);
+        return modelName;
+      }
     }
 
     // Fallback to model name
+    console.warn(`[ImageGen] No versions found for ${modelName}, using model name directly`);
     return modelName;
-  } catch (error) {
-    console.warn(`[Flux] Error fetching model version: ${error}. Using model name directly.`);
+  } catch (error: any) {
+    console.warn(`[ImageGen] Error fetching model version for ${modelName}: ${error.message}. Using model name directly.`);
     return modelName;
   }
 }
