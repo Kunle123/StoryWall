@@ -1572,27 +1572,20 @@ export async function POST(request: NextRequest) {
         const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
         
         if (hasReferenceImages) {
-          // For both artistic and photorealistic styles with reference images: use Google Imagen
-          // Imagen provides better person matching and is cheaper ($0.02 vs $0.04 for Flux Kontext Pro)
-          if (isArtistic || isPhotorealistic) {
-            selectedModel = MODELS.PHOTOREALISTIC; // Google Imagen 4 Fast
-            const styleType = isArtistic ? 'artistic' : 'photorealistic';
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Google Imagen 4 Fast (${styleType} style with reference images, $0.02/image, better person matching)`);
+          // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
+          // This is cheaper than Flux Kontext Pro and works well with SDXL
+          if (isSDXL || isArtistic) {
+            selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter (SDXL + IP-Adapter)
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to IP-Adapter (SDXL with reference images, $0.002-0.005/image)`);
           } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
             console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (with reference images, $0.04/image)`);
           }
         } else {
-          // No reference images - SDXL is fine to use
+          // No reference images - SDXL is the default for all styles
           if (isSDXL) {
-            console.log(`[ImageGen] Using SDXL (${selectedModel}) - no reference images, safe to use`);
-          }
-          // No reference images - use cheaper models when possible
-          // For photorealistic, use Google Imagen 4 Fast ($0.02/image) instead of Flux Dev ($0.025-0.030/image)
-          if (selectedModel === MODELS.PHOTOREALISTIC) {
-            // Keep Imagen 4 Fast - it's cheaper and available on Replicate
-            console.log(`[ImageGen] Using Google Imagen 4 Fast for photorealistic (no reference images, $0.02/image)`);
+            console.log(`[ImageGen] Using SDXL (${selectedModel}) - default model for all styles`);
           }
         }
         
@@ -1696,25 +1689,33 @@ export async function POST(request: NextRequest) {
           }
           
           // Add negative prompt for artistic styles
-          // Prevent grids, panels, and multiple images
+          // Prevent grids, panels, multiple images, text, brand names, logos
           // If faceless mannequin, also prevent faces
-          const baseNegativePrompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+          const baseNegativePrompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, brand names, company names, logos, Netflix, Amazon, Google, Apple, Microsoft, Facebook, Twitter, Instagram, YouTube, Disney, HBO, CNN, BBC, CBS, NBC, ABC, ESPN, service names, streaming services, platform logos, trademark symbols, copyright symbols, registered trademarks, brand logos, company logos, corporate logos, product logos, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
           const facelessNegativePrompt = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
           if (!needsText) {
             input.negative_prompt = baseNegativePrompt + facelessNegativePrompt;
           }
-        } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
+        } else if (selectedModel.includes('imagen')) {
           // Google Imagen 4 Fast - supports image input for image-to-image
+          // Note: This is only used if explicitly selected, not as default
           input.prompt = prompt;
           
           // Disable prompt rewriting for better person matching control
           // enhancePrompt can interfere with specific person matching instructions
           input.enhancePrompt = false;
           
-          // Add negative prompt for Imagen if faceless mannequin
+          // Add negative prompt for Imagen - prevent text, brand names, logos, and faces if needed
+          const imagenNegativeParts: string[] = [];
+          if (!needsText) {
+            imagenNegativeParts.push("text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, brand names, company names, logos, Netflix, Amazon, Google, Apple, Microsoft, Facebook, Twitter, Instagram, YouTube, Disney, HBO, CNN, BBC, CBS, NBC, ABC, ESPN, service names, streaming services, platform logos, trademark symbols, copyright symbols, registered trademarks, brand logos, company logos, corporate logos, product logos");
+          }
           if (isFacelessMannequin) {
-            // Imagen uses negative_prompt parameter
-            input.negative_prompt = "face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure, grid, grids, multiple images, image grid, panel, panels";
+            imagenNegativeParts.push("face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure");
+          }
+          imagenNegativeParts.push("grid, grids, multiple images, image grid, panel, panels");
+          if (imagenNegativeParts.length > 0) {
+            input.negative_prompt = imagenNegativeParts.join(", ");
           }
           
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
@@ -1976,7 +1977,8 @@ export async function POST(request: NextRequest) {
               input.num_inference_steps = 25;
               if (referenceImageUrl) input.image = referenceImageUrl;
               if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
-            } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
+            } else if (selectedModel.includes('imagen')) {
+              // Google Imagen - only used if explicitly selected
               input.enhancePrompt = false;
               if (referenceImageUrl) input.image = referenceImageUrl;
             } else if (selectedModel.includes('flux-kontext-pro')) {
