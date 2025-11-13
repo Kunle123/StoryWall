@@ -152,6 +152,26 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Batching: For long timelines (>10 events), process in chunks
+    const BATCH_SIZE = 10;
+    const MAX_CONCURRENT_BATCHES = 3;
+    
+    if (events.length > BATCH_SIZE) {
+      console.log(`[GenerateDescriptionsV2] Batching ${events.length} events into chunks of ${BATCH_SIZE}`);
+      return await generateBatched(client, {
+        events: eventsWithFacts,
+        timelineDescription,
+        writingStyle,
+        imageStyle,
+        themeColor,
+        sourceRestrictions,
+        imageContext,
+        canUseCelebrityLikeness,
+        hasFactualDetails: Object.keys(factualDetails).length > 0,
+        cacheKey,
+      });
+    }
+
     // Load unified prompts (single call for everything)
     const unifiedPrompts = loadUnifiedPrompts({
       timelineDescription,
@@ -350,5 +370,163 @@ ${events.map((e: any) => {
   }
   
   return {};
+}
+
+/**
+ * Generate descriptions for long timelines using batching
+ */
+async function generateBatched(
+  client: any,
+  params: {
+    events: Array<{ year?: number; title: string; facts?: string[] }>;
+    timelineDescription: string;
+    writingStyle: string;
+    imageStyle?: string;
+    themeColor?: string;
+    sourceRestrictions?: string[];
+    imageContext?: string;
+    canUseCelebrityLikeness: boolean;
+    hasFactualDetails: boolean;
+    cacheKey: string;
+  }
+): Promise<NextResponse> {
+  const BATCH_SIZE = 10;
+  const MAX_CONCURRENT = 3;
+  
+  // Split events into batches
+  const batches: Array<Array<{ year?: number; title: string; facts?: string[] }>> = [];
+  for (let i = 0; i < params.events.length; i += BATCH_SIZE) {
+    batches.push(params.events.slice(i, i + BATCH_SIZE));
+  }
+  
+  console.log(`[GenerateDescriptionsV2] Processing ${batches.length} batches (${params.events.length} total events)`);
+  
+  // Generate anchor style first (from first batch)
+  let anchorStyle = '';
+  try {
+    const firstBatchPrompts = loadUnifiedPrompts({
+      timelineDescription: params.timelineDescription,
+      events: batches[0],
+      writingStyle: params.writingStyle,
+      imageStyle: params.imageStyle,
+      themeColor: params.themeColor,
+      sourceRestrictions: params.sourceRestrictions,
+      imageContext: params.imageContext,
+      eventCount: batches[0].length,
+      canUseCelebrityLikeness: params.canUseCelebrityLikeness,
+      hasFactualDetails: params.hasFactualDetails,
+      anchorStylePreview: '',
+    });
+    
+    const anchorResponse = await createChatCompletion(client, {
+      model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: firstBatchPrompts.system },
+        { role: 'user', content: firstBatchPrompts.user },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 2000 + (batches[0].length * 400) + 300,
+    });
+    
+    if (anchorResponse.choices?.[0]?.message?.content) {
+      const anchorContent = JSON.parse(anchorResponse.choices[0].message.content);
+      anchorStyle = anchorContent.anchorStyle || '';
+    }
+  } catch (error: any) {
+    console.warn('[GenerateDescriptionsV2] Anchor generation failed, continuing:', error.message);
+  }
+  
+  const anchorStylePreview = anchorStyle.length > 80 
+    ? anchorStyle.substring(0, 80) + '...'
+    : anchorStyle;
+  
+  // Process batches in parallel (with concurrency limit)
+  const allDescriptions: string[] = [];
+  const allImagePrompts: string[] = [];
+  
+  // Process batches with concurrency control
+  for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
+    const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
+    
+    const batchPromises = concurrentBatches.map(async (batch, batchIdx) => {
+      const batchPrompts = loadUnifiedPrompts({
+        timelineDescription: params.timelineDescription,
+        events: batch,
+        writingStyle: params.writingStyle,
+        imageStyle: params.imageStyle,
+        themeColor: params.themeColor,
+        sourceRestrictions: params.sourceRestrictions,
+        imageContext: params.imageContext,
+        eventCount: batch.length,
+        canUseCelebrityLikeness: params.canUseCelebrityLikeness,
+        hasFactualDetails: params.hasFactualDetails,
+        anchorStylePreview,
+      });
+      
+      const response = await createChatCompletion(client, {
+        model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: batchPrompts.system },
+          { role: 'user', content: batchPrompts.user },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+        max_tokens: 2000 + (batch.length * 400),
+      });
+      
+      if (!response.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from batch');
+      }
+      
+      const content = JSON.parse(response.choices[0].message.content);
+      const items = content.items || [];
+      
+      return {
+        descriptions: items.map((item: any) => item.description || ''),
+        imagePrompts: items.map((item: any) => {
+          let prompt = item.imagePrompt || '';
+          if (anchorStylePreview && !prompt.includes('ANCHOR:')) {
+            prompt = `ANCHOR: ${anchorStylePreview}. ${prompt}`;
+          }
+          return prompt;
+        }),
+      };
+    });
+    
+    const batchResults = await Promise.allSettled(batchPromises);
+    
+    batchResults.forEach((result, idx) => {
+      if (result.status === 'fulfilled') {
+        allDescriptions.push(...result.value.descriptions);
+        allImagePrompts.push(...result.value.imagePrompts);
+      } else {
+        console.error(`[GenerateDescriptionsV2] Batch ${i + idx} failed:`, result.reason);
+        // Fill with placeholders for failed batches
+        const batchSize = concurrentBatches[idx].length;
+        allDescriptions.push(...Array(batchSize).fill('Description not generated.'));
+        allImagePrompts.push(...Array(batchSize).fill(''));
+      }
+    });
+  }
+  
+  // Ensure correct length
+  while (allDescriptions.length < params.events.length) {
+    allDescriptions.push('Description not generated.');
+  }
+  while (allImagePrompts.length < params.events.length) {
+    allImagePrompts.push('');
+  }
+  
+  const responseData: any = {
+    descriptions: allDescriptions.slice(0, params.events.length),
+    imagePrompts: allImagePrompts.slice(0, params.events.length),
+    anchorStyle: anchorStyle || null,
+  };
+  
+  // Cache the result
+  setCached(params.cacheKey, responseData);
+  
+  return NextResponse.json(responseData);
 }
 

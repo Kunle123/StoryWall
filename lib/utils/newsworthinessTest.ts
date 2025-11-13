@@ -23,14 +23,83 @@ export interface NewsworthinessTestResult {
 }
 
 /**
+ * Heuristic pre-filter for newsworthiness (fast, no API call)
+ * Returns null if ambiguous (needs full test), otherwise returns quick result
+ */
+function quickNewsworthinessCheck(
+  timelineTitle: string,
+  timelineDescription: string
+): NewsworthinessTestResult | null {
+  const titleLower = timelineTitle.toLowerCase();
+  const descLower = timelineDescription.toLowerCase();
+  const combined = `${titleLower} ${descLower}`;
+  
+  // Clear newsworthy indicators (political, death, major events)
+  const newsworthyKeywords = [
+    'election', 'president', 'governor', 'mayor', 'senator', 'congress', 'parliament',
+    'death', 'dies', 'passed away', 'obituary', 'memorial',
+    'scandal', 'trial', 'court', 'lawsuit', 'arrest', 'charged',
+    'award', 'oscar', 'nobel', 'grammy', 'emmy',
+    'marriage', 'divorce', 'announcement', 'public statement',
+    'war', 'conflict', 'crisis', 'disaster', 'emergency',
+  ];
+  
+  // Clear non-newsworthy indicators (entertainment, films, general biography)
+  const nonNewsworthyKeywords = [
+    'film', 'movie', 'actor', 'actress', 'celebrity', 'star',
+    'biography', 'life story', 'career', 'filmography',
+    'timeline of', 'story of', 'history of',
+  ];
+  
+  const hasNewsworthy = newsworthyKeywords.some(kw => combined.includes(kw));
+  const hasNonNewsworthy = nonNewsworthyKeywords.some(kw => combined.includes(kw));
+  
+  // If clearly newsworthy, return early
+  if (hasNewsworthy && !hasNonNewsworthy) {
+    return {
+      canUseLikeness: true,
+      riskLevel: 'Low',
+      justification: 'Timeline contains clear newsworthy events (election, death, major public events)',
+      recommendation: 'Likeness usage is appropriate for newsworthy content',
+    };
+  }
+  
+  // If clearly non-newsworthy entertainment, return early
+  if (hasNonNewsworthy && !hasNewsworthy && 
+      (titleLower.includes('film') || titleLower.includes('movie') || 
+       descLower.includes('film') || descLower.includes('movie'))) {
+    return {
+      canUseLikeness: false,
+      riskLevel: 'High',
+      justification: 'Timeline is about entertainment/films without clear newsworthy angle',
+      recommendation: 'Use mood-based, faceless representations instead of celebrity likenesses',
+    };
+  }
+  
+  // Ambiguous - needs full test
+  return null;
+}
+
+/**
  * Test if a timeline project can use celebrity likenesses
  * Returns true if newsworthy/transformative use, false otherwise
+ * 
+ * Optimized: Uses heuristic pre-filter to avoid expensive API call when possible
  */
 export async function testNewsworthiness(
   timelineTitle: string,
   timelineDescription: string
 ): Promise<NewsworthinessTestResult> {
   try {
+    // Quick heuristic check first (no API call)
+    const quickResult = quickNewsworthinessCheck(timelineTitle, timelineDescription);
+    if (quickResult) {
+      console.log('[NewsworthinessTest] Quick heuristic result:', quickResult.riskLevel);
+      return quickResult;
+    }
+    
+    // Ambiguous case - need full AI test
+    console.log('[NewsworthinessTest] Ambiguous case, running full AI test');
     const client = getAIClient();
     
     // Load newsworthiness test prompts

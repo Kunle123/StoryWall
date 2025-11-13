@@ -3,7 +3,23 @@
  * Supports both OpenAI and Kimi (Moonshot AI) APIs
  */
 
+import https from 'https';
+import http from 'http';
+
 export type AIProvider = 'openai' | 'kimi';
+
+// HTTP keep-alive agent for connection pooling
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  keepAliveMsecs: 30000,
+});
+
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 50,
+  keepAliveMsecs: 30000,
+});
 
 export interface AIClientConfig {
   provider: AIProvider;
@@ -187,13 +203,20 @@ export async function createChatCompletion(
     requestBody.tools = options.tools;
   }
   
+  // Use keep-alive agent for connection pooling
+  const isHttps = url.startsWith('https://');
+  const agent = isHttps ? httpsAgent : httpAgent;
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${config.apiKey}`,
       'Content-Type': 'application/json',
+      'Connection': 'keep-alive',
     },
     body: JSON.stringify(requestBody),
+    // @ts-ignore - agent is supported in Node.js fetch
+    agent,
   });
 
   if (!response.ok) {
