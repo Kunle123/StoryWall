@@ -56,9 +56,17 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     if (!a.number && b.number) return 1;
     // Both are dated events, sort by date
     if (a.year && b.year) {
-      const dateA = new Date(a.year, a.month || 0, a.day || 1);
-      const dateB = new Date(b.year, b.month || 0, b.day || 1);
-      return dateA.getTime() - dateB.getTime();
+      // For BC dates (negative years), compare directly
+      // For AD dates, use Date objects
+      if (a.year < 0 || b.year < 0) {
+        // At least one is BC - compare years directly (negative years are earlier)
+        return a.year - b.year;
+      } else {
+        // Both are AD - use Date objects for accurate comparison
+        const dateA = new Date(a.year, a.month || 0, a.day || 1);
+        const dateB = new Date(b.year, b.month || 0, b.day || 1);
+        return dateA.getTime() - dateB.getTime();
+      }
     }
     // Fallback: keep original order
     return 0;
@@ -85,9 +93,31 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     totalTimeSpan = endDate.getTime() - startDate.getTime();
   } else {
     // For dated events, use actual dates
-    startDate = new Date(earliestEvent?.year || 1886, earliestEvent?.month || 0, earliestEvent?.day || 1);
-    endDate = new Date(latestEvent?.year || 2026, latestEvent?.month || 0, latestEvent?.day || 1);
-    totalTimeSpan = endDate.getTime() - startDate.getTime();
+    // Handle BC dates: use year directly for calculations, not Date objects
+    const startYear = earliestEvent?.year || 1886;
+    const endYear = latestEvent?.year || 2026;
+    
+    // For BC dates (negative years), calculate time span using years directly
+    // Convert to milliseconds: 1 year = 365.25 * 24 * 60 * 60 * 1000 ms
+    const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+    totalTimeSpan = (endYear - startYear) * msPerYear;
+    
+    // Create Date objects for display purposes (use absolute values for BC)
+    // For BC dates, we'll use a reference point and calculate offsets
+    if (startYear < 0 || endYear < 0) {
+      // Mixed BC/AD or all BC: use year 0 as reference
+      const referenceYear = 0;
+      startDate = new Date(referenceYear, earliestEvent?.month || 0, earliestEvent?.day || 1);
+      endDate = new Date(referenceYear, latestEvent?.month || 0, latestEvent?.day || 1);
+      // Adjust by the year difference
+      startDate.setFullYear(startDate.getFullYear() + startYear);
+      endDate.setFullYear(endDate.getFullYear() + endYear);
+    } else {
+      // Both AD dates
+      startDate = new Date(startYear, earliestEvent?.month || 0, earliestEvent?.day || 1);
+      endDate = new Date(endYear, latestEvent?.month || 0, latestEvent?.day || 1);
+      totalTimeSpan = endDate.getTime() - startDate.getTime();
+    }
   }
 
   // Calculate position as percentage of timeline height
@@ -101,11 +131,23 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       return ((event.number - minNumber) / numberRange) * 100;
     } else if (event.year) {
       // For dated events, position based on date
-      const eventDate = new Date(event.year, event.month || 0, event.day || 1);
-      const timeDiff = eventDate.getTime() - startDate.getTime();
-      // Guard against division by zero (all events at same date)
-      if (totalTimeSpan === 0) return 0;
-      return (timeDiff / totalTimeSpan) * 100;
+      // Handle BC dates: calculate position using years directly
+      if (event.year < 0 || startDate.getFullYear() < 0 || endDate.getFullYear() < 0) {
+        // BC dates or mixed: use year-based calculation
+        const startYear = earliestEvent?.year || 1886;
+        const endYear = latestEvent?.year || 2026;
+        const yearRange = endYear - startYear;
+        if (yearRange === 0) return 0;
+        const yearPosition = (event.year - startYear) / yearRange;
+        return yearPosition * 100;
+      } else {
+        // Both AD dates: use Date objects
+        const eventDate = new Date(event.year, event.month || 0, event.day || 1);
+        const timeDiff = eventDate.getTime() - startDate.getTime();
+        // Guard against division by zero (all events at same date)
+        if (totalTimeSpan === 0) return 0;
+        return (timeDiff / totalTimeSpan) * 100;
+      }
     }
     return 0;
   };

@@ -380,7 +380,7 @@ export const TimelineInfoStep = ({
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                For &gt; 20 events, enter the max number here. (If using AI, additional images will require 0.5 credits each)
+                For &gt; 20 events, enter the max number here. (If using AI, each image costs 1 credit)
               </p>
             )}
             {setMaxEvents && (

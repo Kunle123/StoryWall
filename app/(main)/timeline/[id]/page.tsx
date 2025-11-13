@@ -246,26 +246,50 @@ const TimelinePage = () => {
           day: e.day,
         }));
         const hasAny = datedEvents.length > 0;
-        const startDate = hasAny ? new Date(Math.min(
-          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
-            // For start date, use Jan 1 if month/day missing
-            return new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
-          })
-        )) : undefined;
-        const endDate = hasAny ? new Date(Math.max(
-          ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
-            // For end date, use actual date if available
-            if (e.month && e.day) {
-              return new Date(e.year, e.month - 1, e.day).getTime();
-            } else if (e.month) {
-              // If only month is available, use the last day of that month
-              return new Date(e.year, e.month, 0).getTime(); // Day 0 = last day of previous month
-            } else {
-              // If only year is available, use Dec 31 of that year to ensure it's the latest
-              return new Date(e.year, 11, 31).getTime();
-            }
-          })
-        )) : undefined;
+        
+        // Check if any events have BC dates (negative years)
+        const hasBCDates = datedEvents.some((e: { year: number }) => e.year < 0);
+        
+        let startDate: Date | undefined;
+        let endDate: Date | undefined;
+        
+        if (hasAny) {
+          if (hasBCDates) {
+            // For BC dates, calculate using years directly
+            const years = datedEvents.map((e: { year: number }) => e.year);
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
+            
+            // Create Date objects using year 0 as reference, then adjust
+            const referenceYear = 0;
+            startDate = new Date(referenceYear, 0, 1);
+            endDate = new Date(referenceYear, 11, 31);
+            startDate.setFullYear(startDate.getFullYear() + minYear);
+            endDate.setFullYear(endDate.getFullYear() + maxYear);
+          } else {
+            // All AD dates: use Date objects normally
+            startDate = new Date(Math.min(
+              ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
+                // For start date, use Jan 1 if month/day missing
+                return new Date(e.year, (e.month || 1) - 1, e.day || 1).getTime();
+              })
+            ));
+            endDate = new Date(Math.max(
+              ...datedEvents.map((e: { year: number; month?: number; day?: number }) => {
+                // For end date, use actual date if available
+                if (e.month && e.day) {
+                  return new Date(e.year, e.month - 1, e.day).getTime();
+                } else if (e.month) {
+                  // If only month is available, use the last day of that month
+                  return new Date(e.year, e.month, 0).getTime(); // Day 0 = last day of previous month
+                } else {
+                  // If only year is available, use Dec 31 of that year to ensure it's the latest
+                  return new Date(e.year, 11, 31).getTime();
+                }
+              })
+            ));
+          }
+        }
         const timelinePosition = (() => {
           // For numbered events, calculate position based on number
           if (centeredEvent?.number !== undefined) {
@@ -279,19 +303,36 @@ const TimelinePage = () => {
           // For dated events, calculate position based on actual date, not event index
           if (!centeredEvent || centeredEvent.year === undefined || !startDate || !endDate) return 0.5;
           
-          // Calculate the event's date
-          const eventDate = new Date(
-            centeredEvent.year, 
-            (centeredEvent.month || 1) - 1, 
-            centeredEvent.day || 1
-          ).getTime();
-          
-          // Calculate position based on date span, not event count
-          const totalSpan = endDate.getTime() - startDate.getTime();
-          if (totalSpan <= 0) return 0.5;
-          
-          const position = (eventDate - startDate.getTime()) / totalSpan;
-          return Math.min(Math.max(position, 0), 1);
+          // Handle BC dates: use year-based calculation for negative years
+          if (centeredEvent.year < 0) {
+            // BC date: calculate position using years directly
+            const allEvents = events.length > 0 ? events : (timeline.events || []);
+            const datedEvents = allEvents.filter((e: any) => e.year !== undefined);
+            if (datedEvents.length === 0) return 0.5;
+            
+            const years = datedEvents.map((e: any) => e.year).filter((y: any) => y !== undefined);
+            const minYear = Math.min(...years);
+            const maxYear = Math.max(...years);
+            const yearRange = maxYear - minYear;
+            if (yearRange === 0) return 0.5;
+            
+            const yearPosition = (centeredEvent.year - minYear) / yearRange;
+            return Math.min(Math.max(yearPosition, 0), 1);
+          } else {
+            // AD date: use Date objects
+            const eventDate = new Date(
+              centeredEvent.year, 
+              (centeredEvent.month || 1) - 1, 
+              centeredEvent.day || 1
+            ).getTime();
+            
+            // Calculate position based on date span, not event count
+            const totalSpan = endDate.getTime() - startDate.getTime();
+            if (totalSpan <= 0) return 0.5;
+            
+            const position = (eventDate - startDate.getTime()) / totalSpan;
+            return Math.min(Math.max(position, 0), 1);
+          }
         })();
         const formattedDate = formatSelectedDate(centeredEvent, startDate, endDate);
         return (

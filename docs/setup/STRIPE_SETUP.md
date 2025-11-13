@@ -145,10 +145,9 @@ Once testing works:
 ## Credit Package Pricing
 
 Current pricing:
-- **Mini Pack:** 10 credits for $1.49
-- **Starter Pack:** 100 credits for $12.99
-- **Popular Pack:** 200 credits for $19.99 (marked as popular)
-- **Pro Pack:** 1,000 credits for $79.99
+- **Mini Pack:** 20 credits for $1.49
+- **Starter Pack:** 200 credits for $12.99
+- **Pro Pack:** 2,000 credits for $79.99
 
 ## Troubleshooting
 

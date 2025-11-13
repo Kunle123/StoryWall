@@ -38,7 +38,7 @@ The timeline creation process consists of **6 steps** that guide users through c
   
 - **Max Events** (number input, 1-100)
   - Default: 20
-  - For >20 events, additional images cost 0.5 credits each
+  - Each image costs 1 credit
 
 #### Advanced Options
 - **Allow Fictional Information** (toggle switch)
@@ -262,9 +262,8 @@ The timeline creation process consists of **6 steps** that guide users through c
 **Cost Display**
 - Shows selected event count
 - Cost calculation:
-  - First 20 images: **10 credits**
-  - Each additional image: **0.5 credits**
-  - Example: 25 events = 10 + (5 × 0.5) = **12.5 credits**
+  - Each image: **1 credit**
+  - Example: 13 events = **13 credits**
 
 **Generate Button**
 - Calls: `POST /api/ai/generate-images`
@@ -379,8 +378,7 @@ POST /api/ai/generate-images
 ```
 - **Purpose**: Generate images for events
 - **Cost**: 
-  - First 20 images: 10 credits
-  - Each additional: 0.5 credits
+  - Each image: 1 credit
   - Regeneration: First 5 free, then 10 credits each
 - **Returns**: Image URLs array
 - **Auto-retry**: Failed images retried up to 2 times
@@ -417,8 +415,7 @@ POST /api/events
 |--------|------|
 | Generate Events | FREE |
 | Generate Descriptions | FREE |
-| Generate Images (first 20) | 10 credits |
-| Generate Images (each additional) | 0.5 credits |
+| Generate Images | 1 credit per image |
 | Regenerate Image (first 5 per event) | FREE |
 | Regenerate Image (after 5) | 10 credits |
 | Upload Images | FREE |
@@ -536,7 +533,7 @@ POST /api/events
 
 ### Credit System
 - Free: Events, Descriptions
-- Paid: Images (10 credits for first 20, 0.5 per additional)
+- Paid: Images (1 credit per image)
 - Free Regenerations: First 5 per event
 
 ### AI Features

@@ -15,7 +15,7 @@ interface BuyCreditsModalProps {
 const creditPackages = [
   {
     name: "Mini Pack",
-    credits: 10,
+    credits: 20,
     price: "$1.49",
     priceId: "mini", // Will be replaced with Stripe price ID
     icon: Coins,
@@ -23,23 +23,15 @@ const creditPackages = [
   },
   {
     name: "Starter Pack",
-    credits: 100,
+    credits: 200,
     price: "$12.99",
     priceId: "starter", // Will be replaced with Stripe price ID
     icon: Coins,
-    popular: false,
-  },
-  {
-    name: "Popular Pack",
-    credits: 200,
-    price: "$19.99",
-    priceId: "popular", // Will be replaced with Stripe price ID
-    icon: Sparkles,
     popular: true,
   },
   {
     name: "Pro Pack",
-    credits: 1000,
+    credits: 2000,
     price: "$79.99",
     priceId: "pro", // Will be replaced with Stripe price ID
     icon: Zap,

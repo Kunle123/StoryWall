@@ -312,22 +312,49 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
   }
   
   // For dated events, parse the date
-  const date = new Date(apiEvent.date);
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+  // Handle BC dates correctly - JavaScript Date doesn't handle negative years
+  const dateStr = typeof apiEvent.date === 'string' ? apiEvent.date : apiEvent.date.toISOString().split('T')[0];
   
-  // Check if date is Jan 1 - if so, treat as year-only (no placeholder dates)
-  // Only include month/day if the date is NOT Jan 1
-  // This way, year-only events stored as Jan 1 won't display as "Jan 1"
-  const isYearOnly = month === 1 && day === 1 && year !== 1; // Exclude year 1 (used for numbered events)
+  // Check if this is a BC date (starts with negative sign in ISO format)
+  // BC dates are stored as negative years in ISO format: "-9500-01-01"
+  let year: number;
+  let month: number | undefined;
+  let day: number | undefined;
+  
+  if (dateStr.startsWith('-')) {
+    // BC date: parse from string directly
+    const match = dateStr.match(/^-(\d+)-(\d+)-(\d+)$/);
+    if (match) {
+      year = -parseInt(match[1], 10); // Negative year for BC
+      const monthNum = parseInt(match[2], 10);
+      const dayNum = parseInt(match[3], 10);
+      // Only include month/day if not Jan 1 (year-only placeholder)
+      if (monthNum !== 1 || dayNum !== 1) {
+        month = monthNum;
+        day = dayNum;
+      }
+    } else {
+      // Fallback: try to parse as number
+      year = parseInt(dateStr.split('-')[0], 10);
+    }
+  } else {
+    // AD date: use Date object
+    const date = new Date(apiEvent.date);
+    year = date.getFullYear();
+    const monthNum = date.getMonth() + 1;
+    const dayNum = date.getDate();
+    // Only include month/day if not Jan 1 (year-only placeholder)
+    if (monthNum !== 1 || dayNum !== 1 || year === 1) {
+      month = monthNum;
+      day = dayNum;
+    }
+  }
   
   return {
     id: apiEvent.id,
     year: year,
-    // Only include month/day if it's not a year-only placeholder
-    month: isYearOnly ? undefined : month,
-    day: isYearOnly ? undefined : day,
+    month: month,
+    day: day,
     title: apiEvent.title,
     description: apiEvent.description,
     category: apiEvent.category,
