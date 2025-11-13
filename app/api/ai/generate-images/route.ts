@@ -1551,10 +1551,11 @@ export async function POST(request: NextRequest) {
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
     
-    // Step 1: Create all predictions in parallel
+        // Step 1: Create all predictions in parallel
     const predictionPromises = eventsWithTextNeeds.map(async ({ event, needsText }, index) => {
       // Define prompt at function scope so it's accessible in catch block
       let prompt: string = '';
+      let isFacelessMannequin = false;
       
       try {
         // Select model based on style and text needs
@@ -1649,6 +1650,16 @@ export async function POST(request: NextRequest) {
           anchorStyle // Pass Anchor if available
         );
         
+        // Check if this is a faceless mannequin prompt (after prompt is built)
+        isFacelessMannequin = event.imagePrompt?.toLowerCase().includes('faceless') || 
+                               event.imagePrompt?.toLowerCase().includes('mannequin') ||
+                               prompt.toLowerCase().includes('faceless') ||
+                               prompt.toLowerCase().includes('mannequin');
+        
+        if (isFacelessMannequin) {
+          console.log(`[ImageGen] ✓ Detected faceless mannequin prompt - adding negative prompts to prevent faces`);
+        }
+        
         // Log the prompt being sent (for debugging)
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
         console.log(`[ImageGen] Full prompt for "${event.title}":`, prompt);
@@ -1686,8 +1697,11 @@ export async function POST(request: NextRequest) {
           
           // Add negative prompt for artistic styles
           // Prevent grids, panels, and multiple images
+          // If faceless mannequin, also prevent faces
+          const baseNegativePrompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+          const facelessNegativePrompt = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
           if (!needsText) {
-            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+            input.negative_prompt = baseNegativePrompt + facelessNegativePrompt;
           }
         } else if (selectedModel.includes('imagen') || selectedModel === MODELS.PHOTOREALISTIC) {
           // Google Imagen 4 Fast - supports image input for image-to-image
@@ -1696,6 +1710,12 @@ export async function POST(request: NextRequest) {
           // Disable prompt rewriting for better person matching control
           // enhancePrompt can interfere with specific person matching instructions
           input.enhancePrompt = false;
+          
+          // Add negative prompt for Imagen if faceless mannequin
+          if (isFacelessMannequin) {
+            // Imagen uses negative_prompt parameter
+            input.negative_prompt = "face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure, grid, grids, multiple images, image grid, panel, panels";
+          }
           
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
@@ -1773,12 +1793,12 @@ export async function POST(request: NextRequest) {
           // Add negative prompt for SDXL - strongly discourage text in all cases
           // Most images should be pure visual without any text
           // Also prevent grids, panels, multiple images, comic strips
-          if (!needsText) {
-            input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
-          } else {
-            // Even when text is needed, minimize it and avoid errors
-            input.negative_prompt = "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
-          }
+          // If faceless mannequin, also prevent faces
+          const baseNegativeSDXL = !needsText 
+            ? "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage"
+            : "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+          const facelessNegativeSDXL = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
+          input.negative_prompt = baseNegativeSDXL + facelessNegativeSDXL;
           
           // Add reference image if available (for image-to-image transformation)
           // SDXL supports direct image input via 'image' parameter (URL from Replicate)

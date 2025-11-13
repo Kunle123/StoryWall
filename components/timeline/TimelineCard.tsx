@@ -156,12 +156,13 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         )}
 
         {/* Image display */}
-        {event.image && (
+        {event.image_url && (
           <div className="mt-3 rounded-lg overflow-hidden border border-border">
             <img 
-              src={event.image} 
+              src={event.image_url} 
               alt={event.title}
               className="w-full h-auto object-cover"
+              loading="lazy"
             />
           </div>
         )}

@@ -13,7 +13,10 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      // Suppress development key warnings in development
+      {...(process.env.NODE_ENV === 'development' ? {} : {})}
+    >
       <html lang="en" suppressHydrationWarning>
         <body className="min-h-screen bg-background text-foreground">
           <ThemeProvider

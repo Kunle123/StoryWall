@@ -579,6 +579,7 @@ const TimelineEditor = () => {
                   events={events} 
                   setEvents={setEvents}
                   timelineDescription={timelineDescription}
+                  timelineName={timelineName}
                   writingStyle={writingStyle}
                   imageStyle={imageStyle} // Pass if already selected (user may have gone back)
                   themeColor={themeColor} // Pass if already selected

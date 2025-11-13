@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion } from '@/lib/ai/client';
+import { loadAnchorPrompts, loadDescriptionPrompts } from '@/lib/prompts/loader';
+import { testNewsworthiness } from '@/lib/utils/newsworthinessTest';
 
 /**
  * Generate descriptions and image prompts for timeline events
@@ -22,7 +24,64 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { events, timelineDescription, writingStyle = 'narrative', imageStyle, themeColor, sourceRestrictions } = body;
+    const { events, timelineDescription, writingStyle = 'narrative', imageStyle, themeColor, sourceRestrictions, timelineTitle } = body;
+    
+    // Test newsworthiness if timeline title is provided
+    let canUseCelebrityLikeness = false;
+    let newsworthinessResult = null;
+    let hasViolation = false;
+    
+    if (timelineTitle && timelineDescription) {
+      try {
+        console.log('[GenerateDescriptions] Testing newsworthiness for celebrity likeness usage...');
+        newsworthinessResult = await testNewsworthiness(timelineTitle, timelineDescription);
+        canUseCelebrityLikeness = newsworthinessResult.canUseLikeness;
+        // Check if this is a celebrity timeline that failed the test
+        // We'll detect this by checking if the test explicitly says it's about celebrities/entertainment
+        const isCelebrityContent = newsworthinessResult.inferredAttributes?.subjects?.some((subject: string) => 
+          subject.toLowerCase().includes('celebrity') || 
+          subject.toLowerCase().includes('actor') ||
+          subject.toLowerCase().includes('film') ||
+          subject.toLowerCase().includes('movie')
+        ) || timelineTitle.toLowerCase().includes('film') || 
+           timelineTitle.toLowerCase().includes('movie') ||
+           timelineDescription.toLowerCase().includes('celebrity') ||
+           timelineDescription.toLowerCase().includes('actor');
+        
+        hasViolation = !canUseCelebrityLikeness && isCelebrityContent && newsworthinessResult.riskLevel === 'High';
+        
+        console.log('[GenerateDescriptions] Newsworthiness test result:', {
+          canUseLikeness: canUseCelebrityLikeness,
+          riskLevel: newsworthinessResult.riskLevel,
+          hasViolation,
+          isCelebrityContent,
+        });
+        
+        // If violation detected, return error immediately
+        if (hasViolation) {
+          return NextResponse.json(
+            { 
+              error: 'This timeline violates our Terms and Conditions. Please amend your description.',
+              newsworthinessViolation: {
+                message: 'This timeline violates our Terms and Conditions. Please amend your description.',
+                riskLevel: newsworthinessResult.riskLevel,
+                recommendation: newsworthinessResult.recommendation || 'Please revise your timeline to focus on newsworthy events or non-celebrity subjects.',
+              },
+            },
+            { status: 400 }
+          );
+        }
+      } catch (testError: any) {
+        console.warn('[GenerateDescriptions] Newsworthiness test failed, defaulting to safe mode:', testError.message);
+        // Default to safe mode (no celebrity likenesses) if test fails
+        canUseCelebrityLikeness = false;
+        hasViolation = false; // Don't show violation if test failed
+      }
+    } else {
+      console.log('[GenerateDescriptions] No timeline title provided, defaulting to safe mode (no celebrity likenesses)');
+      canUseCelebrityLikeness = false;
+      hasViolation = false;
+    }
 
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
@@ -88,6 +147,23 @@ export async function POST(request: NextRequest) {
 ${imageContext ? imageContext + '\n\n' : ''}Generate descriptions and image prompts for these ${events.length} events:
 
 ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n')}
+
+CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene with FACELESS MOOD DOUBLES:
+
+1. RECOGNIZABLE SCENES: Describe specific, iconic scenes that would be instantly recognizable even with faceless characters
+2. FACELESS MOOD DOUBLES: Replace characters with "faceless mannequin-like figures" (animated store mannequins) that have:
+   - EXACT same physique/build as the character
+   - EXACT same clothing and costume details
+   - EXACT same posture, stance, and body language
+   - EXACT same emotion conveyed through body language (not facial features)
+   - NO faces - completely blank/smooth where face would be
+3. HYPER-SPECIFIC DETAILS: Name EVERYTHING - locations, objects, actions, body positions, clothing details
+4. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there
+
+NEVER use poetic, metaphorical, or abstract language. Examples:
+- BAD: "A journey through darkness", "The weight of destiny", "Metaphors of power"
+- BAD: "A man crawling through a vent" (too vague)
+- GOOD: "A faceless mannequin-like figure with the physique of a 1980s cop, wearing a torn white tank top with visible soot, barefoot with cuts, crawling on hands and knees through a narrow metal air vent in a 1980s corporate building, with emergency red lighting filtering through grates - instantly recognizable as the air vent crawl scene"
 `;
 
     // Use AI abstraction layer (supports OpenAI and Kimi)
@@ -168,34 +244,28 @@ ${events.map((e: any, i: number) => `${i + 1}. ${e.year}: ${e.title}`).join('\n'
     console.log('[GenerateDescriptions] Generating Anchor style for visual consistency across all images...');
     
     try {
+      // Load anchor prompts from files
+      const anchorPrompts = loadAnchorPrompts({
+        timelineDescription,
+        eventTitles: events.map((e: any) => e.title).join(', '),
+        imageStyle: imageStyle || 'Illustration',
+        themeColor,
+      });
+      
       const anchorResponse = await createChatCompletion(client, {
         model: modelToUse,
         messages: [
           {
             role: 'system',
-            content: `You are a Director of Photography specializing in creating cohesive visual styles for documentary series. Your task is to analyze the subject matter and create a visual style (Anchor) that:
-1. Matches the emotional tone and mood of the subject matter
-2. Uses colors and treatments that are thematically appropriate
-3. Creates visual consistency across all images in the series
-4. Includes specific technical instructions (color washes, vignettes, lighting angles) that can be applied to every image
-
-Choose colors and moods that suit the subject matter:
-- Action/thriller: Darker tones, dramatic lighting, high contrast
-- Historical/documentary: Sepia, muted tones, documentary aesthetic
-- Medical/scientific: Clean, clinical lighting, neutral tones with subtle accents
-- Film/cultural commentary: Cinematic color grading, atmospheric treatments
-- Nature/environmental: Natural color palettes, organic lighting
-- Technology/futuristic: Cool tones, digital aesthetic, sharp lighting
-
-The output must be a single, reusable text block with SPECIFIC visual instructions that will be applied to all images.`,
+            content: anchorPrompts.system,
           },
           {
             role: 'user',
-            content: `Timeline Description: ${timelineDescription}\n\nEvent Titles: ${events.map((e: any) => e.title).join(', ')}\n\nUser's chosen image style: ${imageStyle || 'Illustration'}\n${themeColor ? `User's theme color: ${themeColor}` : ''}\n\nAnalyze the subject matter and create a detailed visual style (Anchor) that will be applied to EVERY image in this timeline. The Anchor must be thematically appropriate to the subject matter and include SPECIFIC visual instructions:\n\nREQUIRED ELEMENTS (choose colors/moods that suit the subject):\n1. Color treatment: Specify a color wash, tint, or filter that matches the subject's mood (e.g., for action films: "dark desaturated tones", for medical: "clean neutral with subtle blue cast", for historical: "warm sepia tone")\n2. Lighting/atmosphere: Specify lighting direction, quality, and mood that fits the subject (e.g., for thriller: "dramatic shadows and high contrast", for documentary: "even diffused lighting")\n3. Vignette or edge treatment: Specify vignette style, color, and angle that enhances the mood (e.g., "subtle dark vignette at edges", "45-degree angle gradient", "soft circular fade")\n4. Composition approach: Specify framing that suits the subject (e.g., "centered composition", "cinematic wide angle", "documentary framing")\n${themeColor ? `5. Theme color integration: Incorporate ${themeColor} as a color wash, lighting tone, or vignette color, but adapt it to suit the subject matter's mood` : ''}\n\nEXAMPLES (subject-appropriate):\n- Action film: "Apply a dark, desaturated color wash with high contrast. Dramatic side lighting creates strong shadows. Subtle dark vignette at edges with 45-degree angle. Cinematic wide angle composition."\n- Medical documentary: "Clean, neutral color palette with subtle cool blue cast. Even diffused lighting creates clinical aesthetic. Soft circular vignette fading to edges. Centered composition with balanced framing."\n- Historical timeline: "Warm sepia tone throughout with muted color palette. Soft directional lighting from upper left. Subtle dark vignette at corners. Documentary-style balanced composition."\n- Film review/cultural: "Cinematic color grading with atmospheric color wash matching the film's mood. Dramatic lighting creates depth. Soft edge darkening. Wide angle perspective with cinematic framing."\n\nOutput a detailed, reusable style description (3-5 sentences) that includes these specific visual instructions, choosing colors and moods that are thematically appropriate to "${timelineDescription}". This Anchor will be prepended to every image prompt to ensure visual consistency.`,
+            content: anchorPrompts.user,
           },
         ],
         temperature: 0.7,
-        max_tokens: 300, // Increased to allow for detailed visual instructions (vignettes, color washes, lighting angles)
+        max_tokens: 600, // Increased to allow for comprehensive mood parameters (palette, setting, character, emotion, cinematography)
       });
       
       if (anchorResponse.choices?.[0]?.message?.content) {
@@ -305,81 +375,45 @@ CRITICAL INSTRUCTIONS:
     
     let data;
     try {
-      // Build image prompt instructions - ALWAYS use Anchor if available for visual consistency
+      // Load description prompts from files
       const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
-      const imagePromptInstructions = anchorStyle
-        ? hasFactualDetails
-          ? `For each event, create a concise image prompt that:
-1. ALWAYS starts with the Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
-2. Accurately depicts the Factual Details for that specific stage (provided below)
-3. Focuses on the SUBJECT at that stage, not charts or abstract representations
-
-Keep prompts concise - the event-specific details should be the focus. The Anchor provides visual consistency but shouldn't dominate the prompt.
-
-Example:
-- Event: "Week 4: Neural Tube Forms"
-- Factual Details: ["The neural tube is closing", "A primitive S-shaped heart tube is forming", "The embryo is C-shaped"]
-- Prompt: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back and a primitive S-shaped heart tube forming."`
-          : `For each event, create a concise image prompt that:
-1. ALWAYS starts with the Anchor Style: "${anchorStyle.substring(0, 100)}${anchorStyle.length > 100 ? '...' : ''}"
-2. Describes the specific event at that moment/stage
-3. Focuses on the SUBJECT, not abstract representations
-
-Keep prompts concise - the event content should be the focus. The Anchor provides visual consistency but shouldn't dominate.
-
-Example: If Anchor is "medically accurate 3D renderings with soft lighting" and event is "Neural Tube Formation (Week 4)", the prompt should be: "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back."
-
-CRITICAL: The Anchor Style must be included at the start of EVERY image prompt to maintain visual consistency across all images in the timeline.`
-        : `For image prompts, create DIRECT, CLEAR descriptions that center the actual subject matter from the event title and description. The image prompt should directly state what to show at this specific stage/moment, allowing the viewer to see the progression of the story.
-
-${themeColor ? `IMPORTANT: Incorporate the theme color (${themeColor}) as a subtle visual motif throughout the image prompts. Use it as an accent color, lighting tone, or atmospheric element - not as the dominant color, but as a subtle thematic element that ties the series together.` : ''}
-
-CRITICAL: When events represent stages in a progression (e.g., fetal development, construction phases, disease stages), each image prompt should show the SUBJECT at that specific stage, not charts, screens, or abstract representations. Examples:
-- "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing neural tube formation"
-- "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"
-- "Heart Begins Beating" (Week 5) → "A detailed image of a fetus at 5 weeks gestation showing the developing heart"
-- "Framing Complete" (Construction) → "A detailed image of a building showing the completed structural framing"
-
-For non-progression events:
-- "A concert" → "A concert with musicians performing on stage"
-- "A bomb explosion" → "A bomb explosion with debris and smoke"
-- "A man giving a speech" → "A man standing and giving a speech to an audience"
-
-The image prompt should be a clear, direct statement of what to depict at this specific moment/stage, centered on the subject from the title and description. Be specific and concrete, showing the actual subject at this point in the progression, not abstract artistic interpretations or meta-representations (charts, screens, etc.).`;
+      const descriptionPrompts = loadDescriptionPrompts({
+        timelineDescription,
+        events,
+        writingStyle,
+        imageStyle,
+        themeColor,
+        anchorStyle,
+        hasFactualDetails,
+        sourceRestrictions,
+        imageContext,
+        eventCount: events.length,
+        styleInstructions,
+      });
+      
+      // Build user prompt with factual details if available
+      let finalUserPrompt = descriptionPrompts.user;
+      if (hasFactualDetails) {
+        finalUserPrompt += `\n\n**FACTUAL DETAILS FOR EACH EVENT (MUST BE ACCURATELY DEPICTED):**\n${events.map((e: any, idx: number) => {
+          const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
+          const facts = factualDetails[eventLabel] || [];
+          if (facts.length > 0) {
+            return `\n**Event ${idx + 1}: ${eventLabel}**\nFactual Details:\n${facts.map((f: string) => `- ${f}`).join('\n')}`;
+          }
+          return `\n**Event ${idx + 1}: ${eventLabel}**\n(No specific factual details available - use general knowledge)`;
+        }).join('\n')}`;
+      }
       
       data = await createChatCompletion(client, {
         model: modelToUse, // Use faster turbo model for Kimi
         messages: [
           {
             role: 'system',
-            content: `You are a timeline description writer and visual narrative expert. ${styleInstructions[normalizedStyle] || styleInstructions.narrative} Generate engaging descriptions for historical events. Each description should be 2-4 sentences and relevant to the event title and timeline context.
-
-${imagePromptInstructions}
-- "Foundation Laid" (Construction) → "A detailed image of a construction site showing the foundation being laid"
-- "Heart Begins Beating" (Week 5) → "A detailed image of a fetus at 5 weeks gestation showing the developing heart"
-- "Framing Complete" (Construction) → "A detailed image of a building showing the completed structural framing"
-
-For non-progression events:
-- "A concert" → "A concert with musicians performing on stage"
-- "A bomb explosion" → "A bomb explosion with debris and smoke"
-- "A man giving a speech" → "A man standing and giving a speech to an audience"
-
-The image prompt should be a clear, direct statement of what to depict at this specific moment/stage, centered on the subject from the title and description. Be specific and concrete, showing the actual subject at this point in the progression, not abstract artistic interpretations or meta-representations (charts, screens, etc.).
-
-Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each containing exactly ${events.length} items.`,
+            content: descriptionPrompts.system,
           },
           {
             role: 'user',
-            content: hasFactualDetails
-              ? `${userPrompt}\n\n**FACTUAL DETAILS FOR EACH EVENT (MUST BE ACCURATELY DEPICTED):**\n${events.map((e: any, idx: number) => {
-                  const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
-                  const facts = factualDetails[eventLabel] || [];
-                  if (facts.length > 0) {
-                    return `\n**Event ${idx + 1}: ${eventLabel}**\nFactual Details:\n${facts.map((f: string) => `- ${f}`).join('\n')}`;
-                  }
-                  return `\n**Event ${idx + 1}: ${eventLabel}**\n(No specific factual details available - use general knowledge)`;
-                }).join('\n')}`
-              : userPrompt,
+            content: finalUserPrompt,
           },
         ],
         response_format: { type: 'json_object' },

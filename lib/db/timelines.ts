@@ -177,7 +177,37 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
   try {
     console.log('[getTimelineById] Using raw SQL for id:', id);
     
+    // Ensure connection is active
+    try {
+      await prisma.$connect();
+    } catch (connectError) {
+      // Connection might already be active, ignore
+      console.log('[getTimelineById] Connection check:', connectError instanceof Error ? connectError.message : 'already connected');
+    }
+    
     // Use raw SQL to fetch timeline (without is_numbered and number_label since they don't exist)
+    // First try Prisma findUnique (simpler and more reliable)
+    try {
+      const timeline = await prisma.timeline.findUnique({
+        where: { id },
+        include: {
+          creator: true,
+          events: {
+            orderBy: { date: 'asc' },
+          },
+          categories: true,
+        },
+      });
+      
+      if (timeline) {
+        console.log('[getTimelineById] Found via Prisma findUnique');
+        return transformTimeline(timeline as any);
+      }
+    } catch (prismaError: any) {
+      console.log('[getTimelineById] Prisma findUnique failed, falling back to raw SQL:', prismaError.message);
+    }
+    
+    // Fallback to raw SQL if Prisma fails
     const query = `SELECT id, title, description, slug, creator_id, 
                visualization_type, is_public, is_collaborative, 
                view_count, created_at, updated_at
@@ -397,112 +427,124 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
 }
 
 export async function getTimelineBySlug(slug: string): Promise<Timeline | null> {
+  // Use raw SQL as primary method to avoid is_numbered column issues (same as getTimelineById)
   try {
-    const timeline = await prisma.timeline.findUnique({
-      where: { slug },
-      include: {
-        creator: true,
-        events: {
-          orderBy: { date: 'asc' },
-        },
-        categories: true,
-      },
-    });
-
-    if (!timeline) return null;
-    return transformTimeline(timeline);
-  } catch (error: any) {
-    // If error is about missing is_numbered column, use raw SQL as fallback
-    if (error.message?.includes('is_numbered') || error.message?.includes('isNumbered')) {
-      console.warn('[getTimelineBySlug] Falling back to raw SQL due to missing is_numbered column');
-      
-      // Use raw SQL to fetch timeline by slug
-      const query = `SELECT id, title, description, slug, creator_id, 
-               visualization_type, is_public, is_collaborative, 
-               view_count, created_at, updated_at
-        FROM timelines
-        WHERE slug = '${slug.replace(/'/g, "''")}'`;
-      const timelineRows = await prisma.$queryRawUnsafe<Array<{
-        id: string;
-        title: string;
-        description: string | null;
-        slug: string;
-        creator_id: string;
-        visualization_type: string;
-        is_public: boolean;
-        is_collaborative: boolean;
-        view_count: number;
-        created_at: Date;
-        updated_at: Date;
-      }>>(query);
-      
-      if (timelineRows.length === 0) return null;
-      
-      const timelineRow = timelineRows[0];
-      const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
-      
-      const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
-               image_url, location_lat, location_lng, location_name, 
-               category, links, created_by, created_at, updated_at
-        FROM events
-        WHERE timeline_id = '${timelineRow.id.replace(/'/g, "''")}'
-        ORDER BY date ASC`;
-      const eventRows = await prisma.$queryRawUnsafe<Array<any>>(eventsQuery);
-      
-      const events = eventRows.map((row: any) => ({
-        id: row.id,
-        timelineId: row.timeline_id,
-        title: row.title,
-        description: row.description,
-        date: row.date,
-        endDate: row.end_date,
-        number: null,
-        numberLabel: null,
-        imageUrl: row.image_url,
-        locationLat: row.location_lat,
-        locationLng: row.location_lng,
-        locationName: row.location_name,
-        category: row.category,
-        links: row.links || [],
-        createdBy: row.created_by,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-      }));
-      
-      const categories = await prisma.category.findMany({ where: { timelineId: timelineRow.id } });
-      
-      const timeline = {
-        id: timelineRow.id,
-        title: timelineRow.title,
-        description: timelineRow.description,
-        slug: timelineRow.slug,
-        creatorId: timelineRow.creator_id,
-        visualizationType: timelineRow.visualization_type,
-        isPublic: timelineRow.is_public,
-        isCollaborative: timelineRow.is_collaborative,
-        isNumbered: false,
-        numberLabel: 'Day',
-        viewCount: timelineRow.view_count,
-        createdAt: timelineRow.created_at,
-        updatedAt: timelineRow.updated_at,
-        creator: creator ? {
-          id: creator.id,
-          clerkId: creator.clerkId,
-          username: creator.username,
-          email: creator.email,
-          avatarUrl: creator.avatarUrl,
-          credits: creator.credits,
-          createdAt: creator.createdAt,
-          updatedAt: creator.updatedAt,
-        } : null,
-        events: events,
-        categories: categories,
-      };
-      
-      return transformTimeline(timeline as any);
-    }
+    console.log('[getTimelineBySlug] Using raw SQL for slug:', slug);
     
-    throw error;
+    // Use raw SQL to fetch timeline by slug
+    const query = `SELECT id, title, description, slug, creator_id, 
+             visualization_type, is_public, is_collaborative, 
+             view_count, created_at, updated_at
+      FROM timelines
+      WHERE slug = '${slug.replace(/'/g, "''")}'`;
+    const timelineRows = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      slug: string;
+      creator_id: string;
+      visualization_type: string;
+      is_public: boolean;
+      is_collaborative: boolean;
+      view_count: number;
+      created_at: Date;
+      updated_at: Date;
+    }>>(query);
+    
+    console.log('[getTimelineBySlug] Raw SQL found', timelineRows.length, 'rows');
+    if (timelineRows.length === 0) return null;
+    
+    const timelineRow = timelineRows[0];
+    const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+    
+    const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
+             image_url, location_lat, location_lng, location_name, 
+             category, links, created_by, created_at, updated_at
+      FROM events
+      WHERE timeline_id = '${timelineRow.id.replace(/'/g, "''")}'
+      ORDER BY date ASC`;
+    const eventRows = await prisma.$queryRawUnsafe<Array<any>>(eventsQuery);
+    
+    const events = eventRows.map((row: any) => ({
+      id: row.id,
+      timelineId: row.timeline_id,
+      title: row.title,
+      description: row.description,
+      date: row.date,
+      endDate: row.end_date,
+      number: null,
+      numberLabel: null,
+      imageUrl: row.image_url,
+      locationLat: row.location_lat,
+      locationLng: row.location_lng,
+      locationName: row.location_name,
+      category: row.category,
+      links: row.links || [],
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+    
+    const categories = await prisma.category.findMany({ where: { timelineId: timelineRow.id } });
+    
+    const timeline = {
+      id: timelineRow.id,
+      title: timelineRow.title,
+      description: timelineRow.description,
+      slug: timelineRow.slug,
+      creatorId: timelineRow.creator_id,
+      visualizationType: timelineRow.visualization_type,
+      isPublic: timelineRow.is_public,
+      isCollaborative: timelineRow.is_collaborative,
+      isNumbered: false,
+      numberLabel: 'Day',
+      viewCount: timelineRow.view_count,
+      createdAt: timelineRow.created_at,
+      updatedAt: timelineRow.updated_at,
+      creator: creator ? {
+        id: creator.id,
+        clerkId: creator.clerkId,
+        username: creator.username,
+        email: creator.email,
+        avatarUrl: creator.avatarUrl,
+        credits: creator.credits,
+        createdAt: creator.createdAt,
+        updatedAt: creator.updatedAt,
+      } : null,
+      events: events,
+      categories: categories,
+    };
+    
+    try {
+      return transformTimeline(timeline as any);
+    } catch (transformError: any) {
+      console.error('[getTimelineBySlug] Error in transformTimeline:', transformError.message);
+      console.error('[getTimelineBySlug] Transform error stack:', transformError.stack?.substring(0, 500));
+      throw transformError;
+    }
+  } catch (error: any) {
+    console.error('[getTimelineBySlug] Error in raw SQL:', error.message);
+    console.error('[getTimelineBySlug] Error stack:', error.stack?.substring(0, 500));
+    // Fallback to Prisma if raw SQL fails
+    try {
+      console.log('[getTimelineBySlug] Falling back to Prisma findUnique...');
+      const timeline = await prisma.timeline.findUnique({
+        where: { slug },
+        include: {
+          creator: true,
+          events: {
+            orderBy: { date: 'asc' },
+          },
+          categories: true,
+        },
+      });
+
+      if (!timeline) return null;
+      return transformTimeline(timeline);
+    } catch (prismaError: any) {
+      console.error('[getTimelineBySlug] Prisma fallback also failed:', prismaError.message);
+      return null;
+    }
   }
 }
 

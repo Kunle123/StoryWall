@@ -7,22 +7,26 @@ import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { TermsViolationDialog } from "./TermsViolationDialog";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
   setEvents: (events: TimelineEvent[]) => void;
   timelineDescription: string;
+  timelineName?: string; // Added for newsworthiness test
   writingStyle: string;
   imageStyle?: string; // Optional - if provided, generate image prompts too
   themeColor?: string; // Optional - if provided, include in image prompts
   sourceRestrictions?: string[];
 }
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, writingStyle, imageStyle, themeColor, sourceRestrictions = [] }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [] }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
+  const [showViolationDialog, setShowViolationDialog] = useState(false);
+  const [violationRecommendation, setViolationRecommendation] = useState<string | undefined>();
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -49,6 +53,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
           body: JSON.stringify({
           events: [{ year: event.year, title: event.title }],
           timelineDescription,
+          timelineTitle: timelineName, // Pass timeline title for newsworthiness test
           writingStyle,
           imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
           themeColor, // Include if available
@@ -66,6 +71,14 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
 
       if (!response.ok) {
         const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
+        
+        // Check if this is a newsworthiness violation
+        if (data?.newsworthinessViolation) {
+          setViolationRecommendation(data.newsworthinessViolation.recommendation);
+          setShowViolationDialog(true);
+          return; // Don't throw error, just show dialog
+        }
+        
         throw new Error(errorMsg);
       }
 
@@ -122,11 +135,12 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
       let response;
       try {
         response = await fetch("/api/ai/generate-descriptions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             events: events.map(e => ({ year: e.year, title: e.title })),
             timelineDescription,
+            timelineTitle: timelineName, // Pass timeline title for newsworthiness test
             writingStyle,
             imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
             themeColor, // Include if available
@@ -153,6 +167,15 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, writi
 
       if (!response.ok) {
         const errorMsg = data?.error || data?.details || `HTTP ${response.status}: ${response.statusText}`;
+        
+        // Check if this is a newsworthiness violation
+        if (data?.newsworthinessViolation) {
+          setViolationRecommendation(data.newsworthinessViolation.recommendation);
+          setShowViolationDialog(true);
+          setIsGeneratingAll(false);
+          return; // Don't throw error, just show dialog
+        }
+        
         throw new Error(errorMsg);
       }
 

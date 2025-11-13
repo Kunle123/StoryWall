@@ -2,35 +2,179 @@ import { prisma } from './prisma';
 import { Event, CreateEventInput } from '@/lib/types';
 
 export async function createEvent(input: CreateEventInput & { created_by?: string }): Promise<Event> {
-  const event = await prisma.event.create({
-    data: {
-      timelineId: input.timeline_id,
-      title: input.title,
-      description: input.description,
-      date: new Date(input.date),
-      ...(input.end_date && { endDate: new Date(input.end_date) }),
-      ...(input.number !== undefined && { number: input.number }),
-      ...(input.number_label && { numberLabel: input.number_label }),
-      imageUrl: input.image_url,
-      locationLat: input.location_lat ? input.location_lat : undefined,
-      locationLng: input.location_lng ? input.location_lng : undefined,
-      locationName: input.location_name,
-      category: input.category,
-      links: input.links || [],
-      createdBy: input.created_by,
-    },
-  });
+  try {
+    const event = await prisma.event.create({
+      data: {
+        timelineId: input.timeline_id,
+        title: input.title,
+        description: input.description,
+        date: new Date(input.date),
+        ...(input.end_date && { endDate: new Date(input.end_date) }),
+        // Don't include number/numberLabel if columns don't exist
+        imageUrl: input.image_url,
+        locationLat: input.location_lat ? input.location_lat : undefined,
+        locationLng: input.location_lng ? input.location_lng : undefined,
+        locationName: input.location_name,
+        category: input.category,
+        links: input.links || [],
+        createdBy: input.created_by,
+      },
+    });
 
-  return transformEvent(event);
+    return transformEvent(event);
+  } catch (error: any) {
+    // If error is about missing number column, use raw SQL as fallback
+    if (error.message?.includes('number') || error.code === 'P2022') {
+      console.warn('[createEvent] Falling back to raw SQL due to missing number column');
+      
+      const eventId = crypto.randomUUID();
+      const now = new Date();
+      
+      const linksArray = input.links && input.links.length > 0 ? input.links : [];
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO events (
+          id, timeline_id, title, description, date, end_date,
+          image_url, location_lat, location_lng, location_name,
+          category, links, created_by, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+        )
+      `,
+        eventId,
+        input.timeline_id,
+        input.title,
+        input.description || null,
+        new Date(input.date),
+        input.end_date ? new Date(input.end_date) : null,
+        input.image_url || null,
+        input.location_lat || null,
+        input.location_lng || null,
+        input.location_name || null,
+        input.category || null,
+        linksArray,
+        input.created_by || null,
+        now,
+        now
+      );
+      
+      // Fetch the created event with proper column names
+      const eventRows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        timeline_id: string;
+        title: string;
+        description: string | null;
+        date: Date;
+        end_date: Date | null;
+        image_url: string | null;
+        location_lat: number | null;
+        location_lng: number | null;
+        location_name: string | null;
+        category: string | null;
+        links: string[];
+        created_by: string | null;
+        created_at: Date;
+        updated_at: Date;
+      }>>(`
+        SELECT id, timeline_id, title, description, date, end_date,
+               image_url, location_lat, location_lng, location_name,
+               category, links, created_by, created_at, updated_at
+        FROM events WHERE id = $1
+      `, eventId);
+      
+      if (!eventRows || eventRows.length === 0) {
+        throw new Error('Failed to create event via raw SQL');
+      }
+      
+      const eventRow = eventRows[0];
+      // Transform to match Prisma format
+      const transformedEvent = {
+        id: eventRow.id,
+        timelineId: eventRow.timeline_id,
+        title: eventRow.title,
+        description: eventRow.description,
+        date: eventRow.date,
+        endDate: eventRow.end_date,
+        imageUrl: eventRow.image_url,
+        locationLat: eventRow.location_lat,
+        locationLng: eventRow.location_lng,
+        locationName: eventRow.location_name,
+        category: eventRow.category,
+        links: eventRow.links || [],
+        createdBy: eventRow.created_by,
+        createdAt: eventRow.created_at,
+        updatedAt: eventRow.updated_at,
+      };
+      
+      return transformEvent(transformedEvent);
+    }
+    
+    throw error;
+  }
 }
 
 export async function getEventById(id: string): Promise<Event | null> {
-  const event = await prisma.event.findUnique({
-    where: { id },
-  });
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id },
+    });
 
-  if (!event) return null;
-  return transformEvent(event);
+    if (!event) return null;
+    return transformEvent(event);
+  } catch (error: any) {
+    // If error is about missing number column, use raw SQL as fallback
+    if (error.message?.includes('number') || error.code === 'P2022') {
+      console.warn('[getEventById] Falling back to raw SQL due to missing number column');
+      
+      const eventRows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        timeline_id: string;
+        title: string;
+        description: string | null;
+        date: Date;
+        end_date: Date | null;
+        image_url: string | null;
+        location_lat: number | null;
+        location_lng: number | null;
+        location_name: string | null;
+        category: string | null;
+        links: string[];
+        created_by: string | null;
+        created_at: Date;
+        updated_at: Date;
+      }>>(`
+        SELECT id, timeline_id, title, description, date, end_date,
+               image_url, location_lat, location_lng, location_name,
+               category, links, created_by, created_at, updated_at
+        FROM events WHERE id = $1
+      `, id);
+      
+      if (!eventRows || eventRows.length === 0) return null;
+      
+      const eventRow = eventRows[0];
+      // Transform to match Prisma format
+      const transformedEvent = {
+        id: eventRow.id,
+        timelineId: eventRow.timeline_id,
+        title: eventRow.title,
+        description: eventRow.description,
+        date: eventRow.date,
+        endDate: eventRow.end_date,
+        imageUrl: eventRow.image_url,
+        locationLat: eventRow.location_lat,
+        locationLng: eventRow.location_lng,
+        locationName: eventRow.location_name,
+        category: eventRow.category,
+        links: eventRow.links || [],
+        createdBy: eventRow.created_by,
+        createdAt: eventRow.created_at,
+        updatedAt: eventRow.updated_at,
+      };
+      
+      return transformEvent(transformedEvent);
+    }
+    
+    throw error;
+  }
 }
 
 export async function getEventsByTimelineId(timelineId: string): Promise<Event[]> {

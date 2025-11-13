@@ -1,0 +1,31 @@
+Timeline Context: {{timelineDescription}}{{#if sourceRestrictions}}
+
+SOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:
+{{#each sourceRestrictions}}  {{@index}}. {{this}}
+{{/each}}
+
+If information is not available in these sources, indicate that in the event description.{{/if}}
+
+{{#if imageContext}}{{imageContext}}
+
+{{/if}}Generate descriptions and image prompts for these {{eventCount}} events:
+
+{{#each events}}{{@index}}. {{year}}: {{title}}
+{{/each}}
+
+CRITICAL ALIGNMENT REQUIREMENT:
+- For EACH event, the DESCRIPTION and IMAGE PROMPT must describe the SAME SCENE/MOMENT
+- The description narrates what's happening in that specific scene
+- The image prompt describes what you would SEE in that exact same scene
+- They must be perfectly aligned - do NOT create a description about one moment and an image prompt about a different moment
+
+CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene:
+
+1. RECOGNIZABLE SCENES: Describe specific, iconic scenes that are instantly recognizable
+2. HYPER-SPECIFIC DETAILS: Name EVERYTHING - locations, objects, actions, body positions, clothing details
+3. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there
+
+NEVER use poetic, metaphorical, or abstract language. Examples:
+- BAD: "A journey through darkness", "The weight of destiny", "Metaphors of power"
+- GOOD: "A man crawling through an air vent", "A bomb explosion with debris flying", "Workers laying concrete foundation"
+

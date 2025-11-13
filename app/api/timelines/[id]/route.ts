@@ -17,19 +17,37 @@ export async function GET(
   console.log('[API] GET /api/timelines/[id] - Route handler called');
   try {
     const { id } = await params;
-    console.log('[API] Fetching timeline with id:', id);
+    console.log('[API] Fetching timeline with id/slug:', id);
     console.log('[API] Is UUID:', isUUID(id));
+    console.log('[API] Slug length:', id.length);
     
     // Try to find by ID or slug
     let timeline;
-    if (isUUID(id)) {
-      console.log('[API] Calling getTimelineById...');
-      timeline = await getTimelineById(id);
-      console.log('[API] getTimelineById result:', timeline ? 'FOUND' : 'NOT FOUND');
-    } else {
-      console.log('[API] Calling getTimelineBySlug...');
-      timeline = await getTimelineBySlug(id);
-      console.log('[API] getTimelineBySlug result:', timeline ? 'FOUND' : 'NOT FOUND');
+    try {
+      if (isUUID(id)) {
+        console.log('[API] Calling getTimelineById with id:', id);
+        const startTime = Date.now();
+        timeline = await getTimelineById(id);
+        const duration = Date.now() - startTime;
+        console.log(`[API] getTimelineById completed in ${duration}ms, result:`, timeline ? `FOUND - ${timeline.title}` : 'NOT FOUND');
+        if (!timeline) {
+          console.log('[API] getTimelineById returned null - checking database directly...');
+          // Direct database check
+          const { prisma } = await import('@/lib/db/prisma');
+          const directCheck = await prisma.$queryRawUnsafe(`SELECT id, title FROM timelines WHERE id = '${id.replace(/'/g, "''")}' LIMIT 1`);
+          console.log('[API] Direct database check result:', directCheck);
+        }
+      } else {
+        console.log('[API] Calling getTimelineBySlug with slug:', id);
+        const startTime = Date.now();
+        timeline = await getTimelineBySlug(id);
+        const duration = Date.now() - startTime;
+        console.log(`[API] getTimelineBySlug completed in ${duration}ms, result:`, timeline ? `FOUND - ${timeline.title}` : 'NOT FOUND');
+      }
+    } catch (dbError: any) {
+      console.error('[API] Database error:', dbError.message);
+      console.error('[API] Database error stack:', dbError.stack?.substring(0, 500));
+      throw dbError; // Re-throw to be caught by outer catch
     }
     
     if (!timeline) {
@@ -53,12 +71,17 @@ export async function GET(
       throw jsonError;
     }
   } catch (error: any) {
-    console.error('Error fetching timeline:', error);
-    console.error('Error details:', {
+    console.error('[API] Error fetching timeline:', error);
+    console.error('[API] Error details:', {
       message: error.message,
       stack: error.stack?.substring(0, 500),
       name: error.name,
+      code: error.code,
     });
+    // If it's a "not found" error, return 404, otherwise 500
+    if (error.message?.includes('not found') || error.message?.includes('Not found')) {
+      return NextResponse.json({ error: 'Timeline not found' }, { status: 404 });
+    }
     return NextResponse.json(
       { error: 'Failed to fetch timeline', details: error.message },
       { status: 500 }

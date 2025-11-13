@@ -6,10 +6,11 @@ import { prisma } from '@/lib/db/prisma';
 // GET /api/events/[id]/stats - Get stats for an event (likes, comments, shares)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const event = await getEventById(params.id);
+    const { id } = await params;
+    const event = await getEventById(id);
 
     if (!event) {
       return NextResponse.json(
@@ -18,18 +19,30 @@ export async function GET(
       );
     }
 
-    // Get comments count (including replies)
-    const comments = await getCommentsByEventId(event.id);
-    const commentsCount = comments.reduce((total, comment) => {
-      return total + 1 + (comment.replies?.length || 0);
-    }, 0);
+    // Get comments count (including replies) - handle errors gracefully
+    let commentsCount = 0;
+    try {
+      const comments = await getCommentsByEventId(event.id);
+      commentsCount = comments.reduce((total, comment) => {
+        return total + 1 + (comment.replies?.length || 0);
+      }, 0);
+    } catch (commentsError: any) {
+      console.warn('[Event Stats] Error fetching comments:', commentsError.message);
+      // Continue with 0 comments if there's an error
+    }
 
-    // Get likes count for the event (direct likes on the event)
-    const likesCount = await prisma.like.count({
-      where: {
-        eventId: event.id,
-      },
-    });
+    // Get likes count for the event (direct likes on the event) - handle errors gracefully
+    let likesCount = 0;
+    try {
+      likesCount = await prisma.like.count({
+        where: {
+          eventId: event.id,
+        },
+      });
+    } catch (likesError: any) {
+      console.warn('[Event Stats] Error fetching likes (table may not exist):', likesError.message);
+      // Continue with 0 likes if table doesn't exist
+    }
 
     // For now, shares count is 0 (we can add share tracking later)
     const sharesCount = 0;
@@ -40,9 +53,13 @@ export async function GET(
       shares: sharesCount,
     });
   } catch (error: any) {
-    console.error('Error fetching event stats:', error);
+    console.error('[Event Stats] Error fetching event stats:', error);
+    console.error('[Event Stats] Error details:', {
+      message: error.message,
+      stack: error.stack?.substring(0, 500),
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch event stats' },
+      { error: 'Failed to fetch event stats', details: error.message },
       { status: 500 }
     );
   }

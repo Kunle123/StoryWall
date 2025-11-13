@@ -50,18 +50,41 @@ async function createDieHardTimeline() {
 
     const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    // Step 1: Create timeline
+    // Step 1: Create or find timeline
     console.log('📋 Step 1: Creating timeline...');
-    const timeline = await createTimeline({
-      title: 'Die Hard: A Mood-Based Visual Review',
-      description: 'A critical review and visual commentary of the 1988 action film Die Hard, using mood-matched archetypal imagery to capture the emotional journey and thematic elements without recreating specific actor likenesses.',
-      created_by: user.id,
-      is_factual: false,
-      is_numbered: false,
-      image_style: 'Illustration', // Use artistic style, not photorealistic
-      theme_color: '#DC2626', // Red theme for action/tension
-    });
-    console.log(`✅ Timeline created: ${timeline.id} - "${timeline.title}"\n`);
+    const { slugify } = await import('../lib/utils/slugify');
+    const timelineTitle = 'Die Hard: A Mood-Based Visual Review';
+    const slug = slugify(timelineTitle) + '-' + Date.now(); // Add timestamp to make unique
+    
+    let timeline;
+    try {
+      timeline = await createTimeline({
+        title: timelineTitle,
+        description: 'A critical review and visual commentary of the 1988 action film Die Hard, using mood-matched archetypal imagery to capture the emotional journey and thematic elements without recreating specific actor likenesses.',
+        creator_id: user.id, // Use creator_id, not created_by
+        is_factual: false,
+        is_numbered: false,
+        image_style: 'Illustration', // Use artistic style, not photorealistic
+        theme_color: '#DC2626', // Red theme for action/tension
+        slug: slug, // Generate unique slug from title + timestamp
+      });
+      console.log(`✅ Timeline created: ${timeline.id} - "${timeline.title}"\n`);
+    } catch (error: any) {
+      if (error.code === 'P2002' && error.meta?.target?.includes('slug')) {
+        // Timeline with this slug already exists, try to find it
+        console.log('⚠️  Timeline with this slug already exists, finding existing timeline...');
+        const { getTimelineBySlug } = await import('../lib/db/timelines');
+        const existingTimeline = await getTimelineBySlug(slugify(timelineTitle));
+        if (existingTimeline) {
+          timeline = existingTimeline;
+          console.log(`✅ Using existing timeline: ${timeline.id} - "${timeline.title}"\n`);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
 
     // Step 2: Generate events (key moments from the film)
     console.log('📅 Step 2: Generating events (key moments from Die Hard)...');
@@ -125,10 +148,11 @@ async function createDieHardTimeline() {
           title: e.title 
         })),
         timelineDescription: timeline.description,
-        writingStyle: 'narrative', // Review-style narrative
+        writingStyle: 'narrative', // Narrative style for storytelling
         imageStyle: 'Illustration', // Artistic style
         themeColor: '#DC2626', // Red for tension/action
         sourceRestrictions: [],
+        includesPeople: false, // Use mood-based approach, not person matching
       }),
     });
 
@@ -141,21 +165,31 @@ async function createDieHardTimeline() {
     console.log(`✅ Generated ${descriptionsData.descriptions.length} descriptions\n`);
     console.log(`✅ Generated ${descriptionsData.imagePrompts?.length || 0} image prompts\n`);
 
-    // Update events with descriptions and image prompts
+    // Update events with descriptions (image prompts are stored in memory for image generation)
     for (let i = 0; i < createdEvents.length; i++) {
       const event = createdEvents[i];
       const description = descriptionsData.descriptions[i] || '';
-      const imagePrompt = descriptionsData.imagePrompts?.[i] || '';
 
-      await prisma.event.update({
-        where: { id: event.id },
-        data: {
-          description,
-          imagePrompt, // Store the mood-based prompt
-        },
-      });
+      try {
+        await prisma.event.update({
+          where: { id: event.id },
+          data: {
+            description,
+            // Note: imagePrompt is not stored in DB, it will be used directly in image generation
+          },
+        });
+      } catch (error: any) {
+        // Fallback to raw SQL if number column issue
+        if (error.message?.includes('number') || error.code === 'P2022') {
+          await prisma.$executeRawUnsafe(`
+            UPDATE events SET description = $1 WHERE id = $2
+          `, description || null, event.id);
+        } else {
+          throw error;
+        }
+      }
     }
-    console.log(`✅ Updated events with descriptions and image prompts\n`);
+    console.log(`✅ Updated events with descriptions\n`);
 
     // Log sample prompts for review
     console.log('📋 Sample Image Prompts (mood-based, archetypal):');
@@ -168,7 +202,12 @@ async function createDieHardTimeline() {
 
     // Step 4: Generate mood-based images (NO person matching)
     console.log('🎨 Step 4: Generating mood-based, archetypal images...');
-    console.log('   ⚠️  CRITICAL: Using mood-based approach - NO person matching, NO reference images\n');
+    console.log('   ⚠️  CRITICAL: Using mood-based approach - NO person matching, NO reference images');
+    if (descriptionsData.anchorStyle) {
+      console.log('   🎨 Using comprehensive Anchor Style for mood matching\n');
+    } else {
+      console.log('   ⚠️  WARNING: No Anchor Style found in descriptions response\n');
+    }
     
     const imagesResponse = await fetch(`${apiUrl}/api/ai/generate-images`, {
       method: 'POST',
@@ -176,14 +215,16 @@ async function createDieHardTimeline() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        events: createdEvents.map(e => ({
+        events: createdEvents.map((e, i) => ({
           title: e.title,
           description: e.description || '',
           year: new Date(e.date).getFullYear(),
-          imagePrompt: e.imagePrompt || '',
+          imagePrompt: descriptionsData.imagePrompts?.[i] || '', // Use generated prompts
         })),
         imageStyle: 'Illustration', // Artistic style
         themeColor: '#DC2626',
+        anchorStyle: descriptionsData.anchorStyle || '', // CRITICAL: Pass comprehensive Anchor for mood matching
+        preferredModel: 'imagen', // Use Google Imagen for stronger prompt adherence
         imageReferences: [], // NO reference images for mood-based approach
         includesPeople: false, // CRITICAL: Disable person matching
         referencePhoto: undefined, // No reference photo
@@ -205,10 +246,21 @@ async function createDieHardTimeline() {
       const imageUrl = imagesData.images?.[i] || null;
 
       if (imageUrl) {
-        await prisma.event.update({
-          where: { id: event.id },
-          data: { imageUrl },
-        });
+        try {
+          await prisma.event.update({
+            where: { id: event.id },
+            data: { imageUrl },
+          });
+        } catch (error: any) {
+          // Fallback to raw SQL if number column issue
+          if (error.message?.includes('number') || error.code === 'P2022') {
+            await prisma.$executeRawUnsafe(`
+              UPDATE events SET image_url = $1 WHERE id = $2
+            `, imageUrl, event.id);
+          } else {
+            throw error;
+          }
+        }
         imagesSaved++;
       }
     }

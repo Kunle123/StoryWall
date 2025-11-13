@@ -1,0 +1,448 @@
+
+> storywall@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.25
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 2.5s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 956ms (189 modules)
+ ○ Compiling /api/timelines/[id] ...
+ ✓ Compiled /api/timelines/[id] in 1457ms (421 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (176kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+[API] GET /api/timelines/[id] - Route handler called
+[API] Fetching timeline with id/slug: 6ef69101-24d4-4945-b9a0-b521ab5ac50e
+[API] Is UUID: true
+[API] Slug length: 36
+[API] Calling getTimelineById with id: 6ef69101-24d4-4945-b9a0-b521ab5ac50e
+[getTimelineById] Using raw SQL for id: 6ef69101-24d4-4945-b9a0-b521ab5ac50e
+prisma:query SELECT id, title, description, slug, creator_id, 
+               visualization_type, is_public, is_collaborative, 
+               view_count, created_at, updated_at
+        FROM timelines
+        WHERE id = '6ef69101-24d4-4945-b9a0-b521ab5ac50e'
+[getTimelineById] Raw SQL found 0 rows
+[API] getTimelineById completed in 19ms, result: NOT FOUND
+[API] getTimelineById returned null - checking database directly...
+prisma:query SELECT id, title FROM timelines WHERE id = '6ef69101-24d4-4945-b9a0-b521ab5ac50e' LIMIT 1
+[API] Direct database check result: []
+[API] Timeline not found, returning 404
+ GET /api/timelines/6ef69101-24d4-4945-b9a0-b521ab5ac50e 404 in 2262ms
+ ✓ Compiled /api/ai/generate-events in 305ms (424 modules)
+ ⨯ Error: Cannot find module '../../../../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:70:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:76:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:182:21)
+    at async handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/ai/generate-events'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 3.1s (852 modules)
+ ⨯ Error: Cannot find module '../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:60:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:66:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:72:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:71:33)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ POST /api/ai/generate-events 500 in 5036ms
+ ⨯ Error: Cannot find module '../../../../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:70:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:76:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:182:21)
+    at async handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/ai/generate-events'
+}
+ ⨯ Error: Cannot find module '../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:60:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:66:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:72:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:71:33)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ POST /api/ai/generate-events 500 in 42ms
+ ✓ Compiled /api/timelines in 237ms (461 modules)
+ ⨯ Error: Cannot find module '../../../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/timelines/route.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/timelines/route.js:260:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/timelines/route.js:266:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:182:21)
+    at async handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/timelines/route.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/timelines'
+}
+ ✓ Compiled /_error in 208ms (850 modules)
+ ⨯ Error: Cannot find module '../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:60:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:66:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:72:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:71:33)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ GET /api/timelines 500 in 478ms
+ ✓ Compiled /api/ai/generate-events in 61ms (465 modules)
+ ⨯ Error: Cannot find module '../../../../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:70:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js:76:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:182:21)
+    at async handleRequest (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/app/api/ai/generate-events/route.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/ai/generate-events'
+}
+ ⨯ Error: Cannot find module '../webpack-runtime.js'
+Require stack:
+- /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js
+- /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1043:27)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:60:27
+    at Object.<anonymous> (/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js:66:3)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1613:10)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at Module.require (node:internal/modules/cjs/loader:1298:19)
+    at mod.require (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js:109:84)
+    at /Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:72:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js:71:33)
+    at async DevServer.findPageComponentsImpl (/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/next-server.js:714:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/.next/server/pages/_document.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/require.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/load-components.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/build/utils.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/admin/Documents/KunleDevFolder/StoryWall/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ GET /api/ai/generate-events 500 in 92ms
+[?25h

@@ -1,0 +1,6 @@
+Project Title: {{timelineTitle}}
+
+Project Description: {{timelineDescription}}
+
+Analyze this project and determine if celebrity likenesses can be used based on newsworthiness and transformative use principles.
+

@@ -38,9 +38,23 @@ npm run dev
 4. Open http://localhost:3000
 
 ## Project Structure
-- app/ — App Router pages and layout
-- components/ — UI primitives
-- lib/ — types and utilities
+- `app/` — App Router pages and layout
+- `components/` — UI primitives
+- `lib/` — types and utilities
+- `prompts/` — AI prompt templates (editable)
+- `docs/` — Project documentation
+
+## Documentation
+
+All documentation has been organized in the `docs/` directory:
+
+- **Setup Guides**: `docs/setup/` - Environment, database, authentication, payments
+- **API Docs**: `docs/api/` - API routes and frontend integration
+- **Integrations**: `docs/integrations/` - Third-party service setup (Imagen, Flux, Kimi, etc.)
+- **Reference**: `docs/reference/` - Guidelines, pricing, generation flows
+- **Archive**: `docs/archive/` - Outdated/diagnostic docs
+
+See [docs/README.md](docs/README.md) for a complete index.
 
 ## License
 MIT
