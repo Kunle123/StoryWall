@@ -30,7 +30,7 @@ prompts/
 ## Main Flow: Description Generation
 
 ### Entry Point
-**API Route**: `POST /api/ai/generate-descriptions`
+**API Route**: `POST /api/ai/generate-descriptions-v2`
 
 **Called From**: 
 - Step 3: Event Details (generate descriptions)
@@ -70,7 +70,7 @@ Anchor style is generated for **ALL timelines** to ensure visual consistency.
 
 ### Code Location
 ```typescript
-// app/api/ai/generate-descriptions/route.ts (line ~190)
+// app/api/ai/generate-descriptions-v2/route.ts
 const anchorPrompts = loadAnchorPrompts({
   timelineDescription,
   eventTitles: events.map((e: any) => e.title).join(', '),

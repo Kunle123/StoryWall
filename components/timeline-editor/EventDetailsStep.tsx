@@ -134,7 +134,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       
       let response;
       try {
-        response = await fetch("/api/ai/generate-descriptions", {
+        response = await fetch("/api/ai/generate-descriptions-v2", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
