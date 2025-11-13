@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
+import { parseYear } from '@/lib/utils/dateFormat';
 
 /**
  * Attempts to repair common JSON malformation issues
@@ -790,7 +791,8 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         };
       } else {
         // For dated events, use year/month/day
-        const year = parseInt(event.year);
+        // Use parseYear to handle BC/BCE dates (converts to negative years)
+        const year = parseYear(event.year);
         console.log(`[GenerateEvents API] Event ${index + 1}:`, {
           rawYear: event.year,
           parsedYear: year,
@@ -984,7 +986,19 @@ async function generateEventsBatch(
   const systemPrompt = isNumbered
     ? `You are a numbered timeline event generator. Generate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
     : isFactual 
-    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+
+CRITICAL - DATE FORMAT REQUIREMENTS:
+- For dates BEFORE 1 AD (Common Era), you MUST include "BC" or "BCE" notation in the year field (e.g., "3000 BC", "753 BCE", "44 BC")
+- For dates 1 AD and later, you may include "AD" or "CE" notation, or just the number (e.g., "2000", "2000 AD", "1066 CE")
+- Examples:
+  * "3000 BC" for events in 3000 Before Christ
+  * "753 BCE" for events in 753 Before Common Era  
+  * "44 BC" for events in 44 Before Christ
+  * "1066" or "1066 AD" for events in 1066 Anno Domini
+  * "2000" or "2000 CE" for events in 2000 Common Era
+- The year field can be a string (with BC/AD notation) or a number (for AD dates only)
+- DO NOT use positive numbers for BC dates - always include "BC" or "BCE" notation
 
 Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
 - Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
@@ -1011,7 +1025,19 @@ ACCURACY REQUIREMENTS:
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
 Events should be chronologically ordered and relevant to the timeline description.`
-    : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step. 
+    : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+
+CRITICAL - DATE FORMAT REQUIREMENTS:
+- For dates BEFORE 1 AD (Common Era), you MUST include "BC" or "BCE" notation in the year field (e.g., "3000 BC", "753 BCE", "44 BC")
+- For dates 1 AD and later, you may include "AD" or "CE" notation, or just the number (e.g., "2000", "2000 AD", "1066 CE")
+- Examples:
+  * "3000 BC" for events in 3000 Before Christ
+  * "753 BCE" for events in 753 Before Common Era  
+  * "44 BC" for events in 44 Before Christ
+  * "1066" or "1066 AD" for events in 1066 Anno Domini
+  * "2000" or "2000 CE" for events in 2000 Common Era
+- The year field can be a string (with BC/AD notation) or a number (for AD dates only)
+- DO NOT use positive numbers for BC dates - always include "BC" or "BCE" notation 
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
@@ -1189,7 +1215,8 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         description: event.description || '',
       };
     } else {
-      const year = parseInt(event.year);
+      // Use parseYear to handle BC/BCE dates (converts to negative years)
+      const year = parseYear(event.year);
       return {
         year: year || new Date().getFullYear(),
         month: event.month ? parseInt(event.month) : undefined,

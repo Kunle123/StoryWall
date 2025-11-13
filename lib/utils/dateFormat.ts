@@ -36,6 +36,48 @@ export function formatYearWithAD(year: number, alwaysShowAD: boolean = false): s
 }
 
 /**
+ * Parse a year string that may include BC/BCE/AD/CE notation
+ * Returns a number where BC/BCE years are negative
+ * Examples:
+ *   "3000 BC" -> -3000
+ *   "3000 BCE" -> -3000
+ *   "2000 AD" -> 2000
+ *   "2000" -> 2000 (assumes AD if no notation)
+ *   "1 AD" -> 1
+ */
+export function parseYear(year: string | number): number {
+  // If it's already a number, return it (negative = BC)
+  if (typeof year === 'number') {
+    return year;
+  }
+  
+  const yearStr = String(year).trim();
+  
+  // Check for BC/BCE notation (case-insensitive)
+  const bcMatch = yearStr.match(/^(\d+)\s*(BC|BCE)$/i);
+  if (bcMatch) {
+    const yearValue = parseInt(bcMatch[1], 10);
+    return -yearValue; // BC years are negative
+  }
+  
+  // Check for AD/CE notation (case-insensitive)
+  const adMatch = yearStr.match(/^(\d+)\s*(AD|CE)?$/i);
+  if (adMatch) {
+    return parseInt(adMatch[1], 10); // AD years are positive
+  }
+  
+  // If no notation, try to parse as number (assume AD)
+  const numericYear = parseInt(yearStr, 10);
+  if (!isNaN(numericYear)) {
+    return numericYear;
+  }
+  
+  // If parsing fails, return current year as fallback
+  console.warn(`Failed to parse year: "${yearStr}", using current year as fallback`);
+  return new Date().getFullYear();
+}
+
+/**
  * Format a date in short format (11/03/22) for constrained spaces
  * Uses locale-appropriate format (DD/MM/YY for UK, MM/DD/YY for US)
  */

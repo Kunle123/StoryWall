@@ -815,59 +815,90 @@ export const GenerateImagesStep = ({
           {(hasStartedGeneration || events.some(e => e.imageUrl)) && (
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Generated Images</h3>
-              <div className="space-y-4">
-                {events.filter(e => e.imageUrl).map((event) => (
-                  <div key={event.id} className="border rounded-lg overflow-hidden">
-                    <img
-                      src={event.imageUrl}
-                      alt={event.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <h4 className="font-medium">{event.year} - {event.title}</h4>
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingEvent(event)}
-                        >
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRegenerateImage(event.id)}
-                          disabled={regeneratingId === event.id}
-                        >
-                          {regeneratingId === event.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Regenerating...
-                            </>
-                          ) : (
-                            <>
-                              <RotateCw className="w-4 h-4 mr-2" />
-                              Regenerate {(() => {
-                                const count = regenerationCount[event.id] || 0;
-                                if (count < 5) {
-                                  return `(${5 - count} free)`;
-                                }
-                                return "(10 credits)";
-                              })()}
-                            </>
+              {isGenerating && events.filter(e => e.imageUrl).length === 0 ? (
+                // Show spinner while waiting for first images
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-medium">Generating images...</p>
+                    <p className="text-xs text-muted-foreground">
+                      {generatingCount > 0 && totalEvents > 0 
+                        ? `Processing ${generatingCount} of ${totalEvents} events (${Math.round(progress)}%)`
+                        : `This may take a few moments...`}
+                    </p>
+                    {progress > 0 && (
+                      <Progress value={progress} className="w-64 mt-4" />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {events.filter(e => e.imageUrl).map((event) => (
+                    <div key={event.id} className="border rounded-lg overflow-hidden">
+                      <img
+                        src={event.imageUrl}
+                        alt={event.title}
+                        className="w-full h-48 object-cover"
+                      />
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <h4 className="font-medium">{event.year} - {event.title}</h4>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                           )}
-                        </Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingEvent(event)}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRegenerateImage(event.id)}
+                            disabled={regeneratingId === event.id}
+                          >
+                            {regeneratingId === event.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Regenerating...
+                              </>
+                            ) : (
+                              <>
+                                <RotateCw className="w-4 h-4 mr-2" />
+                                Regenerate {(() => {
+                                  const count = regenerationCount[event.id] || 0;
+                                  if (count < 5) {
+                                    return `(${5 - count} free)`;
+                                  }
+                                  return "(10 credits)";
+                                })()}
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                  {isGenerating && events.filter(e => e.imageUrl).length > 0 && (
+                    // Show progress indicator when some images are already generated
+                    <div className="flex items-center justify-center py-6 border-t">
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>
+                          Generating remaining images... {generatingCount > 0 && totalEvents > 0 
+                            ? `${generatingCount} of ${totalEvents} complete (${Math.round(progress)}%)`
+                            : `${Math.round(progress)}%`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </Card>
           )}
         </TabsContent>
