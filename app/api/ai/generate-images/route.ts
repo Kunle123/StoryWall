@@ -1867,10 +1867,13 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'Connection': 'keep-alive', // Maintain connection for slower networks
             },
-            body: JSON.stringify({
-              version: modelVersion,
-              input: input,
-            }),
+            body: JSON.stringify(
+              // If modelVersion is a hash (version ID), use version field
+              // If modelVersion is a model name (contains '/'), use model field
+              modelVersion.includes('/') || modelVersion.length < 20
+                ? { model: modelVersion, input: input }
+                : { version: modelVersion, input: input }
+            ),
             signal: controller.signal,
           });
           
@@ -2051,7 +2054,10 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                version: modelVersion,
+                // Use model field if modelVersion is a model name, version field if it's a version ID
+                ...(modelVersion.includes('/') || modelVersion.length < 20
+                  ? { model: modelVersion }
+                  : { version: modelVersion }),
                 input: input,
               }),
             });
