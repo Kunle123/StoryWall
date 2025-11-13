@@ -1876,11 +1876,16 @@ export async function POST(request: NextRequest) {
               'Connection': 'keep-alive', // Maintain connection for slower networks
             },
             body: JSON.stringify(
-              // If modelVersion is a hash (version ID), use version field
-              // If modelVersion is a model name (contains '/'), use model field
-              modelVersion.includes('/') || modelVersion.length < 20
-                ? { model: modelVersion, input: input }
-                : { version: modelVersion, input: input }
+              // If modelVersion is a hash (version ID, typically 64 chars), use version field
+              // If modelVersion is a model name (contains '/') or too short, use model field
+              (() => {
+                const isModelName = modelVersion.includes('/') || modelVersion.length < 20;
+                const requestBody = isModelName 
+                  ? { model: modelVersion, input: input }
+                  : { version: modelVersion, input: input };
+                console.log(`[ImageGen] Request body for "${event.title}": ${JSON.stringify({ ...requestBody, input: { ...requestBody.input, prompt: requestBody.input.prompt?.substring(0, 50) + '...' } })}`);
+                return requestBody;
+              })()
             ),
             signal: controller.signal,
           });
