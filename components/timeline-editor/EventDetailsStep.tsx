@@ -3,7 +3,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
@@ -28,8 +27,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
   const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
   const [showViolationDialog, setShowViolationDialog] = useState(false);
   const [violationRecommendation, setViolationRecommendation] = useState<string | undefined>();
-  // Store multiple description options for each event
-  const [descriptionOptions, setDescriptionOptions] = useState<Record<string, string[]>>({});
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -89,21 +86,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         throw new Error("No description was generated");
       }
 
-      // Store all description options for this event (append to existing options)
-      setDescriptionOptions(prev => {
-        const existingOptions = prev[id] || [];
-        const newDescription = data.descriptions[0] || "";
-        // Only add if it's different from existing options
-        if (newDescription && !existingOptions.includes(newDescription)) {
-          return {
-            ...prev,
-            [id]: [...existingOptions, newDescription]
-          };
-        }
-        return prev;
-      });
-
-      // Update event with first description and image prompt (if available)
+      // Update event with description and image prompt (if available)
       const eventIndex = events.findIndex((e) => e.id === id);
       if (eventIndex !== -1) {
         const updatedEvents = [...events];
@@ -200,15 +183,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         throw new Error("No descriptions were generated");
       }
 
-      // Store all description options for each event
-      const newDescriptionOptions: Record<string, string[]> = {};
-      events.forEach((e, idx) => {
-        if (data.descriptions[idx]) {
-          newDescriptionOptions[e.id] = [data.descriptions[idx]];
-        }
-      });
-      setDescriptionOptions(prev => ({ ...prev, ...newDescriptionOptions }));
-
       setEvents(
         events.map((e, idx) => ({
           ...e,
@@ -262,74 +236,31 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       </div>
 
       <div className="space-y-6">
-        {events.map((event) => {
-          const options = descriptionOptions[event.id] || [];
-          const hasMultipleOptions = options.length > 1;
-          
-          return (
-            <div key={event.id} className="space-y-3 p-4 border rounded-lg bg-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-semibold">{event.title}</Label>
-                  <p className="text-sm text-muted-foreground">{event.year}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => generateDescription(event.id)}
-                  disabled={generatingId === event.id}
-                >
-                  {generatingId === event.id ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="mr-2 h-4 w-4" />
-                  )}
-                  Generate
-                </Button>
-              </div>
-              
-              {/* Description options dropdown - only show if multiple options exist */}
-              {hasMultipleOptions && (
-                <div className="space-y-2">
-                  <Label className="text-sm">Choose a description ({options.length} options):</Label>
-                  <Select
-                    value={event.description || ""}
-                    onValueChange={(value) => updateEventDescription(event.id, value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a description option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {options.map((option, idx) => (
-                        <SelectItem key={idx} value={option}>
-                          {option.length > 100 ? `${option.substring(0, 100)}...` : option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              
-              <Textarea
-                placeholder="Add a detailed description for this event..."
-                value={event.description || ""}
-                onChange={(e) => updateEventDescription(event.id, e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-              {/* Hidden image prompt field - used for image generation but not visible to user */}
-              <Textarea
-                placeholder="Image prompt (auto-generated, used for image creation)..."
-                value={event.imagePrompt || ""}
-                onChange={(e) => updateEventImagePrompt(event.id, e.target.value)}
-                rows={2}
-                className="resize-none hidden"
-                aria-hidden="true"
-                style={{ display: 'none' }}
-              />
+        {events.map((event) => (
+          <div key={event.id} className="space-y-3 p-4 border rounded-lg bg-card">
+            <div>
+              <Label className="text-base font-semibold">{event.title}</Label>
+              <p className="text-sm text-muted-foreground">{event.year}</p>
             </div>
-          );
-        })}
+            <Textarea
+              placeholder="Add a detailed description for this event..."
+              value={event.description || ""}
+              onChange={(e) => updateEventDescription(event.id, e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+            {/* Hidden image prompt field - used for image generation but not visible to user */}
+            <Textarea
+              placeholder="Image prompt (auto-generated, used for image creation)..."
+              value={event.imagePrompt || ""}
+              onChange={(e) => updateEventImagePrompt(event.id, e.target.value)}
+              rows={2}
+              className="resize-none hidden"
+              aria-hidden="true"
+              style={{ display: 'none' }}
+            />
+          </div>
+        ))}
       </div>
 
     </div>

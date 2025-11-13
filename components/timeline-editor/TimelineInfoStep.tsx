@@ -8,7 +8,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CalendarIcon, Upload, X, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -86,6 +87,7 @@ export const TimelineInfoStep = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(referencePhoto?.url || null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
+  const [isPersonSubject, setIsPersonSubject] = useState<boolean | null>(null);
   
   // Sync external maxEvents changes to input
   useEffect(() => {
@@ -242,6 +244,31 @@ export const TimelineInfoStep = ({
       });
     }
   };
+
+  // Canned descriptions for person subjects
+  const personDescriptions = [
+    "A biographical timeline of the key moments and milestones in their life and career.",
+    "An overview of their public life, documenting their major achievements and significant events.",
+    "A critical analysis of their impact and influence on their field and the wider culture.",
+    "An examination of the key themes and patterns that have defined their work and legacy.",
+    "A historical account of a significant event or period, and their central role within it.",
+    "A visual summary exploring the context, causes, and consequences of a notable controversy or achievement.",
+  ];
+
+  // Canned descriptions for non-person subjects
+  const nonPersonDescriptions = [
+    "A historical timeline of its origin, key events, and evolution over time.",
+    "An overview of its creation, major milestones, and lasting impact.",
+    "A critical analysis of its cultural significance, influence, and legacy.",
+    "An examination of the key themes, styles, and defining characteristics of the subject.",
+    "A detailed account of a specific era, event, or controversy associated with the subject.",
+  ];
+
+  // Get the appropriate descriptions based on subject type
+  const getDescriptionOptions = () => {
+    if (isPersonSubject === null) return [];
+    return isPersonSubject ? personDescriptions : nonPersonDescriptions;
+  };
   
   return (
     <div className="space-y-6">
@@ -272,6 +299,54 @@ export const TimelineInfoStep = ({
           <Label htmlFor="timeline-description" className="text-base mb-2 block">
             Description
           </Label>
+          
+          {/* Subject type selection - show when title is entered */}
+          {timelineName && timelineName.trim().length >= 3 && isPersonSubject === null && (
+            <div className="mb-3 space-y-2">
+              <Label className="text-sm">Is the subject of your timeline a person?</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPersonSubject(true)}
+                  className="flex-1"
+                >
+                  Yes, it's a person
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsPersonSubject(false)}
+                  className="flex-1"
+                >
+                  No, it's something else
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Description options dropdown - show when subject type is selected */}
+          {isPersonSubject !== null && getDescriptionOptions().length > 0 && (
+            <div className="mb-3 space-y-2">
+              <Label className="text-sm">Choose a description template:</Label>
+              <Select
+                value={timelineDescription || ""}
+                onValueChange={(value) => setTimelineDescription(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a description template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getDescriptionOptions().map((option, idx) => (
+                    <SelectItem key={idx} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          
           <Textarea
             id="timeline-description"
             placeholder="e.g., A timeline of all the winners, memorable moments, and show-stopping bakes from the iconic baking competition"
