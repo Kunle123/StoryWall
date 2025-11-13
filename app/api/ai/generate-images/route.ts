@@ -783,9 +783,9 @@ async function getLatestModelVersion(modelName: string, replicateApiKey: string)
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.warn(`[ImageGen] Could not fetch model versions for ${modelName} (${response.status}): ${errorText}`);
-      // Return model name - caller will use 'model' field instead of 'version'
-      return modelName;
+      console.error(`[ImageGen] Could not fetch model versions for ${modelName} (${response.status}): ${errorText}`);
+      // Replicate API requires a version ID, not a model name - throw error instead of returning model name
+      throw new Error(`Failed to fetch versions for ${modelName}: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
@@ -796,17 +796,18 @@ async function getLatestModelVersion(modelName: string, replicateApiKey: string)
         console.log(`[ImageGen] ✓ Fetched version ${versionId.substring(0, 20)}... for ${modelName}`);
         return versionId;
       } else {
-        console.warn(`[ImageGen] Invalid version ID format: ${versionId}, using model name`);
-        return modelName;
+        console.error(`[ImageGen] Invalid version ID format: ${versionId} (expected hash, got something else)`);
+        throw new Error(`Invalid version ID format for ${modelName}: ${versionId}`);
       }
     }
 
-    // Fallback to model name
-    console.warn(`[ImageGen] No versions found for ${modelName}, using model name directly`);
-    return modelName;
+    // No versions found
+    console.error(`[ImageGen] No versions found for ${modelName}`);
+    throw new Error(`No versions found for model ${modelName}`);
   } catch (error: any) {
-    console.warn(`[ImageGen] Error fetching model version for ${modelName}: ${error.message}. Using model name directly.`);
-    return modelName;
+    console.error(`[ImageGen] Error fetching model version for ${modelName}: ${error.message}`);
+    // Re-throw to ensure caller knows we failed
+    throw error;
   }
 }
 
@@ -1623,22 +1624,30 @@ export async function POST(request: NextRequest) {
         }
         
         // Get model version for this specific event
+        // Replicate API REQUIRES a version ID (hash), not a model name
         let modelVersion: string;
         try {
           modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-          console.log(`[ImageGen] Using model version: ${modelVersion} for "${event.title}" with model ${selectedModel}`);
+          console.log(`[ImageGen] Fetched version for "${event.title}": ${modelVersion.substring(0, 20)}... (model: ${selectedModel})`);
           
-          // Validate model version format (should be a hash or model name)
-          if (!modelVersion || (modelVersion.length < 10 && !modelVersion.includes('/'))) {
-            console.warn(`[ImageGen] Invalid model version format: ${modelVersion}, using model name directly`);
-            modelVersion = selectedModel;
+          // Validate that we got a proper version ID (hash, typically 64 chars, no slashes)
+          const isValidVersionId = modelVersion && 
+                                   modelVersion.length >= 20 && 
+                                   !modelVersion.includes('/') &&
+                                   !modelVersion.includes('stability-ai') &&
+                                   !modelVersion.includes('black-forest');
+          
+          if (!isValidVersionId) {
+            // If version fetch returned a model name, we need to retry or use a known-good version
+            console.error(`[ImageGen] Invalid version ID format: ${modelVersion} (looks like a model name, not a version ID)`);
+            console.error(`[ImageGen] Replicate API requires a version ID (hash), not a model name`);
+            throw new Error(`Failed to get valid version ID for ${selectedModel}. Got: ${modelVersion}`);
           }
         } catch (versionError: any) {
           console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
           console.error(`[ImageGen] Version error stack:`, versionError.stack);
-          // Use model name as fallback instead of throwing
-          console.warn(`[ImageGen] Falling back to using model name directly: ${selectedModel}`);
-          modelVersion = selectedModel;
+          // Re-throw the error - we cannot proceed without a valid version ID
+          throw new Error(`Cannot generate image for "${event.title}": Failed to get version ID for ${selectedModel}. ${versionError.message}`);
         }
         
         if (needsText) {
@@ -1875,18 +1884,12 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
               'Connection': 'keep-alive', // Maintain connection for slower networks
             },
-            body: JSON.stringify(
-              // If modelVersion is a hash (version ID, typically 64 chars), use version field
-              // If modelVersion is a model name (contains '/') or too short, use model field
-              (() => {
-                const isModelName = modelVersion.includes('/') || modelVersion.length < 20;
-                const requestBody = isModelName 
-                  ? { model: modelVersion, input: input }
-                  : { version: modelVersion, input: input };
-                console.log(`[ImageGen] Request body for "${event.title}": ${JSON.stringify({ ...requestBody, input: { ...requestBody.input, prompt: requestBody.input.prompt?.substring(0, 50) + '...' } })}`);
-                return requestBody;
-              })()
-            ),
+            body: JSON.stringify({
+              // Replicate API requires 'version' field with a version ID (hash)
+              // If we got a model name instead, we need to fail or retry version fetch
+              version: modelVersion,
+              input: input,
+            }),
             signal: controller.signal,
           });
           
@@ -2067,10 +2070,8 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                // Use model field if modelVersion is a model name, version field if it's a version ID
-                ...(modelVersion.includes('/') || modelVersion.length < 20
-                  ? { model: modelVersion }
-                  : { version: modelVersion }),
+                // Replicate API requires 'version' field with a version ID (hash)
+                version: modelVersion,
                 input: input,
               }),
             });
