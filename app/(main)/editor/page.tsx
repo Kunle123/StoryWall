@@ -295,7 +295,7 @@ const TimelineEditor = () => {
 
   // Detect if any events contain famous people
   const hasFamousPeople = events.some(event => 
-    containsFamousPerson(event.title) || 
+    (event.title && containsFamousPerson(event.title)) || 
     (event.description && containsFamousPerson(event.description)) ||
     (event.imagePrompt && containsFamousPerson(event.imagePrompt))
   );

@@ -26,7 +26,8 @@ const FAMOUS_PEOPLE_KEYWORDS = [
 /**
  * Check if a prompt likely references a famous person
  */
-export function containsFamousPerson(prompt: string): boolean {
+export function containsFamousPerson(prompt: string | null | undefined): boolean {
+  if (!prompt || typeof prompt !== 'string') return false;
   const lowerPrompt = prompt.toLowerCase();
   return FAMOUS_PEOPLE_KEYWORDS.some(keyword => lowerPrompt.includes(keyword));
 }
