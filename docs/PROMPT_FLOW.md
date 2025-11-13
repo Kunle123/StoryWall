@@ -70,7 +70,7 @@ Anchor style is generated for **ALL timelines** to ensure visual consistency.
 
 ### Code Location
 ```typescript
-// app/api/ai/generate-descriptions-v2/route.ts
+// app/api/ai/generate-descriptions/route.ts (line ~190)
 const anchorPrompts = loadAnchorPrompts({
   timelineDescription,
   eventTitles: events.map((e: any) => e.title).join(', '),

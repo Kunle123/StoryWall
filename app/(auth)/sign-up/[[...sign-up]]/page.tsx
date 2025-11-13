@@ -22,7 +22,27 @@ export default function SignUpPage() {
         path="/sign-up"
         signInUrl="/sign-in"
         fallbackRedirectUrl="/"
+        appearance={{
+          elements: {
+            footer: {
+              display: 'none', // Hide Clerk's default footer
+            },
+          },
+        }}
       />
+      <div className="mt-4 text-center text-sm text-muted-foreground max-w-md">
+        <p>
+          By signing up, you agree to our{' '}
+          <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+            Terms & Conditions
+          </a>
+          {' '}and{' '}
+          <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      </div>
     </div>
   );
 }
