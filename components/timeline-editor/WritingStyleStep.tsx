@@ -354,17 +354,6 @@ export const WritingStyleStep = ({
             Add Manually
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          {isFactual ? (
-            <>
-              <strong>Warning:</strong> AI-generated events may contain inaccuracies, especially for recent events (2023-present). The AI has limited knowledge of current events and may hallucinate. <strong>For recent news, campaigns, or current events, we strongly recommend adding events manually</strong> rather than relying on AI generation. Always verify and edit events after generation.
-            </>
-          ) : (
-            <>
-              <strong>Note:</strong> AI will generate creative fictional events based on your timeline description. You can edit or add events manually.
-            </>
-          )}
-        </p>
       </div>
 
       {/* Events List */}
