@@ -383,12 +383,13 @@ CRITICAL INSTRUCTIONS:
         writingStyle,
         imageStyle,
         themeColor,
-        anchorStyle,
+        anchorStyle: anchorStyle ?? undefined,
         hasFactualDetails,
         sourceRestrictions,
         imageContext,
         eventCount: events.length,
         styleInstructions,
+        canUseCelebrityLikeness,
       });
       
       // Build user prompt with factual details if available
