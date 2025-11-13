@@ -376,7 +376,7 @@ CRITICAL INSTRUCTIONS:
     let data;
     try {
       // Load description prompts from files
-      const hasFactualDetails = anchorStyle && Object.keys(factualDetails).length > 0;
+      const hasFactualDetails = !!(anchorStyle && Object.keys(factualDetails).length > 0);
       const descriptionPrompts = loadDescriptionPrompts({
         timelineDescription,
         events,
