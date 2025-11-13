@@ -1990,21 +1990,17 @@ export async function POST(request: NextRequest) {
           // For simplicity, we'll create a new prediction with the same parameters
           try {
             const needsText = result.needsText ?? expectsTextInImage(result.event);
-            let selectedModel = getModelForStyle(imageStyle, needsText);
+            const originalSelectedModel = getModelForStyle(imageStyle, needsText);
+            let selectedModel = originalSelectedModel;
             
             // Apply same model selection logic as original
-            const isSDXL = selectedModel === MODELS.ARTISTIC || selectedModel.includes('sdxl');
-            const isArtistic = isSDXL || selectedModel === MODELS.ARTISTIC;
-            const isPhotorealistic = selectedModel === MODELS.PHOTOREALISTIC || selectedModel.includes('flux-dev');
+            const isSDXL = originalSelectedModel === MODELS.ARTISTIC || originalSelectedModel.includes('sdxl');
+            const isArtistic = isSDXL || originalSelectedModel === MODELS.ARTISTIC;
+            const isPhotorealistic = originalSelectedModel === MODELS.PHOTOREALISTIC || originalSelectedModel.includes('flux-dev');
             
             // For retries, use the same model selection logic as original
             // BUT: Don't use Imagen (google/imagen-4-fast) as it doesn't expose versions via Replicate API
             if (hasReferenceImages) {
-              const isSDXL = originalSelectedModel === MODELS.ARTISTIC || 
-                             originalSelectedModel.includes('sdxl') || 
-                             originalSelectedModel === "stability-ai/sdxl";
-              const isArtistic = isSDXL || originalSelectedModel === MODELS.ARTISTIC;
-              
               if (isSDXL || isArtistic) {
                 selectedModel = MODELS.ARTISTIC_WITH_REF; // Use IP-Adapter, not Imagen
               } else if (originalSelectedModel.includes('flux') && !originalSelectedModel.includes('kontext')) {
