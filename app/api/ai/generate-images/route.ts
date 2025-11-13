@@ -2216,9 +2216,6 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
-  }
-}
-
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
     console.error('[ImageGen] Error stack:', error.stack);
