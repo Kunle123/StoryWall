@@ -140,3 +140,51 @@ export function loadDescriptionPrompts(variables: {
   };
 }
 
+/**
+ * Load unified prompts (Anchor + Descriptions + Image Prompts in one call)
+ */
+export function loadUnifiedPrompts(variables: {
+  timelineDescription: string;
+  events: Array<{ year?: number; title: string; facts?: string[] }>;
+  writingStyle: string;
+  imageStyle?: string;
+  themeColor?: string;
+  sourceRestrictions?: string[];
+  imageContext?: string;
+  eventCount: number;
+  canUseCelebrityLikeness?: boolean;
+  hasFactualDetails?: boolean;
+  anchorStylePreview?: string; // 60-80 char preview for image prompts
+}) {
+  const systemPrompt = loadPrompt('unified/system.txt', {
+    canUseCelebrityLikeness: variables.canUseCelebrityLikeness || false,
+    hasFactualDetails: variables.hasFactualDetails || false,
+    anchorStylePreview: variables.anchorStylePreview || '',
+  });
+  
+  // Build factual details for events if available
+  const eventsWithFacts = variables.events.map((e, idx) => {
+    const eventLabel = e.year ? `${e.year}: ${e.title}` : e.title;
+    const facts = e.facts || [];
+    return {
+      ...e,
+      facts: facts.length > 0 ? facts.join('; ') : undefined,
+    };
+  });
+  
+  const userPrompt = loadPrompt('unified/user.txt', {
+    timelineDescription: variables.timelineDescription,
+    sourceRestrictions: variables.sourceRestrictions || [],
+    imageContext: variables.imageContext,
+    eventCount: variables.eventCount,
+    events: eventsWithFacts,
+    themeColor: variables.themeColor,
+    hasFactualDetails: variables.hasFactualDetails || false,
+  });
+  
+  return {
+    system: systemPrompt,
+    user: userPrompt,
+  };
+}
+

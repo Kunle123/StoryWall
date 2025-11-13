@@ -287,10 +287,10 @@ const TimelineEditor = () => {
   };
 
   const handleCancel = () => {
-    // Clear localStorage state
-    localStorage.removeItem(STORAGE_KEY);
-    // Navigate to discover page
-    router.push('/discover');
+    // Reset to step 1 instead of navigating away
+    setCurrentStep(1);
+    // Optionally clear form data if desired
+    // localStorage.removeItem(STORAGE_KEY);
   };
 
   // Detect if any events contain famous people

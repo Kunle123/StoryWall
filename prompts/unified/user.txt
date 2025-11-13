@@ -1,0 +1,34 @@
+Timeline: {{timelineDescription}}{{#if sourceRestrictions}}
+
+SOURCE RESTRICTIONS: Source information ONLY from:
+{{#each sourceRestrictions}}  {{@index}}. {{this}}
+{{/each}}{{/if}}
+
+{{#if imageContext}}{{imageContext}}
+
+{{/if}}Events ({{eventCount}}):
+{{#each events}}{{@index}}. {{year}}: {{title}}
+{{/each}}
+
+{{#if hasFactualDetails}}
+FACTUAL DETAILS (MUST BE ACCURATELY DEPICTED):
+{{#each events}}{{@index}}. {{year}}: {{title}}
+{{#if facts}}Facts: {{facts}}{{/if}}
+{{/each}}
+{{/if}}
+
+Generate:
+1. Anchor Style: Comprehensive visual guide (5-7 sentences) covering:
+   - Visual Palette (colors, saturation, contrast, lighting)
+   - Setting & Atmosphere (era, location, environment - LOCK to specific setting)
+   - Character Archetype (if applicable - faceless mood doubles with exact physique/clothing/posture)
+   - Emotional Tone (primary emotion and progression)
+   - Cinematography (shot type, angles, lens, vignette){{#if themeColor}}
+   - Incorporate {{themeColor}} as subtle accent{{/if}}
+
+2. For each event:
+   - Description: 2-4 sentences narrating the scene
+   - Image Prompt: Literal, recognizable scene. After generating anchorStyle, prepend a 60-80 character preview of it to each imagePrompt (e.g., "ANCHOR: [preview]. [scene description]")
+
+CRITICAL: Descriptions and image prompts must describe the SAME scene/moment.
+
