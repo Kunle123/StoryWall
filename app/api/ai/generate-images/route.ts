@@ -1658,8 +1658,39 @@ export async function POST(request: NextRequest) {
           console.log(`[ImageGen] Event "${event.title}" needs text - using ${selectedModel} (better text rendering)`);
         }
         
-        // Get reference image URL for this event (use first available, or cycle through if multiple events)
-        let referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
+        // Get reference image URL for this event - only use if event mentions the person
+        // Check which people (if any) are mentioned in this event
+        const eventText = `${event.title} ${event.description || ''}`.toLowerCase();
+        let relevantImageRefs: Array<{ name: string; url: string }> = [];
+        let referenceImageUrl: string | null = null;
+        
+        if (finalImageReferences && finalImageReferences.length > 0) {
+          // Find which reference images are relevant to this event
+          relevantImageRefs = finalImageReferences.filter(ref => {
+            const personName = ref.name.toLowerCase();
+            const nameParts = personName.split(' ');
+            // Check if event mentions the person (full name or last name)
+            return nameParts.some(part => part.length > 2 && eventText.includes(part)) ||
+                   eventText.includes(personName);
+          });
+          
+          if (relevantImageRefs.length > 0) {
+            // Use the first relevant reference image
+            const relevantRef = relevantImageRefs[0];
+            const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
+            referenceImageUrl = preparedReferences[refIndex] || null;
+            
+            if (referenceImageUrl) {
+              console.log(`[ImageGen] ✓ Event "${event.title}" mentions "${relevantRef.name}" - using reference image`);
+            }
+          } else {
+            console.log(`[ImageGen] Event "${event.title}" does not mention any people from imageReferences - skipping person matching`);
+          }
+        } else {
+          // Fallback: use first available reference if no specific matching (for backwards compatibility)
+          referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
+        }
+        
         const hasReferenceImage = !!referenceImageUrl;
         
         if (hasReferenceImage && referenceImageUrl) {
@@ -1689,15 +1720,16 @@ export async function POST(request: NextRequest) {
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
         // Include person matching instructions when reference images are provided
+        // Only pass relevant image references (people mentioned in this event)
         prompt = buildImagePrompt(
           event, 
           imageStyle, 
           themeColor, 
           styleVisualLanguage, 
           needsText,
-          finalImageReferences,
+          relevantImageRefs.length > 0 ? relevantImageRefs : undefined, // Only pass relevant references
           hasReferenceImage,
-          includesPeople,
+          includesPeople && relevantImageRefs.length > 0, // Only include people if event mentions them
           anchorStyle // Pass Anchor if available
         );
         
@@ -1715,9 +1747,9 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
         console.log(`[ImageGen] Full prompt for "${event.title}":`, prompt);
         console.log(`[ImageGen] Prompt length: ${prompt.length} characters`);
-        console.log(`[ImageGen] includesPeople: ${includesPeople}, hasReferenceImage: ${hasReferenceImage}`);
-        if (hasReferenceImage) {
-          const personNames = extractPersonNames(finalImageReferences);
+        console.log(`[ImageGen] includesPeople: ${includesPeople && relevantImageRefs.length > 0}, hasReferenceImage: ${hasReferenceImage}`);
+        if (hasReferenceImage && relevantImageRefs.length > 0) {
+          const personNames = extractPersonNames(relevantImageRefs);
           console.log(`[ImageGen] Person matching enabled for: ${personNames.join(', ') || 'person in reference image'}`);
         }
         
@@ -2046,19 +2078,37 @@ export async function POST(request: NextRequest) {
             }
             
             const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-            const referenceImageUrl = preparedReferences[result.index] || preparedReferences[0] || null;
+            
+            // Recalculate relevant image references for this event (same logic as original)
+            const eventText = `${result.event.title} ${result.event.description || ''}`.toLowerCase();
+            const relevantImageRefs = finalImageReferences && finalImageReferences.length > 0
+              ? finalImageReferences.filter(ref => {
+                  const personName = ref.name.toLowerCase();
+                  const nameParts = personName.split(' ');
+                  return nameParts.some(part => part.length > 2 && eventText.includes(part)) ||
+                         eventText.includes(personName);
+                })
+              : [];
+            
+            const referenceImageUrl = relevantImageRefs.length > 0
+              ? (() => {
+                  const relevantRef = relevantImageRefs[0];
+                  const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
+                  return preparedReferences[refIndex] || null;
+                })()
+              : (preparedReferences[result.index] || preparedReferences[0] || null);
             const hasReferenceImage = !!referenceImageUrl;
             
-            // Rebuild prompt
+            // Rebuild prompt with only relevant image references
             const prompt = buildImagePrompt(
               result.event,
               imageStyle,
               themeColor,
               styleVisualLanguage,
               needsText,
-              finalImageReferences,
+              relevantImageRefs.length > 0 ? relevantImageRefs : undefined,
               hasReferenceImage,
-              includesPeople,
+              includesPeople && relevantImageRefs.length > 0,
               anchorStyle
             );
             
