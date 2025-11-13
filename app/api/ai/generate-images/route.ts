@@ -493,7 +493,7 @@ const MODELS = {
   ARTISTIC: "stability-ai/sdxl", // $0.0048/image - excellent for artistic styles
   ARTISTIC_ALT: "black-forest-labs/flux-dev", // $0.025-0.030/image - alternative artistic option
   // IP-Adapter for artistic styles with reference images (much cheaper than Flux Kontext Pro)
-  ARTISTIC_WITH_REF: "lucataco/ip-adapter", // $0.002-0.005/image - SDXL + IP-Adapter for reference images
+  ARTISTIC_WITH_REF: "chigozienri/ip_adapter-sdxl", // $0.028/image - SDXL + IP-Adapter for reference images
 };
 
 // Map image styles to models
@@ -1610,7 +1610,7 @@ export async function POST(request: NextRequest) {
           // This is cheaper than Flux Kontext Pro and works well with SDXL
           if (isSDXL || isArtistic) {
             selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter (SDXL + IP-Adapter)
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to IP-Adapter (SDXL with reference images, $0.002-0.005/image)`);
+            console.log(`[ImageGen] ✓ Switching from ${originalModel} to IP-Adapter (SDXL with reference images, $0.028/image)`);
           } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
@@ -1731,7 +1731,7 @@ export async function POST(request: NextRequest) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
               input.ip_adapter_scale = 0.75; // Control strength of reference image (0.5-1.0)
-              console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.002-0.005/image)`);
+              console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.028/image)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for IP-Adapter: ${referenceImageUrl.substring(0, 50)}`);
             }
