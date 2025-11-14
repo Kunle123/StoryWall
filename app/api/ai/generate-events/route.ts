@@ -771,6 +771,62 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     console.log('[GenerateEvents API] Raw events from OpenAI:', content.events.length);
     
     // Map events with better validation
+    // Multi-pass approach: Detect BC patterns, then parse with context
+    const parsedYears: number[] = [];
+    if (!isNumbered) {
+      // First pass: parse all years and detect BC patterns
+      const rawYears: number[] = [];
+      const hasExplicitBC: boolean[] = [];
+      
+      content.events.forEach((event: any) => {
+        const yearStr = String(event.year || '').trim();
+        const hasBC = /(BC|BCE)/i.test(yearStr);
+        hasExplicitBC.push(hasBC);
+        
+        // Parse without context first
+        const year = parseYear(event.year);
+        rawYears.push(year);
+      });
+      
+      // Detect if this is a BC timeline pattern:
+      // - All years are large ancient years (>= 1000)
+      // - Years are in descending order (typical BC pattern)
+      // - At least some have explicit BC notation, or all are ambiguous
+      const allLargeAncient = rawYears.every(y => Math.abs(y) >= 1000 && Math.abs(y) < 10000);
+      const isDescending = rawYears.length > 1 && 
+        rawYears.every((y, i) => i === 0 || Math.abs(rawYears[i - 1]) >= Math.abs(y));
+      const hasAnyBC = hasExplicitBC.some(bc => bc);
+      const allAmbiguous = hasExplicitBC.every(bc => !bc);
+      
+      // If pattern suggests BC timeline, mark ambiguous years as BC
+      const isBCTimeline = allLargeAncient && isDescending && (hasAnyBC || allAmbiguous);
+      
+      if (isBCTimeline) {
+        console.log('[GenerateEvents API] Detected BC timeline pattern - inferring BC for ambiguous years');
+      }
+      
+      // Second pass: parse with BC inference if pattern detected
+      content.events.forEach((event: any, index: number) => {
+        const yearStr = String(event.year || '').trim();
+        const hasExplicitNotation = /(BC|BCE|AD|CE)/i.test(yearStr);
+        
+        let year: number;
+        if (hasExplicitNotation) {
+          year = parseYear(event.year);
+        } else if (isBCTimeline && !hasExplicitBC[index]) {
+          // Infer BC for ambiguous years in BC timeline pattern
+          const numericYear = parseInt(yearStr, 10);
+          year = -numericYear; // BC
+        } else {
+          // Use context from previous parsing
+          const previousYear = index > 0 ? parsedYears[index - 1] : undefined;
+          const nextYear = index < rawYears.length - 1 ? rawYears[index + 1] : undefined;
+          year = parseYear(event.year, { previousYear, nextYear });
+        }
+        parsedYears.push(year);
+      });
+    }
+    
     const mappedEvents = content.events.map((event: any, index: number) => {
       const title = String(event.title || '').trim();
       
@@ -790,9 +846,9 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           description: event.description || '',
         };
       } else {
-        // For dated events, use year/month/day
-        // Use parseYear to handle BC/BCE dates (converts to negative years)
-        const year = parseYear(event.year);
+        // For dated events, use the parsed year from our multi-pass approach
+        const year = parsedYears[index];
+        
         console.log(`[GenerateEvents API] Event ${index + 1}:`, {
           rawYear: event.year,
           parsedYear: year,
@@ -802,10 +858,27 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           hasDay: !!event.day,
         });
         
+        // Filter out placeholder dates (Jan 1, Dec 31) - only include month/day if they're real dates
+        let month: number | undefined = undefined;
+        let day: number | undefined = undefined;
+        
+        if (event.month && event.day) {
+          const monthNum = parseInt(event.month);
+          const dayNum = parseInt(event.day);
+          // Only include if not placeholder dates (Jan 1 or Dec 31)
+          if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31))) {
+            month = monthNum;
+            day = dayNum;
+          }
+        } else if (event.month) {
+          // Only include month if day is also provided (both must be real)
+          // If only month is provided, it's likely a placeholder, so ignore it
+        }
+        
         return {
           year: year || new Date().getFullYear(),
-      month: event.month ? parseInt(event.month) : undefined,
-      day: event.day ? parseInt(event.day) : undefined,
+          month: month,
+          day: day,
           title: title || `Event ${index + 1}`,
           description: event.description || '',
         };
@@ -1204,6 +1277,16 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
   }
   
   // Map and validate events
+  // Two-pass approach: First parse all years (initial pass), then refine ambiguous ones
+  const parsedYears: number[] = [];
+  if (!isNumbered) {
+    // First pass: parse all years without context (to get initial values)
+    content.events.forEach((event: any) => {
+      const year = parseYear(event.year);
+      parsedYears.push(year);
+    });
+  }
+  
   const events = content.events.map((event: any, index: number) => {
     const title = String(event.title || '').trim();
     
@@ -1215,12 +1298,38 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         description: event.description || '',
       };
     } else {
-      // Use parseYear to handle BC/BCE dates (converts to negative years)
-      const year = parseYear(event.year);
+      // Use parseYear with context from sequence to infer BC/AD
+      const previousYear = index > 0 ? parsedYears[index - 1] : undefined;
+      const nextYear = index < parsedYears.length - 1 ? parsedYears[index + 1] : undefined;
+      
+      // Re-parse with context (but only if the year string doesn't have explicit BC/AD notation)
+      const yearStr = String(event.year || '').trim();
+      const hasExplicitNotation = /(BC|BCE|AD|CE)/i.test(yearStr);
+      const year = hasExplicitNotation 
+        ? parseYear(event.year) 
+        : parseYear(event.year, { previousYear, nextYear });
+      
+      // Filter out placeholder dates (Jan 1, Dec 31) - only include month/day if they're real dates
+      let month: number | undefined = undefined;
+      let day: number | undefined = undefined;
+      
+      if (event.month && event.day) {
+        const monthNum = parseInt(event.month);
+        const dayNum = parseInt(event.day);
+        // Only include if not placeholder dates (Jan 1 or Dec 31)
+        if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31))) {
+          month = monthNum;
+          day = dayNum;
+        }
+      } else if (event.month) {
+        // Only include month if day is also provided (both must be real)
+        // If only month is provided, it's likely a placeholder, so ignore it
+      }
+      
       return {
         year: year || new Date().getFullYear(),
-        month: event.month ? parseInt(event.month) : undefined,
-        day: event.day ? parseInt(event.day) : undefined,
+        month: month,
+        day: day,
         title: title || `Event ${index + 1}`,
         description: event.description || '',
       };

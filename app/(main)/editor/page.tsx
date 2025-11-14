@@ -409,9 +409,12 @@ const TimelineEditor = () => {
             
             // Only use month/day if both are provided, otherwise use Jan 1 as placeholder
             // This ensures year-only events are stored as Jan 1 but displayed as year-only
-            const month = (hasMonth && hasDay) ? (event as any).month : 1;
-            const day = (hasMonth && hasDay) ? (event as any).day : 1;
-            dateStr = `${event.year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const month = (hasMonth && hasDay) ? (event as any).month : undefined;
+            const day = (hasMonth && hasDay) ? (event as any).day : undefined;
+            
+            // Use formatDateForDB to handle BC dates correctly
+            const { formatDateForDB } = await import('@/lib/utils/dateFormat');
+            dateStr = formatDateForDB(event.year || new Date().getFullYear(), month, day);
           }
 
           const eventResult = await createEvent(timelineId, {

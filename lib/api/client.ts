@@ -343,8 +343,9 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
     year = date.getFullYear();
     const monthNum = date.getMonth() + 1;
     const dayNum = date.getDate();
-    // Only include month/day if not Jan 1 (year-only placeholder)
-    if (monthNum !== 1 || dayNum !== 1 || year === 1) {
+    // Only include month/day if not placeholder dates (Jan 1 or Dec 31)
+    // Dec 31 is often used as a placeholder for year-end dates
+    if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31)) || year === 1) {
       month = monthNum;
       day = dayNum;
     }

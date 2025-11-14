@@ -1,7 +1,119 @@
 import { prisma } from './prisma';
 import { Event, CreateEventInput } from '@/lib/types';
 
+/**
+ * Check if a date string represents a BC date (starts with '-')
+ */
+function isBCDate(dateStr: string): boolean {
+  return dateStr.startsWith('-');
+}
+
+/**
+ * Convert a date string to a format that PostgreSQL can handle
+ * For BC dates, we need to use raw SQL with the date string directly
+ * For AD dates, we can use JavaScript Date objects
+ */
+function parseDateForDB(dateStr: string): Date | string {
+  // If it's a BC date (starts with '-'), return the string as-is for raw SQL
+  // PostgreSQL can handle BC dates in ISO format directly
+  if (isBCDate(dateStr)) {
+    return dateStr;
+  }
+  // For AD dates, use JavaScript Date object
+  return new Date(dateStr);
+}
+
 export async function createEvent(input: CreateEventInput & { created_by?: string }): Promise<Event> {
+  // Check if we need to use raw SQL (BC dates or missing number column)
+  const needsRawSQL = isBCDate(input.date) || (input.end_date && isBCDate(input.end_date));
+  
+  if (needsRawSQL) {
+    // Use raw SQL for BC dates to avoid JavaScript Date constructor issues
+    console.log('[createEvent] Using raw SQL for BC date:', input.date);
+    
+    const eventId = crypto.randomUUID();
+    const now = new Date();
+    
+    const linksArray = input.links && input.links.length > 0 ? input.links : [];
+    
+    // For BC dates, pass the date string directly to PostgreSQL
+    // PostgreSQL's DATE type can handle BC dates in ISO format (e.g., '-3000-01-01')
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO events (
+        id, timeline_id, title, description, date, end_date,
+        image_url, location_lat, location_lng, location_name,
+        category, links, created_by, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+      )
+    `,
+      eventId,
+      input.timeline_id,
+      input.title,
+      input.description || null,
+      input.date, // Pass BC date string directly
+      input.end_date || null, // Pass BC date string directly if present
+      input.image_url || null,
+      input.location_lat || null,
+      input.location_lng || null,
+      input.location_name || null,
+      input.category || null,
+      linksArray,
+      input.created_by || null,
+      now,
+      now
+    );
+    
+    // Fetch the created event
+    const eventRows = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      timeline_id: string;
+      title: string;
+      description: string | null;
+      date: Date;
+      end_date: Date | null;
+      image_url: string | null;
+      location_lat: number | null;
+      location_lng: number | null;
+      location_name: string | null;
+      category: string | null;
+      links: string[];
+      created_by: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>>(`
+      SELECT id, timeline_id, title, description, date, end_date,
+             image_url, location_lat, location_lng, location_name,
+             category, links, created_by, created_at, updated_at
+      FROM events WHERE id = $1
+    `, eventId);
+    
+    if (!eventRows || eventRows.length === 0) {
+      throw new Error('Failed to create event via raw SQL');
+    }
+    
+    const eventRow = eventRows[0];
+    const transformedEvent = {
+      id: eventRow.id,
+      timelineId: eventRow.timeline_id,
+      title: eventRow.title,
+      description: eventRow.description,
+      date: eventRow.date,
+      endDate: eventRow.end_date,
+      imageUrl: eventRow.image_url,
+      locationLat: eventRow.location_lat,
+      locationLng: eventRow.location_lng,
+      locationName: eventRow.location_name,
+      category: eventRow.category,
+      links: eventRow.links || [],
+      createdBy: eventRow.created_by,
+      createdAt: eventRow.created_at,
+      updatedAt: eventRow.updated_at,
+    };
+    
+    return transformEvent(transformedEvent);
+  }
+  
   try {
     const event = await prisma.event.create({
       data: {
@@ -37,15 +149,15 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
           image_url, location_lat, location_lng, location_name,
           category, links, created_by, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+          $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
         )
       `,
         eventId,
         input.timeline_id,
         input.title,
         input.description || null,
-        new Date(input.date),
-        input.end_date ? new Date(input.end_date) : null,
+        input.date, // Pass date string directly
+        input.end_date || null,
         input.image_url || null,
         input.location_lat || null,
         input.location_lng || null,
@@ -178,6 +290,7 @@ export async function getEventById(id: string): Promise<Event | null> {
 }
 
 export async function getEventsByTimelineId(timelineId: string): Promise<Event[]> {
+  // Sort by date - BC dates stored as negative years will sort correctly
   const events = await prisma.event.findMany({
     where: { timelineId },
     orderBy: { date: 'asc' },

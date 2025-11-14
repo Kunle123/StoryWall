@@ -9,12 +9,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CalendarIcon, Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Upload, X, Image as ImageIcon, Loader2, Globe, Twitter, Instagram, Facebook, Linkedin, Youtube, Music } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { HashtagInput } from "./HashtagInput";
+import { SOURCE_TYPE_CONFIGS, SourceType, detectSourceType } from "@/lib/utils/sourceValidation";
 
 interface TimelineInfoStepProps {
   timelineName: string;
@@ -81,6 +82,8 @@ export const TimelineInfoStep = ({
 }: TimelineInfoStepProps) => {
   const [maxEventsInput, setMaxEventsInput] = useState<string>(maxEvents.toString());
   const [sourceInput, setSourceInput] = useState<string>("");
+  const [sourceType, setSourceType] = useState<SourceType>("custom");
+  const [sourceError, setSourceError] = useState<string>("");
   const [referencePhotoPersonName, setReferencePhotoPersonName] = useState<string>(referencePhoto?.personName || "");
   const [referencePhotoHasPermission, setReferencePhotoHasPermission] = useState<boolean>(referencePhoto?.hasPermission || false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,6 +91,17 @@ export const TimelineInfoStep = ({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
   const [isPersonSubject, setIsPersonSubject] = useState<boolean | null>(null);
+  
+  // Auto-detect source type when input changes (only if user hasn't manually selected a type)
+  useEffect(() => {
+    if (sourceInput.trim()) {
+      const detected = detectSourceType(sourceInput);
+      // Only auto-detect if current type is 'custom' (user hasn't manually selected)
+      if (sourceType === 'custom' && detected !== 'custom') {
+        setSourceType(detected);
+      }
+    }
+  }, [sourceInput]); // Removed sourceType from deps to avoid loop
   
   // Sync external maxEvents changes to input
   useEffect(() => {
@@ -104,9 +118,39 @@ export const TimelineInfoStep = ({
   }, [referencePhoto]);
 
   const handleAddSource = () => {
-    if (sourceInput.trim() && setSourceRestrictions) {
-      setSourceRestrictions([...sourceRestrictions, sourceInput.trim()]);
-      setSourceInput("");
+    if (!sourceInput.trim() || !setSourceRestrictions) return;
+    
+    const config = SOURCE_TYPE_CONFIGS[sourceType];
+    const validation = config.validate(sourceInput);
+    
+    if (!validation.valid) {
+      setSourceError(validation.error || "Invalid source format");
+      toast({
+        title: "Invalid Source",
+        description: validation.error || "Please check the format and try again",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Use formatted version if available, otherwise use original
+    const formattedSource = validation.formatted || sourceInput.trim();
+    setSourceRestrictions([...sourceRestrictions, formattedSource]);
+    setSourceInput("");
+    setSourceError("");
+    setSourceType("custom"); // Reset to custom for next entry
+  };
+  
+  const getSourceIcon = (type: SourceType) => {
+    switch (type) {
+      case 'twitter': return Twitter;
+      case 'instagram': return Instagram;
+      case 'tiktok': return Music; // TikTok icon (using Music as closest match)
+      case 'facebook': return Facebook;
+      case 'linkedin': return Linkedin;
+      case 'youtube': return Youtube;
+      case 'url': return Globe;
+      default: return Globe;
     }
   };
 
@@ -583,23 +627,48 @@ export const TimelineInfoStep = ({
                     </Label>
                     <p className="text-sm text-muted-foreground">
                       Require that descriptions and titles are sourced solely from specific resources. 
-                      Examples: "The writings of Noam Chomsky", "Official publications from the NHS", 
-                      "www.example.com", "YouTube archive of Peter Crouch"
+                      Add social media accounts, websites, or custom sources.
                     </p>
+                    
                     <div className="flex gap-2">
-                      <Input
-                        id="source-restrictions"
-                        placeholder="e.g., The writings of Noam Chomsky"
-                        value={sourceInput}
-                        onChange={(e) => setSourceInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddSource();
-                          }
-                        }}
-                        className="h-9"
-                      />
+                      <Select value={sourceType} onValueChange={(value) => setSourceType(value as SourceType)}>
+                        <SelectTrigger className="w-[180px] h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="custom">Custom Source</SelectItem>
+                          <SelectItem value="url">Website URL</SelectItem>
+                          <SelectItem value="twitter">Twitter/X</SelectItem>
+                          <SelectItem value="instagram">Instagram</SelectItem>
+                          <SelectItem value="tiktok">TikTok</SelectItem>
+                          <SelectItem value="facebook">Facebook</SelectItem>
+                          <SelectItem value="linkedin">LinkedIn</SelectItem>
+                          <SelectItem value="youtube">YouTube</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <div className="flex-1 relative">
+                        <Input
+                          id="source-restrictions"
+                          placeholder={SOURCE_TYPE_CONFIGS[sourceType].placeholder}
+                          value={sourceInput}
+                          onChange={(e) => {
+                            setSourceInput(e.target.value);
+                            setSourceError(""); // Clear error on input
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddSource();
+                            }
+                          }}
+                          className={cn("h-9", sourceError && "border-destructive")}
+                        />
+                        {sourceError && (
+                          <p className="text-xs text-destructive mt-1 absolute">{sourceError}</p>
+                        )}
+                      </div>
+                      
                       <Button
                         type="button"
                         variant="outline"
@@ -610,24 +679,36 @@ export const TimelineInfoStep = ({
                         Add
                       </Button>
                     </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Example: {SOURCE_TYPE_CONFIGS[sourceType].example}
+                    </p>
+                    
                     {sourceRestrictions.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {sourceRestrictions.map((source, index) => (
-                          <Badge
-                            key={index}
-                            variant="secondary"
-                            className="flex items-center gap-1 pr-1"
-                          >
-                            <span className="max-w-xs truncate">{source}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSource(index)}
-                              className="hover:bg-secondary rounded-full p-0.5"
+                        {sourceRestrictions.map((source, index) => {
+                          // Detect source type for icon
+                          const detectedType = detectSourceType(source);
+                          const Icon = getSourceIcon(detectedType);
+                          
+                          return (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1.5 pr-1"
                             >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        ))}
+                              <Icon className="w-3.5 h-3.5" />
+                              <span className="max-w-xs truncate">{source}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveSource(index)}
+                                className="hover:bg-secondary rounded-full p-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

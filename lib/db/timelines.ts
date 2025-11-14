@@ -106,6 +106,7 @@ export async function createTimeline(
       const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
       
       // Use raw SQL for events to avoid number column issue
+      // Sort by date - BC dates stored as negative years will sort correctly
       const eventRows = await prisma.$queryRawUnsafe<Array<any>>(`
         SELECT id, timeline_id, title, description, date, end_date, 
                image_url, location_lat, location_lng, location_name, 
@@ -361,6 +362,7 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
       const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
       
       // Use raw SQL for events to avoid number column issue
+      // Sort by date - BC dates stored as negative years will sort correctly
       const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
                image_url, location_lat, location_lng, location_name, 
                category, links, created_by, created_at, updated_at
@@ -458,6 +460,7 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
     const timelineRow = timelineRows[0];
     const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
     
+    // Sort by date - BC dates stored as negative years will sort correctly
     const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
              image_url, location_lat, location_lng, location_name, 
              category, links, created_by, created_at, updated_at
