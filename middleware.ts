@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 // Define public routes - routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -14,6 +15,16 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  // Redirect storywall.com to www.storywall.com
+  const url = request.nextUrl.clone();
+  const hostname = request.headers.get('host') || '';
+  
+  // Only redirect in production (not localhost)
+  if (process.env.NODE_ENV === 'production' && hostname === 'storywall.com') {
+    url.hostname = 'www.storywall.com';
+    return NextResponse.redirect(url, 301); // Permanent redirect
+  }
+  
   // Protect routes that are not public
   if (!isPublicRoute(request)) {
     await auth.protect();

@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/use-credits";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
+import { updateEvent } from "@/lib/api/client";
 
 const themeColors = [
   { name: "None", value: "" },
@@ -42,6 +43,7 @@ interface GenerateImagesStepProps {
     hasPermission: boolean;
   };
   includesPeople?: boolean;
+  timelineId?: string; // Optional: if timeline already exists, save images immediately
 }
 
 const CREDIT_COST_PER_IMAGE = 1; // 1 credit per image
@@ -56,6 +58,7 @@ export const GenerateImagesStep = ({
   imageReferences = [],
   referencePhoto,
   includesPeople = true,
+  timelineId,
 }: GenerateImagesStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
@@ -336,11 +339,20 @@ export const GenerateImagesStep = ({
                 // data.index is the index in the selectedEventsList array
                 if (data.imageUrl && data.index < selectedEventsList.length) {
                   const event = selectedEventsList[data.index];
-                  setEvents(prevEvents => 
-                    prevEvents.map(e => 
+                  setEvents(prevEvents => {
+                    const updated = prevEvents.map(e => 
                       e.id === event.id ? { ...e, imageUrl: data.imageUrl } : e
-                    )
-                  );
+                    );
+                    
+                    // If timeline exists, save image to database immediately
+                    if (timelineId && event.id) {
+                      updateEvent(event.id, { image_url: data.imageUrl }).catch(error => {
+                        console.error(`[GenerateImages] Failed to save image for event ${event.id}:`, error);
+                      });
+                    }
+                    
+                    return updated;
+                  });
                 }
               } else if (data.type === 'complete') {
                 // All images complete
@@ -350,15 +362,32 @@ export const GenerateImagesStep = ({
                 
                 // Ensure all events are updated (in case any were missed)
                 // data.images array corresponds to selectedEventsList order
-                setEvents(prevEvents => 
-                  prevEvents.map(e => {
+                setEvents(prevEvents => {
+                  const updatedEvents = prevEvents.map(e => {
                     const selectedIndex = eventIdToIndex.get(e.id);
                     if (selectedIndex !== undefined && data.images[selectedIndex]) {
                       return { ...e, imageUrl: data.images[selectedIndex] };
                     }
                     return e;
-                  })
-                );
+                  });
+                  
+                  // If timeline exists, save images to database immediately
+                  if (timelineId) {
+                    updatedEvents.forEach(async (e) => {
+                      const selectedIndex = eventIdToIndex.get(e.id);
+                      if (selectedIndex !== undefined && data.images[selectedIndex] && e.id) {
+                        try {
+                          await updateEvent(e.id, { image_url: data.images[selectedIndex] });
+                          console.log(`[GenerateImages] Saved image to database for event ${e.id}`);
+                        } catch (error) {
+                          console.error(`[GenerateImages] Failed to save image for event ${e.id}:`, error);
+                        }
+                      }
+                    });
+                  }
+                  
+                  return updatedEvents;
+                });
               } else if (data.type === 'error') {
                 throw new Error(data.error || 'Streaming error');
               }

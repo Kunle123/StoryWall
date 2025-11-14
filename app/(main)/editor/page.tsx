@@ -69,6 +69,31 @@ const TimelineEditor = () => {
     }
   }, [isSignedIn, isLoaded, router]);
 
+  // Warn user before leaving page if they have unsaved changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR safety check
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Check if user has generated images that haven't been saved
+      const hasGeneratedImages = events.some(e => e.imageUrl);
+      const hasUnsavedWork = events.length > 0 || timelineName.trim().length > 0;
+      
+      // Only warn if there's actual work that could be lost
+      if (hasGeneratedImages || (hasUnsavedWork && currentStep > 1)) {
+        // Modern browsers ignore custom messages, but we can still trigger the warning
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [events, timelineName, currentStep]);
+
   // Load state from localStorage on mount
   useEffect(() => {
     try {
@@ -398,6 +423,13 @@ const TimelineEditor = () => {
             image_url: event.imageUrl || undefined,
           });
 
+          // Log if image is missing
+          if (!event.imageUrl) {
+            console.warn(`[Timeline Save] Event "${event.title}" created without image URL`);
+          } else {
+            console.log(`[Timeline Save] Event "${event.title}" created with image: ${event.imageUrl.substring(0, 50)}...`);
+          }
+
           eventResults.push({ success: true, event: event.title });
         } catch (eventError: any) {
           console.error(`Failed to create event "${event.title}":`, eventError);
@@ -413,7 +445,19 @@ const TimelineEditor = () => {
       const failedEvents = eventResults.filter(r => !r.success);
       const successfulEvents = eventResults.filter(r => r.success);
       
+      // Count events with images
+      const eventsWithImages = events.filter(e => e.imageUrl).length;
+      const eventsWithoutImages = events.length - eventsWithImages;
+      
       console.log(`[Timeline Save] Events summary: ${successfulEvents.length} successful, ${failedEvents.length} failed`);
+      console.log(`[Timeline Save] Events with images: ${eventsWithImages} of ${events.length}`);
+      
+      if (eventsWithoutImages > 0) {
+        console.warn(`[Timeline Save] ⚠️  WARNING: ${eventsWithoutImages} events are missing images!`);
+        console.warn(`[Timeline Save] Events without images:`, 
+          events.filter(e => !e.imageUrl).map(e => e.title)
+        );
+      }
       
       if (failedEvents.length > 0) {
         console.warn('[Timeline Save] Failed events:', failedEvents);
