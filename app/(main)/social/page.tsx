@@ -7,7 +7,10 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowRight, Sparkles, Plus } from "lucide-react";
 import { SOCIAL_TEMPLATES, PLATFORM_INFO, SocialPlatform, SocialTemplate } from "@/lib/data/socialTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +21,9 @@ const SocialTimelinePage = () => {
   const { isSignedIn, isLoaded } = useUser();
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<SocialTemplate | null>(null);
+  const [showCustom, setShowCustom] = useState(false);
+  const [customTitle, setCustomTitle] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
 
   // Redirect to sign-in if not authenticated
   if (isLoaded && !isSignedIn) {
@@ -25,22 +31,51 @@ const SocialTimelinePage = () => {
     return null;
   }
 
-  const handleTemplateSelect = (template: SocialTemplate) => {
-    setSelectedTemplate(template);
+  if (!isLoaded) {
+    return null;
+  }
+
+  const handleTemplateSelect = (template: SocialTemplate | 'custom') => {
+    if (template === 'custom') {
+      setShowCustom(true);
+      setSelectedTemplate(null);
+    } else {
+      setShowCustom(false);
+      setSelectedTemplate(template);
+    }
   };
 
   const handleCreateTimeline = () => {
-    if (!selectedTemplate) return;
+    if (showCustom) {
+      if (!customTitle.trim() || !customDescription.trim()) {
+        toast({
+          title: "Missing Information",
+          description: "Please provide both a title and description for your custom timeline.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Navigate to editor with pre-filled template data
-    const params = new URLSearchParams({
-      title: selectedTemplate.title,
-      description: selectedTemplate.description,
-      source: `${selectedTemplate.platform}:${selectedTemplate.id}`,
-      platform: selectedTemplate.platform,
-    });
+      // Navigate to editor with custom data
+      const params = new URLSearchParams({
+        title: customTitle.trim(),
+        description: customDescription.trim(),
+        source: `${selectedPlatform}:custom`,
+        platform: selectedPlatform || '',
+      });
 
-    router.push(`/editor?${params.toString()}`);
+      router.push(`/editor?${params.toString()}`);
+    } else if (selectedTemplate) {
+      // Navigate to editor with pre-filled template data
+      const params = new URLSearchParams({
+        title: selectedTemplate.title,
+        description: selectedTemplate.description,
+        source: `${selectedTemplate.platform}:${selectedTemplate.id}`,
+        platform: selectedTemplate.platform,
+      });
+
+      router.push(`/editor?${params.toString()}`);
+    }
   };
 
   const platforms: SocialPlatform[] = ['twitter', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
@@ -137,32 +172,95 @@ const SocialTimelinePage = () => {
                   </Card>
                 );
               })}
+              
+              {/* Custom Template Option */}
+              <Card
+                className={`p-6 cursor-pointer transition-all hover:shadow-lg border-dashed ${
+                  showCustom
+                    ? 'ring-2 ring-primary bg-primary/5 border-primary'
+                    : 'hover:bg-muted/50 border-2'
+                }`}
+                onClick={() => handleTemplateSelect('custom')}
+              >
+                <div className="flex items-center justify-center mb-3">
+                  <div className="text-3xl">✨</div>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-center">Create Custom Timeline</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  Define your own title and description for a personalized social media timeline.
+                </p>
+                {showCustom && (
+                  <div className="mt-4 flex items-center justify-center text-primary">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-medium">Selected</span>
+                  </div>
+                )}
+              </Card>
             </div>
           </div>
         )}
 
-        {/* Create Button */}
-        {selectedTemplate && (
-          <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t pt-6 pb-6 mt-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-lg mb-1">Ready to Create</h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedTemplate.title}
-                </p>
+        {/* Custom Template Form */}
+        {showCustom && selectedPlatform && (
+          <div className="mb-8">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Custom Timeline Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="custom-title">Timeline Title</Label>
+                  <Input
+                    id="custom-title"
+                    placeholder="e.g., Most Disliked Tweets from BBC"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter a descriptive title for your timeline. You can reference specific accounts using [Account] placeholder.
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="custom-description">Timeline Description</Label>
+                  <Textarea
+                    id="custom-description"
+                    placeholder="e.g., A timeline of the most controversial or disliked tweets from BBC, organized chronologically to show patterns and public reaction."
+                    value={customDescription}
+                    onChange={(e) => setCustomDescription(e.target.value)}
+                    className="mt-1 min-h-[100px]"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Describe what this timeline will contain and how it will be organized.
+                  </p>
+                </div>
               </div>
-              <Button
-                onClick={handleCreateTimeline}
-                size="lg"
-                className="gap-2"
-              >
-                Create Timeline
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Create Button */}
+        {(selectedTemplate || showCustom) && (
+          <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t pt-6 pb-6 mt-8">
+            <Card className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Ready to Create</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {showCustom ? customTitle || 'Custom Timeline' : selectedTemplate?.title}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleCreateTimeline}
+                  size="lg"
+                  className="gap-2"
+                  disabled={showCustom && (!customTitle.trim() || !customDescription.trim())}
+                >
+                  Create Timeline
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );

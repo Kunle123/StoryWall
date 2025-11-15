@@ -51,6 +51,30 @@ export const SOCIAL_TEMPLATES: Record<SocialPlatform, SocialTemplate[]> = {
       icon: '💼',
       category: 'career',
     },
+    {
+      id: 'twitter-account-controversial',
+      title: 'Most Disliked Tweets from [Account]',
+      description: 'A timeline of the most controversial or disliked tweets from a specific Twitter account, organized chronologically to show patterns and public reaction.',
+      platform: 'twitter',
+      icon: '👎',
+      category: 'engagement',
+    },
+    {
+      id: 'twitter-account-popular',
+      title: 'Most Popular Tweets from [Account]',
+      description: 'A timeline showcasing the most liked, retweeted, and viral tweets from a specific Twitter account, highlighting their most engaging content.',
+      platform: 'twitter',
+      icon: '⭐',
+      category: 'engagement',
+    },
+    {
+      id: 'twitter-account-year',
+      title: '[Account] Twitter Year in Review',
+      description: 'A comprehensive timeline of a specific Twitter account\'s activity throughout the year, including key moments, announcements, and notable interactions.',
+      platform: 'twitter',
+      icon: '📅',
+      category: 'content',
+    },
   ],
   instagram: [
     {
