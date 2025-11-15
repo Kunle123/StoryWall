@@ -1,0 +1,243 @@
+export type SocialPlatform = 'twitter' | 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube';
+
+export interface SocialTemplate {
+  id: string;
+  title: string;
+  description: string;
+  platform: SocialPlatform;
+  icon: string;
+  category: 'engagement' | 'seasonal' | 'career' | 'personal' | 'content';
+}
+
+export const SOCIAL_TEMPLATES: Record<SocialPlatform, SocialTemplate[]> = {
+  twitter: [
+    {
+      id: 'twitter-popular-tweets',
+      title: 'My Most Popular Tweets of the Last 12 Months',
+      description: 'A timeline of my most liked, retweeted, and shared tweets from the past year, showcasing the moments that resonated most with my audience.',
+      platform: 'twitter',
+      icon: '🔥',
+      category: 'engagement',
+    },
+    {
+      id: 'twitter-year-review',
+      title: 'My Twitter Year in Review',
+      description: 'A comprehensive overview of my Twitter activity throughout the year, highlighting key moments, trending topics, and memorable interactions.',
+      platform: 'twitter',
+      icon: '📊',
+      category: 'personal',
+    },
+    {
+      id: 'twitter-thread-highlights',
+      title: 'My Best Threads of the Year',
+      description: 'A curated collection of my most impactful Twitter threads, organized chronologically to show the evolution of my thoughts and ideas.',
+      platform: 'twitter',
+      icon: '🧵',
+      category: 'content',
+    },
+    {
+      id: 'twitter-xmas',
+      title: 'My Christmas Timeline on Twitter',
+      description: 'A festive timeline capturing all my holiday tweets, from early December anticipation to New Year reflections, including favorite moments and interactions.',
+      platform: 'twitter',
+      icon: '🎄',
+      category: 'seasonal',
+    },
+    {
+      id: 'twitter-career-milestones',
+      title: 'My Career Journey on Twitter',
+      description: 'A professional timeline documenting career milestones, achievements, and significant moments shared on Twitter, from job announcements to industry insights.',
+      platform: 'twitter',
+      icon: '💼',
+      category: 'career',
+    },
+  ],
+  instagram: [
+    {
+      id: 'instagram-top-posts',
+      title: 'My Most Shared Stories of the Year',
+      description: 'A visual timeline of my Instagram stories that received the most shares and engagement, capturing the moments that connected most with my audience.',
+      platform: 'instagram',
+      icon: '📸',
+      category: 'engagement',
+    },
+    {
+      id: 'instagram-year-highlights',
+      title: 'My Instagram Year in Highlights',
+      description: 'A curated timeline of my most memorable Instagram posts, stories, and reels from the past year, organized by engagement and personal significance.',
+      platform: 'instagram',
+      icon: '✨',
+      category: 'personal',
+    },
+    {
+      id: 'instagram-xmas',
+      title: 'My Christmas Timeline on Instagram',
+      description: 'A festive visual journey through my holiday season on Instagram, featuring holiday posts, stories, and reels from December through New Year.',
+      platform: 'instagram',
+      icon: '🎄',
+      category: 'seasonal',
+    },
+    {
+      id: 'instagram-career',
+      title: 'My Career History on Instagram',
+      description: 'A professional visual timeline showcasing career milestones, achievements, and work-related content shared on Instagram throughout my journey.',
+      platform: 'instagram',
+      icon: '💼',
+      category: 'career',
+    },
+    {
+      id: 'instagram-travel',
+      title: 'My Travel Adventures on Instagram',
+      description: 'A chronological timeline of my travel experiences, adventures, and destinations captured and shared on Instagram.',
+      platform: 'instagram',
+      icon: '✈️',
+      category: 'personal',
+    },
+  ],
+  facebook: [
+    {
+      id: 'facebook-year-review',
+      title: 'My Facebook Year in Review',
+      description: 'A comprehensive timeline of my most engaging Facebook posts, life events, and memorable moments shared with friends and family throughout the year.',
+      platform: 'facebook',
+      icon: '📘',
+      category: 'personal',
+    },
+    {
+      id: 'facebook-popular-posts',
+      title: 'My Most Popular Posts of the Last 12 Months',
+      description: 'A timeline featuring my Facebook posts that received the most reactions, comments, and shares, highlighting the content that resonated most with my network.',
+      platform: 'facebook',
+      icon: '🔥',
+      category: 'engagement',
+    },
+    {
+      id: 'facebook-xmas',
+      title: 'My Christmas Timeline on Facebook',
+      description: 'A festive timeline capturing holiday posts, family moments, and seasonal celebrations shared on Facebook from December through New Year.',
+      platform: 'facebook',
+      icon: '🎄',
+      category: 'seasonal',
+    },
+    {
+      id: 'facebook-life-events',
+      title: 'My Life Events on Facebook',
+      description: 'A personal timeline documenting significant life events, milestones, and important moments shared on Facebook over the years.',
+      platform: 'facebook',
+      icon: '🎉',
+      category: 'personal',
+    },
+  ],
+  linkedin: [
+    {
+      id: 'linkedin-career-history',
+      title: 'My Career History on LinkedIn',
+      description: 'A professional timeline documenting my career journey, job changes, achievements, and industry insights shared on LinkedIn.',
+      platform: 'linkedin',
+      icon: '💼',
+      category: 'career',
+    },
+    {
+      id: 'linkedin-top-posts',
+      title: 'My Most Engaging LinkedIn Posts',
+      description: 'A timeline of my LinkedIn posts that generated the most engagement, comments, and professional discussions throughout the year.',
+      platform: 'linkedin',
+      icon: '📈',
+      category: 'engagement',
+    },
+    {
+      id: 'linkedin-industry-insights',
+      title: 'My Industry Insights Timeline',
+      description: 'A curated collection of my professional thoughts, industry analysis, and career advice shared on LinkedIn, organized chronologically.',
+      platform: 'linkedin',
+      icon: '💡',
+      category: 'content',
+    },
+    {
+      id: 'linkedin-achievements',
+      title: 'My Professional Achievements on LinkedIn',
+      description: 'A timeline showcasing career milestones, certifications, awards, and professional accomplishments shared on LinkedIn.',
+      platform: 'linkedin',
+      icon: '🏆',
+      category: 'career',
+    },
+  ],
+  tiktok: [
+    {
+      id: 'tiktok-viral-videos',
+      title: 'My Most Viral TikTok Videos',
+      description: 'A timeline of my TikTok videos that went viral, received the most views, likes, and shares, showcasing the content that resonated most with viewers.',
+      platform: 'tiktok',
+      icon: '🔥',
+      category: 'engagement',
+    },
+    {
+      id: 'tiktok-year-review',
+      title: 'My TikTok Year in Review',
+      description: 'A comprehensive timeline of my most popular TikTok content, trends I participated in, and memorable videos from throughout the year.',
+      platform: 'tiktok',
+      icon: '📱',
+      category: 'personal',
+    },
+    {
+      id: 'tiktok-xmas',
+      title: 'My Christmas Timeline on TikTok',
+      description: 'A festive timeline of holiday-themed TikTok videos, from December celebrations to New Year content, capturing the seasonal spirit.',
+      platform: 'tiktok',
+      icon: '🎄',
+      category: 'seasonal',
+    },
+    {
+      id: 'tiktok-creative-journey',
+      title: 'My Creative Journey on TikTok',
+      description: 'A timeline documenting the evolution of my TikTok content, creative experiments, and the growth of my video creation skills.',
+      platform: 'tiktok',
+      icon: '🎬',
+      category: 'content',
+    },
+  ],
+  youtube: [
+    {
+      id: 'youtube-top-videos',
+      title: 'My Most Popular YouTube Videos',
+      description: 'A timeline of my YouTube videos that received the most views, likes, and engagement, showcasing the content that connected most with my audience.',
+      platform: 'youtube',
+      icon: '📺',
+      category: 'engagement',
+    },
+    {
+      id: 'youtube-year-review',
+      title: 'My YouTube Year in Review',
+      description: 'A comprehensive timeline of my YouTube channel activity, from most-viewed videos to subscriber milestones and content highlights throughout the year.',
+      platform: 'youtube',
+      icon: '📊',
+      category: 'personal',
+    },
+    {
+      id: 'youtube-content-evolution',
+      title: 'My Content Evolution on YouTube',
+      description: 'A timeline documenting the growth and evolution of my YouTube channel, from early videos to current content, showing the journey of my creative work.',
+      platform: 'youtube',
+      icon: '🎥',
+      category: 'content',
+    },
+    {
+      id: 'youtube-milestones',
+      title: 'My YouTube Milestones Timeline',
+      description: 'A timeline celebrating subscriber milestones, video achievements, and significant moments in my YouTube channel journey.',
+      platform: 'youtube',
+      icon: '🎯',
+      category: 'career',
+    },
+  ],
+};
+
+export const PLATFORM_INFO: Record<SocialPlatform, { name: string; icon: string; color: string }> = {
+  twitter: { name: 'Twitter/X', icon: '🐦', color: 'text-blue-500' },
+  instagram: { name: 'Instagram', icon: '📷', color: 'text-pink-500' },
+  facebook: { name: 'Facebook', icon: '📘', color: 'text-blue-600' },
+  linkedin: { name: 'LinkedIn', icon: '💼', color: 'text-blue-700' },
+  tiktok: { name: 'TikTok', icon: '🎵', color: 'text-black' },
+  youtube: { name: 'YouTube', icon: '📺', color: 'text-red-600' },
+};
+

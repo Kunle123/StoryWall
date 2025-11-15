@@ -1,0 +1,172 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { SOCIAL_TEMPLATES, PLATFORM_INFO, SocialPlatform, SocialTemplate } from "@/lib/data/socialTemplates";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+
+const SocialTimelinePage = () => {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { isSignedIn, isLoaded } = useUser();
+  const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<SocialTemplate | null>(null);
+
+  // Redirect to sign-in if not authenticated
+  if (isLoaded && !isSignedIn) {
+    router.push('/sign-in');
+    return null;
+  }
+
+  const handleTemplateSelect = (template: SocialTemplate) => {
+    setSelectedTemplate(template);
+  };
+
+  const handleCreateTimeline = () => {
+    if (!selectedTemplate) return;
+
+    // Navigate to editor with pre-filled template data
+    const params = new URLSearchParams({
+      title: selectedTemplate.title,
+      description: selectedTemplate.description,
+      source: `${selectedTemplate.platform}:${selectedTemplate.id}`,
+      platform: selectedTemplate.platform,
+    });
+
+    router.push(`/editor?${params.toString()}`);
+  };
+
+  const platforms: SocialPlatform[] = ['twitter', 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube'];
+  const templates = selectedPlatform ? SOCIAL_TEMPLATES[selectedPlatform] : [];
+
+  const categoryColors: Record<string, string> = {
+    engagement: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+    seasonal: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    career: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    personal: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    content: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <Toaster />
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold">Create Social Media Timeline</h1>
+          </div>
+          <p className="text-muted-foreground text-lg">
+            Choose a social media platform and template to automatically generate a timeline from your social media content.
+          </p>
+        </div>
+
+        {/* Platform Selection */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Select Platform</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {platforms.map((platform) => {
+              const info = PLATFORM_INFO[platform];
+              const isSelected = selectedPlatform === platform;
+              return (
+                <Card
+                  key={platform}
+                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${
+                    isSelected
+                      ? 'ring-2 ring-primary bg-primary/5'
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => {
+                    setSelectedPlatform(platform);
+                    setSelectedTemplate(null);
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">{info.icon}</div>
+                    <div className={`font-medium ${isSelected ? 'text-primary' : ''}`}>
+                      {info.name}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Template Selection */}
+        {selectedPlatform && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">
+              Choose a Template for {PLATFORM_INFO[selectedPlatform].name}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {templates.map((template) => {
+                const isSelected = selectedTemplate?.id === template.id;
+                return (
+                  <Card
+                    key={template.id}
+                    className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
+                      isSelected
+                        ? 'ring-2 ring-primary bg-primary/5'
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => handleTemplateSelect(template)}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="text-3xl">{template.icon}</div>
+                      <Badge className={categoryColors[template.category]}>
+                        {template.category}
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{template.title}</h3>
+                    <p className="text-sm text-muted-foreground">{template.description}</p>
+                    {isSelected && (
+                      <div className="mt-4 flex items-center text-primary">
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        <span className="text-sm font-medium">Selected</span>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Create Button */}
+        {selectedTemplate && (
+          <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t pt-6 pb-6 mt-8">
+          <Card className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Ready to Create</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedTemplate.title}
+                </p>
+              </div>
+              <Button
+                onClick={handleCreateTimeline}
+                size="lg"
+                className="gap-2"
+              >
+                Create Timeline
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default SocialTimelinePage;
+

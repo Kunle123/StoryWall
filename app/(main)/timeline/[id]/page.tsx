@@ -26,37 +26,34 @@ const TimelinePage = () => {
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
   
+  // Reset commentsRequested flag after scroll animation completes
+  useEffect(() => {
+    if (!commentsRequested) return;
+    
+    const resetTimeout = setTimeout(() => {
+      setCommentsRequested(false);
+    }, 1500); // Allow time for smooth scroll animation to complete
+    
+    return () => clearTimeout(resetTimeout);
+  }, [commentsRequested]);
+  
   // Handle header hide/show on scroll and comments visibility
   useEffect(() => {
-    let scrollTimeout: NodeJS.Timeout;
+    let hideCommentsTimeout: NodeJS.Timeout;
     
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // Clear any pending timeout
-      clearTimeout(scrollTimeout);
+      // Clear any pending hide timeout
+      clearTimeout(hideCommentsTimeout);
       
-      // Check if at bottom of page
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      const isAtBottom = scrollTop + windowHeight >= documentHeight - 100; // 100px threshold
-      
-      // Show comments if at bottom OR if comments were requested
-      if (isAtBottom || commentsRequested) {
-        setShowComments(true);
-        // Reset the flag after showing
-        if (commentsRequested) {
-          scrollTimeout = setTimeout(() => setCommentsRequested(false), 500);
-        }
-      } else {
-        // Hide comments when scrolling away from bottom (unless just requested)
-        if (!commentsRequested) {
-          // Small delay to avoid flickering
-          scrollTimeout = setTimeout(() => {
-            setShowComments(false);
-          }, 150);
-        }
+      // Hide comments when scrolling (unless they were just requested via button click)
+      // Only hide if comments are currently shown and user is scrolling away
+      if (showComments && !commentsRequested) {
+        // Small delay to avoid flickering during smooth scroll
+        hideCommentsTimeout = setTimeout(() => {
+          setShowComments(false);
+        }, 200);
       }
       
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
@@ -71,15 +68,17 @@ const TimelinePage = () => {
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
+      clearTimeout(hideCommentsTimeout);
     };
-  }, [lastScrollY, commentsRequested]);
+  }, [lastScrollY, commentsRequested, showComments]);
   
   // Handle comments button click from event cards
   useEffect(() => {
     const handleCommentsClick = () => {
+      // Only show comments when explicitly requested via button click
       setCommentsRequested(true);
       setShowComments(true);
       // Scroll to comments section
