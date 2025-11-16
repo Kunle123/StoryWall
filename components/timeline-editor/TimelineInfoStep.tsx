@@ -399,112 +399,95 @@ export const TimelineInfoStep = ({
             className="min-h-[120px] resize-none"
             rows={5}
           />
-        </div>
-
-        <div>
-          <Label htmlFor="hashtags" className="text-base mb-2 block">
-            Hashtags
-          </Label>
-          <p className="text-sm text-muted-foreground mb-2">
-            Add hashtags to help others discover your timeline. Press Enter or comma to add.
+          <p className="text-sm text-muted-foreground mt-2">
+            AI will generate up to 20 events based on your timeline description
           </p>
-          {setHashtags && (
-            <HashtagInput
-              hashtags={hashtags}
-              onChange={setHashtags}
-              placeholder="Type to search or add hashtags..."
-            />
-          )}
         </div>
 
-        <div className="mt-2 space-y-2">
-            {maxEvents <= 20 ? (
-              <p className="text-sm text-muted-foreground">
-                AI will generate up to 20 events based on your timeline description
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                For &gt; 20 events, enter the max number here. (If using AI, each image costs 1 credit)
-              </p>
-            )}
-            {setMaxEvents && (
-              <div className="flex items-center gap-2">
-                <Label htmlFor="max-events" className="text-sm">
-                  Max Events:
-                </Label>
-                <Input
-                  id="max-events"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={maxEventsInput}
-                  onChange={(e) => {
-                    const inputValue = e.target.value;
-                    // Allow empty string for deletion
-                    if (inputValue === '') {
-                      setMaxEventsInput('');
-                      return;
-                    }
-                    // Only allow digits
-                    if (!/^\d+$/.test(inputValue)) {
-                      return; // Ignore non-numeric input
-                    }
-                    // Update local state immediately for responsive UI
-                    setMaxEventsInput(inputValue);
-                    const value = parseInt(inputValue, 10);
-                    if (!isNaN(value) && value >= 1 && value <= 100) {
-                      setMaxEvents(value);
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Ensure value is valid on blur
-                    const inputValue = e.target.value;
-                    if (inputValue === '') {
-                      setMaxEventsInput('20');
-                      setMaxEvents(20); // Default to 20 if empty
-                      return;
-                    }
-                    const value = parseInt(inputValue, 10);
-                    if (isNaN(value) || value < 1) {
-                      setMaxEventsInput('1');
-                      setMaxEvents(1);
-                    } else if (value > 100) {
-                      setMaxEventsInput('100');
-                      setMaxEvents(100);
-                    } else {
-                      setMaxEventsInput(value.toString());
-                      setMaxEvents(value);
-                    }
-                  }}
-                  className="h-9 w-28"
-                />
-                <span className="text-xs text-muted-foreground">
-                  (max 100)
-                </span>
-              </div>
-            )}
+        <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="space-y-0.5">
+            <Label htmlFor="allow-fictional" className="text-base">
+              Allow Fictional Information
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Enable AI to use fictional or creative content when generating timeline events
+            </p>
           </div>
+          <Switch
+            id="allow-fictional"
+            checked={!isFactual}
+            onCheckedChange={(checked) => setIsFactual(!checked)}
+          />
+        </div>
+
+        {!isNumbered && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="start-date" className="text-base mb-2 block">
+                Start Date (Optional)
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-10",
+                      !startDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={setStartDate}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label htmlFor="end-date" className="text-base mb-2 block">
+                End Date (Optional)
+              </Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-10",
+                      !endDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={setEndDate}
+                    disabled={(date) => startDate ? date < startDate : false}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        )}
 
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="more-options">
             <AccordionTrigger>More Options</AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="allow-fictional" className="text-base">
-                      Allow Fictional Information
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable AI to use fictional or creative content when generating timeline events
-                    </p>
-                  </div>
-                  <Switch
-                    id="allow-fictional"
-                    checked={!isFactual}
-                    onCheckedChange={(checked) => setIsFactual(!checked)}
-                  />
-                </div>
 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="space-y-0.5">
@@ -556,68 +539,89 @@ export const TimelineInfoStep = ({
                   />
                 </div>
 
-                {!isNumbered && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="start-date" className="text-base mb-2 block">
-                        Start Date (Optional)
-                      </Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal h-10",
-                              !startDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={setStartDate}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                <div>
+                  <Label htmlFor="hashtags" className="text-base mb-2 block">
+                    Hashtags
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Add hashtags to help others discover your timeline. Press Enter or comma to add.
+                  </p>
+                  {setHashtags && (
+                    <HashtagInput
+                      hashtags={hashtags}
+                      onChange={setHashtags}
+                      placeholder="Type to search or add hashtags..."
+                    />
+                  )}
+                </div>
 
-                    <div>
-                      <Label htmlFor="end-date" className="text-base mb-2 block">
-                        End Date (Optional)
+                <div className="mt-2 space-y-2">
+                  {maxEvents <= 20 ? (
+                    <p className="text-sm text-muted-foreground">
+                      AI will generate up to 20 events based on your timeline description
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      For &gt; 20 events, enter the max number here. (If using AI, each image costs 1 credit)
+                    </p>
+                  )}
+                  {setMaxEvents && (
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="max-events" className="text-sm">
+                        Max Events:
                       </Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal h-10",
-                              !endDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={setEndDate}
-                            disabled={(date) => startDate ? date < startDate : false}
-                            initialFocus
-                            className="p-3 pointer-events-auto"
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Input
+                        id="max-events"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={maxEventsInput}
+                        onChange={(e) => {
+                          const inputValue = e.target.value;
+                          // Allow empty string for deletion
+                          if (inputValue === '') {
+                            setMaxEventsInput('');
+                            return;
+                          }
+                          // Only allow digits
+                          if (!/^\d+$/.test(inputValue)) {
+                            return; // Ignore non-numeric input
+                          }
+                          // Update local state immediately for responsive UI
+                          setMaxEventsInput(inputValue);
+                          const value = parseInt(inputValue, 10);
+                          if (!isNaN(value) && value >= 1 && value <= 100) {
+                            setMaxEvents(value);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Ensure value is valid on blur
+                          const inputValue = e.target.value;
+                          if (inputValue === '') {
+                            setMaxEventsInput('20');
+                            setMaxEvents(20); // Default to 20 if empty
+                            return;
+                          }
+                          const value = parseInt(inputValue, 10);
+                          if (isNaN(value) || value < 1) {
+                            setMaxEventsInput('1');
+                            setMaxEvents(1);
+                          } else if (value > 100) {
+                            setMaxEventsInput('100');
+                            setMaxEvents(100);
+                          } else {
+                            setMaxEventsInput(value.toString());
+                            setMaxEvents(value);
+                          }
+                        }}
+                        className="h-9 w-28"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        (max 100)
+                      </span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Source Restrictions */}
                 <div className="space-y-3 p-4 border rounded-lg">

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Sparkles, Plus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { SOCIAL_TEMPLATES, PLATFORM_INFO, SocialPlatform, SocialTemplate } from "@/lib/data/socialTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -93,20 +93,17 @@ const SocialTimelinePage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <Toaster />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+      <main className="container mx-auto px-4 pt-16 pb-8 max-w-6xl">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Create Social Media Timeline</h1>
-          </div>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-2xl sm:text-3xl font-bold font-display mb-2">Create Social Media Timeline</h1>
+          <p className="text-sm text-muted-foreground">
             Choose a social media platform and template to automatically generate a timeline from your social media content.
           </p>
         </div>
 
         {/* Platform Selection */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Select Platform</h2>
+          <h2 className="text-lg font-bold font-display mb-4">Select Platform</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {platforms.map((platform) => {
               const info = PLATFORM_INFO[platform];
@@ -114,7 +111,7 @@ const SocialTimelinePage = () => {
               return (
                 <Card
                   key={platform}
-                  className={`p-4 cursor-pointer transition-all hover:shadow-md ${
+                  className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
                     isSelected
                       ? 'ring-2 ring-primary bg-primary/5'
                       : 'hover:bg-muted/50'
@@ -122,11 +119,12 @@ const SocialTimelinePage = () => {
                   onClick={() => {
                     setSelectedPlatform(platform);
                     setSelectedTemplate(null);
+                    setShowCustom(false);
                   }}
                 >
                   <div className="text-center">
                     <div className="text-4xl mb-2">{info.icon}</div>
-                    <div className={`font-medium ${isSelected ? 'text-primary' : ''}`}>
+                    <div className={`font-medium text-sm ${isSelected ? 'text-primary' : ''}`}>
                       {info.name}
                     </div>
                   </div>
@@ -139,7 +137,7 @@ const SocialTimelinePage = () => {
         {/* Template Selection */}
         {selectedPlatform && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">
+            <h2 className="text-lg font-bold font-display mb-4">
               Choose a Template for {PLATFORM_INFO[selectedPlatform].name}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -161,7 +159,7 @@ const SocialTimelinePage = () => {
                         {template.category}
                       </Badge>
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">{template.title}</h3>
+                    <h3 className="text-lg font-bold font-display mb-2">{template.title}</h3>
                     <p className="text-sm text-muted-foreground">{template.description}</p>
                     {isSelected && (
                       <div className="mt-4 flex items-center text-primary">
@@ -185,7 +183,7 @@ const SocialTimelinePage = () => {
                 <div className="flex items-center justify-center mb-3">
                   <div className="text-3xl">✨</div>
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-center">Create Custom Timeline</h3>
+                <h3 className="text-lg font-bold font-display mb-2 text-center">Create Custom Timeline</h3>
                 <p className="text-sm text-muted-foreground text-center">
                   Define your own title and description for a personalized social media timeline.
                 </p>
@@ -204,31 +202,32 @@ const SocialTimelinePage = () => {
         {showCustom && selectedPlatform && (
           <div className="mb-8">
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Custom Timeline Details</h3>
+              <h3 className="text-lg font-bold font-display mb-4">Custom Timeline Details</h3>
               <div className="space-y-4">
-                <div>
-                  <Label htmlFor="custom-title">Timeline Title</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-title" className="text-[15px]">Timeline Title</Label>
                   <Input
                     id="custom-title"
                     placeholder="e.g., Most Disliked Tweets from BBC"
                     value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
-                    className="mt-1"
+                    className="h-10"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground">
                     Enter a descriptive title for your timeline. You can reference specific accounts using [Account] placeholder.
                   </p>
                 </div>
-                <div>
-                  <Label htmlFor="custom-description">Timeline Description</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="custom-description" className="text-[15px]">Timeline Description</Label>
                   <Textarea
                     id="custom-description"
                     placeholder="e.g., A timeline of the most controversial or disliked tweets from BBC, organized chronologically to show patterns and public reaction."
                     value={customDescription}
                     onChange={(e) => setCustomDescription(e.target.value)}
-                    className="mt-1 min-h-[100px]"
+                    className="min-h-[100px] resize-none"
+                    rows={4}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground">
                     Describe what this timeline will contain and how it will be organized.
                   </p>
                 </div>
@@ -243,7 +242,7 @@ const SocialTimelinePage = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Ready to Create</h3>
+                  <h3 className="font-bold text-lg font-display mb-1">Ready to Create</h3>
                   <p className="text-sm text-muted-foreground">
                     {showCustom ? customTitle || 'Custom Timeline' : selectedTemplate?.title}
                   </p>
