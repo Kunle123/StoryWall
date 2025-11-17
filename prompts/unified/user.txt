@@ -26,7 +26,7 @@ Generate:
    - Cinematography (shot type, angles, lens, vignette){{#if themeColor}}
    - Incorporate {{themeColor}} as subtle accent{{/if}}
    
-   CRITICAL: The Anchor Style must be GENERAL and apply to ALL events. DO NOT include specific event titles, event names, brand names, or event-specific content in the Anchor. For example, if the timeline is about TV history, describe the visual style for "television history" in general - do NOT mention "Netflix", "M*A*S*H", "Apollo 11", or other specific event titles. The Anchor should describe the overall aesthetic, NOT individual events.
+   CRITICAL: The Anchor Style must be GENERAL and apply to ALL events. DO NOT include specific event titles, event names, brand names, or event-specific content in the Anchor. The Anchor should describe the overall aesthetic for the timeline subject, NOT individual events.
 
 2. For each event:
    - Description: 2-4 sentences explaining the EVENT - what happened, why it matters, its historical/educational significance. The description should explain the event itself, NOT describe what the scene looks like. Focus on the event's meaning, impact, and context.

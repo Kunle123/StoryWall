@@ -155,12 +155,35 @@ export function loadUnifiedPrompts(variables: {
   canUseCelebrityLikeness?: boolean;
   hasFactualDetails?: boolean;
   anchorStylePreview?: string; // 60-80 char preview for image prompts
+  isSocialMedia?: boolean; // New: indicates social media timeline
 }) {
-  const systemPrompt = loadPrompt('unified/system.txt', {
-    canUseCelebrityLikeness: variables.canUseCelebrityLikeness || false,
-    hasFactualDetails: variables.hasFactualDetails || false,
-    anchorStylePreview: variables.anchorStylePreview || '',
-  });
+  // Determine if this is a social media timeline
+  const isSocialMedia = variables.isSocialMedia || false;
+  
+  // Use social media prompts if applicable
+  const systemPromptPath = isSocialMedia ? 'descriptions/system-social-media.txt' : 'unified/system.txt';
+  const userPromptPath = isSocialMedia ? 'descriptions/user-prompt-social-media.txt' : 'unified/user.txt';
+  
+  // For social media, we need to load image prompt instructions separately
+  let imagePromptInstructions = '';
+  if (isSocialMedia && variables.anchorStylePreview) {
+    imagePromptInstructions = loadPrompt('descriptions/image-prompt-instructions-social-media.txt', {
+      anchorStylePreview: variables.anchorStylePreview,
+      canUseCelebrityLikeness: variables.canUseCelebrityLikeness || false,
+    });
+  }
+  
+  const systemPrompt = isSocialMedia
+    ? loadPrompt(systemPromptPath, {
+        imagePromptInstructions,
+        eventCount: variables.eventCount,
+        canUseCelebrityLikeness: variables.canUseCelebrityLikeness || false,
+      })
+    : loadPrompt(systemPromptPath, {
+        canUseCelebrityLikeness: variables.canUseCelebrityLikeness || false,
+        hasFactualDetails: variables.hasFactualDetails || false,
+        anchorStylePreview: variables.anchorStylePreview || '',
+      });
   
   // Build factual details for events if available
   const eventsWithFacts = variables.events.map((e, idx) => {
@@ -172,7 +195,7 @@ export function loadUnifiedPrompts(variables: {
     };
   });
   
-  const userPrompt = loadPrompt('unified/user.txt', {
+  const userPrompt = loadPrompt(userPromptPath, {
     timelineDescription: variables.timelineDescription,
     sourceRestrictions: variables.sourceRestrictions || [],
     imageContext: variables.imageContext,

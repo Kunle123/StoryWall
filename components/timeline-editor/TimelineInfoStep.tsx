@@ -90,7 +90,9 @@ export const TimelineInfoStep = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(referencePhoto?.url || null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const { toast } = useToast();
-  const [isPersonSubject, setIsPersonSubject] = useState<boolean | null>(null);
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const suggestionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Auto-detect source type when input changes (only if user hasn't manually selected a type)
   useEffect(() => {
@@ -116,6 +118,53 @@ export const TimelineInfoStep = ({
       setPreviewUrl(referencePhoto.url);
     }
   }, [referencePhoto]);
+
+  // Fetch AI suggestions when timeline name changes (with debouncing)
+  useEffect(() => {
+    // Clear any pending timeout
+    if (suggestionsTimeoutRef.current) {
+      clearTimeout(suggestionsTimeoutRef.current);
+    }
+
+    // Only fetch if timeline name is at least 3 characters
+    if (!timelineName || timelineName.trim().length < 3) {
+      setDescriptionSuggestions([]);
+      return;
+    }
+
+    // Debounce the API call
+    setIsLoadingSuggestions(true);
+    suggestionsTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/ai/suggest-timeline-descriptions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subjectName: timelineName.trim() }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch suggestions');
+        }
+
+        const data = await response.json();
+        if (data.suggestions && Array.isArray(data.suggestions)) {
+          setDescriptionSuggestions(data.suggestions);
+        }
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        // Don't show error to user, just leave suggestions empty
+        setDescriptionSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 800); // 800ms debounce
+
+    return () => {
+      if (suggestionsTimeoutRef.current) {
+        clearTimeout(suggestionsTimeoutRef.current);
+      }
+    };
+  }, [timelineName]);
 
   const handleAddSource = () => {
     if (!sourceInput.trim() || !setSourceRestrictions) return;
@@ -289,30 +338,6 @@ export const TimelineInfoStep = ({
     }
   };
 
-  // Canned descriptions for person subjects
-  const personDescriptions = [
-    "A biographical timeline of the key moments and milestones in their life and career.",
-    "An overview of their public life, documenting their major achievements and significant events.",
-    "A critical analysis of their impact and influence on their field and the wider culture.",
-    "An examination of the key themes and patterns that have defined their work and legacy.",
-    "A historical account of a significant event or period, and their central role within it.",
-    "A visual summary exploring the context, causes, and consequences of a notable controversy or achievement.",
-  ];
-
-  // Canned descriptions for non-person subjects
-  const nonPersonDescriptions = [
-    "A historical timeline of its origin, key events, and evolution over time.",
-    "An overview of its creation, major milestones, and lasting impact.",
-    "A critical analysis of its cultural significance, influence, and legacy.",
-    "An examination of the key themes, styles, and defining characteristics of the subject.",
-    "A detailed account of a specific era, event, or controversy associated with the subject.",
-  ];
-
-  // Get the appropriate descriptions based on subject type
-  const getDescriptionOptions = () => {
-    if (isPersonSubject === null) return [];
-    return isPersonSubject ? personDescriptions : nonPersonDescriptions;
-  };
   
   return (
     <div className="space-y-6">
@@ -344,50 +369,36 @@ export const TimelineInfoStep = ({
             Description
           </Label>
           
-          {/* Subject type selection - show when title is entered */}
-          {timelineName && timelineName.trim().length >= 3 && isPersonSubject === null && (
+          {/* AI-generated suggestions - show when title is entered and suggestions are available */}
+          {timelineName && timelineName.trim().length >= 3 && (
             <div className="mb-3 space-y-2">
-              <Label className="text-sm">Is the subject of your timeline a person?</Label>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsPersonSubject(true)}
-                  className="flex-1"
-                >
-                  Yes, it's a person
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsPersonSubject(false)}
-                  className="flex-1"
-                >
-                  No, it's something else
-                </Button>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm">Choose a description:</Label>
+                {isLoadingSuggestions && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
               </div>
-            </div>
-          )}
-          
-          {/* Description options dropdown - show when subject type is selected */}
-          {isPersonSubject !== null && getDescriptionOptions().length > 0 && (
-            <div className="mb-3 space-y-2">
-              <Label className="text-sm">Choose a description template:</Label>
-              <Select
-                value={timelineDescription || ""}
-                onValueChange={(value) => setTimelineDescription(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a description template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {getDescriptionOptions().map((option, idx) => (
-                    <SelectItem key={idx} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {descriptionSuggestions.length > 0 ? (
+                <Select
+                  value={timelineDescription || ""}
+                  onValueChange={(value) => setTimelineDescription(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a description or write your own" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {descriptionSuggestions.map((suggestion, idx) => (
+                      <SelectItem key={idx} value={suggestion}>
+                        {suggestion}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : isLoadingSuggestions ? (
+                <div className="text-sm text-muted-foreground py-2">
+                  Generating suggestions...
+                </div>
+              ) : null}
             </div>
           )}
           

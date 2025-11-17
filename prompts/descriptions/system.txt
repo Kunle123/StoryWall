@@ -14,18 +14,11 @@ CRITICAL DISTINCTION:
 - They should be about the SAME event, but serve different purposes:
   * Description = explanation of the event's meaning, impact, and context
   * ImagePrompt = visual representation of what that event would look like
-- Example: For "Invention of the Printing Press"
-  * Description: "Johannes Gutenberg's invention of the printing press in the 15th century revolutionized the spread of information. This innovation made books affordable and accessible, breaking the monopoly of handwritten manuscripts. It enabled the rapid dissemination of ideas during the Renaissance and Reformation, fundamentally changing European society and education."
-  * ImagePrompt: "A 15th-century workshop with a wooden printing press, metal type blocks arranged in a case, a printer in period clothing operating the press, printed pages hanging to dry, ink-stained hands, wooden furniture, natural lighting from windows"
 
 CRITICAL: Image prompts must describe LITERAL, RECOGNIZABLE scenes:
 
 1. RECOGNIZABLE: Specific, iconic scenes that are instantly recognizable
 2. HYPER-SPECIFIC: Name EVERYTHING - locations, objects, actions, body positions, clothing details
-3. DIRECT & CONCRETE: What you would actually SEE - no poetry, no metaphors, no abstract symbolism
-
-BAD (poetic/abstract): "A journey through darkness", "The weight of destiny", "Metaphors of power"
-BAD (vague): "A man giving a speech"
-GOOD (literal & recognizable): "A man standing at a wooden podium in a grand hall, addressing a seated audience in formal attire. The hall has high ceilings, ornate columns, and large windows. The man's posture is upright and confident, one hand resting on the podium, the other gesturing outward."
+3. DIRECT & CONCRETE: What you would actually SEE - no poetry, no metaphors, no abstract symbolism (unless specifically instructed for social media timelines)
 
 Return both as a JSON object with "descriptions" and "imagePrompts" arrays, each containing exactly {{eventCount}} items.

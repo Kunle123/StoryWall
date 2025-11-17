@@ -9,18 +9,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { TermsViolationDialog } from "./TermsViolationDialog";
 
-interface EventDetailsStepProps {
-  events: TimelineEvent[];
-  setEvents: (events: TimelineEvent[]) => void;
-  timelineDescription: string;
-  timelineName?: string; // Added for newsworthiness test
-  writingStyle: string;
-  imageStyle?: string; // Optional - if provided, generate image prompts too
-  themeColor?: string; // Optional - if provided, include in image prompts
-  sourceRestrictions?: string[];
-}
+                <EventDetailsStep 
+                  events={events} 
+                  setEvents={setEvents}
+                  timelineDescription={timelineDescription}
+                  timelineName={timelineName}
+                  writingStyle={writingStyle}
+                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                  themeColor={themeColor} // Pass if already selected
+                  sourceRestrictions={sourceRestrictions}
+                  timelineType={timelineType}
+                />
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [] }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [], timelineType }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -145,6 +146,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
             imageStyle: imageStyle || 'Illustration', // Always include for image prompt generation
             themeColor, // Include if available
             sourceRestrictions: sourceRestrictions.length > 0 ? sourceRestrictions : undefined,
+            timelineType, // Pass timeline type for social media prompts
           }),
           signal: controller.signal,
         });

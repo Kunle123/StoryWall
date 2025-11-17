@@ -61,6 +61,7 @@ const TimelineEditor = () => {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [timelineType, setTimelineType] = useState<string | undefined>(); // 'social' or 'statistics'
   
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -215,7 +216,7 @@ const TimelineEditor = () => {
     }
   }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep]);
 
-  // Handle Stripe success return
+  // Handle Stripe success return and query parameters
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -235,6 +236,47 @@ const TimelineEditor = () => {
         });
         
         // Remove query params
+        router.replace('/editor');
+        return;
+      }
+
+      // Handle pre-filled data from social or statistics pages
+      const title = params.get('title');
+      const description = params.get('description');
+      const type = params.get('type'); // 'social' or 'statistics'
+      
+      if (title && description) {
+        setTimelineName(title);
+        setTimelineDescription(description);
+        setTimelineType(type || undefined); // Store timeline type
+        
+        // Handle social media parameters
+        if (type === 'social') {
+          const accountSource = params.get('accountSource');
+          const platform = params.get('platform');
+          if (accountSource) {
+            // Add account source to source restrictions
+            const sourcePrefix = platform === 'twitter' ? '@' : '';
+            setSourceRestrictions([`${sourcePrefix}${accountSource}`]);
+          }
+        }
+        
+        // Handle statistics parameters
+        if (type === 'statistics') {
+          const fields = params.get('fields');
+          const chartType = params.get('chartType');
+          const dataSource = params.get('dataSource');
+          
+          if (fields) {
+            // Store statistics metadata (could be stored in a separate state or in description)
+            // For now, append to description
+            const fieldsList = fields.split('|');
+            const statsInfo = `\n\nStatistics Fields: ${fieldsList.join(', ')}\nChart Type: ${chartType || 'bar'}\nData Source: ${dataSource || 'Not specified'}`;
+            setTimelineDescription(description + statsInfo);
+          }
+        }
+        
+        // Clear query params after processing
         router.replace('/editor');
       }
     }
@@ -315,10 +357,41 @@ const TimelineEditor = () => {
   };
 
   const handleCancel = () => {
-    // Reset to step 1 instead of navigating away
+    // Clear all state
+    setTimelineName("");
+    setTimelineDescription("");
+    setIsPublic(true);
+    setIsFactual(true);
+    setIsNumbered(false);
+    setNumberLabel("Day");
+    setMaxEvents(20);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setWritingStyle("");
+    setCustomStyle("");
+    setImageStyle("Illustration");
+    setThemeColor("");
+    setEvents([]);
+    setImageReferences([]);
+    setSourceRestrictions([]);
+    setHashtags([]);
+    setIncludesPeople(true);
+    setReferencePhoto({
+      file: null,
+      url: null,
+      personName: "",
+      hasPermission: false,
+    });
     setCurrentStep(1);
-    // Optionally clear form data if desired
-    // localStorage.removeItem(STORAGE_KEY);
+    
+    // Clear localStorage
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to clear localStorage:', e);
+    }
   };
 
   // Detect if any events contain famous people

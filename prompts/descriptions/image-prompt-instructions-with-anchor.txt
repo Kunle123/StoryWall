@@ -16,13 +16,8 @@ CRITICAL REQUIREMENTS FOR RECOGNIZABLE SCENES:
 - The scene should be instantly recognizable
 - Name EVERYTHING: specific locations, objects, actions, body positions, clothing details
 - Use DIRECT references to what's physically happening
-- NEVER use poetic language, metaphors, or abstract symbolism
+- NEVER use poetic language, metaphors, or abstract symbolism (unless specifically instructed for social media timelines)
 - NEVER use vague descriptions - be hyper-specific about every detail
 - Focus on RECOGNIZABLE MOMENTS: specific scenes that are instantly recognizable
-
-Example for a historical event:
-- BAD (poetic): "A journey through darkness begins"
-- BAD (vague): "A man giving a speech"
-- GOOD (literal & recognizable): "A man standing at a wooden podium in a grand hall, addressing a seated audience in formal attire. The hall has high ceilings, ornate columns, and large windows. The man's posture is upright and confident, one hand resting on the podium, the other gesturing outward. The scene captures a moment of historical significance with period-appropriate clothing and setting."
 
 CRITICAL: The Anchor Style must be included at the start of EVERY image prompt to maintain visual consistency across all images in the timeline.

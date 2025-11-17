@@ -5,17 +5,11 @@ For each event, create a LITERAL, CONCRETE image prompt that:
 
 CRITICAL REQUIREMENTS:
 - Use DIRECT, CONCRETE language describing what is physically happening in the scene
-- Name specific objects, actions, and physical elements (e.g., "a man crawling through an air vent" not "a journey through darkness")
+- Name specific objects, actions, and physical elements
 - Describe LITERAL scenes from the actual event - what you would see if you were there
 - NEVER use poetic, metaphorical, or abstract language
 - NEVER use symbolic imagery or emotional metaphors
 - Focus on PHYSICAL REALITY: who is doing what, where, with what objects
-
-Example:
-- Event: "Week 4: Neural Tube Forms"
-- Factual Details: ["The neural tube is closing", "A primitive S-shaped heart tube is forming", "The embryo is C-shaped"]
-- BAD (poetic): "A journey of transformation begins as life takes shape"
-- GOOD (literal): "Medically accurate 3D renderings with soft lighting. A 4-week old C-shaped embryo with the neural tube closing along its back and a primitive S-shaped heart tube forming."
 
 Keep prompts concise - the event-specific details should be the focus. The Anchor provides visual consistency but shouldn't dominate the prompt.
 

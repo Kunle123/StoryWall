@@ -24,6 +24,7 @@ const SocialTimelinePage = () => {
   const [showCustom, setShowCustom] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [customDescription, setCustomDescription] = useState("");
+  const [accountSource, setAccountSource] = useState("");
 
   // Redirect to sign-in if not authenticated
   if (isLoaded && !isSignedIn) {
@@ -46,6 +47,15 @@ const SocialTimelinePage = () => {
   };
 
   const handleCreateTimeline = () => {
+    if (!accountSource.trim()) {
+      toast({
+        title: "Missing Account Source",
+        description: "Please provide the account or source to query (e.g., @username, account name, or URL).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (showCustom) {
       if (!customTitle.trim() || !customDescription.trim()) {
         toast({
@@ -62,6 +72,8 @@ const SocialTimelinePage = () => {
         description: customDescription.trim(),
         source: `${selectedPlatform}:custom`,
         platform: selectedPlatform || '',
+        accountSource: accountSource.trim(),
+        type: 'social',
       });
 
       router.push(`/editor?${params.toString()}`);
@@ -72,6 +84,8 @@ const SocialTimelinePage = () => {
         description: selectedTemplate.description,
         source: `${selectedTemplate.platform}:${selectedTemplate.id}`,
         platform: selectedTemplate.platform,
+        accountSource: accountSource.trim(),
+        type: 'social',
       });
 
       router.push(`/editor?${params.toString()}`);
@@ -198,37 +212,60 @@ const SocialTimelinePage = () => {
           </div>
         )}
 
-        {/* Custom Template Form */}
-        {showCustom && selectedPlatform && (
+        {/* Account/Source Input - Show for both templates and custom */}
+        {(selectedTemplate || showCustom) && selectedPlatform && (
           <div className="mb-8">
             <Card className="p-6">
-              <h3 className="text-lg font-bold font-display mb-4">Custom Timeline Details</h3>
+              <h3 className="text-lg font-bold font-display mb-4">
+                {showCustom ? 'Custom Timeline Details' : 'Timeline Details'}
+              </h3>
               <div className="space-y-4">
+                {showCustom && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-title" className="text-[15px]">Timeline Title</Label>
+                      <Input
+                        id="custom-title"
+                        placeholder="e.g., Most Disliked Tweets from BBC"
+                        value={customTitle}
+                        onChange={(e) => setCustomTitle(e.target.value)}
+                        className="h-10"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter a descriptive title for your timeline. You can reference specific accounts using [Account] placeholder.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="custom-description" className="text-[15px]">Timeline Description</Label>
+                      <Textarea
+                        id="custom-description"
+                        placeholder="e.g., A timeline of the most controversial or disliked tweets from BBC, organized chronologically to show patterns and public reaction."
+                        value={customDescription}
+                        onChange={(e) => setCustomDescription(e.target.value)}
+                        className="min-h-[100px] resize-none"
+                        rows={4}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Describe what this timeline will contain and how it will be organized.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Account/Source Input */}
                 <div className="space-y-2">
-                  <Label htmlFor="custom-title" className="text-[15px]">Timeline Title</Label>
+                  <Label htmlFor="account-source" className="text-[15px]">
+                    Account or Source to Query *
+                  </Label>
                   <Input
-                    id="custom-title"
-                    placeholder="e.g., Most Disliked Tweets from BBC"
-                    value={customTitle}
-                    onChange={(e) => setCustomTitle(e.target.value)}
+                    id="account-source"
+                    placeholder={`e.g., @${PLATFORM_INFO[selectedPlatform].name.toLowerCase()}, account name, or URL`}
+                    value={accountSource}
+                    onChange={(e) => setAccountSource(e.target.value)}
                     className="h-10"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Enter a descriptive title for your timeline. You can reference specific accounts using [Account] placeholder.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="custom-description" className="text-[15px]">Timeline Description</Label>
-                  <Textarea
-                    id="custom-description"
-                    placeholder="e.g., A timeline of the most controversial or disliked tweets from BBC, organized chronologically to show patterns and public reaction."
-                    value={customDescription}
-                    onChange={(e) => setCustomDescription(e.target.value)}
-                    className="min-h-[100px] resize-none"
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Describe what this timeline will contain and how it will be organized.
+                    Enter the {PLATFORM_INFO[selectedPlatform].name} account, username, or source that should be queried for this timeline.
                   </p>
                 </div>
               </div>
@@ -251,7 +288,10 @@ const SocialTimelinePage = () => {
                   onClick={handleCreateTimeline}
                   size="lg"
                   className="gap-2"
-                  disabled={showCustom && (!customTitle.trim() || !customDescription.trim())}
+                  disabled={
+                    !accountSource.trim() ||
+                    (showCustom && (!customTitle.trim() || !customDescription.trim()))
+                  }
                 >
                   Create Timeline
                   <ArrowRight className="w-4 h-4" />

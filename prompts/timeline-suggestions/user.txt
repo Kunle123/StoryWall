@@ -1,0 +1,26 @@
+I need to produce a timeline for {{subjectName}}.
+
+Give me 5 suggestions of what would be good and engaging themes for the timeline. Phrase each suggestion as a description of a timeline (ready to use as-is).
+
+The suggestions should:
+- Be specific to {{subjectName}} and their work/context
+- Offer different angles or perspectives
+- Be engaging and interesting to explore
+- Work well as visual timelines
+- Be distinct from each other
+
+Return your response as a JSON object with a "suggestions" key containing an array of strings, where each string is a complete timeline description.
+
+Example format:
+{
+  "suggestions": [
+    "A biographical timeline of the key moments and milestones in their life and career.",
+    "An overview of their public life, documenting their major achievements and significant events.",
+    "A critical analysis of their impact and influence on their field and the wider culture.",
+    "An examination of the key themes and patterns that have defined their work and legacy.",
+    "A historical account of a significant event or period, and their central role within it."
+  ]
+}
+
+Generate 5 unique, engaging timeline descriptions for {{subjectName}}:
+

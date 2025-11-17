@@ -24,8 +24,15 @@ export async function POST(request: NextRequest) {
       imageStyle, 
       themeColor, 
       sourceRestrictions, 
-      timelineTitle 
+      timelineTitle,
+      timelineType // 'social' or 'statistics' or undefined
     } = body;
+    
+    // Detect if this is a social media timeline
+    const isSocialMedia = timelineType === 'social' || 
+      (sourceRestrictions && Array.isArray(sourceRestrictions) && sourceRestrictions.some((src: string) => 
+        /twitter|instagram|facebook|linkedin|tiktok|youtube/i.test(src)
+      ));
     
     // Validate inputs
     if (!events || !Array.isArray(events) || events.length === 0) {
@@ -181,6 +188,7 @@ export async function POST(request: NextRequest) {
         canUseCelebrityLikeness,
         hasFactualDetails: Object.keys(factualDetails).length > 0,
         cacheKey,
+        isSocialMedia,
       });
     }
 
@@ -198,6 +206,7 @@ export async function POST(request: NextRequest) {
       hasFactualDetails: Object.keys(factualDetails).length > 0,
       // Anchor preview will be generated after first pass, but we'll use a placeholder
       anchorStylePreview: '', // Will be updated after generation
+      isSocialMedia, // Pass social media flag
     });
 
     // Calculate max tokens (optimized)
@@ -405,6 +414,7 @@ async function generateBatched(
     canUseCelebrityLikeness: boolean;
     hasFactualDetails: boolean;
     cacheKey: string;
+    isSocialMedia?: boolean;
   }
 ): Promise<NextResponse> {
   const BATCH_SIZE = 10;
@@ -433,6 +443,7 @@ async function generateBatched(
       canUseCelebrityLikeness: params.canUseCelebrityLikeness,
       hasFactualDetails: params.hasFactualDetails,
       anchorStylePreview: '',
+      isSocialMedia: params.isSocialMedia || false,
     });
     
     const anchorResponse = await createChatCompletion(client, {
@@ -479,6 +490,7 @@ async function generateBatched(
         canUseCelebrityLikeness: params.canUseCelebrityLikeness,
         hasFactualDetails: params.hasFactualDetails,
         anchorStylePreview,
+        isSocialMedia: params.isSocialMedia || false,
       });
       
       const response = await createChatCompletion(client, {

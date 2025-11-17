@@ -16,18 +16,7 @@ CRITICAL REQUIREMENTS FOR ALL IMAGE PROMPTS:
 - NEVER use symbolic imagery or emotional metaphors
 - Focus on PHYSICAL ELEMENTS: who is doing what, where, with what objects
 
-CRITICAL ALIGNMENT: The image prompt must match the description - they describe the SAME scene/moment. If the description narrates "McClane crawls through the air vent", the image prompt must show that exact scene.
+CRITICAL ALIGNMENT: The image prompt must match the description - they describe the SAME scene/moment.
 
-Examples of LITERAL descriptions:
-- "Neural Tube Formation" (Week 4) → "A detailed image of a fetus at 4 weeks gestation showing the neural tube closing along its back"
-- "Foundation Laid" (Construction) → "A construction site with workers laying concrete foundation, rebar visible, construction equipment in background"
-- "A bomb explosion" → "A bomb explosion with debris flying, smoke billowing, and flames visible"
-- "A man giving a speech" → "A man standing at a podium giving a speech to an audience seated in rows"
-
-BAD examples (too abstract/poetic):
-- "The weight of destiny hangs in the air" ❌
-- "A journey through darkness begins" ❌
-- "Metaphors of power and resistance" ❌
-
-The image prompt must be a clear, direct, LITERAL statement of what physical elements to depict - objects, people, actions, settings - exactly as they would appear in reality.
+The image prompt must be a clear, direct, LITERAL statement of what physical elements to depict - objects, people, actions, settings - exactly as they would appear in reality. NEVER use poetic, metaphorical, or abstract language unless specifically instructed for social media timelines.
 

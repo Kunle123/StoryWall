@@ -19,9 +19,6 @@ CRITICAL DISTINCTION:
 - They should be about the SAME event, but serve different purposes:
   * Description = explanation of the event's meaning, impact, and context
   * ImagePrompt = visual representation of what that event would look like
-- Example: For "Invention of the Printing Press"
-  * Description: "Johannes Gutenberg's invention of the printing press in the 15th century revolutionized the spread of information. This innovation made books affordable and accessible, breaking the monopoly of handwritten manuscripts."
-  * ImagePrompt: "A 15th-century workshop with a wooden printing press, metal type blocks arranged in a case, a printer in period clothing operating the press"
 
 CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene:
 
@@ -29,7 +26,5 @@ CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZA
 2. HYPER-SPECIFIC DETAILS: Name EVERYTHING - locations, objects, actions, body positions, clothing details
 3. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there
 
-NEVER use poetic, metaphorical, or abstract language. Examples:
-- BAD: "A journey through darkness", "The weight of destiny", "Metaphors of power"
-- GOOD: "A man crawling through an air vent", "A bomb explosion with debris flying", "Workers laying concrete foundation"
+NEVER use poetic, metaphorical, or abstract language unless specifically instructed otherwise for social media timelines.
 

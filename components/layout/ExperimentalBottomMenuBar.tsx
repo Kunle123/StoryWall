@@ -1,7 +1,8 @@
 "use client";
 
-import { Share2, Home, Plus } from "lucide-react";
+import { Share2, Home, Plus, FileText, Sparkles, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -49,6 +50,7 @@ export const ExperimentalBottomMenuBar = ({
   const { toast } = useToast();
   const router = useRouter();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
 
   // Detect keyboard open/close on mobile and input focus
   useEffect(() => {
@@ -383,7 +385,13 @@ export const ExperimentalBottomMenuBar = ({
             minHeight: `${dialSize}px`,
             zIndex: 50
           }}
-          onClick={() => router.push("/editor")}
+          onClick={() => {
+            if (hasTimeline) {
+              router.push("/editor");
+            } else {
+              setShowCreateMenu(true);
+            }
+          }}
         >
               <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
                 {/* Background arc */}
@@ -446,6 +454,68 @@ export const ExperimentalBottomMenuBar = ({
               </div>
             </div>
       </div>
+
+      {/* Create Menu Dialog */}
+      <Dialog open={showCreateMenu} onOpenChange={setShowCreateMenu}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Timeline</DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to create your timeline
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => {
+                router.push("/editor");
+                setShowCreateMenu(false);
+              }}
+            >
+              <FileText className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-semibold">Create Timeline</div>
+                <div className="text-xs text-muted-foreground">
+                  Build a custom timeline from scratch
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => {
+                router.push("/social");
+                setShowCreateMenu(false);
+              }}
+            >
+              <Sparkles className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-semibold">Create Social Timeline</div>
+                <div className="text-xs text-muted-foreground">
+                  Use templates for social media content
+                </div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto py-4"
+              onClick={() => {
+                router.push("/statistics");
+                setShowCreateMenu(false);
+              }}
+            >
+              <BarChart3 className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <div className="font-semibold">Create Statistics Timeline</div>
+                <div className="text-xs text-muted-foreground">
+                  Visualize statistical data with charts
+                </div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
