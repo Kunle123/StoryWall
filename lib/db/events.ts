@@ -348,7 +348,7 @@ export async function getEventById(id: string): Promise<Event | null> {
         date: eventRow.date,
         endDate: eventRow.end_date,
         imageUrl: eventRow.image_url,
-        imagePrompt: eventRow.image_prompt,
+        imagePrompt: 'image_prompt' in eventRow ? (eventRow as any).image_prompt : null,
         locationLat: eventRow.location_lat,
         locationLng: eventRow.location_lng,
         locationName: eventRow.location_name,
