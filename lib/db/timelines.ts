@@ -787,7 +787,7 @@ export async function listTimelines(options: {
       view_count: number;
       created_at: Date;
       updated_at: Date;
-    }>>(query, ...params);
+    }>>(query);
 
     // Fetch creators and events for each timeline
     const timelines = await Promise.all(
