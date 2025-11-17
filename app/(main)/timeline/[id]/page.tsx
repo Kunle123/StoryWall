@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
 import { Header } from "@/components/layout/Header";
@@ -13,7 +14,10 @@ import { CommentsSection } from "@/components/timeline/CommentsSection";
 
 const TimelinePage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const { user, isSignedIn } = useUser();
   const timelineId = params.id as string;
+  const isEditMode = searchParams?.get('edit') === 'true';
 
   const [timeline, setTimeline] = useState<any>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -25,6 +29,7 @@ const TimelinePage = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
   
   // Reset commentsRequested flag after scroll animation completes
   useEffect(() => {
@@ -144,6 +149,35 @@ const TimelinePage = () => {
         if (timelineResult.data) {
           setTimeline(timelineResult.data);
           
+          // Check if user can edit (owner or admin)
+          if (isEditMode && isSignedIn && user) {
+            const timelineCreatorId = timelineResult.data.creator?.id || timelineResult.data.creator_id;
+            const userEmail = user.primaryEmailAddress?.emailAddress;
+            
+            // Get user's database ID from Clerk ID
+            try {
+              const userResponse = await fetch('/api/user/profile');
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                const userDbId = userData.id;
+                const isOwner = timelineCreatorId && userDbId === timelineCreatorId;
+                const isAdmin = userEmail === 'kunle2000@gmail.com'; // Admin email check
+                setCanEdit(isOwner || isAdmin);
+                
+                if (!isOwner && !isAdmin) {
+                  setError('You do not have permission to edit this timeline');
+                }
+              } else {
+                setCanEdit(false);
+                setError('Failed to verify user permissions');
+              }
+            } catch (err) {
+              console.error('Error checking user permissions:', err);
+              setCanEdit(false);
+              setError('Failed to verify user permissions');
+            }
+          }
+          
           // Use the timeline ID (not the slug) for fetching events
           const eventsTimelineId = timelineResult.data.id || timelineId;
           const eventsResult = await fetchEventsByTimelineId(eventsTimelineId);
@@ -167,7 +201,7 @@ const TimelinePage = () => {
     if (timelineId) {
       loadTimeline();
     }
-  }, [timelineId]);
+  }, [timelineId, isEditMode, isSignedIn, user]);
 
   // Scroll to comments section if hash is present
   useEffect(() => {
@@ -229,6 +263,13 @@ const TimelinePage = () => {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onCenteredEventChange={setCenteredEvent}
+          isEditable={isEditMode && canEdit}
+          timelineId={timeline.id}
+          timeline={timeline}
+          onEventUpdate={(updatedEvent) => {
+            // Update the event in the local state
+            setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+          }}
         />
         {showComments && (
           <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24 relative z-10">

@@ -323,13 +323,102 @@ export async function updateEvent(
     throw new Error('Unauthorized');
   }
 
+  // Handle date updates - check if it's a BC date string
+  let dateValue: Date | string | undefined;
+  if (updates.date) {
+    if (typeof updates.date === 'string' && updates.date.startsWith('-')) {
+      // BC date - will need raw SQL
+      dateValue = updates.date;
+    } else {
+      dateValue = new Date(updates.date);
+    }
+  }
+
+  // Check if we need raw SQL for BC dates
+  const needsRawSQL = typeof dateValue === 'string' && dateValue.startsWith('-');
+
+  if (needsRawSQL) {
+    // Use raw SQL for BC dates
+    const updateFields: string[] = [];
+    const updateValues: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.title) {
+      updateFields.push(`title = $${paramIndex}`);
+      updateValues.push(updates.title);
+      paramIndex++;
+    }
+    if (updates.description !== undefined) {
+      updateFields.push(`description = $${paramIndex}`);
+      updateValues.push(updates.description);
+      paramIndex++;
+    }
+    if (dateValue) {
+      updateFields.push(`date = $${paramIndex}::date`);
+      updateValues.push(dateValue);
+      paramIndex++;
+    }
+    if (updates.number !== undefined) {
+      updateFields.push(`number = $${paramIndex}`);
+      updateValues.push(updates.number);
+      paramIndex++;
+    }
+    if (updates.image_url !== undefined) {
+      updateFields.push(`image_url = $${paramIndex}`);
+      updateValues.push(updates.image_url);
+      paramIndex++;
+    }
+
+    updateFields.push(`updated_at = NOW()`);
+    updateValues.push(id);
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE events SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+      ...updateValues
+    );
+
+    // Fetch updated event
+    const updatedRows = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      timeline_id: string;
+      title: string;
+      description: string | null;
+      date: Date;
+      end_date: Date | null;
+      number: number | null;
+      number_label: string | null;
+      image_url: string | null;
+      location_lat: number | null;
+      location_lng: number | null;
+      location_name: string | null;
+      category: string | null;
+      links: string[];
+      created_by: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>>(
+      `SELECT id, timeline_id, title, description, date, end_date, number, number_label,
+              image_url, location_lat, location_lng, location_name,
+              category, links, created_by, created_at, updated_at
+       FROM events WHERE id = $1`,
+      id
+    );
+
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error('Event not found');
+    }
+
+    return transformEvent(updatedRows[0] as any);
+  }
+
   const updated = await prisma.event.update({
     where: { id },
     data: {
       ...(updates.title && { title: updates.title }),
       ...(updates.description !== undefined && { description: updates.description }),
-      ...(updates.date && { date: new Date(updates.date) }),
+      ...(dateValue && typeof dateValue !== 'string' && { date: dateValue }),
       ...(updates.end_date && { endDate: new Date(updates.end_date) }),
+      ...(updates.number !== undefined && { number: updates.number }),
       ...(updates.image_url !== undefined && { imageUrl: updates.image_url }),
       ...(updates.location_lat !== undefined && { locationLat: updates.location_lat }),
       ...(updates.location_lng !== undefined && { locationLng: updates.location_lng }),

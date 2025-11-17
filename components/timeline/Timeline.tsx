@@ -31,9 +31,13 @@ interface TimelineProps {
   loadMoreRef?: React.RefObject<HTMLDivElement>;
   isLoadingMore?: boolean;
   hasMore?: boolean;
+  isEditable?: boolean;
+  timelineId?: string;
+  timeline?: any;
+  onEventUpdate?: (event: TimelineEvent) => void;
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false }: TimelineProps) => {
+export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false, isEditable = false, timelineId, timeline, onEventUpdate }: TimelineProps) => {
   const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -505,6 +509,10 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                     isHighlighted={isSelected}
                     isSelected={isSelected}
                     isCentered={centeredCardId === event.id}
+                    isEditable={isEditable}
+                    timelineId={timelineId}
+                    timeline={timeline}
+                    onEventUpdate={onEventUpdate}
                   />
                 </div>
                 

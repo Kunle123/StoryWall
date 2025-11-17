@@ -5,11 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { TimelineEvent } from "./Timeline";
-import { Video, Share2, Heart, Bookmark, MessageCircle } from "lucide-react";
+import { Video, Share2, Heart, Bookmark, MessageCircle, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { EditEventDialog } from "./EditEventDialog";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -19,9 +20,13 @@ interface TimelineCardProps {
   isHighlighted?: boolean;
   isSelected?: boolean;
   isCentered?: boolean;
+  isEditable?: boolean;
+  timelineId?: string;
+  timeline?: any;
+  onEventUpdate?: (event: TimelineEvent) => void;
 }
 
-export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false }: TimelineCardProps) => {
+export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false, isEditable = false, timelineId, timeline, onEventUpdate }: TimelineCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const { isSignedIn } = useUser();
@@ -30,6 +35,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
   const [loadingStats, setLoadingStats] = useState(true);
   const [userLiked, setUserLiked] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   
   useEffect(() => {
     async function fetchStats() {
@@ -177,6 +183,24 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           </div>
         )}
 
+        {/* Edit button (only in edit mode) */}
+        {isEditable && (
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEditDialog(true);
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </div>
+        )}
+
         {/* Social and sharing icons */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-3">
           <div className="flex items-center gap-1">
@@ -234,6 +258,21 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           </Button>
         </div>
       </div>
+      {isEditable && showEditDialog && (
+        <EditEventDialog
+          event={event}
+          timelineId={timelineId}
+          timeline={timeline}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onEventUpdate={(updatedEvent) => {
+            if (onEventUpdate) {
+              onEventUpdate(updatedEvent);
+            }
+            setShowEditDialog(false);
+          }}
+        />
+      )}
     </Card>
   );
 };

@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun } from "lucide-react";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchTimelines, deleteTimeline, updateTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -339,6 +339,14 @@ const Profile = () => {
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Timeline
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/timeline/${timeline.id}?edit=true`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
                     </Button>
                     <Button
                       variant="outline"
