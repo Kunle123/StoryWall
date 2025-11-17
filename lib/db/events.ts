@@ -446,53 +446,108 @@ export async function updateEvent(
       paramIndex++;
     }
     // Only try to update image_prompt if column exists (will be added via migration)
+    // We'll try to update it, and if it fails due to missing column, we'll catch it in the executeRawUnsafe
     if (updates.image_prompt !== undefined) {
-      // Check if column exists before trying to update
-      try {
-        updateFields.push(`image_prompt = $${paramIndex}`);
-        updateValues.push(updates.image_prompt);
-        paramIndex++;
-      } catch (e) {
-        // Column doesn't exist yet, skip this update
-        console.warn('[updateEvent] image_prompt column does not exist, skipping update');
-      }
+      updateFields.push(`image_prompt = $${paramIndex}`);
+      updateValues.push(updates.image_prompt);
+      paramIndex++;
     }
 
     updateFields.push(`updated_at = NOW()`);
     updateValues.push(id);
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE events SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
-      ...updateValues
-    );
+    // Try to update, but handle missing image_prompt column gracefully
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE events SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+        ...updateValues
+      );
+    } catch (updateError: any) {
+      // If image_prompt column doesn't exist, remove it from update and retry
+      if (updateError.message?.includes('image_prompt')) {
+        console.warn('[updateEvent] image_prompt column does not exist, updating without it');
+        const imagePromptIndex = updateFields.findIndex(f => f.includes('image_prompt'));
+        if (imagePromptIndex !== -1) {
+          updateFields.splice(imagePromptIndex, 1);
+          // Remove the corresponding value
+          const valueIndex = updateValues.length - (updateFields.length - imagePromptIndex) - 1;
+          if (valueIndex >= 0 && valueIndex < updateValues.length) {
+            updateValues.splice(valueIndex, 1);
+            paramIndex--;
+          }
+        }
+        // Retry without image_prompt
+        await prisma.$executeRawUnsafe(
+          `UPDATE events SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+          ...updateValues
+        );
+      } else {
+        throw updateError;
+      }
+    }
 
-    // Fetch updated event
-    const updatedRows = await prisma.$queryRawUnsafe<Array<{
-      id: string;
-      timeline_id: string;
-      title: string;
-      description: string | null;
-      date: Date;
-      end_date: Date | null;
-      number: number | null;
-      number_label: string | null;
-      image_url: string | null;
-      image_prompt: string | null;
-      location_lat: number | null;
-      location_lng: number | null;
-      location_name: string | null;
-      category: string | null;
-      links: string[];
-      created_by: string | null;
-      created_at: Date;
-      updated_at: Date;
-    }>>(
-      `SELECT id, timeline_id, title, description, date, end_date, number, number_label,
-              image_url, image_prompt, location_lat, location_lng, location_name,
-              category, links, created_by, created_at, updated_at
-       FROM events WHERE id = $1`,
-      id
-    );
+    // Fetch updated event - handle missing image_prompt column gracefully
+    let updatedRows;
+    try {
+      updatedRows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        timeline_id: string;
+        title: string;
+        description: string | null;
+        date: Date;
+        end_date: Date | null;
+        number: number | null;
+        number_label: string | null;
+        image_url: string | null;
+        image_prompt: string | null;
+        location_lat: number | null;
+        location_lng: number | null;
+        location_name: string | null;
+        category: string | null;
+        links: string[];
+        created_by: string | null;
+        created_at: Date;
+        updated_at: Date;
+      }>>(
+        `SELECT id, timeline_id, title, description, date, end_date, number, number_label,
+                image_url, image_prompt, location_lat, location_lng, location_name,
+                category, links, created_by, created_at, updated_at
+         FROM events WHERE id = $1`,
+        id
+      );
+    } catch (queryError: any) {
+      // If image_prompt column doesn't exist, query without it
+      if (queryError.message?.includes('image_prompt')) {
+        console.warn('[updateEvent] image_prompt column does not exist, querying without it');
+        updatedRows = await prisma.$queryRawUnsafe<Array<{
+          id: string;
+          timeline_id: string;
+          title: string;
+          description: string | null;
+          date: Date;
+          end_date: Date | null;
+          number: number | null;
+          number_label: string | null;
+          image_url: string | null;
+          location_lat: number | null;
+          location_lng: number | null;
+          location_name: string | null;
+          category: string | null;
+          links: string[];
+          created_by: string | null;
+          created_at: Date;
+          updated_at: Date;
+        }>>(
+          `SELECT id, timeline_id, title, description, date, end_date, number, number_label,
+                  image_url, location_lat, location_lng, location_name,
+                  category, links, created_by, created_at, updated_at
+           FROM events WHERE id = $1`,
+          id
+        );
+      } else {
+        throw queryError;
+      }
+    }
 
     if (!updatedRows || updatedRows.length === 0) {
       throw new Error('Event not found');
