@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getEventById } from '@/lib/db/events';
+import { getEventById, updateEvent } from '@/lib/db/events';
 import { getTimelineById } from '@/lib/db/timelines';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
@@ -125,22 +125,11 @@ export async function POST(
     // Get the prompt that was used (from the generation response)
     const usedPrompt = result.prompts?.[0] || imagePrompt;
 
-    // Update the event with the new image URL and prompt
-    const updateResponse = await fetch(`${appUrl}/api/events/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        image_prompt: usedPrompt, // Save the prompt that was used
-      }),
+    // Update the event directly using updateEvent (no need for fetch since we're already authenticated)
+    await updateEvent(id, user.id, {
+      image_url: imageUrl,
+      image_prompt: usedPrompt, // Save the prompt that was used
     });
-
-    if (!updateResponse.ok) {
-      const error = await updateResponse.json();
-      throw new Error(error.error || 'Failed to update event with new image');
-    }
 
     return NextResponse.json({ 
       imageUrl,
