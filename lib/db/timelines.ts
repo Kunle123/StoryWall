@@ -700,18 +700,45 @@ export async function listTimelines(options: {
       ];
     }
 
-    const timelines = await prisma.timeline.findMany({
-      where,
-      include: {
-        creator: true,
-        events: {
-          take: 1,
+    // Try to query with events, but if it fails due to missing columns, query without events
+    let timelines;
+    try {
+      timelines = await prisma.timeline.findMany({
+        where,
+        include: {
+          creator: true,
+          events: {
+            take: 1,
+            select: {
+              id: true,
+              timelineId: true,
+              title: true,
+              description: true,
+              date: true,
+              endDate: true,
+              imageUrl: true,
+              // Don't select image_prompt - it may not exist in production DB
+            },
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: options.limit || 20,
-      skip: options.offset || 0,
-    });
+        orderBy: { createdAt: 'desc' },
+        take: options.limit || 20,
+        skip: options.offset || 0,
+      });
+    } catch (prismaError: any) {
+      // If Prisma fails (e.g., missing image_prompt column), query without events
+      console.error('[listTimelines] Prisma query with events failed, querying without events:', prismaError.message);
+      timelines = await prisma.timeline.findMany({
+        where,
+        include: {
+          creator: true,
+          // Don't include events if there's a schema mismatch
+        },
+        orderBy: { createdAt: 'desc' },
+        take: options.limit || 20,
+        skip: options.offset || 0,
+      });
+    }
 
     return timelines.map(transformTimeline);
   } catch (error: any) {

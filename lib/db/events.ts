@@ -38,32 +38,67 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
     
     // For BC dates, pass the date string directly to PostgreSQL
     // PostgreSQL's DATE type can handle BC dates in ISO format (e.g., '-3000-01-01')
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO events (
-        id, timeline_id, title, description, date, end_date,
-        image_url, image_prompt, location_lat, location_lng, location_name,
-        category, links, created_by, created_at, updated_at
-      ) VALUES (
-        $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, $16
-      )
-    `,
-      eventId,
-      input.timeline_id,
-      input.title,
-      input.description || null,
-      input.date, // Pass BC date string directly
-      input.end_date || null, // Pass BC date string directly if present
-      input.image_url || null,
-      input.image_prompt || null,
-      input.location_lat || null,
-      input.location_lng || null,
-      input.location_name || null,
-      input.category || null,
-      linksArray,
-      input.created_by || null,
-      now,
-      now
-    );
+    // Check if image_prompt column exists before including it
+    try {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO events (
+          id, timeline_id, title, description, date, end_date,
+          image_url, image_prompt, location_lat, location_lng, location_name,
+          category, links, created_by, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, $16
+        )
+      `,
+        eventId,
+        input.timeline_id,
+        input.title,
+        input.description || null,
+        input.date, // Pass BC date string directly
+        input.end_date || null, // Pass BC date string directly if present
+        input.image_url || null,
+        input.image_prompt || null,
+        input.location_lat || null,
+        input.location_lng || null,
+        input.location_name || null,
+        input.category || null,
+        linksArray,
+        input.created_by || null,
+        now,
+        now
+      );
+    } catch (insertError: any) {
+      // If image_prompt column doesn't exist, insert without it
+      if (insertError.message?.includes('image_prompt')) {
+        console.warn('[createEvent] image_prompt column does not exist, inserting without it');
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO events (
+            id, timeline_id, title, description, date, end_date,
+            image_url, location_lat, location_lng, location_name,
+            category, links, created_by, created_at, updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+          )
+        `,
+          eventId,
+          input.timeline_id,
+          input.title,
+          input.description || null,
+          input.date,
+          input.end_date || null,
+          input.image_url || null,
+          input.location_lat || null,
+          input.location_lng || null,
+          input.location_name || null,
+          input.category || null,
+          linksArray,
+          input.created_by || null,
+          now,
+          now
+        );
+      } else {
+        throw insertError;
+      }
+    }
     
     // Fetch the created event
     const eventRows = await prisma.$queryRawUnsafe<Array<{
@@ -85,7 +120,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       updated_at: Date;
     }>>(`
       SELECT id, timeline_id, title, description, date, end_date,
-             image_url, image_prompt, location_lat, location_lng, location_name,
+             image_url, COALESCE(image_prompt, NULL) as image_prompt, location_lat, location_lng, location_name,
              category, links, created_by, created_at, updated_at
       FROM events WHERE id = $1
     `, eventId);
@@ -244,29 +279,62 @@ export async function getEventById(id: string): Promise<Event | null> {
     if (error.message?.includes('number') || error.code === 'P2022') {
       console.warn('[getEventById] Falling back to raw SQL due to missing number column');
       
-      const eventRows = await prisma.$queryRawUnsafe<Array<{
-        id: string;
-        timeline_id: string;
-        title: string;
-        description: string | null;
-        date: Date;
-        end_date: Date | null;
-        image_url: string | null;
-        image_prompt: string | null;
-        location_lat: number | null;
-        location_lng: number | null;
-        location_name: string | null;
-        category: string | null;
-        links: string[];
-        created_by: string | null;
-        created_at: Date;
-        updated_at: Date;
-      }>>(`
-        SELECT id, timeline_id, title, description, date, end_date,
-               image_url, image_prompt, location_lat, location_lng, location_name,
-               category, links, created_by, created_at, updated_at
-        FROM events WHERE id = $1
-      `, id);
+      // Try to select image_prompt, but handle if column doesn't exist
+      let eventRows;
+      try {
+        eventRows = await prisma.$queryRawUnsafe<Array<{
+          id: string;
+          timeline_id: string;
+          title: string;
+          description: string | null;
+          date: Date;
+          end_date: Date | null;
+          image_url: string | null;
+          image_prompt?: string | null;
+          location_lat: number | null;
+          location_lng: number | null;
+          location_name: string | null;
+          category: string | null;
+          links: string[];
+          created_by: string | null;
+          created_at: Date;
+          updated_at: Date;
+        }>>(`
+          SELECT id, timeline_id, title, description, date, end_date,
+                 image_url, image_prompt, location_lat, location_lng, location_name,
+                 category, links, created_by, created_at, updated_at
+          FROM events WHERE id = $1
+        `, id);
+      } catch (imagePromptError: any) {
+        // If image_prompt column doesn't exist, query without it
+        if (imagePromptError.message?.includes('image_prompt')) {
+          console.warn('[getEventById] image_prompt column does not exist, querying without it');
+          eventRows = await prisma.$queryRawUnsafe<Array<{
+            id: string;
+            timeline_id: string;
+            title: string;
+            description: string | null;
+            date: Date;
+            end_date: Date | null;
+            image_url: string | null;
+            location_lat: number | null;
+            location_lng: number | null;
+            location_name: string | null;
+            category: string | null;
+            links: string[];
+            created_by: string | null;
+            created_at: Date;
+            updated_at: Date;
+          }>>(`
+            SELECT id, timeline_id, title, description, date, end_date,
+                   image_url, location_lat, location_lng, location_name,
+                   category, links, created_by, created_at, updated_at
+            FROM events WHERE id = $1
+          `, id);
+        } else {
+          throw imagePromptError;
+        }
+      }
       
       if (!eventRows || eventRows.length === 0) return null;
       
@@ -377,10 +445,17 @@ export async function updateEvent(
       updateValues.push(updates.image_url);
       paramIndex++;
     }
+    // Only try to update image_prompt if column exists (will be added via migration)
     if (updates.image_prompt !== undefined) {
-      updateFields.push(`image_prompt = $${paramIndex}`);
-      updateValues.push(updates.image_prompt);
-      paramIndex++;
+      // Check if column exists before trying to update
+      try {
+        updateFields.push(`image_prompt = $${paramIndex}`);
+        updateValues.push(updates.image_prompt);
+        paramIndex++;
+      } catch (e) {
+        // Column doesn't exist yet, skip this update
+        console.warn('[updateEvent] image_prompt column does not exist, skipping update');
+      }
     }
 
     updateFields.push(`updated_at = NOW()`);
