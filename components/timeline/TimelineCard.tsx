@@ -122,7 +122,14 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
 
   return (
     <Card
-      onClick={() => router.push(`/story/${event.id}`)}
+      onClick={() => {
+        // In edit mode, open edit dialog instead of navigating to detail view
+        if (isEditable) {
+          setShowEditDialog(true);
+        } else {
+          router.push(`/story/${event.id}`);
+        }
+      }}
       className={`p-4 transition-all duration-200 cursor-pointer bg-card border-y border-x-0 rounded-none hover:bg-muted/30 relative ${
         isHighlighted ? "bg-muted/50" : ""
       }`}
@@ -183,23 +190,23 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
           </div>
         )}
 
-        {/* Edit button (only in edit mode) */}
-        {isEditable && (
-          <div className="flex justify-end pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-3"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowEditDialog(true);
-              }}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          </div>
-        )}
+            {/* Edit button (only in edit mode) - optional since clicking card also opens dialog */}
+            {isEditable && (
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              </div>
+            )}
 
         {/* Social and sharing icons */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-3">
