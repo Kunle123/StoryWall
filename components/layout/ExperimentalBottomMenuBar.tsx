@@ -4,7 +4,7 @@ import { Share2, Home, Plus, FileText, Sparkles, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
 type SelectedDateFormat = 
@@ -49,6 +49,7 @@ export const ExperimentalBottomMenuBar = ({
 }: ExperimentalBottomMenuBarProps) => {
   const { toast } = useToast();
   const router = useRouter();
+  const pathname = usePathname();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
 
@@ -386,7 +387,10 @@ export const ExperimentalBottomMenuBar = ({
             zIndex: 50
           }}
           onClick={() => {
-            if (hasTimeline) {
+            // If already on editor page, show create menu instead of navigating
+            if (pathname === "/editor") {
+              setShowCreateMenu(true);
+            } else if (hasTimeline) {
               router.push("/editor");
             } else {
               setShowCreateMenu(true);

@@ -616,13 +616,50 @@ export async function deleteEvent(id: string, userId: string): Promise<void> {
 
 // Helper function to transform Prisma model to our TypeScript type
 function transformEvent(event: any): Event {
+  // Helper to format date correctly, handling BC dates and string dates
+  const formatDate = (date: any): string => {
+    if (!date) return '';
+    
+    // If it's already a string (BC dates from PostgreSQL), return as-is
+    if (typeof date === 'string') {
+      // Check if it's a BC date (starts with '-')
+      if (date.startsWith('-')) {
+        return date; // BC date in ISO format: "-3000-01-01"
+      }
+      // Regular date string, try to parse and format
+      try {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+      } catch {
+        // If parsing fails, return as-is
+        return date;
+      }
+      return date;
+    }
+    
+    // If it's a Date object, format it
+    if (date instanceof Date) {
+      // Check if it's a valid date
+      if (isNaN(date.getTime())) {
+        console.warn('[transformEvent] Invalid date object:', date);
+        return '';
+      }
+      return date.toISOString().split('T')[0];
+    }
+    
+    // Fallback: try to convert to string
+    return String(date);
+  };
+
   return {
     id: event.id,
     timeline_id: event.timelineId,
     title: event.title,
     description: event.description || undefined,
-    date: event.date.toISOString().split('T')[0],
-    end_date: event.endDate ? event.endDate.toISOString().split('T')[0] : undefined,
+    date: formatDate(event.date),
+    end_date: event.endDate ? formatDate(event.endDate) : undefined,
     number: event.number || undefined,
     number_label: event.numberLabel || undefined,
     image_url: event.imageUrl || undefined,

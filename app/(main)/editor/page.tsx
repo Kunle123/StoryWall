@@ -20,6 +20,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 
 const STORAGE_KEY = 'timeline-editor-state';
 
@@ -890,6 +891,7 @@ const TimelineEditor = () => {
         )}
         </main>
       </div>
+      <ExperimentalBottomMenuBar />
     </EditorErrorBoundary>
   );
 };

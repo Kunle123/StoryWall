@@ -902,3 +902,31 @@ function transformTimeline(timeline: any): Timeline {
   };
 }
 
+/**
+ * Increment view count for a timeline
+ */
+export async function incrementTimelineViewCount(timelineId: string): Promise<void> {
+  try {
+    await prisma.timeline.update({
+      where: { id: timelineId },
+      data: {
+        viewCount: {
+          increment: 1,
+        },
+      },
+    });
+  } catch (error: any) {
+    // If Prisma fails, try raw SQL
+    console.warn('[incrementTimelineViewCount] Prisma update failed, using raw SQL:', error.message);
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE timelines SET view_count = view_count + 1 WHERE id = $1`,
+        timelineId
+      );
+    } catch (sqlError: any) {
+      console.error('[incrementTimelineViewCount] Raw SQL also failed:', sqlError.message);
+      // Don't throw - view count increment is non-critical
+    }
+  }
+}
+

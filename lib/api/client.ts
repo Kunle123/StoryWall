@@ -340,16 +340,32 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
       year = parseInt(dateStr.split('-')[0], 10);
     }
   } else {
-    // AD date: use Date object
-    const date = new Date(apiEvent.date);
-    year = date.getFullYear();
-    const monthNum = date.getMonth() + 1;
-    const dayNum = date.getDate();
-    // Only include month/day if not placeholder dates (Jan 1 or Dec 31)
-    // Dec 31 is often used as a placeholder for year-end dates
-    if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31)) || year === 1) {
-      month = monthNum;
-      day = dayNum;
+    // AD date: parse from string first to handle years < 1000 correctly
+    // PostgreSQL dates like "0100-01-01" need special handling
+    const dateMatch = dateStr.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
+    if (dateMatch) {
+      // Parse year, month, day from string directly
+      year = parseInt(dateMatch[1], 10);
+      const monthNum = parseInt(dateMatch[2], 10);
+      const dayNum = parseInt(dateMatch[3], 10);
+      
+      // Only include month/day if not placeholder dates (Jan 1 or Dec 31)
+      // Dec 31 is often used as a placeholder for year-end dates
+      if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31)) || year === 1) {
+        month = monthNum;
+        day = dayNum;
+      }
+    } else {
+      // Fallback: use Date object
+      const date = new Date(apiEvent.date);
+      year = date.getFullYear();
+      const monthNum = date.getMonth() + 1;
+      const dayNum = date.getDate();
+      // Only include month/day if not placeholder dates (Jan 1 or Dec 31)
+      if (!((monthNum === 1 && dayNum === 1) || (monthNum === 12 && dayNum === 31)) || year === 1) {
+        month = monthNum;
+        day = dayNum;
+      }
     }
   }
   

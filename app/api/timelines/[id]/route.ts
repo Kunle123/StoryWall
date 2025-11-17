@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline } from '@/lib/db/timelines';
+import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline, incrementTimelineViewCount } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
@@ -58,9 +58,11 @@ export async function GET(
     console.log('[API] Timeline found, returning:', timeline.title);
     console.log('[API] Timeline has', timeline.events?.length || 0, 'events');
 
-    // Increment view count (could be moved to a separate endpoint for better performance)
-    // For now, we'll update it on view
-    // TODO: Implement view count increment asynchronously
+    // Increment view count asynchronously (don't wait for it to complete)
+    incrementTimelineViewCount(timeline.id).catch((error) => {
+      console.error('[API] Failed to increment view count:', error);
+      // Non-critical error, don't throw
+    });
 
     try {
       const response = NextResponse.json(timeline);
