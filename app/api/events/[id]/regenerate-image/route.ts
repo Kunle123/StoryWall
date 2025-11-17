@@ -77,8 +77,14 @@ export async function POST(
     // Use stored imagePrompt if available, otherwise fall back to description/title
     const imagePrompt = (event as any).image_prompt || event.description || event.title;
 
+    // Get base URL and ensure it has a protocol
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = baseUrl.startsWith('http://') || baseUrl.startsWith('https://') 
+      ? baseUrl 
+      : `https://${baseUrl}`;
+
     // Call the image generation API
-    const generateImageResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-images`, {
+    const generateImageResponse = await fetch(`${appUrl}/api/ai/generate-images`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -120,7 +126,7 @@ export async function POST(
     const usedPrompt = result.prompts?.[0] || imagePrompt;
 
     // Update the event with the new image URL and prompt
-    const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/events/${id}`, {
+    const updateResponse = await fetch(`${appUrl}/api/events/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

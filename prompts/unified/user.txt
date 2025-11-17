@@ -28,7 +28,13 @@ Generate:
    
    CRITICAL: The Anchor Style must be GENERAL and apply to ALL events. DO NOT include specific event titles, event names, brand names, or event-specific content in the Anchor. The Anchor should describe the overall aesthetic for the timeline subject, NOT individual events.
 
-2. For each event:
+2. Hashtags: Generate 5-10 relevant hashtags for this timeline (without # symbol, lowercase, single words or compound words like 'formula1', 'worldwar2'). Include:
+   - Subject-specific tags (e.g., 'formula1', 'kubrick', 'renaissance')
+   - Category tags (e.g., 'sport', 'film', 'art', 'history')
+   - Topic tags (e.g., 'racing', 'cinema', 'painting')
+   - Ensure tags are relevant to the timeline's subject matter
+
+3. For each event:
    - Description: 2-4 sentences explaining the EVENT - what happened, why it matters, its historical/educational significance. The description should explain the event itself, NOT describe what the scene looks like. Focus on the event's meaning, impact, and context.
    - Image Prompt: Literal, recognizable scene that visually represents this event. After generating anchorStyle, prepend a 60-80 character preview of it to each imagePrompt (e.g., "ANCHOR: [preview]. [scene description]")
 

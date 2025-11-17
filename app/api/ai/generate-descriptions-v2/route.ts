@@ -266,6 +266,13 @@ export async function POST(request: NextRequest) {
       ? anchorStyle.substring(0, 80) + '...'
       : anchorStyle;
 
+    // Extract and normalize hashtags
+    const rawHashtags = content.hashtags || [];
+    const hashtags = rawHashtags
+      .map((tag: string) => tag.toLowerCase().replace(/^#/, '').trim())
+      .filter((tag: string) => tag.length > 0)
+      .slice(0, 10); // Limit to 10 hashtags
+
     // Update image prompts to include anchor preview
     const items = content.items || [];
     const descriptions: string[] = [];
@@ -294,6 +301,7 @@ export async function POST(request: NextRequest) {
       descriptions: descriptions.slice(0, events.length),
       imagePrompts: imagePrompts.slice(0, events.length),
       anchorStyle: anchorStyle || null,
+      hashtags: hashtags.length > 0 ? hashtags : undefined,
     };
 
     if (Object.keys(factualDetails).length > 0) {

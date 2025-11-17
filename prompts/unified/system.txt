@@ -26,6 +26,7 @@ FACTUAL MODE ACTIVE:
 Output Schema (JSON):
 {
   "anchorStyle": "string (5-7 sentences covering: Visual Palette, Setting & Atmosphere, Character Archetype if applicable, Emotional Tone, Cinematography)",
+  "hashtags": ["string (5-10 relevant hashtags without # symbol, lowercase, e.g., 'formula1', 'sport', 'racing')"],
   "items": [
     {"eventId": "string", "description": "string (2-4 sentences)", "imagePrompt": "string (literal, recognizable scene)"}
   ],
