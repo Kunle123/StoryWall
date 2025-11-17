@@ -19,9 +19,11 @@ interface EventDetailsStepProps {
   themeColor?: string; // Optional - if provided, include in image prompts
   sourceRestrictions?: string[];
   timelineType?: string; // 'social' or 'statistics' or undefined
+  hashtags?: string[];
+  setHashtags?: (hashtags: string[]) => void;
 }
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [], timelineType }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [], timelineType, hashtags = [], setHashtags }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -192,11 +194,17 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
           imagePrompt: data.imagePrompts?.[idx] || e.imagePrompt, // Store AI-generated image prompts
         }))
       );
+      
+      // Extract and save hashtags if provided by AI
+      if (data.hashtags && Array.isArray(data.hashtags) && data.hashtags.length > 0 && setHashtags) {
+        setHashtags(data.hashtags);
+      }
+      
       // Mark all events as generated
       setGeneratedEventIds(new Set(events.map(e => e.id)));
       toast({
         title: "Success!",
-        description: `Generated descriptions for ${events.length} events`,
+        description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
       });
     } catch (error: any) {
       console.error("Error generating descriptions:", error);

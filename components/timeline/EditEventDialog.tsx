@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,8 +37,86 @@ export function EditEventDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
 
   const isNumbered = event.number !== undefined;
+
+  // Handle keyboard dismissal when scrolling to bottom
+  useEffect(() => {
+    if (!open) return;
+
+    const handleScroll = () => {
+      // Find the scrollable element (DialogContent or its scrollable child)
+      const element = dialogContentRef.current;
+      if (!element) return;
+
+      // Try to find the actual scrollable container
+      let scrollableElement: HTMLElement | null = element;
+      
+      // Check if DialogContent itself is scrollable
+      const hasOverflow = window.getComputedStyle(element).overflowY === 'auto' || 
+                         window.getComputedStyle(element).overflowY === 'scroll';
+      
+      if (!hasOverflow) {
+        // Find the first scrollable child
+        const children = element.querySelectorAll('*');
+        for (const child of children) {
+          const childStyle = window.getComputedStyle(child as HTMLElement);
+          if (childStyle.overflowY === 'auto' || childStyle.overflowY === 'scroll') {
+            scrollableElement = child as HTMLElement;
+            break;
+          }
+        }
+      }
+
+      if (!scrollableElement) return;
+
+      const scrollTop = scrollableElement.scrollTop;
+      const scrollHeight = scrollableElement.scrollHeight;
+      const clientHeight = scrollableElement.clientHeight;
+      const scrollBottom = scrollHeight - scrollTop - clientHeight;
+
+      // If scrolled within 50px of bottom, dismiss keyboard
+      if (scrollBottom < 50) {
+        // Blur any active input/textarea to dismiss keyboard
+        const activeElement = document.activeElement as HTMLElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          activeElement.blur();
+        }
+      }
+    };
+
+    // Use a small delay to ensure the dialog is fully rendered
+    const timeoutId = setTimeout(() => {
+      const element = dialogContentRef.current;
+      if (element) {
+        element.addEventListener('scroll', handleScroll, { passive: true });
+        // Also listen on window scroll as fallback
+        window.addEventListener('scroll', handleScroll, { passive: true });
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      const element = dialogContentRef.current;
+      if (element) {
+        element.removeEventListener('scroll', handleScroll);
+      }
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [open]);
+
+  // Reset form when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setTitle(event.title);
+      setDescription(event.description || "");
+      setYear(event.year?.toString() || "");
+      setMonth(event.month?.toString() || "");
+      setDay(event.day?.toString() || "");
+      setNumber(event.number?.toString() || "");
+    }
+  }, [open, event]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -252,9 +330,24 @@ export function EditEventDialog({
     }
   };
 
+  const handleCancel = () => {
+    // Reset form to original values
+    setTitle(event.title);
+    setDescription(event.description || "");
+    setYear(event.year?.toString() || "");
+    setMonth(event.month?.toString() || "");
+    setDay(event.day?.toString() || "");
+    setNumber(event.number?.toString() || "");
+    // Close dialog
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        ref={dialogContentRef}
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
         <DialogHeader>
           <DialogTitle>Edit Event</DialogTitle>
           <DialogDescription>
@@ -413,7 +506,7 @@ export function EditEventDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>

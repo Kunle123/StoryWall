@@ -712,6 +712,8 @@ const TimelineEditor = () => {
                   imageStyle={imageStyle} // Pass if already selected (user may have gone back)
                   themeColor={themeColor} // Pass if already selected
                   sourceRestrictions={sourceRestrictions}
+                  hashtags={hashtags}
+                  setHashtags={setHashtags}
                 />
               )}
               {currentStep === 4 && (
