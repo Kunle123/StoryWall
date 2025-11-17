@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TimelineEvent } from "./Timeline";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits } from "@/hooks/use-credits";
 import { Loader2, RotateCw, Upload } from "lucide-react";
 
 interface EditEventDialogProps {
@@ -28,6 +29,7 @@ export function EditEventDialog({
   onEventUpdate,
 }: EditEventDialogProps) {
   const { toast } = useToast();
+  const { fetchCredits } = useCredits();
   const [title, setTitle] = useState(event.title);
   const [description, setDescription] = useState(event.description || "");
   const [year, setYear] = useState(event.year?.toString() || "");
@@ -239,6 +241,11 @@ export function EditEventDialog({
       };
 
       onEventUpdate(updatedEvent);
+      
+      // Refresh credits if any were deducted
+      if (result.creditsDeducted) {
+        await fetchCredits();
+      }
       
       toast({
         title: "Success",
