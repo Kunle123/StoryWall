@@ -44,6 +44,7 @@ interface GenerateImagesStepProps {
   };
   includesPeople?: boolean;
   timelineId?: string; // Optional: if timeline already exists, save images immediately
+  hasSelectedImageStyle?: boolean; // True if user has selected image style in step 4
 }
 
 const CREDIT_COST_PER_IMAGE = 1; // 1 credit per image
@@ -59,6 +60,7 @@ export const GenerateImagesStep = ({
   referencePhoto,
   includesPeople = true,
   timelineId,
+  hasSelectedImageStyle = false,
 }: GenerateImagesStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
@@ -72,7 +74,7 @@ export const GenerateImagesStep = ({
   const [uploadingEventId, setUploadingEventId] = useState<string | null>(null);
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set(events.map(e => e.id)));
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
-  const [regenerationCount, setRegenerationCount] = useState<Record<string, number>>({});
+  const [totalRegenerations, setTotalRegenerations] = useState(0); // Cumulative regenerations across all images
   const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
   const { deductCredits, credits } = useCredits();
 
@@ -165,10 +167,8 @@ export const GenerateImagesStep = ({
   };
 
   const handleRegenerateImage = async (eventId: string) => {
-    const count = regenerationCount[eventId] || 0;
-    
-    // First 5 regenerations are FREE, then charge 10 credits
-    const isFree = count < 5;
+    // Cumulative regenerations: first 10 are FREE across all images, then charge 10 credits each
+    const isFree = totalRegenerations < 10;
     const cost = isFree ? 0 : 10;
     
     // Check credits only if not free
@@ -229,16 +229,13 @@ export const GenerateImagesStep = ({
         await deductCredits(cost, `Image Regeneration for "${event.title}"`);
       }
       
-      // Update regeneration count
-      setRegenerationCount(prev => ({
-        ...prev,
-        [eventId]: count + 1
-      }));
+      // Update total regeneration count (cumulative across all images)
+      setTotalRegenerations(prev => prev + 1);
 
       toast({
         title: "Image regenerated",
         description: isFree 
-          ? `New image generated for "${event.title}" (${5 - count - 1} free regenerations remaining)`
+          ? `New image generated for "${event.title}" (${10 - totalRegenerations - 1} free regenerations remaining)`
           : `New image generated for "${event.title}" (10 credits used)`,
       });
     } catch (error: any) {
@@ -690,10 +687,12 @@ export const GenerateImagesStep = ({
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-4 mt-6">
-          <Card className="p-6">
-            <div className="space-y-6">
-              <div>
-                <Label className="text-base mb-3 block">Image Style</Label>
+          {/* Only show Image Style & Theme card if not already selected in step 4 (user can go back to step 4 to change) */}
+          {!hasSelectedImageStyle && !hasStartedGeneration && (
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <Label className="text-base mb-3 block">Image Style</Label>
                 <div className="flex flex-wrap gap-2">
                   {["Photorealistic", "Illustration", "Minimalist", "Vintage", "Watercolor", "3D Render", "Sketch", "Abstract"].map((style) => (
                     <Badge
@@ -766,6 +765,7 @@ export const GenerateImagesStep = ({
               </div>
             </div>
           </Card>
+          )}
 
           {!hasStartedGeneration && (
             <Card className="p-6">
@@ -898,9 +898,8 @@ export const GenerateImagesStep = ({
                               <>
                                 <RotateCw className="w-4 h-4 mr-2" />
                                 Regenerate {(() => {
-                                  const count = regenerationCount[event.id] || 0;
-                                  if (count < 5) {
-                                    return `(${5 - count} free)`;
+                                  if (totalRegenerations < 10) {
+                                    return `(${10 - totalRegenerations} free)`;
                                   }
                                   return "(10 credits)";
                                 })()}

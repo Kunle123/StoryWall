@@ -39,7 +39,7 @@ const TimelineEditor = () => {
   const [maxEvents, setMaxEvents] = useState(20); // Default to 20 events
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [writingStyle, setWritingStyle] = useState("");
+  const [writingStyle, setWritingStyle] = useState("narrative");
   const [customStyle, setCustomStyle] = useState("");
   const [imageStyle, setImageStyle] = useState("Illustration");
   const [themeColor, setThemeColor] = useState("");
@@ -733,6 +733,7 @@ const TimelineEditor = () => {
                   imageReferences={imageReferences}
                   referencePhoto={referencePhoto}
                   includesPeople={includesPeople}
+                  hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
                 />
               )}
               {currentStep === 6 && (
@@ -812,26 +813,52 @@ const TimelineEditor = () => {
                     </Button>
                   ) : currentStep === 6 ? (
                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                      <Button 
-                        variant="outline"
-                        onClick={handlePreviewTimeline}
-                        disabled={!canProceed()}
-                        className="flex-1 sm:flex-initial"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Preview Timeline
-                      </Button>
-                      <Button 
-                        onClick={handleSaveTimeline}
-                        disabled={!canProceed() || isSaving}
-                        className="flex-1 sm:flex-initial"
-                      >
-                        {isSaving ? (
-                          <>Saving...</>
-                        ) : (
-                          <><Save className="mr-2 h-4 w-4" />Save Timeline</>
-                        )}
-                      </Button>
+                      {!showPreview ? (
+                        <>
+                          <Button 
+                            variant="outline"
+                            onClick={handlePreviewTimeline}
+                            disabled={!canProceed()}
+                            className="flex-1 sm:flex-initial"
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Preview Timeline
+                          </Button>
+                          <Button 
+                            onClick={handleSaveTimeline}
+                            disabled={!canProceed() || isSaving}
+                            className="flex-1 sm:flex-initial"
+                          >
+                            {isSaving ? (
+                              <>Saving...</>
+                            ) : (
+                              <><Save className="mr-2 h-4 w-4" />Save Timeline</>
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button 
+                            variant="outline"
+                            onClick={handleBack}
+                            className="flex-1 sm:flex-initial"
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                          </Button>
+                          <Button 
+                            onClick={handleSaveTimeline}
+                            disabled={!canProceed() || isSaving}
+                            className="flex-1 sm:flex-initial"
+                          >
+                            {isSaving ? (
+                              <>Saving...</>
+                            ) : (
+                              <><Save className="mr-2 h-4 w-4" />Save Timeline</>
+                            )}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <Button
@@ -844,14 +871,16 @@ const TimelineEditor = () => {
                     </Button>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  onClick={handleCancel}
-                  className="w-full text-muted-foreground hover:text-destructive"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
-                </Button>
+                {(currentStep === 6 && showPreview) || currentStep !== 6 ? (
+                  <Button
+                    variant="ghost"
+                    onClick={handleCancel}
+                    className="w-full text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                ) : null}
               </div>
             </Card>
           </>
