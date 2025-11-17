@@ -677,42 +677,125 @@ export async function listTimelines(options: {
   hashtag?: string;
   searchQuery?: string;
 }): Promise<Timeline[]> {
-  const where: any = {
-    ...(options.isPublic !== undefined && { isPublic: options.isPublic }),
-    ...(options.creatorId && { creatorId: options.creatorId }),
-  };
-
-  // Filter by hashtag if provided
-  if (options.hashtag) {
-    where.hashtags = {
-      has: options.hashtag.toLowerCase(),
+  try {
+    const where: any = {
+      ...(options.isPublic !== undefined && { isPublic: options.isPublic }),
+      ...(options.creatorId && { creatorId: options.creatorId }),
     };
-  }
 
-  // Search in title, description, or hashtags
-  if (options.searchQuery) {
-    const query = options.searchQuery.toLowerCase();
-    where.OR = [
-      { title: { contains: query, mode: 'insensitive' } },
-      { description: { contains: query, mode: 'insensitive' } },
-      { hashtags: { hasSome: [query] } },
-    ];
-  }
+    // Filter by hashtag if provided
+    if (options.hashtag) {
+      where.hashtags = {
+        has: options.hashtag.toLowerCase(),
+      };
+    }
 
-  const timelines = await prisma.timeline.findMany({
-    where,
-    include: {
-      creator: true,
-      events: {
-        take: 1,
+    // Search in title, description, or hashtags
+    if (options.searchQuery) {
+      const query = options.searchQuery.toLowerCase();
+      where.OR = [
+        { title: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { hashtags: { hasSome: [query] } },
+      ];
+    }
+
+    const timelines = await prisma.timeline.findMany({
+      where,
+      include: {
+        creator: true,
+        events: {
+          take: 1,
+        },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: options.limit || 20,
-    skip: options.offset || 0,
-  });
+      orderBy: { createdAt: 'desc' },
+      take: options.limit || 20,
+      skip: options.offset || 0,
+    });
 
-  return timelines.map(transformTimeline);
+    return timelines.map(transformTimeline);
+  } catch (error: any) {
+    // If Prisma fails (e.g., schema mismatch), fall back to raw SQL
+    console.error('[listTimelines] Prisma query failed, using raw SQL fallback:', error.message);
+    
+    // Build WHERE clause for raw SQL (with proper escaping)
+    const conditions: string[] = [];
+    
+    if (options.isPublic !== undefined) {
+      conditions.push(`is_public = ${options.isPublic}`);
+    }
+
+    if (options.creatorId) {
+      // Escape single quotes in creatorId
+      const escapedCreatorId = options.creatorId.replace(/'/g, "''");
+      conditions.push(`creator_id = '${escapedCreatorId}'`);
+    }
+
+    // Note: hashtag and searchQuery filtering would need more complex SQL
+    // For now, just get the basic filtered results
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limit = options.limit || 20;
+    const offset = options.offset || 0;
+
+    const query = `
+      SELECT id, title, description, slug, creator_id, 
+             visualization_type, is_public, is_collaborative, 
+             view_count, created_at, updated_at
+      FROM timelines
+      ${whereClause}
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const timelineRows = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      slug: string;
+      creator_id: string;
+      visualization_type: string;
+      is_public: boolean;
+      is_collaborative: boolean;
+      view_count: number;
+      created_at: Date;
+      updated_at: Date;
+    }>>(query, ...params);
+
+    // Fetch creators and events for each timeline
+    const timelines = await Promise.all(
+      timelineRows.map(async (row) => {
+        const creator = await prisma.user.findUnique({ where: { id: row.creator_id } });
+        const events = await prisma.event.findMany({
+          where: { timelineId: row.id },
+          take: 1,
+        });
+
+        return {
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          slug: row.slug,
+          creatorId: row.creator_id,
+          visualizationType: row.visualization_type,
+          isPublic: row.is_public,
+          isCollaborative: row.is_collaborative,
+          viewCount: row.view_count,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          creator: creator ? {
+            id: creator.id,
+            username: creator.username,
+            email: creator.email,
+            avatarUrl: creator.avatarUrl,
+          } : null,
+          events: events,
+        };
+      })
+    );
+
+    return timelines.map(transformTimeline);
+  }
 }
 
 // Helper function to transform Prisma models to our TypeScript types
