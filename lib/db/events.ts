@@ -41,10 +41,10 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
     await prisma.$executeRawUnsafe(`
       INSERT INTO events (
         id, timeline_id, title, description, date, end_date,
-        image_url, location_lat, location_lng, location_name,
+        image_url, image_prompt, location_lat, location_lng, location_name,
         category, links, created_by, created_at, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+        $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, $16
       )
     `,
       eventId,
@@ -54,6 +54,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       input.date, // Pass BC date string directly
       input.end_date || null, // Pass BC date string directly if present
       input.image_url || null,
+      input.image_prompt || null,
       input.location_lat || null,
       input.location_lng || null,
       input.location_name || null,
@@ -73,6 +74,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       date: Date;
       end_date: Date | null;
       image_url: string | null;
+      image_prompt: string | null;
       location_lat: number | null;
       location_lng: number | null;
       location_name: string | null;
@@ -83,7 +85,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       updated_at: Date;
     }>>(`
       SELECT id, timeline_id, title, description, date, end_date,
-             image_url, location_lat, location_lng, location_name,
+             image_url, image_prompt, location_lat, location_lng, location_name,
              category, links, created_by, created_at, updated_at
       FROM events WHERE id = $1
     `, eventId);
@@ -101,6 +103,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       date: eventRow.date,
       endDate: eventRow.end_date,
       imageUrl: eventRow.image_url,
+      imagePrompt: eventRow.image_prompt,
       locationLat: eventRow.location_lat,
       locationLng: eventRow.location_lng,
       locationName: eventRow.location_name,
@@ -124,6 +127,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         ...(input.end_date && { endDate: new Date(input.end_date) }),
         // Don't include number/numberLabel if columns don't exist
         imageUrl: input.image_url,
+        imagePrompt: input.image_prompt,
         locationLat: input.location_lat ? input.location_lat : undefined,
         locationLng: input.location_lng ? input.location_lng : undefined,
         locationName: input.location_name,
@@ -146,10 +150,10 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
       await prisma.$executeRawUnsafe(`
         INSERT INTO events (
           id, timeline_id, title, description, date, end_date,
-          image_url, location_lat, location_lng, location_name,
+          image_url, image_prompt, location_lat, location_lng, location_name,
           category, links, created_by, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12::text[], $13, $14, $15
+          $1, $2, $3, $4, $5::date, $6::date, $7, $8, $9, $10, $11, $12, $13::text[], $14, $15, $16
         )
       `,
         eventId,
@@ -159,6 +163,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         input.date, // Pass date string directly
         input.end_date || null,
         input.image_url || null,
+        input.image_prompt || null,
         input.location_lat || null,
         input.location_lng || null,
         input.location_name || null,
@@ -178,6 +183,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         date: Date;
         end_date: Date | null;
         image_url: string | null;
+        image_prompt: string | null;
         location_lat: number | null;
         location_lng: number | null;
         location_name: string | null;
@@ -188,7 +194,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         updated_at: Date;
       }>>(`
         SELECT id, timeline_id, title, description, date, end_date,
-               image_url, location_lat, location_lng, location_name,
+               image_url, image_prompt, location_lat, location_lng, location_name,
                category, links, created_by, created_at, updated_at
         FROM events WHERE id = $1
       `, eventId);
@@ -207,6 +213,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         date: eventRow.date,
         endDate: eventRow.end_date,
         imageUrl: eventRow.image_url,
+        imagePrompt: eventRow.image_prompt,
         locationLat: eventRow.location_lat,
         locationLng: eventRow.location_lng,
         locationName: eventRow.location_name,
@@ -245,6 +252,7 @@ export async function getEventById(id: string): Promise<Event | null> {
         date: Date;
         end_date: Date | null;
         image_url: string | null;
+        image_prompt: string | null;
         location_lat: number | null;
         location_lng: number | null;
         location_name: string | null;
@@ -255,7 +263,7 @@ export async function getEventById(id: string): Promise<Event | null> {
         updated_at: Date;
       }>>(`
         SELECT id, timeline_id, title, description, date, end_date,
-               image_url, location_lat, location_lng, location_name,
+               image_url, image_prompt, location_lat, location_lng, location_name,
                category, links, created_by, created_at, updated_at
         FROM events WHERE id = $1
       `, id);
@@ -272,6 +280,7 @@ export async function getEventById(id: string): Promise<Event | null> {
         date: eventRow.date,
         endDate: eventRow.end_date,
         imageUrl: eventRow.image_url,
+        imagePrompt: eventRow.image_prompt,
         locationLat: eventRow.location_lat,
         locationLng: eventRow.location_lng,
         locationName: eventRow.location_name,
@@ -368,6 +377,11 @@ export async function updateEvent(
       updateValues.push(updates.image_url);
       paramIndex++;
     }
+    if (updates.image_prompt !== undefined) {
+      updateFields.push(`image_prompt = $${paramIndex}`);
+      updateValues.push(updates.image_prompt);
+      paramIndex++;
+    }
 
     updateFields.push(`updated_at = NOW()`);
     updateValues.push(id);
@@ -388,6 +402,7 @@ export async function updateEvent(
       number: number | null;
       number_label: string | null;
       image_url: string | null;
+      image_prompt: string | null;
       location_lat: number | null;
       location_lng: number | null;
       location_name: string | null;
@@ -398,7 +413,7 @@ export async function updateEvent(
       updated_at: Date;
     }>>(
       `SELECT id, timeline_id, title, description, date, end_date, number, number_label,
-              image_url, location_lat, location_lng, location_name,
+              image_url, image_prompt, location_lat, location_lng, location_name,
               category, links, created_by, created_at, updated_at
        FROM events WHERE id = $1`,
       id
@@ -420,6 +435,7 @@ export async function updateEvent(
       ...(updates.end_date && { endDate: new Date(updates.end_date) }),
       ...(updates.number !== undefined && { number: updates.number }),
       ...(updates.image_url !== undefined && { imageUrl: updates.image_url }),
+      ...(updates.image_prompt !== undefined && { imagePrompt: updates.image_prompt }),
       ...(updates.location_lat !== undefined && { locationLat: updates.location_lat }),
       ...(updates.location_lng !== undefined && { locationLng: updates.location_lng }),
       ...(updates.location_name !== undefined && { locationName: updates.location_name }),
@@ -480,6 +496,7 @@ function transformEvent(event: any): Event {
     number: event.number || undefined,
     number_label: event.numberLabel || undefined,
     image_url: event.imageUrl || undefined,
+    image_prompt: event.imagePrompt || undefined,
     location_lat: event.locationLat ? parseFloat(event.locationLat.toString()) : undefined,
     location_lng: event.locationLng ? parseFloat(event.locationLng.toString()) : undefined,
     location_name: event.locationName || undefined,

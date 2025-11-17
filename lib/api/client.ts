@@ -189,6 +189,7 @@ export async function createEvent(timelineId: string, eventData: {
   number?: number;
   number_label?: string;
   image_url?: string;
+  image_prompt?: string;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;
@@ -220,6 +221,7 @@ export async function updateEvent(id: string, eventData: Partial<{
   date: string;
   end_date?: string;
   image_url?: string;
+  image_prompt?: string;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;

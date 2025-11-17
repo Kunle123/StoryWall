@@ -343,7 +343,10 @@ export const GenerateImagesStep = ({
                     
                     // If timeline exists, save image to database immediately
                     if (timelineId && event.id) {
-                      updateEvent(event.id, { image_url: data.imageUrl }).catch(error => {
+                      updateEvent(event.id, { 
+                        image_url: data.imageUrl,
+                        image_prompt: data.prompt || undefined, // Save the prompt used
+                      }).catch(error => {
                         console.error(`[GenerateImages] Failed to save image for event ${event.id}:`, error);
                       });
                     }
@@ -374,7 +377,10 @@ export const GenerateImagesStep = ({
                       const selectedIndex = eventIdToIndex.get(e.id);
                       if (selectedIndex !== undefined && data.images[selectedIndex] && e.id) {
                         try {
-                          await updateEvent(e.id, { image_url: data.images[selectedIndex] });
+                          await updateEvent(e.id, { 
+                            image_url: data.images[selectedIndex],
+                            image_prompt: data.prompts?.[selectedIndex] || undefined, // Save the prompt used
+                          });
                           console.log(`[GenerateImages] Saved image to database for event ${e.id}`);
                         } catch (error) {
                           console.error(`[GenerateImages] Failed to save image for event ${e.id}:`, error);

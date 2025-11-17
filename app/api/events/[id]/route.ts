@@ -49,6 +49,7 @@ export async function PATCH(
       day,
       number,
       image_url,
+      image_prompt,
       location_lat,
       location_lng,
       location_name,
@@ -85,6 +86,7 @@ export async function PATCH(
     if (end_date !== undefined) updates.end_date = end_date;
     if (number !== undefined) updates.number = number;
     if (image_url !== undefined) updates.image_url = image_url;
+    if (image_prompt !== undefined) updates.image_prompt = image_prompt;
     if (location_lat !== undefined) updates.location_lat = location_lat;
     if (location_lng !== undefined) updates.location_lng = location_lng;
     if (location_name !== undefined) updates.location_name = location_name;

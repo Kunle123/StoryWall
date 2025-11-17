@@ -4,6 +4,7 @@ import { getTimelineById } from '@/lib/db/timelines';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
 import { isAdminEmail } from '@/lib/utils/admin';
+import { prisma } from '@/lib/db/prisma';
 
 export async function POST(
   request: NextRequest,
@@ -44,6 +45,38 @@ export async function POST(
     const body = await request.json();
     const { timelineId, imageStyle = 'Illustration', themeColor = '' } = body;
 
+    // Check if timeline is published (is_public)
+    const isPublished = timeline.is_public || false;
+
+    // Charge 1 credit for AI regeneration if timeline is published
+    if (isPublished) {
+      // Check user credits
+      const userCredits = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { credits: true },
+      });
+
+      if (!userCredits || userCredits.credits < 1) {
+        return NextResponse.json(
+          { error: 'Insufficient credits. 1 credit required for image regeneration.' },
+          { status: 400 }
+        );
+      }
+
+      // Deduct 1 credit
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          credits: {
+            decrement: 1,
+          },
+        },
+      });
+    }
+
+    // Use stored imagePrompt if available, otherwise fall back to description/title
+    const imagePrompt = (event as any).image_prompt || event.description || event.title;
+
     // Call the image generation API
     const generateImageResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/generate-images`, {
       method: 'POST',
@@ -60,7 +93,7 @@ export async function POST(
           month: event.date ? new Date(event.date).getMonth() + 1 : undefined,
           day: event.date ? new Date(event.date).getDate() : undefined,
           number: event.number,
-          imagePrompt: event.description || event.title, // Use description or title as prompt
+          imagePrompt: imagePrompt, // Use stored prompt if available
         }],
         imageStyle,
         themeColor,
@@ -83,7 +116,10 @@ export async function POST(
       throw new Error('No image URL returned from generation');
     }
 
-    // Update the event with the new image URL
+    // Get the prompt that was used (from the generation response)
+    const usedPrompt = result.prompts?.[0] || imagePrompt;
+
+    // Update the event with the new image URL and prompt
     const updateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/events/${id}`, {
       method: 'PATCH',
       headers: {
@@ -91,6 +127,7 @@ export async function POST(
       },
       body: JSON.stringify({
         image_url: imageUrl,
+        image_prompt: usedPrompt, // Save the prompt that was used
       }),
     });
 
@@ -99,7 +136,10 @@ export async function POST(
       throw new Error(error.error || 'Failed to update event with new image');
     }
 
-    return NextResponse.json({ imageUrl });
+    return NextResponse.json({ 
+      imageUrl,
+      creditsDeducted: isPublished ? 1 : 0,
+    });
   } catch (error: any) {
     console.error('Error regenerating image:', error);
     

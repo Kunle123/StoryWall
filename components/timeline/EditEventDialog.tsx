@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TimelineEvent } from "./Timeline";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RotateCw } from "lucide-react";
+import { Loader2, RotateCw, Upload } from "lucide-react";
 
 interface EditEventDialogProps {
   event: TimelineEvent;
@@ -36,6 +36,7 @@ export function EditEventDialog({
   const [number, setNumber] = useState(event.number?.toString() || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const isNumbered = event.number !== undefined;
 
@@ -163,7 +164,9 @@ export function EditEventDialog({
       
       toast({
         title: "Success",
-        description: "Image regenerated successfully",
+        description: result.creditsDeducted 
+          ? `Image regenerated successfully (1 credit used)`
+          : "Image regenerated successfully",
       });
     } catch (error: any) {
       toast({
@@ -173,6 +176,79 @@ export function EditEventDialog({
       });
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const handleUploadImage = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload image');
+      }
+
+      const result = await response.json();
+
+      // Update the event in the database
+      const updateResponse = await fetch(`/api/events/${event.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_url: result.url,
+          image_prompt: null, // Clear prompt when user uploads their own image
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        const error = await updateResponse.json();
+        throw new Error(error.error || "Failed to update event with uploaded image");
+      }
+
+      const updatedEventData = await updateResponse.json();
+      
+      // Transform to TimelineEvent format
+      const updatedEvent: TimelineEvent = {
+        id: updatedEventData.id,
+        title: updatedEventData.title,
+        description: updatedEventData.description,
+        year: updatedEventData.year,
+        month: updatedEventData.month,
+        day: updatedEventData.day,
+        number: updatedEventData.number,
+        numberLabel: updatedEventData.numberLabel,
+        image: result.url,
+        category: updatedEventData.category,
+      };
+
+      onEventUpdate(updatedEvent);
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleUploadImage(file);
     }
   };
 
@@ -271,28 +347,68 @@ export function EditEventDialog({
             </div>
           )}
 
-          <div>
-            <Button
-              variant="outline"
-              onClick={handleRegenerateImage}
-              disabled={isRegenerating}
-              className="w-full"
-            >
-              {isRegenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Regenerating...
-                </>
-              ) : (
-                <>
-                  <RotateCw className="w-4 h-4 mr-2" />
-                  Regenerate Image
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-1">
-              Regenerate using the same theme, style, and prompt as the original timeline
-            </p>
+          <div className="space-y-3">
+            <div>
+              <Label>Replace Image</Label>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleRegenerateImage}
+                  disabled={isRegenerating}
+                  className="flex-1"
+                >
+                  {isRegenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCw className="w-4 h-4 mr-2" />
+                      Regenerate with AI
+                    </>
+                  )}
+                </Button>
+                <label className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isUploading}
+                    className="w-full"
+                    asChild
+                  >
+                    <span>
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Image
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                </label>
+              </div>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  <strong>AI Regeneration:</strong> Uses stored prompt, theme, and style (1 credit if timeline is published)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Upload:</strong> Free - upload your own image
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

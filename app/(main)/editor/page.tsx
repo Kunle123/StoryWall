@@ -497,6 +497,7 @@ const TimelineEditor = () => {
             number: isNumbered && event.number ? event.number : undefined,
             number_label: isNumbered && event.numberLabel ? event.numberLabel : undefined,
             image_url: event.imageUrl || undefined,
+            image_prompt: event.imagePrompt || undefined, // Save the image prompt if available
           });
 
           // Log if image is missing
