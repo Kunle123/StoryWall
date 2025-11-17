@@ -825,6 +825,24 @@ export async function listTimelines(options: {
   }
 }
 
+// Helper function to safely convert dates to ISO strings
+function safeToISOString(date: any): string {
+  if (!date) {
+    return new Date().toISOString(); // Fallback to current date if null/undefined
+  }
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) {
+      // Invalid date, return current date as fallback
+      return new Date().toISOString();
+    }
+    return dateObj.toISOString();
+  } catch (error) {
+    // If conversion fails, return current date as fallback
+    return new Date().toISOString();
+  }
+}
+
 // Helper function to transform Prisma models to our TypeScript types
 function transformTimeline(timeline: any): Timeline {
   return {
@@ -840,8 +858,8 @@ function transformTimeline(timeline: any): Timeline {
           username: timeline.creator.username,
           email: timeline.creator.email,
           avatar_url: timeline.creator.avatarUrl || undefined,
-          created_at: timeline.creator.createdAt instanceof Date ? timeline.creator.createdAt.toISOString() : new Date(timeline.creator.createdAt).toISOString(),
-          updated_at: timeline.creator.updatedAt instanceof Date ? timeline.creator.updatedAt.toISOString() : new Date(timeline.creator.updatedAt).toISOString(),
+          created_at: safeToISOString(timeline.creator.createdAt),
+          updated_at: safeToISOString(timeline.creator.updatedAt),
         }
       : undefined,
     visualization_type: timeline.visualizationType as 'horizontal' | 'vertical' | 'grid',
@@ -851,16 +869,16 @@ function transformTimeline(timeline: any): Timeline {
     number_label: timeline.numberLabel || undefined,
     hashtags: timeline.hashtags || [],
     view_count: timeline.viewCount,
-    created_at: timeline.createdAt instanceof Date ? timeline.createdAt.toISOString() : new Date(timeline.createdAt).toISOString(),
-    updated_at: timeline.updatedAt instanceof Date ? timeline.updatedAt.toISOString() : new Date(timeline.updatedAt).toISOString(),
+    created_at: safeToISOString(timeline.createdAt),
+    updated_at: safeToISOString(timeline.updatedAt),
     events: timeline.events
       ? timeline.events.map((e: any) => ({
           id: e.id,
           timeline_id: e.timelineId,
           title: e.title,
           description: e.description || undefined,
-          date: e.date instanceof Date ? e.date.toISOString().split('T')[0] : new Date(e.date).toISOString().split('T')[0],
-          end_date: e.endDate ? (e.endDate instanceof Date ? e.endDate.toISOString().split('T')[0] : new Date(e.endDate).toISOString().split('T')[0]) : undefined,
+          date: safeToISOString(e.date).split('T')[0],
+          end_date: e.endDate ? safeToISOString(e.endDate).split('T')[0] : undefined,
           image_url: e.imageUrl || undefined,
           location_lat: e.locationLat ? parseFloat(e.locationLat.toString()) : undefined,
           location_lng: e.locationLng ? parseFloat(e.locationLng.toString()) : undefined,
@@ -868,8 +886,8 @@ function transformTimeline(timeline: any): Timeline {
           category: e.category || undefined,
           links: e.links || [],
           created_by: e.createdBy || undefined,
-          created_at: e.createdAt instanceof Date ? e.createdAt.toISOString() : new Date(e.createdAt).toISOString(),
-          updated_at: e.updatedAt instanceof Date ? e.updatedAt.toISOString() : new Date(e.updatedAt).toISOString(),
+          created_at: safeToISOString(e.createdAt),
+          updated_at: safeToISOString(e.updatedAt),
         }))
       : undefined,
     categories: timeline.categories
@@ -878,7 +896,7 @@ function transformTimeline(timeline: any): Timeline {
           timeline_id: c.timelineId,
           name: c.name,
           color: c.color,
-          created_at: c.createdAt.toISOString(),
+          created_at: safeToISOString(c.createdAt),
         }))
       : undefined,
   };
