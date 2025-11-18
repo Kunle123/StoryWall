@@ -17,6 +17,8 @@ model User {
   email     String   @unique @db.VarChar(255)
   avatarUrl String?  @map("avatar_url")
   credits   Int      @default(100) @map("credits")
+  twitterAccessToken String? @map("twitter_access_token") @db.Text
+  twitterRefreshToken String? @map("twitter_refresh_token") @db.Text
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

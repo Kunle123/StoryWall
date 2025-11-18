@@ -3,9 +3,10 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Twitter, Check } from "lucide-react";
-import { useState } from "react";
+import { Copy, Twitter, Check, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@clerk/nextjs";
 import { formatTimelineAsTwitterThread, formatTweetsAsThreadString, copyThreadToClipboard } from "@/lib/utils/twitterThread";
 import { TimelineEvent } from "./Timeline";
 
@@ -27,7 +28,10 @@ export function TwitterThreadDialog({
   timelineUrl,
 }: TwitterThreadDialogProps) {
   const { toast } = useToast();
+  const { isSignedIn } = useUser();
   const [copied, setCopied] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   
   const tweets = formatTimelineAsTwitterThread(
     timelineTitle,
@@ -62,6 +66,101 @@ export function TwitterThreadDialog({
     const encodedText = encodeURIComponent(firstTweet);
     window.open(`https://twitter.com/intent/tweet?text=${encodedText}`, '_blank');
   };
+  
+  const checkTwitterConnection = async () => {
+    try {
+      const response = await fetch('/api/twitter/status');
+      if (response.ok) {
+        const data = await response.json();
+        setIsConnected(data.connected || false);
+      }
+    } catch (error) {
+      setIsConnected(false);
+    }
+  };
+  
+  const handleConnectTwitter = async () => {
+    try {
+      const response = await fetch('/api/twitter/oauth');
+      if (!response.ok) {
+        throw new Error('Failed to initiate Twitter connection');
+      }
+      const { authUrl } = await response.json();
+      window.location.href = authUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to connect Twitter",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handlePostThread = async () => {
+    if (!isSignedIn) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to post threads automatically",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsPosting(true);
+    try {
+      const response = await fetch('/api/twitter/post-thread', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tweets: tweets.map(t => ({ text: t.text })),
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.error?.includes('not connected')) {
+          setIsConnected(false);
+          toast({
+            title: "Twitter not connected",
+            description: "Please connect your Twitter account first",
+            variant: "destructive",
+          });
+        } else {
+          throw new Error(error.error || 'Failed to post thread');
+        }
+        return;
+      }
+      
+      const result = await response.json();
+      toast({
+        title: "Success!",
+        description: `Posted ${result.tweetsPosted} tweets to Twitter`,
+      });
+      
+      if (result.threadUrl) {
+        window.open(result.threadUrl, '_blank');
+      }
+      
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to post thread",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+  
+  // Check connection status when dialog opens
+  useEffect(() => {
+    if (open && isSignedIn) {
+      checkTwitterConnection();
+    }
+  }, [open, isSignedIn]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -105,6 +204,39 @@ export function TwitterThreadDialog({
                   <Twitter className="w-4 h-4" />
                   Open Twitter
                 </Button>
+                {isSignedIn && (
+                  isConnected ? (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handlePostThread}
+                      disabled={isPosting}
+                      className="gap-2"
+                    >
+                      {isPosting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Posting...
+                        </>
+                      ) : (
+                        <>
+                          <Twitter className="w-4 h-4" />
+                          Post Thread
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleConnectTwitter}
+                      className="gap-2"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Connect Twitter
+                    </Button>
+                  )
+                )}
               </div>
             </div>
             <Textarea
