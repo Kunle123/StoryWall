@@ -1,72 +1,44 @@
-# Migration: Add image_prompt Column
+# Twitter Token Migration Instructions
 
-The production database is missing the `image_prompt` column in the `events` table. This needs to be added.
+## Option 1: Via Admin Endpoint (Recommended)
 
-## ✅ Easiest Option: Use the Script
+1. Wait for Railway deployment to complete
+2. Sign in to https://www.storywall.com with kunle2000@gmail.com
+3. Visit: https://www.storywall.com/api/admin/migrate-twitter-tokens
+4. You should see a success message
 
-1. **Get your Railway DATABASE_URL:**
-   - Go to Railway Dashboard → Your Project → PostgreSQL Service
-   - Click on the "Variables" tab
-   - Copy the `DATABASE_URL` value
+## Option 2: Via Script (If you have production DATABASE_URL)
 
-2. **Run the migration script:**
+1. Set your production DATABASE_URL:
    ```bash
-   # Set the production DATABASE_URL (temporarily)
-   export DATABASE_URL="your_railway_database_url_here"
-   
-   # Run the migration script
-   npx tsx scripts/add-image-prompt-column.ts
+   export DATABASE_URL="your_production_database_url"
    ```
 
-   Or if you prefer, you can create a temporary `.env.production` file:
+2. Run the migration script:
    ```bash
-   echo 'DATABASE_URL="your_railway_database_url_here"' > .env.production
-   npx tsx scripts/add-image-prompt-column.ts
+   npx tsx scripts/migrate-twitter-tokens.ts
    ```
 
-## Option 2: Use psql (Command Line)
+## Option 3: Direct SQL (Via Railway Dashboard)
 
-If you have `psql` installed:
+1. Go to Railway Dashboard → Your Project → PostgreSQL Service
+2. Click on the "Data" tab or "Query" tab
+3. Run this SQL:
 
-```bash
-# Get DATABASE_URL from Railway (same as above)
-psql "your_railway_database_url" -c "ALTER TABLE events ADD COLUMN IF NOT EXISTS image_prompt TEXT;"
-```
-
-## Option 3: Use a Database Client
-
-Install a PostgreSQL client like:
-- **TablePlus** (Mac/Windows) - https://tableplus.com
-- **DBeaver** (Cross-platform) - https://dbeaver.io
-- **pgAdmin** (Cross-platform) - https://www.pgadmin.org
-
-Then:
-1. Connect using your Railway DATABASE_URL
-2. Open a SQL query window
-3. Run: `ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "image_prompt" TEXT;`
-
-## Option 4: Use Prisma Migrate
-
-```bash
-# Set DATABASE_URL to production
-export DATABASE_URL="your_railway_database_url"
-
-# Run migrations
-npx prisma migrate deploy
+```sql
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "twitter_access_token" TEXT;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "twitter_refresh_token" TEXT;
 ```
 
 ## Verify Migration
 
-After running, verify the column exists:
+After running, verify the columns exist:
 
 ```sql
 SELECT column_name 
 FROM information_schema.columns 
-WHERE table_name = 'events' AND column_name = 'image_prompt';
+WHERE table_name = 'users' 
+AND column_name IN ('twitter_access_token', 'twitter_refresh_token');
 ```
 
-You should see `image_prompt` in the results.
-
-## Note
-
-The code has been updated to handle the missing column gracefully, so the site will work even before the migration is run. However, image prompts won't be saved until the column is added.
+You should see both columns in the results.
