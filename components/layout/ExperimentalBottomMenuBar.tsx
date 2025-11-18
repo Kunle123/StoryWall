@@ -523,10 +523,11 @@ export const ExperimentalBottomMenuBar = ({
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start h-auto py-4"
-              onClick={() => {
-                router.push("/social");
-                setShowCreateMenu(false);
+              className="w-full justify-start h-auto py-4 opacity-50 cursor-not-allowed"
+              disabled
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
             >
               <Sparkles className="mr-3 h-5 w-5" />
@@ -534,6 +535,7 @@ export const ExperimentalBottomMenuBar = ({
                 <div className="font-semibold">Create Social Timeline</div>
                 <div className="text-xs text-muted-foreground">
                   Use templates for social media content
+                  <span className="ml-2 text-xs font-medium text-muted-foreground/70">(Coming Soon)</span>
                 </div>
               </div>
             </Button>
