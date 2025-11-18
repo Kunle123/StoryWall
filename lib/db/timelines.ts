@@ -103,7 +103,39 @@ export async function createTimeline(
       const timelineRow = timelineRows[0];
       
       // Fetch relations separately using raw SQL to avoid missing column issues
-      const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+      let creator = null;
+      try {
+        const creatorRows = await prisma.$queryRawUnsafe<Array<{
+          id: string;
+          clerk_id: string;
+          username: string;
+          email: string;
+          avatar_url: string | null;
+          credits: number;
+          created_at: Date;
+          updated_at: Date;
+        }>>(`
+          SELECT id, clerk_id, username, email, avatar_url, credits, created_at, updated_at
+          FROM users
+          WHERE id = $1
+          LIMIT 1
+        `, timelineRow.creator_id);
+        
+        if (creatorRows && creatorRows.length > 0) {
+          creator = {
+            id: creatorRows[0].id,
+            clerkId: creatorRows[0].clerk_id,
+            username: creatorRows[0].username,
+            email: creatorRows[0].email,
+            avatarUrl: creatorRows[0].avatar_url,
+            credits: creatorRows[0].credits,
+            createdAt: creatorRows[0].created_at,
+            updatedAt: creatorRows[0].updated_at,
+          };
+        }
+      } catch (creatorError: any) {
+        console.warn('[createTimeline] Failed to fetch creator via raw SQL:', creatorError.message);
+      }
       
       // Use raw SQL for events to avoid number column issue
       // Sort by date - BC dates stored as negative years will sort correctly
@@ -235,7 +267,39 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
     const timelineRow = timelineRows[0];
     
     // Fetch relations separately using raw SQL to avoid missing column issues
-    const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+    let creator = null;
+    try {
+      const creatorRows = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        clerk_id: string;
+        username: string;
+        email: string;
+        avatar_url: string | null;
+        credits: number;
+        created_at: Date;
+        updated_at: Date;
+      }>>(`
+        SELECT id, clerk_id, username, email, avatar_url, credits, created_at, updated_at
+        FROM users
+        WHERE id = $1
+        LIMIT 1
+      `, timelineRow.creator_id);
+      
+      if (creatorRows && creatorRows.length > 0) {
+        creator = {
+          id: creatorRows[0].id,
+          clerkId: creatorRows[0].clerk_id,
+          username: creatorRows[0].username,
+          email: creatorRows[0].email,
+          avatarUrl: creatorRows[0].avatar_url,
+          credits: creatorRows[0].credits,
+          createdAt: creatorRows[0].created_at,
+          updatedAt: creatorRows[0].updated_at,
+        };
+      }
+    } catch (creatorError: any) {
+      console.warn('[getTimelineById] Failed to fetch creator via raw SQL:', creatorError.message);
+    }
     
     // Use raw SQL for events to avoid number column issue
     const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
