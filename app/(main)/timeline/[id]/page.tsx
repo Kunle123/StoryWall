@@ -11,6 +11,7 @@ import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBotto
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
+import { TwitterThreadDialog } from "@/components/timeline/TwitterThreadDialog";
 
 const TimelinePage = () => {
   const params = useParams();
@@ -30,6 +31,7 @@ const TimelinePage = () => {
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [showTwitterThread, setShowTwitterThread] = useState(false);
   
   // Reset commentsRequested flag after scroll animation completes
   useEffect(() => {
@@ -254,6 +256,16 @@ const TimelinePage = () => {
         headerVisible={showHeader}
       />
       <Toaster />
+      {timeline && (
+        <TwitterThreadDialog
+          open={showTwitterThread}
+          onOpenChange={setShowTwitterThread}
+          timelineTitle={timeline.title}
+          timelineDescription={timeline.description || undefined}
+          events={events.length > 0 ? events : (timeline.events || []).map((e: any) => transformApiEventToTimelineEvent(e))}
+          timelineUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/timeline/${timeline.id}`}
+        />
+      )}
       <main className={`container mx-auto px-3 pb-32 md:pb-40 max-w-6xl transition-all duration-300 ${
         showHeader ? 'pt-[96px]' : 'pt-[44px]'
       }`}>
@@ -383,6 +395,7 @@ const TimelinePage = () => {
             endDate={endDate}
             isNumbered={timeline?.is_numbered || false}
             totalEvents={allEvents.length}
+            onShareTwitterThread={() => setShowTwitterThread(true)}
           />
         );
       })()}

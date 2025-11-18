@@ -1,8 +1,9 @@
 "use client";
 
-import { Share2, Home, Plus, FileText, Sparkles, BarChart3 } from "lucide-react";
+import { Share2, Home, Plus, FileText, Sparkles, BarChart3, Twitter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -45,13 +46,15 @@ export const ExperimentalBottomMenuBar = ({
   startDate,
   endDate,
   isNumbered = false,
-  totalEvents = 0
+  totalEvents = 0,
+  onShareTwitterThread
 }: ExperimentalBottomMenuBarProps) => {
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   // Detect keyboard open/close on mobile and input focus
   useEffect(() => {
@@ -397,14 +400,45 @@ export const ExperimentalBottomMenuBar = ({
                   {rightLabel}
                 </div>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-12 w-12"
-                onClick={handleShare}
-              >
-                <Share2 className="w-10 h-10" />
-              </Button>
+              <Popover open={showShareMenu} onOpenChange={setShowShareMenu}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-12 w-12"
+                  >
+                    <Share2 className="w-10 h-10" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-1" align="end">
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2"
+                      onClick={() => {
+                        handleShare();
+                        setShowShareMenu(false);
+                      }}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share Link
+                    </Button>
+                    {onShareTwitterThread && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                          onShareTwitterThread();
+                          setShowShareMenu(false);
+                        }}
+                      >
+                        <Twitter className="w-4 h-4" />
+                        Share as Twitter Thread
+                      </Button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
