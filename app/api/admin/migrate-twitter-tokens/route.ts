@@ -5,6 +5,14 @@ import { isAdminEmail } from '@/lib/utils/admin';
 import { getUserByClerkId } from '@/lib/db/users';
 
 export async function GET(request: NextRequest) {
+  return await handleMigration(request);
+}
+
+export async function POST(request: NextRequest) {
+  return await handleMigration(request);
+}
+
+async function handleMigration(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
