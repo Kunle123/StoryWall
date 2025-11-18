@@ -792,11 +792,93 @@ export async function listTimelines(options: {
     // Fetch creators and events for each timeline
     const timelines = await Promise.all(
       timelineRows.map(async (row) => {
-        const creator = await prisma.user.findUnique({ where: { id: row.creator_id } });
-        const events = await prisma.event.findMany({
-          where: { timelineId: row.id },
-          take: 1,
-        });
+        // Use raw SQL for creator to avoid Twitter token column issues
+        let creator = null;
+        try {
+          const creatorRows = await prisma.$queryRawUnsafe<Array<{
+            id: string;
+            clerk_id: string;
+            username: string;
+            email: string;
+            avatar_url: string | null;
+          }>>(`
+            SELECT id, clerk_id, username, email, avatar_url
+            FROM users
+            WHERE id = $1
+            LIMIT 1
+          `, row.creator_id);
+          
+          if (creatorRows && creatorRows.length > 0) {
+            creator = {
+              id: creatorRows[0].id,
+              clerkId: creatorRows[0].clerk_id,
+              username: creatorRows[0].username,
+              email: creatorRows[0].email,
+              avatarUrl: creatorRows[0].avatar_url,
+            };
+          }
+        } catch (creatorError: any) {
+          console.warn('[listTimelines] Failed to fetch creator via raw SQL:', creatorError.message);
+          // Try Prisma as fallback
+          try {
+            creator = await prisma.user.findUnique({ 
+              where: { id: row.creator_id },
+              select: { id: true, clerkId: true, username: true, email: true, avatarUrl: true },
+            });
+          } catch (prismaCreatorError: any) {
+            console.warn('[listTimelines] Failed to fetch creator via Prisma:', prismaCreatorError.message);
+          }
+        }
+        
+        // Use raw SQL for events to avoid missing column issues
+        let events: any[] = [];
+        try {
+          const eventRows = await prisma.$queryRawUnsafe<Array<{
+            id: string;
+            timeline_id: string;
+            title: string;
+            description: string | null;
+            date: Date;
+            end_date: Date | null;
+            image_url: string | null;
+          }>>(`
+            SELECT id, timeline_id, title, description, date, end_date, image_url
+            FROM events
+            WHERE timeline_id = $1
+            ORDER BY date ASC
+            LIMIT 1
+          `, row.id);
+          
+          events = eventRows.map((e: any) => ({
+            id: e.id,
+            timelineId: e.timeline_id,
+            title: e.title,
+            description: e.description,
+            date: e.date,
+            endDate: e.end_date,
+            imageUrl: e.image_url,
+          }));
+        } catch (eventError: any) {
+          console.warn('[listTimelines] Failed to fetch events via raw SQL:', eventError.message);
+          // Try Prisma as fallback
+          try {
+            events = await prisma.event.findMany({
+              where: { timelineId: row.id },
+              take: 1,
+              select: {
+                id: true,
+                timelineId: true,
+                title: true,
+                description: true,
+                date: true,
+                endDate: true,
+                imageUrl: true,
+              },
+            });
+          } catch (prismaEventError: any) {
+            console.warn('[listTimelines] Failed to fetch events via Prisma:', prismaEventError.message);
+          }
+        }
 
         return {
           id: row.id,
@@ -810,12 +892,7 @@ export async function listTimelines(options: {
           viewCount: row.view_count,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
-          creator: creator ? {
-            id: creator.id,
-            username: creator.username,
-            email: creator.email,
-            avatarUrl: creator.avatarUrl,
-          } : null,
+          creator: creator,
           events: events,
         };
       })
