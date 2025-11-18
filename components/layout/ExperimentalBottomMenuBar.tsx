@@ -60,10 +60,19 @@ export const ExperimentalBottomMenuBar = ({
     // Check if any input/textarea is focused
     const checkInputFocus = (): boolean => {
       const activeElement = document.activeElement;
-      const isInputFocused = activeElement && (
-        activeElement.tagName === 'INPUT' ||
-        activeElement.tagName === 'TEXTAREA' ||
-        activeElement.getAttribute('contenteditable') === 'true'
+      if (!activeElement) return false;
+      
+      // Only consider actual input fields, not buttons or other interactive elements
+      const isInputFocused = (
+        activeElement.tagName === 'INPUT' &&
+        (activeElement as HTMLInputElement).type !== 'button' &&
+        (activeElement as HTMLInputElement).type !== 'submit' &&
+        (activeElement as HTMLInputElement).type !== 'reset'
+      ) || (
+        activeElement.tagName === 'TEXTAREA'
+      ) || (
+        activeElement.getAttribute('contenteditable') === 'true' &&
+        activeElement.tagName !== 'BUTTON'
       );
       return Boolean(isInputFocused);
     };
@@ -74,22 +83,49 @@ export const ExperimentalBottomMenuBar = ({
         const viewportHeight = window.visualViewport.height;
         const windowHeight = window.innerHeight;
         // If viewport height is significantly smaller than window height, keyboard is likely open
-        const isKeyboardOpen = windowHeight - viewportHeight > 150;
+        // Use a larger threshold (200px) to avoid false positives
+        const isKeyboardOpen = windowHeight - viewportHeight > 200;
         const inputFocused = checkInputFocus();
-        setIsKeyboardVisible(isKeyboardOpen || inputFocused);
+        // Only hide if both conditions are met: keyboard is open AND input is focused
+        setIsKeyboardVisible(isKeyboardOpen && inputFocused);
       } else {
         // Fallback: detect if window resized significantly (mobile keyboard)
         const currentHeight = window.innerHeight;
         const screenHeight = window.screen.height;
-        const isKeyboardOpen = screenHeight - currentHeight > 150;
+        const isKeyboardOpen = screenHeight - currentHeight > 200;
         const inputFocused = checkInputFocus();
-        setIsKeyboardVisible(isKeyboardOpen || inputFocused);
+        // Only hide if both conditions are met
+        setIsKeyboardVisible(isKeyboardOpen && inputFocused);
       }
     };
 
     // Check on focus/blur events for inputs
-    const handleFocus = () => {
-      setIsKeyboardVisible(true);
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      // Only set keyboard visible if it's actually an input field (not buttons)
+      if (target && (
+        (target.tagName === 'INPUT' && 
+         (target as HTMLInputElement).type !== 'button' &&
+         (target as HTMLInputElement).type !== 'submit' &&
+         (target as HTMLInputElement).type !== 'reset') ||
+        target.tagName === 'TEXTAREA' ||
+        (target.getAttribute('contenteditable') === 'true' && target.tagName !== 'BUTTON')
+      )) {
+        // Check if viewport actually changed (keyboard appeared)
+        setTimeout(() => {
+          if (window.visualViewport) {
+            const viewportHeight = window.visualViewport.height;
+            const windowHeight = window.innerHeight;
+            const isKeyboardOpen = windowHeight - viewportHeight > 200;
+            setIsKeyboardVisible(isKeyboardOpen);
+          } else {
+            const currentHeight = window.innerHeight;
+            const screenHeight = window.screen.height;
+            const isKeyboardOpen = screenHeight - currentHeight > 200;
+            setIsKeyboardVisible(isKeyboardOpen);
+          }
+        }, 300); // Delay to allow keyboard animation
+      }
     };
 
     const handleBlur = () => {
@@ -98,7 +134,7 @@ export const ExperimentalBottomMenuBar = ({
         if (window.visualViewport) {
           const viewportHeight = window.visualViewport.height;
           const windowHeight = window.innerHeight;
-          const isKeyboardOpen = windowHeight - viewportHeight > 150;
+          const isKeyboardOpen = windowHeight - viewportHeight > 200;
           setIsKeyboardVisible(isKeyboardOpen);
         } else {
           setIsKeyboardVisible(false);
