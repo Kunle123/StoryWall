@@ -20,6 +20,7 @@ interface ExperimentalBottomMenuBarProps {
   endDate?: Date;
   isNumbered?: boolean;
   totalEvents?: number;
+  onShareTwitterThread?: () => void;
 }
 
 const formatDateRange = (startDate: Date, endDate: Date): string => {
