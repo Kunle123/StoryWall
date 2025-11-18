@@ -539,10 +539,11 @@ export const ExperimentalBottomMenuBar = ({
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start h-auto py-4"
-              onClick={() => {
-                router.push("/statistics");
-                setShowCreateMenu(false);
+              className="w-full justify-start h-auto py-4 opacity-50 cursor-not-allowed"
+              disabled
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
               }}
             >
               <BarChart3 className="mr-3 h-5 w-5" />
@@ -550,6 +551,7 @@ export const ExperimentalBottomMenuBar = ({
                 <div className="font-semibold">Create Statistics Timeline</div>
                 <div className="text-xs text-muted-foreground">
                   Visualize statistical data with charts
+                  <span className="ml-2 text-xs font-medium text-muted-foreground/70">(Coming Soon)</span>
                 </div>
               </div>
             </Button>
