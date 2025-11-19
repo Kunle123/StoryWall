@@ -64,6 +64,8 @@ export async function generateSlideshowVideo(
     const command: string[] = [];
     
     // Input: image sequence
+    // Use -loop 1 to loop through images once, and -framerate to control speed
+    command.push('-loop', '1');
     command.push('-framerate', (1 / duration).toString());
     command.push('-i', 'image%03d.jpg');
     
@@ -72,7 +74,7 @@ export async function generateSlideshowVideo(
       command.push('-i', 'audio.mp3');
     }
     
-    // Video filter: scale and pad to target dimensions
+    // Video filter: scale and pad to target dimensions, set output fps
     const vf = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=30`;
     command.push('-vf', vf);
     
@@ -88,11 +90,13 @@ export async function generateSlideshowVideo(
       command.push('-b:a', '128k');
       command.push('-shortest'); // End when shortest stream ends
     } else {
-      // No audio - set duration
+      // No audio - set duration explicitly
+      // Use -t before output to limit duration
       command.push('-t', totalDuration.toString());
     }
     
     // Output file
+    command.push('-y'); // Overwrite output file if it exists
     command.push('output.mp4');
 
     // Execute FFmpeg
