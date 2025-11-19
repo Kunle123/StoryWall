@@ -42,11 +42,150 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If batch mode, combine scripts with a clear separator
-    const isBatch = scriptsToProcess.length > 1;
-    const combinedScript = isBatch 
-      ? scriptsToProcess.join(' ... ') // Separator that's natural in speech
-      : scriptsToProcess[0];
+    // OpenAI TTS has a 4096 character limit per request
+    // If batch mode and combined script exceeds limit, split into multiple batches
+    const OPENAI_TTS_MAX_CHARS = 4096;
+    const separator = ' ... ';
+    const separatorLength = separator.length;
+    
+    let isBatch = scriptsToProcess.length > 1;
+    let combinedScript: string;
+    let segmentDurations: number[] = [];
+    let segmentBoundaries: number[] = [0];
+    
+    if (isBatch) {
+      // Try to combine all scripts
+      const testCombined = scriptsToProcess.join(separator);
+      
+      if (testCombined.length <= OPENAI_TTS_MAX_CHARS) {
+        // All scripts fit in one request
+        combinedScript = testCombined;
+      } else {
+        // Need to split into multiple batches
+        console.log(`[generate-voiceover] Combined script (${testCombined.length} chars) exceeds OpenAI TTS limit (${OPENAI_TTS_MAX_CHARS}), splitting into batches`);
+        
+        // Split scripts into batches that fit within the limit
+        const batches: string[][] = [];
+        let currentBatch: string[] = [];
+        let currentBatchLength = 0;
+        
+        for (const script of scriptsToProcess) {
+          const scriptWithSeparator = currentBatch.length > 0 ? separator + script : script;
+          const newLength = currentBatchLength + scriptWithSeparator.length;
+          
+          if (newLength <= OPENAI_TTS_MAX_CHARS && currentBatch.length < 10) {
+            // Add to current batch
+            currentBatch.push(script);
+            currentBatchLength = newLength;
+          } else {
+            // Start new batch
+            if (currentBatch.length > 0) {
+              batches.push(currentBatch);
+            }
+            currentBatch = [script];
+            currentBatchLength = script.length;
+          }
+        }
+        
+        if (currentBatch.length > 0) {
+          batches.push(currentBatch);
+        }
+        
+        console.log(`[generate-voiceover] Split ${scriptsToProcess.length} scripts into ${batches.length} batches`);
+        
+        // Initialize Cloudinary for batch uploads
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+        const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+        const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+        
+        if (!cloudName || !cloudinaryApiKey || !cloudinaryApiSecret) {
+          return NextResponse.json(
+            { error: 'Cloudinary not configured', details: 'Cloudinary environment variables are missing' },
+            { status: 500 }
+          );
+        }
+        
+        const cloudinary = require('cloudinary').v2;
+        cloudinary.config({
+          cloud_name: cloudName,
+          api_key: cloudinaryApiKey,
+          api_secret: cloudinaryApiSecret,
+        });
+        
+        // Generate audio for each batch and combine
+        const batchAudioUrls: string[] = [];
+        const batchDurations: number[] = [];
+        
+        for (let i = 0; i < batches.length; i++) {
+          const batch = batches[i];
+          const batchScript = batch.join(separator);
+          
+          console.log(`[generate-voiceover] Generating batch ${i + 1}/${batches.length} (${batch.length} scripts, ${batchScript.length} chars)`);
+          
+          const batchMp3 = await openai.audio.speech.create({
+            model: 'tts-1',
+            voice: selectedVoice as any,
+            input: batchScript,
+          });
+          
+          const batchBuffer = Buffer.from(await batchMp3.arrayBuffer());
+          
+          // Upload batch audio to Cloudinary
+          const batchUploadResult = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                resource_type: 'raw',
+                folder: 'temp/voiceovers',
+                format: 'mp3',
+              },
+              (error: any, result: any) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            ).end(batchBuffer);
+          });
+          
+          const batchAudioUrl = (batchUploadResult as any).secure_url;
+          batchAudioUrls.push(batchAudioUrl);
+          
+          // Calculate duration for each script in this batch
+          const charsPerSecond = 10;
+          batch.forEach(script => {
+            const scriptDuration = script.length / charsPerSecond;
+            batchDurations.push(scriptDuration);
+          });
+        }
+        
+        // Combine all batch audio files using FFmpeg (we'll do this client-side)
+        // For now, return the first batch URL and all durations
+        // The client will need to combine them
+        combinedScript = batches[0].join(separator); // Use first batch for initial response
+        segmentDurations = batchDurations;
+        
+        // Calculate boundaries
+        let currentTime = 0;
+        segmentBoundaries = [0];
+        for (let i = 0; i < segmentDurations.length - 1; i++) {
+          currentTime += segmentDurations[i] + (separatorLength / 10); // Add separator duration
+          segmentBoundaries.push(currentTime);
+        }
+        
+        // Return batch URLs for client-side combination
+        return NextResponse.json({
+          audioUrl: batchAudioUrls[0], // First batch URL (client will combine)
+          batchAudioUrls, // All batch URLs for client to combine
+          duration: batchDurations.reduce((sum, d) => sum + d, 0),
+          segmentDurations,
+          segmentBoundaries,
+          voice: selectedVoice,
+          isBatch: true,
+          requiresClientCombination: true, // Flag to indicate client needs to combine batches
+        });
+      }
+    } else {
+      // Single script mode
+      combinedScript = scriptsToProcess[0];
+    }
 
     // Validate voice option
     const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];

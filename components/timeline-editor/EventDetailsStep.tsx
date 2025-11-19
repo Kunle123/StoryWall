@@ -3,11 +3,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, Loader2, Coins } from "lucide-react";
+import { Sparkles, Loader2, Coins, ShieldCheck } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { TermsViolationDialog } from "./TermsViolationDialog";
+import { VerificationDialog } from "./VerificationDialog";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -30,6 +31,9 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
   const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
   const [showViolationDialog, setShowViolationDialog] = useState(false);
   const [violationRecommendation, setViolationRecommendation] = useState<string | undefined>();
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
+  const [verificationResults, setVerificationResults] = useState<any>(null);
 
   const updateEventDescription = (id: string, description: string) => {
     setEvents(
@@ -115,6 +119,57 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       });
     } finally {
       setGeneratingId(null);
+    }
+  };
+
+  const verifyEvents = async () => {
+    if (events.length === 0) {
+      toast({
+        title: "No events",
+        description: "Please add events first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const response = await fetch("/api/ai/verify-events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          events: events.map(e => ({
+            year: e.year,
+            title: e.title,
+            description: e.description,
+          })),
+          timelineDescription,
+          timelineName: timelineName || "Untitled Timeline",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to verify events");
+      }
+
+      const data = await response.json();
+      setVerificationResults(data);
+      setShowVerificationDialog(true);
+      
+      toast({
+        title: "Verification complete",
+        description: `${data.summary.verified} verified, ${data.summary.flagged} flagged`,
+      });
+    } catch (error: any) {
+      console.error("Error verifying events:", error);
+      toast({
+        title: "Failed to verify events",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -227,19 +282,34 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         <p className="text-muted-foreground mb-6">
           Add detailed descriptions for each timeline event
         </p>
-        <Button
-          onClick={generateAllDescriptions}
-          disabled={isGeneratingAll || events.length === 0 || generatedEventIds.size === events.length}
-          size="lg"
-          className="w-full"
-        >
-          {isGeneratingAll ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <Sparkles className="mr-2 h-5 w-5" />
-          )}
-          {isGeneratingAll ? "Generating All..." : "Generate Descriptions with AI"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={generateAllDescriptions}
+            disabled={isGeneratingAll || events.length === 0 || generatedEventIds.size === events.length}
+            size="lg"
+            className="flex-1"
+          >
+            {isGeneratingAll ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-5 w-5" />
+            )}
+            {isGeneratingAll ? "Generating All..." : "Generate Descriptions with AI"}
+          </Button>
+          <Button
+            onClick={verifyEvents}
+            disabled={isVerifying || events.length === 0}
+            size="lg"
+            variant="outline"
+          >
+            {isVerifying ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <ShieldCheck className="mr-2 h-5 w-5" />
+            )}
+            {isVerifying ? "Verifying..." : "Verify Events"}
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground text-center mt-2">
           or type your descriptions in the boxes below
         </p>
@@ -273,6 +343,22 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         ))}
       </div>
 
+      {/* Verification Dialog */}
+      {verificationResults && (
+        <VerificationDialog
+          open={showVerificationDialog}
+          onOpenChange={setShowVerificationDialog}
+          verifiedEvents={verificationResults.verifiedEvents}
+          summary={verificationResults.summary}
+        />
+      )}
+
+      {/* Terms Violation Dialog */}
+      <TermsViolationDialog
+        open={showViolationDialog}
+        onOpenChange={setShowViolationDialog}
+        recommendation={violationRecommendation}
+      />
     </div>
   );
 };

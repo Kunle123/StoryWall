@@ -16,6 +16,15 @@ CRITICAL REQUIREMENTS FOR ALL IMAGE PROMPTS:
 - NEVER use symbolic imagery or emotional metaphors
 - Focus on PHYSICAL ELEMENTS: who is doing what, where, with what objects
 
+CRITICAL - PRESERVE CORE CHARACTERISTICS OF PEOPLE:
+When describing people in image prompts, you MUST accurately preserve their core physical characteristics as they exist in reality:
+- GENDER/SEX: If a person is male, describe them as male. If female, describe them as female. NEVER swap or misrepresent gender.
+- RACE/ETHNICITY: Accurately describe the person's race/ethnicity (e.g., "Black", "White", "Asian", "Latino", "Middle Eastern", etc.). NEVER change a person's race or ethnicity.
+- AGE: Describe the person's approximate age accurately (e.g., "young", "middle-aged", "elderly"). If a person is young, do not describe them as old, and vice versa.
+- BODY TYPE: Accurately describe the person's body type (e.g., "thin", "slender", "average build", "overweight", "heavy-set"). If a person is thin, do not describe them as fat, and vice versa.
+
+These characteristics are CORE to accurate representation and must be preserved exactly as they are in reality. When in doubt, research or use factual knowledge about the person's appearance.
+
 CRITICAL ALIGNMENT: The image prompt must match the description - they describe the SAME scene/moment.
 
 The image prompt must be a clear, direct, LITERAL statement of what physical elements to depict - objects, people, actions, settings - exactly as they would appear in reality. NEVER use poetic, metaphorical, or abstract language unless specifically instructed for social media timelines.

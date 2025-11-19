@@ -175,6 +175,16 @@ export async function POST(request: NextRequest) {
       : isFactual 
       ? `You are a timeline analyst and subject matter expert. Your task is to analyze a user's request and determine if it describes a sequential process or progression.
 
+CRITICAL ANTI-HALLUCINATION REQUIREMENTS (READ FIRST):
+- NEVER make up, invent, or fabricate events, dates, or facts
+- NEVER guess or speculate about information you are not certain about
+- ONLY include events that you can verify from reliable sources or your training data
+- If you are unsure about specific dates, use only the year (do not guess month/day)
+- If you are unsure about an event's details, omit it rather than inventing information
+- DO NOT create events based on assumptions, inferences, or logical deductions without factual basis
+- DO NOT fill gaps in your knowledge with plausible-sounding but unverified information
+- When in doubt, prefer fewer accurate events over many potentially incorrect ones
+
 STEP 1: PROGRESSION DETECTION
 Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear CUMULATIVE stages. 
 
@@ -224,7 +234,6 @@ RECENCY REQUIREMENT:
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
 - Use your training data and web search to provide accurate events for the requested topic
-- If you are unsure about specific dates, use only the year (do not guess month/day)
 - For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
 - ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
 - If web search returns relevant information, you MUST use it to generate events - do not return an empty array
@@ -1059,7 +1068,19 @@ async function generateEventsBatch(
   const systemPrompt = isNumbered
     ? `You are a numbered timeline event generator. Generate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: number (required, sequential starting from 1), title (required, string), description (required, string, 1-3 sentences explaining the event). Events should be ordered sequentially and relevant to the timeline description.`
     : isFactual 
-    ? `You are a factual timeline event generator. You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+    ? `You are a factual timeline event generator. 
+
+CRITICAL ANTI-HALLUCINATION REQUIREMENTS (MUST FOLLOW):
+- NEVER make up, invent, or fabricate events, dates, or facts
+- NEVER guess or speculate about information you are not certain about
+- ONLY include events that you can verify from reliable sources or your training data
+- If you are unsure about specific dates, use only the year (do not guess month/day)
+- If you are unsure about an event's details, omit it rather than inventing information
+- DO NOT create events based on assumptions, inferences, or logical deductions without factual basis
+- DO NOT fill gaps in your knowledge with plausible-sounding but unverified information
+- When in doubt, prefer fewer accurate events over many potentially incorrect ones
+
+You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
 CRITICAL - DATE FORMAT REQUIREMENTS:
 - For dates BEFORE 1 AD (Common Era), you MUST include "BC" or "BCE" notation in the year field (e.g., "3000 BC", "753 BCE", "44 BC")
@@ -1089,7 +1110,6 @@ RECENCY REQUIREMENT:
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
 - Use your training data and web search to provide accurate events for the requested topic
-- If you are unsure about specific dates, use only the year (do not guess month/day)
 - For public figures, campaigns, elections: include major milestones like announcements, primaries, elections, major events, results
 - ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
 - If web search returns relevant information, you MUST use it to generate events - do not return an empty array

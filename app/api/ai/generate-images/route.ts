@@ -927,7 +927,8 @@ function buildImagePrompt(
   imageReferences?: Array<{ name: string; url: string }>,
   hasReferenceImage: boolean = false,
   includesPeople: boolean = true,
-  anchorStyle?: string | null
+  anchorStyle?: string | null,
+  relevantImageRefs?: Array<{ name: string; url: string }> // Only people relevant to this specific event
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   
@@ -1234,8 +1235,14 @@ function buildImagePrompt(
   // Add person matching instructions when reference images are provided AND timeline includes people
   // These instructions are critical for accurate person matching with Imagen
   // Place BEFORE text instructions so they have more weight
-  if (includesPeople && hasReferenceImage && imageReferences && imageReferences.length > 0) {
-    const personNames = extractPersonNames(imageReferences);
+  // IMPORTANT: Only process people who are actually relevant to THIS event
+  // Use relevantImageRefs if provided, otherwise fall back to all imageReferences
+  const peopleToProcess = (relevantImageRefs && relevantImageRefs.length > 0) 
+    ? relevantImageRefs 
+    : (imageReferences || []);
+    
+  if (includesPeople && hasReferenceImage && peopleToProcess.length > 0) {
+    const personNames = extractPersonNames(peopleToProcess);
     if (personNames.length > 0) {
       // CRITICAL: Ensure the prompt uses FULL person names, not just last names
       // Replace instances of just last names with full names in the prompt
@@ -1666,22 +1673,80 @@ export async function POST(request: NextRequest) {
         
         if (finalImageReferences && finalImageReferences.length > 0) {
           // Find which reference images are relevant to this event
+          // Use precise matching: prefer full name, then first+last, then last name only if unambiguous
           relevantImageRefs = finalImageReferences.filter(ref => {
-            const personName = ref.name.toLowerCase();
-            const nameParts = personName.split(' ');
-            // Check if event mentions the person (full name or last name)
-            return nameParts.some((part: string) => part.length > 2 && eventText.includes(part)) ||
-                   eventText.includes(personName);
+            const personName = ref.name.toLowerCase().trim();
+            const nameParts = personName.split(' ').filter(p => p.length > 0);
+            
+            // 1. Check for full name match (most precise)
+            if (eventText.includes(personName)) {
+              return true;
+            }
+            
+            // 2. Check for first name + last name (if person has both)
+            if (nameParts.length >= 2) {
+              const firstName = nameParts[0];
+              const lastName = nameParts[nameParts.length - 1];
+              // Both first and last name must appear (not just last name)
+              if (eventText.includes(firstName) && eventText.includes(lastName)) {
+                // Check if this last name is unique among all references
+                const peopleWithSameLastName = finalImageReferences.filter(r => {
+                  const rNameParts = r.name.toLowerCase().trim().split(' ').filter(p => p.length > 0);
+                  return rNameParts.length >= 2 && rNameParts[rNameParts.length - 1] === lastName;
+                });
+                
+                // If only one person has this last name, it's unambiguous
+                if (peopleWithSameLastName.length === 1) {
+                  return true;
+                }
+                
+                // If multiple people share the last name, require first name match
+                // Check if event text contains the full first name (not just a substring)
+                const firstNamePattern = new RegExp(`\\b${firstName}\\b`, 'i');
+                if (firstNamePattern.test(eventText)) {
+                  return true;
+                }
+              }
+            }
+            
+            return false;
           });
           
           if (relevantImageRefs.length > 0) {
-            // Use the first relevant reference image
-            const relevantRef = relevantImageRefs[0];
+            // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
+            let bestMatch = relevantImageRefs[0];
+            let bestScore = 0;
+            
+            for (const ref of relevantImageRefs) {
+              const personName = ref.name.toLowerCase().trim();
+              let score = 0;
+              
+              // Full name match = highest score
+              if (eventText.includes(personName)) {
+                score = 100;
+              } else {
+                const nameParts = personName.split(' ').filter(p => p.length > 0);
+                if (nameParts.length >= 2) {
+                  const firstName = nameParts[0];
+                  const lastName = nameParts[nameParts.length - 1];
+                  if (eventText.includes(firstName) && eventText.includes(lastName)) {
+                    score = 50; // First + last name match
+                  }
+                }
+              }
+              
+              if (score > bestScore) {
+                bestScore = score;
+                bestMatch = ref;
+              }
+            }
+            
+            const relevantRef = bestMatch;
             const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
             referenceImageUrl = preparedReferences[refIndex] || null;
             
             if (referenceImageUrl) {
-              console.log(`[ImageGen] ✓ Event "${event.title}" mentions "${relevantRef.name}" - using reference image`);
+              console.log(`[ImageGen] ✓ Event "${event.title}" mentions "${relevantRef.name}" - using reference image (match score: ${bestScore})`);
             }
           } else {
             console.log(`[ImageGen] Event "${event.title}" does not mention any people from imageReferences - skipping person matching`);
@@ -1727,10 +1792,11 @@ export async function POST(request: NextRequest) {
           themeColor, 
           styleVisualLanguage, 
           needsText,
-          relevantImageRefs.length > 0 ? relevantImageRefs : undefined, // Only pass relevant references
+          finalImageReferences, // Pass all references for context
           hasReferenceImage,
           includesPeople && relevantImageRefs.length > 0, // Only include people if event mentions them
-          anchorStyle // Pass Anchor if available
+          anchorStyle,
+          relevantImageRefs.length > 0 ? relevantImageRefs : undefined // Only process relevant people
         );
         
         // Check if this is a faceless mannequin prompt (after prompt is built)
@@ -2106,10 +2172,11 @@ export async function POST(request: NextRequest) {
               themeColor,
               styleVisualLanguage,
               needsText,
-              relevantImageRefs.length > 0 ? relevantImageRefs : undefined,
+              finalImageReferences, // Pass all references for context
               hasReferenceImage,
               includesPeople && relevantImageRefs.length > 0,
-              anchorStyle
+              anchorStyle,
+              relevantImageRefs.length > 0 ? relevantImageRefs : undefined // Only process relevant people
             );
             
             // Build input (simplified - reuse same logic as original)
