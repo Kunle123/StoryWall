@@ -11,8 +11,8 @@ import { Download, Loader2, Play, Music } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { TimelineEvent } from "./Timeline";
-import { SlideshowOptions, generateNarrationScript, prepareImagesForSlideshow } from "@/lib/utils/tiktokSlideshow";
-import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
+import { SlideshowOptions, generateNarrationScript, generateEventNarrationScript, prepareImagesForSlideshow } from "@/lib/utils/tiktokSlideshow";
+import { generateSlideshowVideo, downloadAudio, combineAudioSegments } from "@/lib/utils/videoGeneration";
 
 interface TikTokSlideshowDialogProps {
   open: boolean;
@@ -88,58 +88,125 @@ export function TikTokSlideshowDialog({
 
       // Step 2: Generate voiceover if enabled
       let audioBlob: Blob | undefined;
+      let perImageDurations: number[] | undefined;
+      
       if (options.addVoiceover) {
         setProgress(40);
-        setProgressMessage("Generating narration script...");
+        setProgressMessage("Generating narration scripts per slide...");
         
-        const script = generateNarrationScript(timelineTitle, timelineDescription, events);
+        // Generate narration script for each event that has an image
+        const eventsWithImages = events.filter(e => e.image).slice(0, 20);
+        const narrationScripts: string[] = [];
         
-        setProgress(50);
-        setProgressMessage("Creating voiceover...");
-        
-        const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            script,
-            voice: options.voice,
-          }),
-        });
-
-        if (!voiceoverResponse.ok) {
-          let errorMessage = 'Failed to generate voiceover';
-          try {
-            const errorData = await voiceoverResponse.json();
-            errorMessage = errorData.error || errorData.details || errorMessage;
-          } catch (e) {
-            // If response is not JSON, use status text
-            errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+        // Generate script for each event (no separate intro - first event gets intro text)
+        eventsWithImages.forEach((event, index) => {
+          const isFirst = index === 0;
+          const isLast = index === eventsWithImages.length - 1;
+          let script = generateEventNarrationScript(event, isFirst, isLast);
+          
+          // Add intro to first event
+          if (isFirst) {
+            let introText = `Welcome to ${timelineTitle}.`;
+            if (timelineDescription) {
+              const shortDesc = timelineDescription.length > 100
+                ? timelineDescription.substring(0, 100) + '...'
+                : timelineDescription;
+              introText += ` ${shortDesc}`;
+            }
+            introText += ' Let\'s explore the key moments. ';
+            script = introText + script;
           }
-          throw new Error(errorMessage);
-        }
-
-        const { audioUrl, duration: audioDuration } = await voiceoverResponse.json();
-        if (!audioUrl) {
-          throw new Error('No audio URL returned from voiceover generation');
-        }
-        audioBlob = await downloadAudio(audioUrl);
+          
+          narrationScripts.push(script);
+        });
         
-        // Adjust duration per slide to match audio duration for better sync
-        if (audioDuration && preparedImages.length > 0) {
-          const adjustedDurationPerSlide = audioDuration / preparedImages.length;
-          console.log('[TikTokSlideshowDialog] Adjusting duration per slide for audio sync', {
-            audioDuration,
-            imageCount: preparedImages.length,
-            originalDuration: options.durationPerSlide,
-            adjustedDuration: adjustedDurationPerSlide,
+        setProgress(45);
+        setProgressMessage(`Generating ${narrationScripts.length} audio segments...`);
+        
+        // Generate audio for each narration segment and collect durations
+        const audioSegments: { url: string; duration: number }[] = [];
+        const totalEvents = narrationScripts.length;
+        
+        for (let i = 0; i < narrationScripts.length; i++) {
+          setProgress(45 + Math.floor((i / totalEvents) * 15));
+          setProgressMessage(`Creating voiceover segment ${i + 1} of ${totalEvents}...`);
+          
+          const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              script: narrationScripts[i],
+              voice: options.voice,
+            }),
           });
-          // Update options with adjusted duration
-          options = { ...options, durationPerSlide: adjustedDurationPerSlide };
+
+          if (!voiceoverResponse.ok) {
+            let errorMessage = `Failed to generate voiceover segment ${i + 1}`;
+            try {
+              const errorData = await voiceoverResponse.json();
+              errorMessage = errorData.error || errorData.details || errorMessage;
+            } catch (e) {
+              errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const { audioUrl, duration } = await voiceoverResponse.json();
+          if (!audioUrl) {
+            throw new Error(`No audio URL returned for segment ${i + 1}`);
+          }
+          
+          audioSegments.push({ url: audioUrl, duration });
         }
         
         setProgress(60);
+        setProgressMessage("Combining audio segments...");
+        
+        // Download and combine audio segments
+        // For now, we'll combine them client-side, but we could also do this server-side
+        const audioBlobs: Blob[] = [];
+        for (const segment of audioSegments) {
+          const blob = await downloadAudio(segment.url);
+          audioBlobs.push(blob);
+        }
+        
+        // Combine audio blobs (we'll need to use FFmpeg for this, or do it server-side)
+        // For now, let's use the first approach: combine all audio into one blob using FFmpeg
+        // Actually, let's pass the segments to video generation and let FFmpeg handle it
+        
+        // Store per-image durations - each image gets its corresponding narration duration
+        // This ensures each slide matches its audio description
+        perImageDurations = [];
+        if (audioSegments.length > 0) {
+          // Each image gets its corresponding audio segment duration
+          // This way, slide 1 shows for the duration of audio segment 1, etc.
+          for (let i = 0; i < preparedImages.length; i++) {
+            if (i < audioSegments.length) {
+              perImageDurations.push(audioSegments[i].duration);
+            } else {
+              // If we have more images than segments, use the last segment duration
+              perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+            }
+          }
+        } else {
+          // Fallback: if no audio segments, use default duration
+          console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
+          for (let i = 0; i < preparedImages.length; i++) {
+            perImageDurations.push(options.durationPerSlide);
+          }
+        }
+        
+        console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
+        console.log('[TikTokSlideshowDialog] Audio segment durations:', audioSegments.map(s => s.duration));
+        
+        // For now, combine all audio into one blob for simplicity
+        // TODO: Could optimize by using FFmpeg to concatenate audio segments
+        const combinedAudioBlob = await combineAudioSegments(audioSegments.map(s => s.url));
+        audioBlob = combinedAudioBlob;
+        
+        setProgress(65);
         setProgressMessage("Voiceover ready!");
       }
 
@@ -147,7 +214,7 @@ export function TikTokSlideshowDialog({
       setProgress(70);
       setProgressMessage("Generating video...");
       
-      const videoBlob = await generateSlideshowVideo(preparedImages, options, audioBlob);
+      const videoBlob = await generateSlideshowVideo(preparedImages, options, audioBlob, perImageDurations);
       
       setProgress(90);
       setProgressMessage("Finalizing...");

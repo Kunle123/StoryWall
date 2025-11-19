@@ -4,12 +4,167 @@ import { initFFmpeg } from './ffmpegSetup';
 import { SlideshowOptions } from './tiktokSlideshow';
 
 /**
+ * Generate a video segment from a single image with specific duration
+ */
+async function generateImageSegment(
+  ffmpeg: FFmpeg,
+  imageBlob: Blob,
+  imageIndex: number,
+  duration: number,
+  width: number,
+  height: number,
+  outputFps: number
+): Promise<string> {
+  const imageFileName = `img${imageIndex.toString().padStart(3, '0')}.jpg`;
+  const outputFileName = `seg${imageIndex.toString().padStart(3, '0')}.mp4`;
+  
+  // Write image to filesystem
+  const imageData = await fetchFile(imageBlob);
+  await ffmpeg.writeFile(imageFileName, imageData);
+  
+  // Generate video segment: loop image for specified duration
+  const command = [
+    '-loop', '1',
+    '-framerate', '1',
+    '-i', imageFileName,
+    '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=${outputFps}`,
+    '-t', duration.toString(),
+    '-r', outputFps.toString(),
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-preset', 'ultrafast',
+    '-crf', '23',
+    '-y',
+    outputFileName
+  ];
+  
+  await ffmpeg.exec(command);
+  
+  // Clean up image file
+  await ffmpeg.deleteFile(imageFileName);
+  
+  return outputFileName;
+}
+
+/**
+ * Generate video with per-image durations by creating segments and concatenating
+ */
+async function generateVideoWithPerImageDurations(
+  ffmpeg: FFmpeg,
+  images: Blob[],
+  perImageDurations: number[],
+  width: number,
+  height: number,
+  outputFps: number,
+  audioBlob?: Blob
+): Promise<Blob> {
+  console.log('[generateVideoWithPerImageDurations] Generating video segments with per-image durations');
+  
+  // Ensure we have a duration for each image
+  const durations = perImageDurations.slice(0, images.length);
+  while (durations.length < images.length) {
+    durations.push(durations[durations.length - 1] || 3); // Use last duration or default to 3
+  }
+  
+  // Generate individual video segments - each segment matches its corresponding audio duration
+  const segmentFiles: string[] = [];
+  for (let i = 0; i < images.length; i++) {
+    console.log(`[generateVideoWithPerImageDurations] Generating segment ${i + 1}/${images.length} (duration: ${durations[i]}s) - this slide will match audio segment ${i + 1}`);
+    const segmentFile = await generateImageSegment(
+      ffmpeg,
+      images[i],
+      i,
+      durations[i],
+      width,
+      height,
+      outputFps
+    );
+    segmentFiles.push(segmentFile);
+    console.log(`[generateVideoWithPerImageDurations] Segment ${i + 1} created with duration ${durations[i]}s`);
+  }
+  
+  // Create concat file for video segments
+  const concatList: string[] = [];
+  segmentFiles.forEach(file => {
+    concatList.push(`file '${file}'`);
+  });
+  const concatFileContent = concatList.join('\n');
+  await ffmpeg.writeFile('video_concat.txt', concatFileContent);
+  console.log('[generateVideoWithPerImageDurations] Created video concat file');
+  
+  // Concatenate video segments
+  const command: string[] = [
+    '-f', 'concat',
+    '-safe', '0',
+    '-i', 'video_concat.txt',
+  ];
+  
+  // Calculate total video duration from per-image durations
+  const totalVideoDuration = durations.reduce((sum, d) => sum + d, 0);
+  console.log('[generateVideoWithPerImageDurations] Total video duration:', totalVideoDuration, 'seconds');
+  console.log('[generateVideoWithPerImageDurations] Per-image durations:', durations);
+  
+  // Add audio if provided
+  if (audioBlob) {
+    const audioData = await fetchFile(audioBlob);
+    await ffmpeg.writeFile('audio.mp3', audioData);
+    command.push('-i', 'audio.mp3');
+  }
+  
+  // Video codec settings
+  command.push('-c:v', 'libx264');
+  command.push('-pix_fmt', 'yuv420p');
+  command.push('-preset', 'ultrafast');
+  command.push('-crf', '23');
+  
+  // Audio codec settings (if audio provided)
+  if (audioBlob) {
+    command.push('-c:a', 'aac');
+    command.push('-b:a', '128k');
+    // Video segments are created with durations matching audio segments
+    // Since they're concatenated in the same order, they should sync perfectly
+    // Use -shortest to handle any minor timing differences gracefully
+    command.push('-shortest');
+    console.log('[generateVideoWithPerImageDurations] Using -shortest to sync video and audio');
+  }
+  
+  command.push('-y', 'output.mp4');
+  
+  console.log('[generateVideoWithPerImageDurations] Concatenating segments with audio');
+  await ffmpeg.exec(command);
+  
+  // Read output file
+  const data = await ffmpeg.readFile('output.mp4');
+  if (!data) {
+    throw new Error('Output file is empty or does not exist');
+  }
+  
+  // Clean up
+  segmentFiles.forEach(file => ffmpeg.deleteFile(file).catch(() => {}));
+  await ffmpeg.deleteFile('video_concat.txt').catch(() => {});
+  if (audioBlob) {
+    await ffmpeg.deleteFile('audio.mp3').catch(() => {});
+  }
+  await ffmpeg.deleteFile('output.mp4').catch(() => {});
+  
+  // Convert to blob
+  if (data instanceof Uint8Array) {
+    const arrayBuffer = new Uint8Array(data).buffer;
+    return new Blob([arrayBuffer], { type: 'video/mp4' });
+  } else {
+    return new Blob([data], { type: 'video/mp4' });
+  }
+}
+
+/**
  * Generate slideshow video from images using FFmpeg
+ * If perImageDurations is provided, each image will use its corresponding duration
  */
 export async function generateSlideshowVideo(
   images: Blob[],
   options: SlideshowOptions,
-  audioBlob?: Blob
+  audioBlob?: Blob,
+  perImageDurations?: number[]
 ): Promise<Blob> {
   console.log('[generateSlideshowVideo] Starting video generation', {
     imageCount: images.length,
@@ -17,6 +172,7 @@ export async function generateSlideshowVideo(
     durationPerSlide: options.durationPerSlide,
     hasAudio: !!audioBlob,
     audioSize: audioBlob ? audioBlob.size : 0,
+    hasPerImageDurations: !!perImageDurations,
   });
 
   if (images.length === 0) {
@@ -52,6 +208,23 @@ export async function generateSlideshowVideo(
       width = 1080;
       height = 1080;
       break;
+  }
+
+  const outputFps = 10; // Lower fps for faster encoding
+
+  // If per-image durations are provided, use segment-based approach
+  if (perImageDurations && perImageDurations.length > 0) {
+    console.log('[generateSlideshowVideo] Using per-image duration approach');
+    // FFmpeg is already initialized above
+    return await generateVideoWithPerImageDurations(
+      ffmpeg,
+      images,
+      perImageDurations,
+      width,
+      height,
+      outputFps,
+      audioBlob
+    );
   }
 
   // Build FFmpeg command (declare outside try block for error handling)
@@ -314,6 +487,88 @@ export async function downloadAudio(url: string): Promise<Blob> {
   } catch (error) {
     console.error('Error downloading audio:', error);
     throw error;
+  }
+}
+
+/**
+ * Combine multiple audio segments into a single audio file using FFmpeg
+ */
+export async function combineAudioSegments(audioUrls: string[]): Promise<Blob> {
+  if (audioUrls.length === 0) {
+    throw new Error('No audio URLs provided');
+  }
+  
+  if (audioUrls.length === 1) {
+    // Single audio, just download it
+    return await downloadAudio(audioUrls[0]);
+  }
+  
+  console.log('[combineAudioSegments] Combining', audioUrls.length, 'audio segments');
+  const ffmpeg = await initFFmpeg();
+  
+  try {
+    // Download all audio segments
+    const audioBlobs: Blob[] = [];
+    for (let i = 0; i < audioUrls.length; i++) {
+      console.log(`[combineAudioSegments] Downloading segment ${i + 1}/${audioUrls.length}`);
+      const blob = await downloadAudio(audioUrls[i]);
+      audioBlobs.push(blob);
+    }
+    
+    // Write audio files to FFmpeg filesystem
+    for (let i = 0; i < audioBlobs.length; i++) {
+      const fileName = `audio${i.toString().padStart(3, '0')}.mp3`;
+      const audioData = await fetchFile(audioBlobs[i]);
+      await ffmpeg.writeFile(fileName, audioData);
+      console.log(`[combineAudioSegments] Wrote ${fileName} to FFmpeg filesystem`);
+    }
+    
+    // Create concat file list
+    const concatList: string[] = [];
+    for (let i = 0; i < audioBlobs.length; i++) {
+      concatList.push(`file 'audio${i.toString().padStart(3, '0')}.mp3'`);
+    }
+    const concatFileContent = concatList.join('\n');
+    await ffmpeg.writeFile('audio_concat.txt', concatFileContent);
+    console.log('[combineAudioSegments] Created concat file list');
+    
+    // Use FFmpeg concat demuxer to combine audio
+    const command = [
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', 'audio_concat.txt',
+      '-c', 'copy', // Copy codec (no re-encoding for speed)
+      '-y',
+      'combined_audio.mp3'
+    ];
+    
+    console.log('[combineAudioSegments] Executing FFmpeg concat command');
+    await ffmpeg.exec(command);
+    
+    // Read combined audio
+    const data = await ffmpeg.readFile('combined_audio.mp3');
+    if (!data) {
+      throw new Error('Combined audio file is empty');
+    }
+    
+    // Clean up
+    for (let i = 0; i < audioBlobs.length; i++) {
+      const fileName = `audio${i.toString().padStart(3, '0')}.mp3`;
+      await ffmpeg.deleteFile(fileName);
+    }
+    await ffmpeg.deleteFile('audio_concat.txt');
+    await ffmpeg.deleteFile('combined_audio.mp3');
+    
+    // Convert to blob
+    if (data instanceof Uint8Array) {
+      const arrayBuffer = new Uint8Array(data).buffer;
+      return new Blob([arrayBuffer], { type: 'audio/mpeg' });
+    } else {
+      return new Blob([data], { type: 'audio/mpeg' });
+    }
+  } catch (error: any) {
+    console.error('[combineAudioSegments] Error combining audio:', error);
+    throw new Error(`Failed to combine audio segments: ${error.message || 'Unknown error'}`);
   }
 }
 
