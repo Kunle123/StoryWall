@@ -170,7 +170,7 @@ function generateNameVariations(name: string): string[] {
 // Helper to check if a filename/title matches a person's name
 function matchesPersonName(filename: string, personName: string): boolean {
   const filenameLower = filename.toLowerCase();
-  const nameParts = personName.toLowerCase().split(/\s+/).filter(p => p.length > 2); // Ignore short words like "de", "van", etc.
+  const nameParts = personName.toLowerCase().split(/\s+/).filter((p: string) => p.length > 2); // Ignore short words like "de", "van", etc.
   
   // Check if all significant name parts appear in the filename
   return nameParts.every(part => filenameLower.includes(part));
@@ -271,7 +271,7 @@ async function findImageUrlWithGPT4o(personName: string, searchQuery: string): P
 async function searchWikimediaForPerson(searchQuery: string, personName: string): Promise<string | null> {
   try {
     // Use the person's name more directly in the search
-    const nameParts = personName.split(/\s+/).filter(p => p.length > 1);
+    const nameParts = personName.split(/\s+/).filter((p: string) => p.length > 1);
     const directNameSearch = nameParts.join(' ');
     
     // Search with both the search query and direct name
@@ -1725,7 +1725,7 @@ export async function POST(request: NextRequest) {
               if (eventText.includes(personName)) {
                 score = 100;
               } else {
-                const nameParts = personName.split(' ').filter(p => p.length > 0);
+                const nameParts = personName.split(' ').filter((p: string) => p.length > 0);
                 if (nameParts.length >= 2) {
                   const firstName = nameParts[0];
                   const lastName = nameParts[nameParts.length - 1];
