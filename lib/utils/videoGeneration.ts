@@ -17,6 +17,15 @@ export async function generateSlideshowVideo(
 
   const ffmpeg = await initFFmpeg();
   
+  // Set up error and log handlers
+  const ffmpegErrors: string[] = [];
+  const ffmpegLogs: string[] = [];
+  
+  ffmpeg.on('log', ({ message }) => {
+    console.log('[FFmpeg]', message);
+    ffmpegLogs.push(message);
+  });
+  
   // Calculate dimensions
   let width: number, height: number;
   switch (options.aspectRatio) {
@@ -58,6 +67,11 @@ export async function generateSlideshowVideo(
     command.push('-framerate', (1 / duration).toString());
     command.push('-i', 'image%03d.jpg');
     
+    // Add audio input if provided (must come before filters)
+    if (audioBlob) {
+      command.push('-i', 'audio.mp3');
+    }
+    
     // Video filter: scale and pad to target dimensions
     const vf = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=30`;
     command.push('-vf', vf);
@@ -68,9 +82,8 @@ export async function generateSlideshowVideo(
     command.push('-preset', 'medium');
     command.push('-crf', '23');
     
-    // Add audio if provided
+    // Audio codec settings (if audio provided)
     if (audioBlob) {
-      command.push('-i', 'audio.mp3');
       command.push('-c:a', 'aac');
       command.push('-b:a', '128k');
       command.push('-shortest'); // End when shortest stream ends
@@ -83,10 +96,28 @@ export async function generateSlideshowVideo(
     command.push('output.mp4');
 
     // Execute FFmpeg
-    await ffmpeg.exec(command);
+    console.log('[FFmpeg] Executing command:', command.join(' '));
+    try {
+      await ffmpeg.exec(command);
+      console.log('[FFmpeg] Command executed successfully');
+    } catch (execError: any) {
+      console.error('[FFmpeg] Exec error:', execError);
+      const errorMsg = execError?.message || execError?.toString() || 'FFmpeg execution failed';
+      throw new Error(`FFmpeg exec failed: ${errorMsg}. Logs: ${ffmpegLogs.slice(-5).join('; ')}`);
+    }
 
     // Read output file
-    const data = await ffmpeg.readFile('output.mp4');
+    let data;
+    try {
+      data = await ffmpeg.readFile('output.mp4');
+      if (!data) {
+        throw new Error('Output file is empty or does not exist');
+      }
+      console.log('[FFmpeg] Output file read successfully, size:', data instanceof Uint8Array ? data.length : 'unknown');
+    } catch (readError: any) {
+      console.error('[FFmpeg] Failed to read output file:', readError);
+      throw new Error(`Failed to read output file: ${readError?.message || 'Unknown error'}. FFmpeg logs: ${ffmpegLogs.slice(-10).join('; ')}`);
+    }
     
     // Clean up
     for (let i = 0; i < images.length; i++) {
