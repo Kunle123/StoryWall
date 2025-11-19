@@ -210,7 +210,10 @@ export async function generateSlideshowVideo(
       break;
   }
 
-  const outputFps = 10; // Lower fps for faster encoding
+  // Use very low fps for static images (1fps) - frames are identical so we don't need high fps
+  // This dramatically reduces encoding time and file size since we're just duplicating static frames
+  // The GOP settings will ensure efficient compression of duplicate frames
+  const outputFps = 1; // 1fps for static images - much more efficient than 10fps
 
   // If per-image durations are provided, use segment-based approach
   if (perImageDurations && perImageDurations.length > 0) {
@@ -304,8 +307,9 @@ export async function generateSlideshowVideo(
     // Video filter: scale, pad, then fps to duplicate frames
     // With input framerate 1/duration, timestamps are already spaced correctly
     // fps filter duplicates frames to fill gaps at output framerate
-    // Lower output fps (10 instead of 15) reduces total frames to encode
-    const outputFps = 10; // Lower fps for faster encoding
+    // Use very low fps (1fps) for static images - frames are identical so we don't need high fps
+    // This dramatically reduces encoding time and file size
+    const outputFps = 1; // 1fps for static images - much more efficient
     const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
     const fpsFilter = `fps=${outputFps}`; // Duplicate frames to reach output fps
     const vf = `${scaleFilter},${fpsFilter}`;
@@ -317,9 +321,12 @@ export async function generateSlideshowVideo(
     command.push('-r', outputFps.toString());
     
     // Use larger GOP (group of pictures) to reduce keyframes and improve compression
-    // This makes frames reference each other more efficiently
-    command.push('-g', (outputFps * duration).toString()); // One keyframe per image duration
-    command.push('-keyint_min', (outputFps * duration).toString());
+    // Since frames are static/identical, we can use a very large GOP
+    // For 1fps with 3s duration = 3 frames, so GOP of 3 means one keyframe per image
+    // This ensures efficient compression of duplicate frames
+    const gopSize = Math.max(1, Math.ceil(outputFps * duration)); // At least 1, round up
+    command.push('-g', gopSize.toString()); // One keyframe per image duration
+    command.push('-keyint_min', gopSize.toString());
     
     // Video codec settings - use faster preset for better performance
     command.push('-c:v', 'libx264');
