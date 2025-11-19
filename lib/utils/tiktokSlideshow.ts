@@ -184,7 +184,31 @@ export async function resizeImage(
 }
 
 /**
- * Add text overlay to image
+ * Wrap text to fit within a maximum width
+ */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = words[0];
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i];
+    const testLine = currentLine + ' ' + word;
+    const metrics = ctx.measureText(testLine);
+    
+    if (metrics.width > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  lines.push(currentLine);
+  return lines;
+}
+
+/**
+ * Add text overlay to image with text wrapping
  */
 export async function addTextOverlay(
   imageBlob: Blob,
@@ -215,30 +239,47 @@ export async function addTextOverlay(
       ctx.textAlign = 'center';
       ctx.textBaseline = position === 'top' ? 'top' : 'bottom';
       
+      // Calculate maximum text width (80% of canvas width with padding)
+      const maxTextWidth = canvas.width * 0.8;
+      const padding = 20;
+      const lineHeight = fontSize * 1.2; // Line height with spacing
+      
+      // Split text into lines (handle newlines and wrapping)
+      const textLines: string[] = [];
+      const paragraphs = text.split('\n');
+      paragraphs.forEach(paragraph => {
+        const wrapped = wrapText(ctx, paragraph, maxTextWidth);
+        textLines.push(...wrapped);
+      });
+      
+      // Calculate total text height
+      const totalTextHeight = textLines.length * lineHeight;
+      
       // Calculate text position
       const x = canvas.width / 2;
-      const y = position === 'top' ? 40 : canvas.height - 40;
+      const y = position === 'top' 
+        ? 40 + padding 
+        : canvas.height - 40 - totalTextHeight - padding;
       
       // Add semi-transparent background for text readability
-      const textMetrics = ctx.measureText(text);
-      const textWidth = textMetrics.width;
-      const textHeight = fontSize;
-      const padding = 20;
-      
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(
-        x - textWidth / 2 - padding,
-        y - (position === 'top' ? 0 : textHeight) - padding,
-        textWidth + padding * 2,
-        textHeight + padding * 2
+        x - maxTextWidth / 2 - padding,
+        y - padding,
+        maxTextWidth + padding * 2,
+        totalTextHeight + padding * 2
       );
       
-      // Draw text with white color and black stroke for contrast
+      // Draw each line of text with white color and black stroke for contrast
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 4;
-      ctx.strokeText(text, x, y);
       ctx.fillStyle = '#FFFFFF';
-      ctx.fillText(text, x, y);
+      
+      textLines.forEach((line, index) => {
+        const lineY = y + (index * lineHeight);
+        ctx.strokeText(line, x, lineY);
+        ctx.fillText(line, x, lineY);
+      });
       
       // Convert to blob
       canvas.toBlob((blob) => {

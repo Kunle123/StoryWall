@@ -120,11 +120,24 @@ export function TikTokSlideshowDialog({
           throw new Error(errorMessage);
         }
 
-        const { audioUrl } = await voiceoverResponse.json();
+        const { audioUrl, duration: audioDuration } = await voiceoverResponse.json();
         if (!audioUrl) {
           throw new Error('No audio URL returned from voiceover generation');
         }
         audioBlob = await downloadAudio(audioUrl);
+        
+        // Adjust duration per slide to match audio duration for better sync
+        if (audioDuration && preparedImages.length > 0) {
+          const adjustedDurationPerSlide = audioDuration / preparedImages.length;
+          console.log('[TikTokSlideshowDialog] Adjusting duration per slide for audio sync', {
+            audioDuration,
+            imageCount: preparedImages.length,
+            originalDuration: options.durationPerSlide,
+            adjustedDuration: adjustedDurationPerSlide,
+          });
+          // Update options with adjusted duration
+          options = { ...options, durationPerSlide: adjustedDurationPerSlide };
+        }
         
         setProgress(60);
         setProgressMessage("Voiceover ready!");
