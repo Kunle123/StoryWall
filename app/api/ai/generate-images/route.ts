@@ -1676,7 +1676,7 @@ export async function POST(request: NextRequest) {
           // Use precise matching: prefer full name, then first+last, then last name only if unambiguous
           relevantImageRefs = finalImageReferences.filter(ref => {
             const personName = ref.name.toLowerCase().trim();
-            const nameParts = personName.split(' ').filter(p => p.length > 0);
+            const nameParts = personName.split(' ').filter((p: string) => p.length > 0);
             
             // 1. Check for full name match (most precise)
             if (eventText.includes(personName)) {
