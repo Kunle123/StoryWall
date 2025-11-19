@@ -383,12 +383,17 @@ export async function addTextOverlay(
       // Prepare text
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.textBaseline = position === 'top' ? 'top' : 'bottom';
       
       // Calculate maximum text width (80% of canvas width with padding)
       const maxTextWidth = canvas.width * 0.8;
       const padding = 20;
       const lineHeight = fontSize * 1.2; // Line height with spacing
+      
+      // Get text metrics to account for ascenders and descenders
+      const textMetrics = ctx.measureText('Mg'); // Use 'Mg' to get typical ascender/descender height
+      const actualBoundingBoxAscent = textMetrics.actualBoundingBoxAscent || fontSize * 0.8;
+      const actualBoundingBoxDescent = textMetrics.actualBoundingBoxDescent || fontSize * 0.2;
+      const textHeight = actualBoundingBoxAscent + actualBoundingBoxDescent;
       
       // Split text into lines (handle newlines and wrapping)
       const textLines: string[] = [];
@@ -398,31 +403,50 @@ export async function addTextOverlay(
         textLines.push(...wrapped);
       });
       
-      // Calculate total text height
+      // Calculate total text height including all lines
       const totalTextHeight = textLines.length * lineHeight;
       
       // Calculate text position
       const x = canvas.width / 2;
-      const y = position === 'top' 
-        ? 40 + padding 
-        : canvas.height - 40 - totalTextHeight - padding;
+      let y: number;
+      let backgroundY: number;
+      let backgroundHeight: number;
+      
+      if (position === 'top') {
+        // For top position: y is the top of the first line (including ascenders)
+        y = 40 + actualBoundingBoxAscent + padding;
+        // Background should start above the text (accounting for ascenders) and cover all lines
+        backgroundY = 40; // Start from top margin
+        backgroundHeight = totalTextHeight + (padding * 2) + actualBoundingBoxDescent; // Include descenders of last line
+      } else {
+        // For bottom position: y is the bottom of the last line
+        y = canvas.height - 40 - actualBoundingBoxDescent - padding;
+        // Background should cover all lines including descenders
+        backgroundY = y - totalTextHeight - actualBoundingBoxAscent - padding;
+        backgroundHeight = totalTextHeight + (padding * 2) + actualBoundingBoxAscent + actualBoundingBoxDescent;
+      }
       
       // Add semi-transparent background for text readability
+      // Ensure it covers all text including ascenders and descenders
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
       ctx.fillRect(
         x - maxTextWidth / 2 - padding,
-        y - padding,
+        backgroundY,
         maxTextWidth + padding * 2,
-        totalTextHeight + padding * 2
+        backgroundHeight
       );
       
       // Draw each line of text with white color and black stroke for contrast
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 4;
       ctx.fillStyle = '#FFFFFF';
+      ctx.textBaseline = 'alphabetic'; // Use alphabetic baseline for consistent positioning
       
       textLines.forEach((line, index) => {
-        const lineY = y + (index * lineHeight);
+        // Calculate Y position for each line, accounting for baseline
+        const lineY = position === 'top'
+          ? y + (index * lineHeight)
+          : y - ((textLines.length - 1 - index) * lineHeight);
         ctx.strokeText(line, x, lineY);
         ctx.fillText(line, x, lineY);
       });
