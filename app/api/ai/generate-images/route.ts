@@ -1691,7 +1691,7 @@ export async function POST(request: NextRequest) {
               if (eventText.includes(firstName) && eventText.includes(lastName)) {
                 // Check if this last name is unique among all references
                 const peopleWithSameLastName = finalImageReferences.filter(r => {
-                  const rNameParts = r.name.toLowerCase().trim().split(' ').filter(p => p.length > 0);
+                  const rNameParts = r.name.toLowerCase().trim().split(' ').filter((p: string) => p.length > 0);
                   return rNameParts.length >= 2 && rNameParts[rNameParts.length - 1] === lastName;
                 });
                 
