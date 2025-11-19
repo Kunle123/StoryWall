@@ -109,10 +109,21 @@ export function TikTokSlideshowDialog({
         });
 
         if (!voiceoverResponse.ok) {
-          throw new Error('Failed to generate voiceover');
+          let errorMessage = 'Failed to generate voiceover';
+          try {
+            const errorData = await voiceoverResponse.json();
+            errorMessage = errorData.error || errorData.details || errorMessage;
+          } catch (e) {
+            // If response is not JSON, use status text
+            errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
 
         const { audioUrl } = await voiceoverResponse.json();
+        if (!audioUrl) {
+          throw new Error('No audio URL returned from voiceover generation');
+        }
         audioBlob = await downloadAudio(audioUrl);
         
         setProgress(60);
