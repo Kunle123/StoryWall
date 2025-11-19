@@ -7,12 +7,13 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import { Download, Loader2, Play, Music } from "lucide-react";
+import { Download, Loader2, Play, Music, Image as ImageIcon, Video } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { TimelineEvent } from "./Timeline";
 import { SlideshowOptions, generateNarrationScript, generateEventNarrationScript, prepareImagesForSlideshow } from "@/lib/utils/tiktokSlideshow";
 import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
+import JSZip from "jszip";
 
 interface TikTokSlideshowDialogProps {
   open: boolean;
@@ -30,11 +31,14 @@ export function TikTokSlideshowDialog({
   events,
 }: TikTokSlideshowDialogProps) {
   const { toast } = useToast();
+  const [mode, setMode] = useState<'native' | 'video'>('native'); // 'native' for TikTok Photo Mode, 'video' for video file
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState("");
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [zipBlob, setZipBlob] = useState<Blob | null>(null);
+  const [zipUrl, setZipUrl] = useState<string | null>(null);
   
   const [options, setOptions] = useState<SlideshowOptions>({
     aspectRatio: '9:16',
@@ -48,16 +52,39 @@ export function TikTokSlideshowDialog({
     voice: 'alloy',
   });
 
-  // Clean up video URL when dialog closes
+  // Clean up URLs when dialog closes
   useEffect(() => {
-    if (!open && videoUrl) {
-      URL.revokeObjectURL(videoUrl);
-      setVideoUrl(null);
-      setVideoBlob(null);
+    if (!open) {
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
+        setVideoUrl(null);
+        setVideoBlob(null);
+      }
+      if (zipUrl) {
+        URL.revokeObjectURL(zipUrl);
+        setZipUrl(null);
+        setZipBlob(null);
+      }
       setProgress(0);
       setProgressMessage("");
     }
-  }, [open, videoUrl]);
+  }, [open, videoUrl, zipUrl]);
+
+  // Generate ZIP file from images for native TikTok slideshow
+  const generateZipFromImages = async (images: Blob[]): Promise<Blob> => {
+    const zip = new JSZip();
+    
+    // Add each image to the ZIP with sequential naming
+    for (let i = 0; i < images.length; i++) {
+      const imageBlob = images[i];
+      const fileName = `slide-${(i + 1).toString().padStart(3, '0')}.jpg`;
+      zip.file(fileName, imageBlob);
+    }
+    
+    // Generate ZIP file
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return zipBlob;
+  };
 
   const handleGenerate = async () => {
     if (events.length === 0) {
@@ -86,7 +113,30 @@ export function TikTokSlideshowDialog({
       setProgress(30);
       setProgressMessage(`Processing ${preparedImages.length} images...`);
 
-      // Step 2: Generate voiceover if enabled
+      // Branch based on mode
+      if (mode === 'native') {
+        // Native TikTok Photo Mode: Generate ZIP file
+        setProgress(70);
+        setProgressMessage("Creating ZIP file...");
+        
+        const zipBlob = await generateZipFromImages(preparedImages);
+        const zipUrl = URL.createObjectURL(zipBlob);
+        setZipBlob(zipBlob);
+        setZipUrl(zipUrl);
+        
+        setProgress(100);
+        setProgressMessage("Complete!");
+        
+        toast({
+          title: "Success!",
+          description: "Slideshow images ready. Download the ZIP and upload to TikTok Photo Mode.",
+        });
+        return; // Exit early for native mode
+      }
+
+      // Video mode: Continue with video generation
+
+      // Step 2: Generate voiceover if enabled (video mode only)
       let audioBlob: Blob | undefined;
       let perImageDurations: number[] | undefined;
       
@@ -188,7 +238,7 @@ export function TikTokSlideshowDialog({
           perImageDurations = [];
           if (isBatch && segmentDurations && segmentDurations.length > 0) {
             // Calculate total estimated duration
-            const totalEstimatedDuration = segmentDurations.reduce((sum, d) => sum + d, 0);
+            const totalEstimatedDuration = segmentDurations.reduce((sum: number, d: number) => sum + d, 0);
             // Scale each duration proportionally to match actual audio
             const scaleFactor = actualAudioDuration / totalEstimatedDuration;
             console.log('[TikTokSlideshowDialog] Scaling durations by factor:', scaleFactor);
@@ -208,7 +258,7 @@ export function TikTokSlideshowDialog({
             }
           } else if (audioSegments.length > 0) {
             // Fallback: use audio segments durations, scaled to actual audio
-            const totalEstimatedDuration = audioSegments.reduce((sum, s) => sum + s.duration, 0);
+            const totalEstimatedDuration = audioSegments.reduce((sum: number, s: { url: string; duration: number }) => sum + s.duration, 0);
             const scaleFactor = actualAudioDuration / totalEstimatedDuration;
             
             for (let i = 0; i < preparedImages.length; i++) {
@@ -229,7 +279,7 @@ export function TikTokSlideshowDialog({
           }
           
           console.log('[TikTokSlideshowDialog] Per-image durations (scaled to match actual audio):', perImageDurations);
-          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum, d) => sum + d, 0), 'seconds');
+          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum: number, d: number) => sum + d, 0), 'seconds');
           console.log('[TikTokSlideshowDialog] Actual audio duration:', actualAudioDuration, 'seconds');
           
           setProgress(65);
@@ -321,7 +371,7 @@ export function TikTokSlideshowDialog({
           // Calculate per-image durations based on actual audio duration
           perImageDurations = [];
           if (isBatch && segmentDurations && segmentDurations.length > 0) {
-            const totalEstimatedDuration = segmentDurations.reduce((sum, d) => sum + d, 0);
+            const totalEstimatedDuration = segmentDurations.reduce((sum: number, d: number) => sum + d, 0);
             const scaleFactor = actualAudioDuration / totalEstimatedDuration;
             
             for (let i = 0; i < preparedImages.length; i++) {
@@ -335,7 +385,7 @@ export function TikTokSlideshowDialog({
               }
             }
           } else if (audioSegments.length > 0) {
-            const totalEstimatedDuration = audioSegments.reduce((sum, s) => sum + s.duration, 0);
+            const totalEstimatedDuration = audioSegments.reduce((sum: number, s: { url: string; duration: number }) => sum + s.duration, 0);
             const scaleFactor = actualAudioDuration / totalEstimatedDuration;
             
             for (let i = 0; i < preparedImages.length; i++) {
@@ -355,7 +405,7 @@ export function TikTokSlideshowDialog({
           }
           
           console.log('[TikTokSlideshowDialog] Per-image durations (fallback, scaled to match actual audio):', perImageDurations);
-          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum, d) => sum + d, 0), 'seconds');
+          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum: number, d: number) => sum + d, 0), 'seconds');
           
           setProgress(65);
           setProgressMessage("Voiceover ready!");
@@ -396,21 +446,37 @@ export function TikTokSlideshowDialog({
   };
 
   const handleDownload = () => {
-    if (!videoBlob) return;
+    if (mode === 'native' && zipBlob) {
+      // Download ZIP for native mode
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${timelineTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-tiktok-slideshow.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-    const url = URL.createObjectURL(videoBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${timelineTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-tiktok-slideshow.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      toast({
+        title: "Downloaded!",
+        description: "ZIP file saved. Extract and upload images to TikTok Photo Mode.",
+      });
+    } else if (mode === 'video' && videoBlob) {
+      // Download video for video mode
+      const url = URL.createObjectURL(videoBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${timelineTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-tiktok-slideshow.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-    toast({
-      title: "Downloaded!",
-      description: "Video saved. Upload it to TikTok to share.",
-    });
+      toast({
+        title: "Downloaded!",
+        description: "Video saved. Upload it to TikTok or other platforms to share.",
+      });
+    }
   };
 
   const handleOpenTikTok = () => {
@@ -425,13 +491,46 @@ export function TikTokSlideshowDialog({
         <DialogHeader>
           <DialogTitle>Create TikTok Slideshow</DialogTitle>
           <DialogDescription>
-            Generate a video slideshow from your timeline. {eventsWithImages.length} event{eventsWithImages.length !== 1 ? 's' : ''} with images will be included.
+            Generate a slideshow from your timeline. {eventsWithImages.length} event{eventsWithImages.length !== 1 ? 's' : ''} with images will be included.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Mode Selector */}
+          {!videoUrl && !zipUrl && (
+            <div className="space-y-2">
+              <Label>Slideshow Type</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant={mode === 'native' ? 'default' : 'outline'}
+                  className="h-auto flex-col gap-2 py-4"
+                  onClick={() => setMode('native')}
+                >
+                  <ImageIcon className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-semibold">Native TikTok</div>
+                    <div className="text-xs text-muted-foreground">Photo Mode (swipeable)</div>
+                  </div>
+                </Button>
+                <Button
+                  type="button"
+                  variant={mode === 'video' ? 'default' : 'outline'}
+                  className="h-auto flex-col gap-2 py-4"
+                  onClick={() => setMode('video')}
+                >
+                  <Video className="w-5 h-5" />
+                  <div className="text-left">
+                    <div className="font-semibold">Video File</div>
+                    <div className="text-xs text-muted-foreground">For other platforms</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Settings */}
-          {!videoUrl && (
+          {!videoUrl && !zipUrl && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -453,39 +552,43 @@ export function TikTokSlideshowDialog({
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Duration per Slide: {options.durationPerSlide}s</Label>
-                  <Slider
-                    value={[options.durationPerSlide]}
-                    onValueChange={([value]) =>
-                      setOptions({ ...options, durationPerSlide: value })
-                    }
-                    min={2}
-                    max={5}
-                    step={0.5}
-                  />
-                </div>
+                {mode === 'video' && (
+                  <div className="space-y-2">
+                    <Label>Duration per Slide: {options.durationPerSlide}s</Label>
+                    <Slider
+                      value={[options.durationPerSlide]}
+                      onValueChange={([value]) =>
+                        setOptions({ ...options, durationPerSlide: value })
+                      }
+                      min={2}
+                      max={5}
+                      step={0.5}
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Transition</Label>
-                <Select
-                  value={options.transition}
-                  onValueChange={(value: 'fade' | 'slide' | 'zoom' | 'none') =>
-                    setOptions({ ...options, transition: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fade">Fade</SelectItem>
-                    <SelectItem value="slide">Slide</SelectItem>
-                    <SelectItem value="zoom">Zoom</SelectItem>
-                    <SelectItem value="none">None</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {mode === 'video' && (
+                <div className="space-y-2">
+                  <Label>Transition</Label>
+                  <Select
+                    value={options.transition}
+                    onValueChange={(value: 'fade' | 'slide' | 'zoom' | 'none') =>
+                      setOptions({ ...options, transition: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fade">Fade</SelectItem>
+                      <SelectItem value="slide">Slide</SelectItem>
+                      <SelectItem value="zoom">Zoom</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <Label>Text Overlay</Label>
@@ -537,41 +640,43 @@ export function TikTokSlideshowDialog({
                 </Select>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="addVoiceover"
-                    checked={options.addVoiceover}
-                    onCheckedChange={(checked) =>
-                      setOptions({ ...options, addVoiceover: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="addVoiceover" className="cursor-pointer flex items-center gap-2">
-                    <Music className="w-4 h-4" />
-                    Add Voiceover Narration
-                  </Label>
+              {mode === 'video' && (
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="addVoiceover"
+                      checked={options.addVoiceover}
+                      onCheckedChange={(checked) =>
+                        setOptions({ ...options, addVoiceover: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="addVoiceover" className="cursor-pointer flex items-center gap-2">
+                      <Music className="w-4 h-4" />
+                      Add Voiceover Narration
+                    </Label>
+                  </div>
+                  {options.addVoiceover && (
+                    <Select
+                      value={options.voice}
+                      onValueChange={(value) =>
+                        setOptions({ ...options, voice: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="alloy">Alloy</SelectItem>
+                        <SelectItem value="echo">Echo</SelectItem>
+                        <SelectItem value="fable">Fable</SelectItem>
+                        <SelectItem value="onyx">Onyx</SelectItem>
+                        <SelectItem value="nova">Nova</SelectItem>
+                        <SelectItem value="shimmer">Shimmer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
-                {options.addVoiceover && (
-                  <Select
-                    value={options.voice}
-                    onValueChange={(value) =>
-                      setOptions({ ...options, voice: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="alloy">Alloy</SelectItem>
-                      <SelectItem value="echo">Echo</SelectItem>
-                      <SelectItem value="fable">Fable</SelectItem>
-                      <SelectItem value="onyx">Onyx</SelectItem>
-                      <SelectItem value="nova">Nova</SelectItem>
-                      <SelectItem value="shimmer">Shimmer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
+              )}
             </div>
           )}
 
@@ -583,6 +688,43 @@ export function TikTokSlideshowDialog({
                 <span>{progress}%</span>
               </div>
               <Progress value={progress} />
+            </div>
+          )}
+
+          {/* Native TikTok Slideshow (ZIP) Result */}
+          {zipUrl && !isGenerating && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 p-6 rounded-lg text-center space-y-2">
+                <ImageIcon className="w-12 h-12 mx-auto text-primary" />
+                <h4 className="font-semibold text-lg">Slideshow Images Ready!</h4>
+                <p className="text-sm text-muted-foreground">
+                  {eventsWithImages.length} images prepared for TikTok Photo Mode
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleDownload} className="flex-1 gap-2">
+                  <Download className="w-4 h-4" />
+                  Download ZIP
+                </Button>
+                <Button onClick={handleOpenTikTok} variant="outline" className="gap-2">
+                  <Play className="w-4 h-4" />
+                  Open TikTok
+                </Button>
+              </div>
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
+                <h4 className="font-semibold">How to upload to TikTok Photo Mode:</h4>
+                <ol className="text-muted-foreground space-y-1 list-decimal list-inside">
+                  <li>Download and extract the ZIP file</li>
+                  <li>Open TikTok app and tap the "+" button</li>
+                  <li>Tap "Upload" and select all images from the extracted folder</li>
+                  <li>Tap "Photo" or "Switch to Photo Mode" at the bottom</li>
+                  <li>Add music, text, stickers, or filters</li>
+                  <li>Add caption, hashtags, and post!</li>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-2">
+                  💡 Tip: Select images in order (slide-001.jpg, slide-002.jpg, etc.) for the correct sequence
+                </p>
+              </div>
             </div>
           )}
 
@@ -610,7 +752,7 @@ export function TikTokSlideshowDialog({
                 <h4 className="font-semibold">How to upload:</h4>
                 <ol className="text-muted-foreground space-y-1 list-decimal list-inside">
                   <li>Download the video</li>
-                  <li>Open TikTok app</li>
+                  <li>Open TikTok app (or other platform)</li>
                   <li>Tap the "+" button to create a new video</li>
                   <li>Select "Upload" and choose the downloaded video</li>
                   <li>Add caption, hashtags, and post!</li>
@@ -620,7 +762,7 @@ export function TikTokSlideshowDialog({
           )}
 
           {/* Generate Button */}
-          {!videoUrl && (
+          {!videoUrl && !zipUrl && (
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || eventsWithImages.length === 0}
@@ -634,21 +776,35 @@ export function TikTokSlideshowDialog({
                 </>
               ) : (
                 <>
-                  <Play className="w-4 h-4" />
-                  Generate Slideshow
+                  {mode === 'native' ? (
+                    <>
+                      <ImageIcon className="w-4 h-4" />
+                      Generate Images
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Generate Video
+                    </>
+                  )}
                 </>
               )}
             </Button>
           )}
 
           {/* Regenerate Button */}
-          {videoUrl && !isGenerating && (
+          {(videoUrl || zipUrl) && !isGenerating && (
             <Button
-              onClick={handleGenerate}
+              onClick={() => {
+                setVideoUrl(null);
+                setVideoBlob(null);
+                setZipUrl(null);
+                setZipBlob(null);
+              }}
               variant="outline"
               className="w-full"
             >
-              Regenerate with Different Settings
+              Generate New Slideshow
             </Button>
           )}
         </div>
