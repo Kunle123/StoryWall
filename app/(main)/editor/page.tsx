@@ -890,7 +890,6 @@ const TimelineEditor = () => {
         )}
         </main>
       </div>
-      <ExperimentalBottomMenuBar />
     </EditorErrorBoundary>
   );
 };
