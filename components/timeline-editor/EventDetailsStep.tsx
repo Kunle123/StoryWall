@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, Loader2, Coins, ShieldCheck } from "lucide-react";
+import { Sparkles, Loader2, Coins } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -31,7 +31,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
   const [generatedEventIds, setGeneratedEventIds] = useState<Set<string>>(new Set());
   const [showViolationDialog, setShowViolationDialog] = useState(false);
   const [violationRecommendation, setViolationRecommendation] = useState<string | undefined>();
-  const [isVerifying, setIsVerifying] = useState(false);
   const [showVerificationDialog, setShowVerificationDialog] = useState(false);
   const [verificationResults, setVerificationResults] = useState<any>(null);
 
@@ -122,56 +121,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
     }
   };
 
-  const verifyEvents = async () => {
-    if (events.length === 0) {
-      toast({
-        title: "No events",
-        description: "Please add events first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      const response = await fetch("/api/ai/verify-events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          events: events.map(e => ({
-            year: e.year,
-            title: e.title,
-            description: e.description,
-          })),
-          timelineDescription,
-          timelineName: timelineName || "Untitled Timeline",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to verify events");
-      }
-
-      const data = await response.json();
-      setVerificationResults(data);
-      setShowVerificationDialog(true);
-      
-      toast({
-        title: "Verification complete",
-        description: `${data.summary.verified} verified, ${data.summary.flagged} flagged`,
-      });
-    } catch (error: any) {
-      console.error("Error verifying events:", error);
-      toast({
-        title: "Failed to verify events",
-        description: error.message || "Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsVerifying(false);
-    }
-  };
 
   const generateAllDescriptions = async () => {
     if (events.length === 0) {
@@ -323,19 +272,6 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
               <Sparkles className="mr-2 h-5 w-5" />
             )}
             {isGeneratingAll ? "Generating & Verifying..." : "Generate Descriptions with AI"}
-          </Button>
-          <Button
-            onClick={verifyEvents}
-            disabled={isVerifying || events.length === 0}
-            size="lg"
-            variant="outline"
-          >
-            {isVerifying ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <ShieldCheck className="mr-2 h-5 w-5" />
-            )}
-            {isVerifying ? "Verifying..." : "Verify Events"}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground text-center mt-2">
