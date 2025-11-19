@@ -28,28 +28,32 @@ export async function POST(request: NextRequest) {
     const client = getAIClient();
 
     // Create a prompt that generates natural, flowing narration
-    const systemPrompt = `You are a professional narrator creating concise, engaging voiceover scripts for a TikTok slideshow. Your scripts should:
+    // Target: 5-10 seconds per slide (approximately 50-100 characters at ~10 chars/second)
+    const systemPrompt = `You are a professional narrator creating very concise, engaging voiceover scripts for a TikTok slideshow. Your scripts should:
 - Be natural and conversational
 - Provide an abridged summary of the event (not a description of the visual scene)
+- Be VERY SHORT: 5-10 seconds of speech per event (approximately 50-100 characters)
 - Use smooth transitions between events
 - Avoid repetition
-- Be concise (2-4 sentences per event)
+- Be concise (1-2 sentences per event maximum)
 - Never end with ellipsis or abrupt cutoffs
 - Flow naturally from one event to the next
 - Create a cohesive narrative that walks through the history
-- Focus on what happened and why it matters, not what the image looks like`;
+- Focus on what happened and why it matters, not what the image looks like
+- Keep each script brief enough to be spoken in 5-10 seconds`;
 
     const userPrompt = `Create a natural, abridged narration script for a TikTok slideshow about "${timelineTitle}".
 
 ${timelineDescription ? `Timeline Description: ${timelineDescription}\n\n` : ''}
 
-For each of the ${events.length} events below, create a concise narration script (2-4 sentences) that:
+For each of the ${events.length} events below, create a VERY SHORT narration script (1-2 sentences, 50-100 characters) that:
 1. Provides an abridged summary of the event itself (what happened, why it matters)
 2. Explains the event's significance in a natural, conversational way
 3. Transitions smoothly to the next event (except for the last one)
 4. Avoids repetition of information already mentioned
 5. Never ends with ellipsis or incomplete thoughts
 6. Focuses on the historical/eventual significance, NOT on describing the visual image
+7. CRITICAL: Each script must be short enough to be spoken in 5-10 seconds (approximately 50-100 characters)
 
 Events:
 ${events.map((e: any, idx: number) => {
@@ -76,12 +80,14 @@ Return a JSON object with this structure:
 }
 
 CRITICAL REQUIREMENTS:
+- Each script must be VERY SHORT: 5-10 seconds of speech (approximately 50-100 characters)
 - Each script must be complete sentences - no ellipsis, no abrupt endings
 - Scripts should flow naturally from one to the next
 - Provide an abridged summary of the event (what happened, its significance) - NOT a description of the visual scene
-- Keep it concise but complete
+- Keep it concise but complete (1-2 sentences maximum per event)
 - The last script should have a natural conclusion
-- Focus on the event's meaning and impact, not what the image looks like`;
+- Focus on the event's meaning and impact, not what the image looks like
+- Target length: 50-100 characters per script to ensure 5-10 second duration`;
 
     const response = await createChatCompletion(client, {
       model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',

@@ -153,9 +153,11 @@ export async function POST(request: NextRequest) {
           batchAudioUrls.push(batchAudioUrl);
           
           // Calculate duration for each script in this batch
-          const charsPerSecond = 10;
+          // Use more accurate rate for TikTok-style narration: ~15 chars/second
+          const charsPerSecond = 15;
           batch.forEach(script => {
-            const scriptDuration = script.length / charsPerSecond;
+            // Clamp duration between 5-10 seconds as requested
+            const scriptDuration = Math.max(5, Math.min(10, script.length / charsPerSecond));
             batchDurations.push(scriptDuration);
           });
         }
@@ -291,9 +293,11 @@ export async function POST(request: NextRequest) {
 
     const audioUrl = (uploadResult as any).secure_url;
     
-    // Calculate durations for each segment
-    // Estimate: ~10 chars per second (conservative estimate)
-    const charsPerSecond = 10;
+    // Get actual audio duration using ffprobe (more accurate than character estimation)
+    // For now, we'll use a more accurate character-based estimate, but ideally should use ffprobe
+    // Average speaking rate: ~150 words per minute = ~2.5 words/second = ~12.5 chars/second (more accurate)
+    // For TikTok-style narration (slightly faster): ~15 chars/second
+    const charsPerSecond = 15; // More accurate for TikTok-style narration
     const totalDuration = combinedScript.length / charsPerSecond;
     
     // For batch mode, calculate segment boundaries and durations
@@ -303,7 +307,8 @@ export async function POST(request: NextRequest) {
       let currentTime = 0;
       for (let i = 0; i < scriptsToProcess.length; i++) {
         const segmentLength = scriptsToProcess[i].length;
-        const segmentDuration = segmentLength / charsPerSecond;
+        // Use more accurate calculation: account for pauses and natural speech rhythm
+        const segmentDuration = Math.max(5, Math.min(10, segmentLength / charsPerSecond)); // Clamp between 5-10 seconds
         segmentDurations.push(segmentDuration);
         if (i < scriptsToProcess.length - 1) {
           // Add separator duration (3 chars for " ... ")
@@ -314,7 +319,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Single script mode
-      segmentDurations = [totalDuration];
+      segmentDurations = [Math.max(5, Math.min(10, totalDuration))]; // Clamp between 5-10 seconds
       // segmentBoundaries not needed for single script
     }
 

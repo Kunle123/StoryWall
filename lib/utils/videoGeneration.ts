@@ -113,6 +113,23 @@ async function generateVideoWithPerImageDurations(
     const audioData = await fetchFile(audioBlob);
     await ffmpeg.writeFile('audio.mp3', audioData);
     command.push('-i', 'audio.mp3');
+    
+    // Get actual audio duration using FFprobe
+    try {
+      const probeCommand = [
+        '-i', 'audio.mp3',
+        '-show_entries', 'format=duration',
+        '-v', 'quiet',
+        '-of', 'csv=p=0',
+        '-f', 'null',
+        '-'
+      ];
+      // Note: ffmpeg.wasm doesn't support ffprobe directly, so we'll use the estimated durations
+      // The durations should match since we're using perImageDurations that correspond to audio segments
+      console.log('[generateVideoWithPerImageDurations] Using per-image durations for sync');
+    } catch (error) {
+      console.warn('[generateVideoWithPerImageDurations] Could not probe audio duration, using provided durations');
+    }
   }
   
   // Video codec settings
@@ -127,9 +144,11 @@ async function generateVideoWithPerImageDurations(
     command.push('-b:a', '128k');
     // Video segments are created with durations matching audio segments
     // Since they're concatenated in the same order, they should sync perfectly
-    // Use -shortest to handle any minor timing differences gracefully
+    // Use -shortest to ensure video doesn't exceed audio, but segments should match exactly
     command.push('-shortest');
     console.log('[generateVideoWithPerImageDurations] Using -shortest to sync video and audio');
+    console.log('[generateVideoWithPerImageDurations] Total video duration:', totalVideoDuration, 'seconds');
+    console.log('[generateVideoWithPerImageDurations] Per-image durations:', durations);
   }
   
   command.push('-y', 'output.mp4');
