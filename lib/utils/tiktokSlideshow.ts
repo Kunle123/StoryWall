@@ -292,7 +292,7 @@ export async function prepareImagesForSlideshow(
         }
         
         if (options.showDate && event.year) {
-          const dateStr = formatEventDate(event);
+          const dateStr = formatEventDate(event.year, event.month, event.day);
           overlayText += overlayText ? ` - ${dateStr}` : dateStr;
         }
         
