@@ -109,7 +109,17 @@ export async function generateSlideshowVideo(
     }
   } catch (error: any) {
     console.error('Error generating video:', error);
-    throw new Error(`Failed to generate video: ${error.message}`);
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    const errorDetails = {
+      message: errorMessage,
+      stack: error?.stack,
+      name: error?.name,
+      command: command.join(' '),
+      imagesCount: images.length,
+      hasAudio: !!audioBlob,
+    };
+    console.error('Video generation error details:', errorDetails);
+    throw new Error(`Failed to generate video: ${errorMessage}`);
   }
 }
 
