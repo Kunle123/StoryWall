@@ -16,35 +16,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { script, voice = 'alloy' } = await request.json();
+    const { script, scripts, voice = 'alloy' } = await request.json();
 
-    if (!script || typeof script !== 'string') {
+    // Support both single script and batch of scripts
+    let scriptsToProcess: string[] = [];
+    if (scripts && Array.isArray(scripts)) {
+      // Batch mode: multiple scripts
+      scriptsToProcess = scripts;
+    } else if (script && typeof script === 'string') {
+      // Single script mode (backward compatible)
+      scriptsToProcess = [script];
+    } else {
       return NextResponse.json(
-        { error: 'Script is required and must be a string' },
+        { error: 'Script or scripts array is required' },
         { status: 400 }
       );
     }
 
-    if (script.length > 50000) {
+    // Validate total length
+    const totalLength = scriptsToProcess.reduce((sum, s) => sum + s.length, 0);
+    if (totalLength > 50000) {
       return NextResponse.json(
-        { error: 'Script is too long. Maximum 50,000 characters.' },
+        { error: 'Total script length is too long. Maximum 50,000 characters.' },
         { status: 400 }
       );
     }
+
+    // If batch mode, combine scripts with a clear separator
+    const isBatch = scriptsToProcess.length > 1;
+    const combinedScript = isBatch 
+      ? scriptsToProcess.join(' ... ') // Separator that's natural in speech
+      : scriptsToProcess[0];
 
     // Validate voice option
     const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
     const selectedVoice = validVoices.includes(voice) ? voice : 'alloy';
 
-    console.log('[generate-voiceover] Generating speech:', { scriptLength: script.length, voice: selectedVoice });
+    console.log('[generate-voiceover] Generating speech:', { 
+      scriptCount: scriptsToProcess.length,
+      totalLength: combinedScript.length,
+      isBatch,
+      voice: selectedVoice 
+    });
 
-    // Generate speech using OpenAI TTS
+    // Generate speech using OpenAI TTS (one call for all scripts)
     let mp3;
     try {
       mp3 = await openai.audio.speech.create({
         model: 'tts-1',
         voice: selectedVoice as any,
-        input: script,
+        input: combinedScript,
       });
       console.log('[generate-voiceover] OpenAI TTS request successful');
     } catch (openaiError: any) {
@@ -130,16 +151,50 @@ export async function POST(request: NextRequest) {
     }
 
     const audioUrl = (uploadResult as any).secure_url;
-    // Note: Duration calculation would require audio analysis
-    // For now, estimate based on script length (average ~150 words per minute)
-    const estimatedDuration = script.length / 10; // Rough estimate: ~10 chars per second
+    
+    // Calculate durations for each segment
+    // Estimate: ~10 chars per second (conservative estimate)
+    const charsPerSecond = 10;
+    const totalDuration = combinedScript.length / charsPerSecond;
+    
+    // For batch mode, calculate segment boundaries and durations
+    let segmentDurations: number[] = [];
+    let segmentBoundaries: number[] = [0]; // Start times for each segment
+    
+    if (isBatch) {
+      let currentTime = 0;
+      for (let i = 0; i < scriptsToProcess.length; i++) {
+        const segmentLength = scriptsToProcess[i].length;
+        const segmentDuration = segmentLength / charsPerSecond;
+        segmentDurations.push(segmentDuration);
+        if (i < scriptsToProcess.length - 1) {
+          // Add separator duration (3 chars for " ... ")
+          const separatorDuration = 3 / charsPerSecond;
+          currentTime += segmentDuration + separatorDuration;
+          segmentBoundaries.push(currentTime);
+        }
+      }
+    } else {
+      // Single script mode
+      segmentDurations = [totalDuration];
+    }
 
-    console.log('[generate-voiceover] Success:', { audioUrl, estimatedDuration, voice: selectedVoice });
+    console.log('[generate-voiceover] Success:', { 
+      audioUrl, 
+      totalDuration,
+      segmentCount: segmentDurations.length,
+      segmentDurations,
+      segmentBoundaries: isBatch ? segmentBoundaries : undefined,
+      voice: selectedVoice 
+    });
 
     return NextResponse.json({
       audioUrl,
-      duration: estimatedDuration,
+      duration: totalDuration, // Total duration
+      segmentDurations, // Individual segment durations
+      segmentBoundaries: isBatch ? segmentBoundaries : undefined, // Start times for splitting
       voice: selectedVoice,
+      isBatch,
     });
   } catch (error: any) {
     console.error('[generate-voiceover] Unexpected error:', error);

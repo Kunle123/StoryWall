@@ -21,7 +21,7 @@ export interface SlideTiming {
 }
 
 /**
- * Generate a natural narration script from timeline data
+ * Generate a natural narration script from timeline data (single combined script)
  */
 export function generateNarrationScript(
   timelineTitle: string,
@@ -49,6 +49,37 @@ export function generateNarrationScript(
   });
   
   script += ' Thanks for watching!';
+  
+  return script;
+}
+
+/**
+ * Generate narration script for a single event
+ */
+export function generateEventNarrationScript(
+  event: TimelineEvent,
+  isFirst: boolean = false,
+  isLast: boolean = false
+): string {
+  let script = '';
+  
+  if (isFirst) {
+    script += `Let's begin with `;
+  }
+  
+  script += `${event.title}.`;
+  
+  if (event.description) {
+    // Use first 150 characters of description
+    const shortDesc = event.description.length > 150
+      ? event.description.substring(0, 150) + '...'
+      : event.description;
+    script += ` ${shortDesc}`;
+  }
+  
+  if (isLast) {
+    script += ' Thanks for watching!';
+  }
   
   return script;
 }

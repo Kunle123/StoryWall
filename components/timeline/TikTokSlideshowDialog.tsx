@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { TimelineEvent } from "./Timeline";
 import { SlideshowOptions, generateNarrationScript, generateEventNarrationScript, prepareImagesForSlideshow } from "@/lib/utils/tiktokSlideshow";
-import { generateSlideshowVideo, downloadAudio, combineAudioSegments } from "@/lib/utils/videoGeneration";
+import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
 
 interface TikTokSlideshowDialogProps {
   open: boolean;
@@ -121,72 +121,78 @@ export function TikTokSlideshowDialog({
         });
         
         setProgress(45);
-        setProgressMessage(`Generating ${narrationScripts.length} audio segments...`);
+        setProgressMessage(`Generating audio for ${narrationScripts.length} segments in one batch...`);
         
-        // Generate audio for each narration segment and collect durations
+        // Use batched API to reduce API calls - all scripts in one call
+        const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            scripts: narrationScripts, // Pass array of scripts for batching
+            voice: options.voice,
+          }),
+        });
+
+        if (!voiceoverResponse.ok) {
+          let errorMessage = 'Failed to generate voiceover';
+          try {
+            const errorData = await voiceoverResponse.json();
+            errorMessage = errorData.error || errorData.details || errorMessage;
+          } catch (e) {
+            errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const { audioUrl, duration: totalDuration, segmentDurations, segmentBoundaries, isBatch } = await voiceoverResponse.json();
+        if (!audioUrl) {
+          throw new Error('No audio URL returned from voiceover generation');
+        }
+        
+        // Create audio segments array from batched response
         const audioSegments: { url: string; duration: number }[] = [];
-        const totalEvents = narrationScripts.length;
-        
-        for (let i = 0; i < narrationScripts.length; i++) {
-          setProgress(45 + Math.floor((i / totalEvents) * 15));
-          setProgressMessage(`Creating voiceover segment ${i + 1} of ${totalEvents}...`);
-          
-          const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              script: narrationScripts[i],
-              voice: options.voice,
-            }),
-          });
-
-          if (!voiceoverResponse.ok) {
-            let errorMessage = `Failed to generate voiceover segment ${i + 1}`;
-            try {
-              const errorData = await voiceoverResponse.json();
-              errorMessage = errorData.error || errorData.details || errorMessage;
-            } catch (e) {
-              errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
-            }
-            throw new Error(errorMessage);
+        if (isBatch && segmentDurations && segmentDurations.length > 0) {
+          // For batched mode, we have one audio URL but multiple segment durations
+          // We'll need to split the audio later, but for now use the combined audio
+          // and store individual durations for video sync
+          for (let i = 0; i < segmentDurations.length; i++) {
+            audioSegments.push({ 
+              url: audioUrl, // Same URL for all segments (we'll split it)
+              duration: segmentDurations[i] 
+            });
           }
-
-          const { audioUrl, duration } = await voiceoverResponse.json();
-          if (!audioUrl) {
-            throw new Error(`No audio URL returned for segment ${i + 1}`);
-          }
-          
-          audioSegments.push({ url: audioUrl, duration });
+        } else {
+          // Fallback: single segment
+          audioSegments.push({ url: audioUrl, duration: totalDuration });
         }
         
         setProgress(60);
-        setProgressMessage("Combining audio segments...");
+        setProgressMessage("Preparing audio...");
         
-        // Download and combine audio segments
-        // For now, we'll combine them client-side, but we could also do this server-side
-        const audioBlobs: Blob[] = [];
-        for (const segment of audioSegments) {
-          const blob = await downloadAudio(segment.url);
-          audioBlobs.push(blob);
-        }
-        
-        // Combine audio blobs (we'll need to use FFmpeg for this, or do it server-side)
-        // For now, let's use the first approach: combine all audio into one blob using FFmpeg
-        // Actually, let's pass the segments to video generation and let FFmpeg handle it
+        // Download the combined audio (already combined by the API in batched mode)
+        audioBlob = await downloadAudio(audioUrl);
         
         // Store per-image durations - each image gets its corresponding narration duration
         // This ensures each slide matches its audio description
         perImageDurations = [];
-        if (audioSegments.length > 0) {
-          // Each image gets its corresponding audio segment duration
-          // This way, slide 1 shows for the duration of audio segment 1, etc.
+        if (isBatch && segmentDurations && segmentDurations.length > 0) {
+          // Use the segment durations from the batched API response
+          for (let i = 0; i < preparedImages.length; i++) {
+            if (i < segmentDurations.length) {
+              perImageDurations.push(segmentDurations[i]);
+            } else {
+              // If we have more images than segments, use the last segment duration
+              perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+            }
+          }
+        } else if (audioSegments.length > 0) {
+          // Fallback: use audio segments durations
           for (let i = 0; i < preparedImages.length; i++) {
             if (i < audioSegments.length) {
               perImageDurations.push(audioSegments[i].duration);
             } else {
-              // If we have more images than segments, use the last segment duration
               perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
             }
           }
@@ -199,12 +205,7 @@ export function TikTokSlideshowDialog({
         }
         
         console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
-        console.log('[TikTokSlideshowDialog] Audio segment durations:', audioSegments.map(s => s.duration));
-        
-        // For now, combine all audio into one blob for simplicity
-        // TODO: Could optimize by using FFmpeg to concatenate audio segments
-        const combinedAudioBlob = await combineAudioSegments(audioSegments.map(s => s.url));
-        audioBlob = combinedAudioBlob;
+        console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
         
         setProgress(65);
         setProgressMessage("Voiceover ready!");
