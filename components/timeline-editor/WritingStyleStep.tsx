@@ -39,7 +39,6 @@ interface WritingStyleStepProps {
 
 const writingStyles = [
   "Narrative",
-  "Funny",
   "Professional",
   "Casual",
   "Academic",
