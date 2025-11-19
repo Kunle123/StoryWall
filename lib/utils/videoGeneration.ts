@@ -128,19 +128,25 @@ export async function generateSlideshowVideo(
       command.push('-i', 'audio.mp3');
     }
     
-    // Video filter: scale, pad, and use fps to generate output frames
-    // With input framerate 1/duration, each image is read once, then fps filter duplicates
-    // frames to fill the gaps at the output framerate (15fps)
-    // This way each image is only encoded once, but displayed for the full duration
-    const outputFps = 15; // 15 fps is sufficient for slideshows
+    // Video filter: scale, pad, then fps to duplicate frames
+    // With input framerate 1/duration, timestamps are already spaced correctly
+    // fps filter duplicates frames to fill gaps at output framerate
+    // Lower output fps (10 instead of 15) reduces total frames to encode
+    const outputFps = 10; // Lower fps for faster encoding
     const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
-    const vf = `${scaleFilter},fps=${outputFps}`;
+    const fpsFilter = `fps=${outputFps}`; // Duplicate frames to reach output fps
+    const vf = `${scaleFilter},${fpsFilter}`;
     console.log('[generateSlideshowVideo] Video filter:', vf);
     console.log('[generateSlideshowVideo] Output FPS:', outputFps);
     command.push('-vf', vf);
     
     // Set output frame rate
     command.push('-r', outputFps.toString());
+    
+    // Use larger GOP (group of pictures) to reduce keyframes and improve compression
+    // This makes frames reference each other more efficiently
+    command.push('-g', (outputFps * duration).toString()); // One keyframe per image duration
+    command.push('-keyint_min', (outputFps * duration).toString());
     
     // Video codec settings - use faster preset for better performance
     command.push('-c:v', 'libx264');
