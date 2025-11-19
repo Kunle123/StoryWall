@@ -74,21 +74,21 @@ export async function POST(request: NextRequest) {
       try {
         const { slugify } = await import('@/lib/utils/slugify');
         const timestamp = Date.now();
-        const uniqueSlug = `${slugify(body.title)}-${timestamp}`;
+        const uniqueSlug = `${slugify(title)}-${timestamp}`;
         
         const timeline = await createTimeline({
-          title: body.title,
-          description: body.description,
+          title,
+          description,
           slug: uniqueSlug,
           creator_id: user.id,
-          visualization_type: body.visualization_type || 'horizontal',
-          is_public: body.is_public !== false,
-          is_collaborative: body.is_collaborative || false,
-          is_numbered: body.is_numbered || false,
-          number_label: body.number_label || null,
-          start_date: body.start_date || null,
-          end_date: body.end_date || null,
-          hashtags: body.hashtags || [],
+          visualization_type: visualization_type || 'horizontal',
+          is_public: is_public !== false,
+          is_collaborative: is_collaborative || false,
+          is_numbered: is_numbered || false,
+          number_label: number_label || null,
+          start_date: start_date || null,
+          end_date: end_date || null,
+          hashtags: hashtags || [],
         });
         
         return NextResponse.json(timeline, { status: 201 });
