@@ -297,10 +297,9 @@ export async function POST(request: NextRequest) {
     const totalDuration = combinedScript.length / charsPerSecond;
     
     // For batch mode, calculate segment boundaries and durations
-    let segmentDurations: number[] = [];
-    let segmentBoundaries: number[] = [0]; // Start times for each segment
-    
     if (isBatch) {
+      segmentDurations = [];
+      segmentBoundaries = [0]; // Reset to start times for each segment
       let currentTime = 0;
       for (let i = 0; i < scriptsToProcess.length; i++) {
         const segmentLength = scriptsToProcess[i].length;
@@ -316,6 +315,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Single script mode
       segmentDurations = [totalDuration];
+      // segmentBoundaries not needed for single script
     }
 
     console.log('[generate-voiceover] Success:', { 
