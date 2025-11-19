@@ -127,17 +127,19 @@ export async function generateSlideshowVideo(
     }
     
     // Video filter: loop each frame for the desired duration, then scale and pad
-    // Loop filter: loop each frame for (duration * fps) frames
-    const framesPerImage = Math.round(duration * 30); // 30 fps output
+    // Use 15 fps for slideshows - still smooth but much faster to encode
+    // 30 fps is overkill for static images, 15 fps cuts frame count in half
+    const outputFps = 15;
+    const framesPerImage = Math.round(duration * outputFps);
     const loopFilter = `loop=loop=${framesPerImage}:size=1:start=0`;
     const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
-    const vf = `${loopFilter},${scaleFilter},fps=30`;
+    const vf = `${loopFilter},${scaleFilter},fps=${outputFps}`;
     console.log('[generateSlideshowVideo] Video filter:', vf);
-    console.log('[generateSlideshowVideo] Frames per image:', framesPerImage);
+    console.log('[generateSlideshowVideo] Output FPS:', outputFps, 'Frames per image:', framesPerImage);
     command.push('-vf', vf);
     
     // Set output frame rate
-    command.push('-r', '30');
+    command.push('-r', outputFps.toString());
     
     // Video codec settings - use faster preset for better performance
     command.push('-c:v', 'libx264');
