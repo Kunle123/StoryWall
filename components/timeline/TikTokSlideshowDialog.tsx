@@ -173,43 +173,64 @@ export function TikTokSlideshowDialog({
           }
           
           setProgress(60);
-          setProgressMessage("Preparing audio...");
+          setProgressMessage("Preparing audio and calculating durations...");
           
           // Download the combined audio (already combined by the API in batched mode)
           audioBlob = await downloadAudio(audioUrl);
           
-          // Store per-image durations - each image gets its corresponding narration duration
-          // This ensures each slide matches its audio description
+          // Get actual total audio duration
+          const { getAudioDuration } = await import('@/lib/utils/audioDuration');
+          const actualAudioDuration = await getAudioDuration(audioBlob);
+          console.log('[TikTokSlideshowDialog] Actual audio duration:', actualAudioDuration, 'seconds');
+          
+          // Calculate per-image durations based on actual audio duration
+          // Distribute the actual audio duration proportionally across segments
           perImageDurations = [];
           if (isBatch && segmentDurations && segmentDurations.length > 0) {
-            // Use the segment durations from the batched API response
+            // Calculate total estimated duration
+            const totalEstimatedDuration = segmentDurations.reduce((sum, d) => sum + d, 0);
+            // Scale each duration proportionally to match actual audio
+            const scaleFactor = actualAudioDuration / totalEstimatedDuration;
+            console.log('[TikTokSlideshowDialog] Scaling durations by factor:', scaleFactor);
+            
             for (let i = 0; i < preparedImages.length; i++) {
               if (i < segmentDurations.length) {
-                perImageDurations.push(segmentDurations[i]);
+                // Scale the estimated duration to match actual audio
+                const scaledDuration = segmentDurations[i] * scaleFactor;
+                // Clamp to 5-10 seconds as requested
+                const clampedDuration = Math.max(5, Math.min(10, scaledDuration));
+                perImageDurations.push(clampedDuration);
               } else {
                 // If we have more images than segments, use the last segment duration
-                perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+                const lastDuration = segmentDurations[segmentDurations.length - 1] * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, lastDuration)));
               }
             }
           } else if (audioSegments.length > 0) {
-            // Fallback: use audio segments durations
+            // Fallback: use audio segments durations, scaled to actual audio
+            const totalEstimatedDuration = audioSegments.reduce((sum, s) => sum + s.duration, 0);
+            const scaleFactor = actualAudioDuration / totalEstimatedDuration;
+            
             for (let i = 0; i < preparedImages.length; i++) {
               if (i < audioSegments.length) {
-                perImageDurations.push(audioSegments[i].duration);
+                const scaledDuration = audioSegments[i].duration * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, scaledDuration)));
               } else {
-                perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+                const lastDuration = audioSegments[audioSegments.length - 1].duration * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, lastDuration)));
               }
             }
           } else {
-            // Fallback: if no audio segments, use default duration
-            console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
+            // Fallback: distribute actual audio duration evenly across images
+            const durationPerImage = actualAudioDuration / preparedImages.length;
             for (let i = 0; i < preparedImages.length; i++) {
-              perImageDurations.push(options.durationPerSlide);
+              perImageDurations.push(Math.max(5, Math.min(10, durationPerImage)));
             }
           }
           
-          console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
-          console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
+          console.log('[TikTokSlideshowDialog] Per-image durations (scaled to match actual audio):', perImageDurations);
+          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum, d) => sum + d, 0), 'seconds');
+          console.log('[TikTokSlideshowDialog] Actual audio duration:', actualAudioDuration, 'seconds');
           
           setProgress(65);
           setProgressMessage("Voiceover ready!");
@@ -287,43 +308,54 @@ export function TikTokSlideshowDialog({
           }
           
           setProgress(60);
-          setProgressMessage("Preparing audio...");
+          setProgressMessage("Preparing audio and calculating durations...");
           
           // Download the combined audio (already combined by the API in batched mode)
           audioBlob = await downloadAudio(audioUrl);
           
-          // Store per-image durations - each image gets its corresponding narration duration
-          // This ensures each slide matches its audio description
+          // Get actual total audio duration
+          const { getAudioDuration: getAudioDurationFallback } = await import('@/lib/utils/audioDuration');
+          const actualAudioDuration = await getAudioDurationFallback(audioBlob);
+          console.log('[TikTokSlideshowDialog] Actual audio duration (fallback):', actualAudioDuration, 'seconds');
+          
+          // Calculate per-image durations based on actual audio duration
           perImageDurations = [];
           if (isBatch && segmentDurations && segmentDurations.length > 0) {
-            // Use the segment durations from the batched API response
+            const totalEstimatedDuration = segmentDurations.reduce((sum, d) => sum + d, 0);
+            const scaleFactor = actualAudioDuration / totalEstimatedDuration;
+            
             for (let i = 0; i < preparedImages.length; i++) {
               if (i < segmentDurations.length) {
-                perImageDurations.push(segmentDurations[i]);
+                const scaledDuration = segmentDurations[i] * scaleFactor;
+                const clampedDuration = Math.max(5, Math.min(10, scaledDuration));
+                perImageDurations.push(clampedDuration);
               } else {
-                // If we have more images than segments, use the last segment duration
-                perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+                const lastDuration = segmentDurations[segmentDurations.length - 1] * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, lastDuration)));
               }
             }
           } else if (audioSegments.length > 0) {
-            // Fallback: use audio segments durations
+            const totalEstimatedDuration = audioSegments.reduce((sum, s) => sum + s.duration, 0);
+            const scaleFactor = actualAudioDuration / totalEstimatedDuration;
+            
             for (let i = 0; i < preparedImages.length; i++) {
               if (i < audioSegments.length) {
-                perImageDurations.push(audioSegments[i].duration);
+                const scaledDuration = audioSegments[i].duration * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, scaledDuration)));
               } else {
-                perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+                const lastDuration = audioSegments[audioSegments.length - 1].duration * scaleFactor;
+                perImageDurations.push(Math.max(5, Math.min(10, lastDuration)));
               }
             }
           } else {
-            // Fallback: if no audio segments, use default duration
-            console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
+            const durationPerImage = actualAudioDuration / preparedImages.length;
             for (let i = 0; i < preparedImages.length; i++) {
-              perImageDurations.push(options.durationPerSlide);
+              perImageDurations.push(Math.max(5, Math.min(10, durationPerImage)));
             }
           }
           
-          console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
-          console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
+          console.log('[TikTokSlideshowDialog] Per-image durations (fallback, scaled to match actual audio):', perImageDurations);
+          console.log('[TikTokSlideshowDialog] Total video duration:', perImageDurations.reduce((sum, d) => sum + d, 0), 'seconds');
           
           setProgress(65);
           setProgressMessage("Voiceover ready!");

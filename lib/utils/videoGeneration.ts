@@ -142,13 +142,14 @@ async function generateVideoWithPerImageDurations(
   if (audioBlob) {
     command.push('-c:a', 'aac');
     command.push('-b:a', '128k');
-    // Video segments are created with durations matching audio segments
-    // Since they're concatenated in the same order, they should sync perfectly
-    // Use -shortest to ensure video doesn't exceed audio, but segments should match exactly
-    command.push('-shortest');
-    console.log('[generateVideoWithPerImageDurations] Using -shortest to sync video and audio');
+    // Video segments are created with durations matching audio segments exactly
+    // Since segments are concatenated in the same order, they should sync perfectly
+    // Don't use -shortest - let video segments match audio segments exactly
+    // The video duration should match audio duration since segments are created to match
+    console.log('[generateVideoWithPerImageDurations] Syncing video segments to audio');
     console.log('[generateVideoWithPerImageDurations] Total video duration:', totalVideoDuration, 'seconds');
     console.log('[generateVideoWithPerImageDurations] Per-image durations:', durations);
+    console.log('[generateVideoWithPerImageDurations] Video segments will match audio segments in order');
   }
   
   command.push('-y', 'output.mp4');
