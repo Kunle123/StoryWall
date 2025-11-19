@@ -386,10 +386,14 @@ export const TimelineInfoStep = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Select a description or write your own" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-w-[calc(100vw-2rem)]">
                     {descriptionSuggestions.map((suggestion, idx) => (
-                      <SelectItem key={idx} value={suggestion}>
-                        {suggestion}
+                      <SelectItem 
+                        key={idx} 
+                        value={suggestion}
+                        className="whitespace-normal break-words py-2"
+                      >
+                        <span className="block break-words">{suggestion}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
