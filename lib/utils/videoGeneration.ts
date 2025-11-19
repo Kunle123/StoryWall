@@ -22,18 +22,22 @@ async function generateImageSegment(
   const imageData = await fetchFile(imageBlob);
   await ffmpeg.writeFile(imageFileName, imageData);
   
-  // Generate video segment: loop image for specified duration
+  // Generate video segment: use single frame, loop it for duration
+  // No need to encode multiple frames - just one frame extended for the duration
+  // This is much more efficient than encoding duplicate frames
   const command = [
-    '-loop', '1',
-    '-framerate', '1',
+    '-loop', '1',           // Loop the single image
+    '-framerate', '1',      // Input framerate (1 frame from image)
     '-i', imageFileName,
-    '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=${outputFps}`,
-    '-t', duration.toString(),
-    '-r', outputFps.toString(),
+    '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`,
+    '-t', duration.toString(),  // Duration to show this frame
+    '-r', '1',              // Output 1 frame per second (minimal, just for compatibility)
     '-c:v', 'libx264',
     '-pix_fmt', 'yuv420p',
     '-preset', 'ultrafast',
     '-crf', '23',
+    '-g', '1',              // GOP of 1 (one keyframe) since it's a single static frame
+    '-keyint_min', '1',
     '-y',
     outputFileName
   ];
@@ -210,10 +214,9 @@ export async function generateSlideshowVideo(
       break;
   }
 
-  // Use very low fps for static images (1fps) - frames are identical so we don't need high fps
-  // This dramatically reduces encoding time and file size since we're just duplicating static frames
-  // The GOP settings will ensure efficient compression of duplicate frames
-  const outputFps = 1; // 1fps for static images - much more efficient than 10fps
+  // Use minimal fps (1fps) - we're encoding one frame per slide, not multiple duplicate frames
+  // Each slide is a single static frame extended for its duration
+  const outputFps = 1; // Minimal fps - one frame per slide
 
   // If per-image durations are provided, use segment-based approach
   if (perImageDurations && perImageDurations.length > 0) {
@@ -304,15 +307,12 @@ export async function generateSlideshowVideo(
       command.push('-i', 'audio.mp3');
     }
     
-    // Video filter: scale, pad, then fps to duplicate frames
-    // With input framerate 1/duration, timestamps are already spaced correctly
-    // fps filter duplicates frames to fill gaps at output framerate
-    // Use very low fps (1fps) for static images - frames are identical so we don't need high fps
-    // This dramatically reduces encoding time and file size
-    const outputFps = 1; // 1fps for static images - much more efficient
+    // Video filter: scale and pad only - no fps filter needed
+    // We're encoding one frame per image, extended for its duration
+    // No need to duplicate frames since each image is static
+    const outputFps = 1; // Minimal fps - one frame per slide
     const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
-    const fpsFilter = `fps=${outputFps}`; // Duplicate frames to reach output fps
-    const vf = `${scaleFilter},${fpsFilter}`;
+    const vf = scaleFilter; // No fps filter - we want one frame per image
     console.log('[generateSlideshowVideo] Video filter:', vf);
     console.log('[generateSlideshowVideo] Output FPS:', outputFps);
     command.push('-vf', vf);
@@ -320,13 +320,10 @@ export async function generateSlideshowVideo(
     // Set output frame rate
     command.push('-r', outputFps.toString());
     
-    // Use larger GOP (group of pictures) to reduce keyframes and improve compression
-    // Since frames are static/identical, we can use a very large GOP
-    // For 1fps with 3s duration = 3 frames, so GOP of 3 means one keyframe per image
-    // This ensures efficient compression of duplicate frames
-    const gopSize = Math.max(1, Math.ceil(outputFps * duration)); // At least 1, round up
-    command.push('-g', gopSize.toString()); // One keyframe per image duration
-    command.push('-keyint_min', gopSize.toString());
+    // Use GOP of 1 - one keyframe per image (since each image is a single static frame)
+    // This is the most efficient for static content
+    command.push('-g', '1'); // One keyframe per image
+    command.push('-keyint_min', '1');
     
     // Video codec settings - use faster preset for better performance
     command.push('-c:v', 'libx264');
