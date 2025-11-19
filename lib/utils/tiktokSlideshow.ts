@@ -271,14 +271,14 @@ export async function prepareImagesForSlideshow(
   const eventsToProcess = events.slice(0, 20); // Limit to 20 events
   
   for (const event of eventsToProcess) {
-    if (!event.imageUrl) {
+    if (!event.image) {
       // Skip events without images
       continue;
     }
     
     try {
       // Download image
-      const imageBlob = await downloadImage(event.imageUrl);
+      const imageBlob = await downloadImage(event.image);
       
       // Resize to target aspect ratio
       let processedImage = await resizeImage(imageBlob, options.aspectRatio);

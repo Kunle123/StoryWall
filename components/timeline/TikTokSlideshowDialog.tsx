@@ -174,7 +174,7 @@ export function TikTokSlideshowDialog({
     window.open('https://www.tiktok.com/upload', '_blank');
   };
 
-  const eventsWithImages = events.filter(e => e.imageUrl).slice(0, 20);
+  const eventsWithImages = events.filter(e => e.image).slice(0, 20);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
