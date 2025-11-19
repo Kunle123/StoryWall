@@ -43,6 +43,11 @@ export async function generateSlideshowVideo(
       break;
   }
 
+  // Build FFmpeg command (declare outside try block for error handling)
+  const duration = options.durationPerSlide;
+  const totalDuration = duration * images.length;
+  const command: string[] = [];
+
   try {
     // Write images to FFmpeg's virtual file system
     for (let i = 0; i < images.length; i++) {
@@ -57,11 +62,6 @@ export async function generateSlideshowVideo(
     }
 
     // Build FFmpeg command
-    const duration = options.durationPerSlide;
-    const totalDuration = duration * images.length;
-    
-    // Build command array
-    const command: string[] = [];
     
     // Input: image sequence
     // For image sequences, we use -framerate to control input rate
