@@ -383,17 +383,17 @@ export const TimelineInfoStep = ({
                   value={timelineDescription || ""}
                   onValueChange={(value) => setTimelineDescription(value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-left [&>span]:line-clamp-2">
                     <SelectValue placeholder="Select a description or write your own" />
                   </SelectTrigger>
-                  <SelectContent className="max-w-[calc(100vw-2rem)]">
+                  <SelectContent className="max-w-[calc(100vw-2rem)] sm:max-w-none">
                     {descriptionSuggestions.map((suggestion, idx) => (
                       <SelectItem 
                         key={idx} 
                         value={suggestion}
-                        className="whitespace-normal break-words py-2"
+                        className="whitespace-normal break-words py-2 min-h-[2.5rem] items-start"
                       >
-                        <span className="block break-words">{suggestion}</span>
+                        <span className="block break-words pr-6">{suggestion}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
