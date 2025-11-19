@@ -43,13 +43,15 @@ export async function POST(request: NextRequest) {
 
     // Batch verification for efficiency (verify 10 events at a time)
     const batchSize = 10;
-    const batches: Array<Array<{ year?: number; title: string; description?: string }>> = [];
+    const batches: Array<Array<{ year?: number; month?: number; day?: number; title: string; description?: string }>> = [];
     for (let i = 0; i < events.length; i += batchSize) {
       batches.push(events.slice(i, i + batchSize));
     }
 
     const verifiedEvents: Array<{
       year?: number;
+      month?: number;
+      day?: number;
       title: string;
       description?: string;
       verified: boolean;
