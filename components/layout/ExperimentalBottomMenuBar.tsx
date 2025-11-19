@@ -1,6 +1,6 @@
 "use client";
 
-import { Share2, Home, Plus, FileText, Sparkles, BarChart3, Twitter } from "lucide-react";
+import { Share2, Home, Plus, FileText, Sparkles, BarChart3, Twitter, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -21,6 +21,7 @@ interface ExperimentalBottomMenuBarProps {
   isNumbered?: boolean;
   totalEvents?: number;
   onShareTwitterThread?: () => void;
+  onShareTikTokSlideshow?: () => void;
 }
 
 const formatDateRange = (startDate: Date, endDate: Date): string => {
@@ -48,7 +49,8 @@ export const ExperimentalBottomMenuBar = ({
   endDate,
   isNumbered = false,
   totalEvents = 0,
-  onShareTwitterThread
+  onShareTwitterThread,
+  onShareTikTokSlideshow
 }: ExperimentalBottomMenuBarProps) => {
   const { toast } = useToast();
   const router = useRouter();
@@ -435,6 +437,19 @@ export const ExperimentalBottomMenuBar = ({
                       >
                         <Twitter className="w-4 h-4" />
                         Share as Twitter Thread
+                      </Button>
+                    )}
+                    {onShareTikTokSlideshow && (
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                          onShareTikTokSlideshow();
+                          setShowShareMenu(false);
+                        }}
+                      >
+                        <Music className="w-4 h-4" />
+                        Create TikTok Slideshow
                       </Button>
                     )}
                   </div>
