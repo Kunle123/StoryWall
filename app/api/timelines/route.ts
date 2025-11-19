@@ -21,14 +21,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    // Generate slug
+    // Generate unique slug
     const baseSlug = slugify(title);
     let slug = baseSlug;
     let counter = 1;
 
-    // Ensure unique slug
-    // Note: In production, check against database
-    // For now, we'll let Prisma handle uniqueness constraint
+    // Ensure unique slug by checking database and appending counter if needed
+    // Titles can be duplicated, but slugs must be unique
+    const { getTimelineBySlug } = await import('@/lib/db/timelines');
+    while (true) {
+      try {
+        const existingTimeline = await getTimelineBySlug(slug);
+        if (existingTimeline) {
+          // Slug exists, try with counter
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        } else {
+          // Slug is unique, break out of loop
+          break;
+        }
+      } catch (error: any) {
+        // If getTimelineBySlug throws (e.g., timeline not found), slug is available
+        // Break out of loop to use this slug
+        break;
+      }
+    }
 
     // Create timeline
     const timeline = await createTimeline({
@@ -50,12 +67,37 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error creating timeline:', error);
     
-    // Handle unique constraint errors
+    // Handle unique constraint errors (shouldn't happen now with slug checking, but keep as fallback)
     if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'A timeline with this title already exists' },
-        { status: 409 }
-      );
+      // This is a slug uniqueness error, not a title error
+      // Try to generate a unique slug with timestamp
+      try {
+        const { slugify } = await import('@/lib/utils/slugify');
+        const timestamp = Date.now();
+        const uniqueSlug = `${slugify(body.title)}-${timestamp}`;
+        
+        const timeline = await createTimeline({
+          title: body.title,
+          description: body.description,
+          slug: uniqueSlug,
+          creator_id: user.id,
+          visualization_type: body.visualization_type || 'horizontal',
+          is_public: body.is_public !== false,
+          is_collaborative: body.is_collaborative || false,
+          is_numbered: body.is_numbered || false,
+          number_label: body.number_label || null,
+          start_date: body.start_date || null,
+          end_date: body.end_date || null,
+          hashtags: body.hashtags || [],
+        });
+        
+        return NextResponse.json(timeline, { status: 201 });
+      } catch (retryError: any) {
+        return NextResponse.json(
+          { error: 'Failed to create timeline. Please try again.' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(
