@@ -99,8 +99,9 @@ export async function generateSlideshowVideo(
 
     // Convert to blob - FileData can be Uint8Array or string
     if (data instanceof Uint8Array) {
-      // For binary data (MP4), convert Uint8Array to ArrayBuffer
-      const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      // For binary data (MP4), create a new ArrayBuffer from the Uint8Array
+      // This ensures we have a proper ArrayBuffer (not SharedArrayBuffer)
+      const arrayBuffer = new Uint8Array(data).buffer;
       return new Blob([arrayBuffer], { type: 'video/mp4' });
     } else {
       // If it's a string (shouldn't happen for binary files), convert to blob
