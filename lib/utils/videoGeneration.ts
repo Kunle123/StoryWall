@@ -97,9 +97,15 @@ export async function generateSlideshowVideo(
     }
     await ffmpeg.deleteFile('output.mp4');
 
-    // Convert to blob - data is Uint8Array, convert to ArrayBuffer for Blob
-    const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-    return new Blob([arrayBuffer], { type: 'video/mp4' });
+    // Convert to blob - FileData can be Uint8Array or string
+    if (data instanceof Uint8Array) {
+      // For binary data (MP4), convert Uint8Array to ArrayBuffer
+      const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      return new Blob([arrayBuffer], { type: 'video/mp4' });
+    } else {
+      // If it's a string (shouldn't happen for binary files), convert to blob
+      return new Blob([data], { type: 'video/mp4' });
+    }
   } catch (error: any) {
     console.error('Error generating video:', error);
     throw new Error(`Failed to generate video: ${error.message}`);
