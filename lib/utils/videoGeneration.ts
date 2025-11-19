@@ -88,23 +88,6 @@ export async function generateSlideshowVideo(
     }
     console.log(`[generateSlideshowVideo] Successfully wrote all ${images.length} images to FFmpeg filesystem`);
 
-    // Create a concat file list for efficient concatenation
-    // This avoids encoding duplicate frames - each image is encoded once, then concatenated
-    const concatList: string[] = [];
-    for (let i = 0; i < images.length; i++) {
-      const imageFileName = `image${i.toString().padStart(3, '0')}.jpg`;
-      // Each line: file 'path' duration 'duration'
-      concatList.push(`file '${imageFileName}'`);
-      concatList.push(`duration ${duration}`);
-    }
-    // Repeat last image duration (required by concat demuxer)
-    concatList.push(`file 'image${(images.length - 1).toString().padStart(3, '0')}.jpg'`);
-    
-    const concatFileContent = concatList.join('\n');
-    console.log('[generateSlideshowVideo] Creating concat file list');
-    await ffmpeg.writeFile('concat.txt', concatFileContent);
-    console.log('[generateSlideshowVideo] Concat file created');
-
     // Write audio if provided
     if (audioBlob) {
       console.log('[generateSlideshowVideo] Writing audio to FFmpeg virtual filesystem...', {
@@ -130,21 +113,25 @@ export async function generateSlideshowVideo(
     // Build FFmpeg command
     console.log('[generateSlideshowVideo] Building FFmpeg command...');
     
-    // Use concat demuxer for efficient processing - each image encoded once, then concatenated
-    // This avoids encoding duplicate frames
-    console.log('[generateSlideshowVideo] Using concat demuxer for efficient frame handling');
-    command.push('-f', 'concat');
-    command.push('-safe', '0');
-    command.push('-i', 'concat.txt');
+    // Use image2 input with sequence pattern - reads all images as a sequence
+    // Input framerate: 1/duration (so each image is read at the right rate)
+    // This means each image is read once, then fps filter duplicates frames to fill gaps
+    const inputFramerate = 1 / duration;
+    console.log('[generateSlideshowVideo] Using image sequence input with efficient frame duplication');
+    console.log('[generateSlideshowVideo] Input framerate:', inputFramerate, 'fps (1 image per', duration, 'seconds)');
+    command.push('-framerate', inputFramerate.toString());
+    command.push('-i', 'image%03d.jpg'); // Standard FFmpeg sequence pattern: image000.jpg, image001.jpg, etc.
     
-    // Add audio input if provided (must come before filters)
+    // Add audio input if provided (must come after video input)
     if (audioBlob) {
       console.log('[generateSlideshowVideo] Adding audio input to command');
       command.push('-i', 'audio.mp3');
     }
     
-    // Video filter: scale and pad to target dimensions, set output fps
-    // No need to loop frames - concat demuxer handles duration per image
+    // Video filter: scale, pad, and use fps to generate output frames
+    // With input framerate 1/duration, each image is read once, then fps filter duplicates
+    // frames to fill the gaps at the output framerate (15fps)
+    // This way each image is only encoded once, but displayed for the full duration
     const outputFps = 15; // 15 fps is sufficient for slideshows
     const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
     const vf = `${scaleFilter},fps=${outputFps}`;
@@ -242,7 +229,6 @@ export async function generateSlideshowVideo(
       if (audioBlob) {
         await ffmpeg.deleteFile('audio.mp3');
       }
-      await ffmpeg.deleteFile('concat.txt');
       await ffmpeg.deleteFile('output.mp4');
       console.log('[generateSlideshowVideo] Cleanup completed successfully');
     } catch (cleanupError: any) {
