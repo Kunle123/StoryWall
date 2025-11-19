@@ -5,6 +5,14 @@ import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 
 export async function POST(request: NextRequest) {
+  // Parse request body first so it's accessible in catch block
+  let body: any;
+  try {
+    body = await request.json();
+  } catch (parseError) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -14,7 +22,6 @@ export async function POST(request: NextRequest) {
     // Get or create user (auto-creates if doesn't exist)
     const user = await getOrCreateUser(userId);
 
-    const body = await request.json();
     const { title, description, visualization_type, is_public, is_collaborative, is_numbered, number_label, start_date, end_date, hashtags } = body;
 
     if (!title) {
@@ -72,7 +79,13 @@ export async function POST(request: NextRequest) {
       // This is a slug uniqueness error, not a title error
       // Try to generate a unique slug with timestamp
       try {
-        const body = await request.json();
+        // Get user again in case it wasn't set
+        const { userId } = await auth();
+        if (!userId) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const user = await getOrCreateUser(userId);
+        
         const { slugify } = await import('@/lib/utils/slugify');
         const timestamp = Date.now();
         const uniqueSlug = `${slugify(body.title || 'timeline')}-${timestamp}`;
