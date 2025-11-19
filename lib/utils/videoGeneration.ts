@@ -114,11 +114,10 @@ export async function generateSlideshowVideo(
     console.log('[generateSlideshowVideo] Building FFmpeg command...');
     
     // Input: image sequence
-    // For image sequences, we use -framerate to control input rate
-    // Each image will be shown for 'duration' seconds
-    const framerate = (1 / duration).toString();
-    console.log(`[generateSlideshowVideo] Setting input framerate: ${framerate} (1/${duration} = ${framerate})`);
-    command.push('-framerate', framerate);
+    // Use a higher input framerate (1 fps) and then use loop filter to repeat each frame
+    // This is much faster than using a very low framerate
+    console.log('[generateSlideshowVideo] Using 1 fps input framerate with loop filter for better performance');
+    command.push('-framerate', '1');
     command.push('-i', 'image%03d.jpg');
     
     // Add audio input if provided (must come before filters)
@@ -127,18 +126,23 @@ export async function generateSlideshowVideo(
       command.push('-i', 'audio.mp3');
     }
     
-    // Video filter: scale and pad to target dimensions, set output fps
-    const vf = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=30`;
+    // Video filter: loop each frame for the desired duration, then scale and pad
+    // Loop filter: loop each frame for (duration * fps) frames
+    const framesPerImage = Math.round(duration * 30); // 30 fps output
+    const loopFilter = `loop=loop=${framesPerImage}:size=1:start=0`;
+    const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+    const vf = `${loopFilter},${scaleFilter},fps=30`;
     console.log('[generateSlideshowVideo] Video filter:', vf);
+    console.log('[generateSlideshowVideo] Frames per image:', framesPerImage);
     command.push('-vf', vf);
     
     // Set output frame rate
     command.push('-r', '30');
     
-    // Video codec settings
+    // Video codec settings - use faster preset for better performance
     command.push('-c:v', 'libx264');
     command.push('-pix_fmt', 'yuv420p');
-    command.push('-preset', 'medium');
+    command.push('-preset', 'ultrafast'); // Changed from 'medium' to 'ultrafast' for speed
     command.push('-crf', '23');
     
     // Audio codec settings (if audio provided)
@@ -148,15 +152,11 @@ export async function generateSlideshowVideo(
       command.push('-b:a', '128k');
       command.push('-shortest'); // End when shortest stream ends
     } else {
-      // No audio - set duration explicitly before output
-      const frameLimit = (images.length * 30 * duration).toString();
-      console.log('[generateSlideshowVideo] No audio - setting duration and frame limit', {
+      // No audio - set duration explicitly
+      console.log('[generateSlideshowVideo] No audio - setting duration', {
         duration: totalDuration,
-        frameLimit,
       });
       command.push('-t', totalDuration.toString());
-      // Also limit number of frames to prevent hanging
-      command.push('-frames:v', frameLimit);
     }
     
     // Output file
