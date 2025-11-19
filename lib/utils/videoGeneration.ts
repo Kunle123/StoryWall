@@ -64,8 +64,8 @@ export async function generateSlideshowVideo(
     const command: string[] = [];
     
     // Input: image sequence
-    // Use -loop 1 to loop through images once, and -framerate to control speed
-    command.push('-loop', '1');
+    // For image sequences, we use -framerate to control input rate
+    // Each image will be shown for 'duration' seconds
     command.push('-framerate', (1 / duration).toString());
     command.push('-i', 'image%03d.jpg');
     
@@ -77,6 +77,9 @@ export async function generateSlideshowVideo(
     // Video filter: scale and pad to target dimensions, set output fps
     const vf = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,fps=30`;
     command.push('-vf', vf);
+    
+    // Set output frame rate
+    command.push('-r', '30');
     
     // Video codec settings
     command.push('-c:v', 'libx264');
@@ -90,9 +93,10 @@ export async function generateSlideshowVideo(
       command.push('-b:a', '128k');
       command.push('-shortest'); // End when shortest stream ends
     } else {
-      // No audio - set duration explicitly
-      // Use -t before output to limit duration
+      // No audio - set duration explicitly before output
       command.push('-t', totalDuration.toString());
+      // Also limit number of frames to prevent hanging
+      command.push('-frames:v', (images.length * 30 * duration).toString());
     }
     
     // Output file
