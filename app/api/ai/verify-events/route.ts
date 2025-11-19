@@ -70,7 +70,13 @@ Description: ${timelineDescription}
 Verify the factual accuracy of these ${batch.length} events. For each event, determine:
 1. Is the event factually accurate based on your knowledge?
 2. Is the date (year/month/day) correct?
-3. Are there any factual errors, inconsistencies, or unverified claims?
+3. Is the event title accurate and verifiable?
+4. Is the event description factually accurate? Check for:
+   - Incorrect facts, dates, or details in the description
+   - Unverified claims or speculation
+   - Inconsistencies between the title and description
+   - Hallucinated or made-up information
+5. Are there any factual errors, inconsistencies, or unverified claims overall?
 
 Return JSON with this structure:
 {
@@ -97,7 +103,7 @@ ${batch.map((e, idx) => {
         ? e.year 
         : `${e.year}${e.month ? `-${e.month.toString().padStart(2, '0')}` : ''}${e.day ? `-${e.day.toString().padStart(2, '0')}` : ''}`)
     : 'No date';
-  return `${idx}. ${dateStr}: ${e.title}${e.description ? ` - ${e.description.substring(0, 100)}...` : ''}`;
+  return `${idx}. ${dateStr}: ${e.title}${e.description ? `\n   Description: ${e.description}` : ''}`;
 }).join('\n')}
 
 CRITICAL VERIFICATION RULES:
@@ -105,7 +111,8 @@ CRITICAL VERIFICATION RULES:
 - Mark confidence as "low" if dates or details are uncertain
 - Mark confidence as "medium" if event is likely true but some details may be inaccurate
 - Mark confidence as "high" only if you are certain the event is factually correct
-- List specific issues (e.g., "Date appears incorrect", "Event title contains speculation", "Cannot verify this event occurred")
+- VERIFY THE DESCRIPTION: Check if the description contains accurate facts, correct dates, and verifiable information
+- List specific issues (e.g., "Date appears incorrect", "Event title contains speculation", "Description contains unverified claims", "Description has factual errors", "Cannot verify this event occurred")
 - Be conservative - when in doubt, flag the event`;
 
       try {

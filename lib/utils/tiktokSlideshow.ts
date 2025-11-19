@@ -54,7 +54,7 @@ export function generateNarrationScript(
 }
 
 /**
- * Generate narration script for a single event
+ * Generate narration script for a single event (fallback - use AI endpoint for better results)
  */
 export function generateEventNarrationScript(
   event: TimelineEvent,
@@ -70,11 +70,8 @@ export function generateEventNarrationScript(
   script += `${event.title}.`;
   
   if (event.description) {
-    // Use first 150 characters of description
-    const shortDesc = event.description.length > 150
-      ? event.description.substring(0, 150) + '...'
-      : event.description;
-    script += ` ${shortDesc}`;
+    // Use full description - no truncation
+    script += ` ${event.description}`;
   }
   
   if (isLast) {
@@ -239,6 +236,124 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 }
 
 /**
+ * Add dial overlay to image showing the date
+ */
+export async function addDialOverlay(
+  imageBlob: Blob,
+  event: TimelineEvent,
+  aspectRatio: '9:16' | '16:9' | '1:1'
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(imageBlob);
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      
+      // Draw original image
+      ctx.drawImage(img, 0, 0);
+      
+      // Calculate dial size based on image dimensions (smaller for slides)
+      const dialSize = Math.min(img.width, img.height) * 0.15; // 15% of smaller dimension
+      const radius = dialSize / 2 - 4;
+      const centerX = img.width - dialSize / 2 - 20; // Top right corner with padding
+      const centerY = dialSize / 2 + 20; // Top right corner with padding
+      
+      // Draw dial background circle
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 4, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Draw dial circle
+      ctx.strokeStyle = '#FF6B35'; // Orange accent
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Draw arc (270 degrees from -225° to +45°)
+      const startAngle = -225;
+      const endAngle = 45;
+      const totalRange = endAngle - startAngle;
+      const timelinePosition = 0.5; // Middle position for slides
+      const currentAngle = startAngle + totalRange * timelinePosition;
+      
+      const toRadians = (deg: number) => (deg * Math.PI) / 180;
+      const polarToCartesian = (angle: number) => ({
+        x: centerX + radius * Math.cos(toRadians(angle)),
+        y: centerY + radius * Math.sin(toRadians(angle))
+      });
+      
+      const start = polarToCartesian(startAngle);
+      const end = polarToCartesian(currentAngle);
+      
+      // Draw progress arc
+      ctx.strokeStyle = '#FF6B35';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, toRadians(startAngle), toRadians(currentAngle), false);
+      ctx.stroke();
+      
+      // Format date for dial
+      let dateText = '';
+      if (event.number !== undefined) {
+        dateText = event.number.toString();
+      } else if (event.year) {
+        if (event.day && event.month) {
+          const monthName = new Date(event.year, event.month - 1, event.day).toLocaleDateString('en-US', { month: 'short' });
+          dateText = `${monthName}\n${event.day}\n${event.year}`;
+        } else if (event.month) {
+          const monthName = new Date(event.year, event.month - 1).toLocaleDateString('en-US', { month: 'short' });
+          dateText = `${monthName}\n${event.year}`;
+        } else {
+          dateText = event.year.toString();
+        }
+      }
+      
+      // Draw date text in center of dial
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${Math.max(12, dialSize * 0.15)}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const dateLines = dateText.split('\n');
+      const lineHeight = dialSize * 0.2;
+      const startY = centerY - (dateLines.length - 1) * lineHeight / 2;
+      
+      dateLines.forEach((line, index) => {
+        ctx.fillText(line, centerX, startY + index * lineHeight);
+      });
+      
+      // Convert to blob
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Failed to convert canvas to blob'));
+        }
+      }, 'image/jpeg', 0.9);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = url;
+  });
+}
+
+/**
  * Add text overlay to image with text wrapping
  */
 export async function addTextOverlay(
@@ -355,33 +470,38 @@ export async function prepareImagesForSlideshow(
       // Resize to target aspect ratio
       let processedImage = await resizeImage(imageBlob, options.aspectRatio);
       
-      // Add text overlay if needed
-      if (options.showTitle || options.showDate || options.showDescription) {
-        let overlayText = '';
-        
-        if (options.showTitle) {
-          overlayText = event.title;
-        }
-        
-        if (options.showDate && event.year) {
-          const dateStr = formatEventDate(event.year, event.month, event.day);
-          overlayText += overlayText ? ` - ${dateStr}` : dateStr;
-        }
-        
-        if (options.showDescription && event.description) {
-          const shortDesc = event.description.length > 100
-            ? event.description.substring(0, 100) + '...'
-            : event.description;
-          overlayText += overlayText ? `\n${shortDesc}` : shortDesc;
-        }
-        
-        if (overlayText) {
-          processedImage = await addTextOverlay(
-            processedImage,
-            overlayText,
-            options.textPosition
-          );
-        }
+      // Always show title, and add text overlay if needed
+      // Title is always shown, date and description are optional
+      let overlayText = '';
+      
+      // Always include title
+      overlayText = event.title;
+      
+      if (options.showDate && event.year) {
+        const dateStr = formatEventDate(event.year, event.month, event.day);
+        overlayText += ` - ${dateStr}`;
+      }
+      
+      if (options.showDescription && event.description) {
+        // Show full description - no truncation
+        overlayText += `\n${event.description}`;
+      }
+      
+      if (overlayText) {
+        processedImage = await addTextOverlay(
+          processedImage,
+          overlayText,
+          options.textPosition
+        );
+      }
+      
+      // Add dial visualization showing the date
+      if (event.year) {
+        processedImage = await addDialOverlay(
+          processedImage,
+          event,
+          options.aspectRatio
+        );
       }
       
       preparedImages.push(processedImage);

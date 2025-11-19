@@ -3,6 +3,7 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 import { loadUnifiedPrompts } from '@/lib/prompts/loader';
 import { testNewsworthiness } from '@/lib/utils/newsworthinessTest';
 import { hashContent, getCached, setCached } from '@/lib/utils/cache';
+import { verifyAndCorrectEvents } from '@/lib/utils/verifyAndCorrect';
 
 /**
  * OPTIMIZED V2: Single unified call for Anchor + Descriptions + Image Prompts
@@ -297,6 +298,46 @@ export async function POST(request: NextRequest) {
       imagePrompts.push('');
     }
 
+    // Verify and auto-correct events (if requested)
+    let verifiedEvents = null;
+    let verificationSummary = null;
+    
+    if (body.verifyAndCorrect !== false) { // Default to true if not specified
+      console.log('[GenerateDescriptionsV2] Verifying and auto-correcting events...');
+      try {
+        // Create events with generated descriptions for verification
+        const eventsWithDescriptions = events.map((e: any, idx: number) => ({
+          year: e.year,
+          month: e.month,
+          day: e.day,
+          title: e.title,
+          description: descriptions[idx] || e.description,
+        }));
+
+        const verifyResult = await verifyAndCorrectEvents(
+          eventsWithDescriptions,
+          timelineDescription,
+          timelineTitle || 'Untitled Timeline',
+          true // Auto-correct low/medium confidence
+        );
+
+        verifiedEvents = verifyResult.verifiedEvents;
+        verificationSummary = verifyResult.summary;
+
+        // Update descriptions with corrected ones
+        verifiedEvents.forEach((ve, idx) => {
+          if (ve.corrected && ve.description) {
+            descriptions[idx] = ve.description;
+          }
+        });
+
+        console.log(`[GenerateDescriptionsV2] Verification complete: ${verificationSummary.corrected} events corrected`);
+      } catch (verifyError: any) {
+        console.warn('[GenerateDescriptionsV2] Verification failed, continuing without verification:', verifyError.message);
+        // Continue without verification if it fails
+      }
+    }
+
     const responseData: any = {
       descriptions: descriptions.slice(0, events.length),
       imagePrompts: imagePrompts.slice(0, events.length),
@@ -308,8 +349,20 @@ export async function POST(request: NextRequest) {
       responseData.factualDetails = factualDetails;
     }
 
-    // Cache the result
-    setCached(cacheKey, responseData);
+    // Include verification results if available
+    if (verifiedEvents && verificationSummary) {
+      responseData.verifiedEvents = verifiedEvents;
+      responseData.verificationSummary = verificationSummary;
+    }
+
+    // Cache the result (without verification data, as that may change)
+    const cacheData = {
+      descriptions: responseData.descriptions,
+      imagePrompts: responseData.imagePrompts,
+      anchorStyle: responseData.anchorStyle,
+      hashtags: responseData.hashtags,
+    };
+    setCached(cacheKey, cacheData);
 
     return NextResponse.json(responseData);
   } catch (error: any) {

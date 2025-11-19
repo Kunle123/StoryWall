@@ -2,16 +2,22 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, AlertCircle, HelpCircle, RefreshCw, Loader2 } from "lucide-react";
 import { TimelineEvent } from "./WritingStyleStep";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface VerificationResult {
   year?: number;
+  month?: number;
+  day?: number;
   title: string;
   description?: string;
   verified: boolean;
   confidence: 'high' | 'medium' | 'low';
   issues?: string[];
+  corrected?: boolean;
 }
 
 interface VerificationDialogProps {
@@ -22,10 +28,14 @@ interface VerificationDialogProps {
     total: number;
     verified: number;
     flagged: number;
+    corrected?: number;
     highConfidence: number;
     mediumConfidence: number;
     lowConfidence: number;
   };
+  timelineDescription?: string;
+  timelineName?: string;
+  onEventCorrected?: (eventIndex: number, correctedEvent: VerificationResult) => void;
 }
 
 export function VerificationDialog({
@@ -33,7 +43,68 @@ export function VerificationDialog({
   onOpenChange,
   verifiedEvents,
   summary,
+  timelineDescription = '',
+  timelineName = 'Untitled Timeline',
+  onEventCorrected,
 }: VerificationDialogProps) {
+  const { toast } = useToast();
+  const [correctingIndex, setCorrectingIndex] = useState<number | null>(null);
+
+  const handleCorrectEvent = async (eventIndex: number, event: VerificationResult) => {
+    if (!event.issues || event.issues.length === 0) {
+      toast({
+        title: "No issues",
+        description: "This event has no issues to correct.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCorrectingIndex(eventIndex);
+    try {
+      const response = await fetch("/api/ai/correct-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: {
+            year: event.year,
+            month: event.month,
+            day: event.day,
+            title: event.title,
+            description: event.description,
+          },
+          issues: event.issues,
+          timelineDescription,
+          timelineName,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to correct event");
+      }
+
+      const { correctedEvent } = await response.json();
+      
+      if (onEventCorrected) {
+        onEventCorrected(eventIndex, correctedEvent);
+      }
+
+      toast({
+        title: "Event corrected",
+        description: "The event has been corrected with verified information.",
+      });
+    } catch (error: any) {
+      console.error("Error correcting event:", error);
+      toast({
+        title: "Failed to correct event",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setCorrectingIndex(null);
+    }
+  };
   const getConfidenceIcon = (confidence: string) => {
     switch (confidence) {
       case 'high':
@@ -71,7 +142,7 @@ export function VerificationDialog({
         </DialogHeader>
 
         {/* Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg mb-6">
           <div>
             <div className="text-2xl font-bold">{summary.verified}</div>
             <div className="text-sm text-muted-foreground">Verified</div>
@@ -80,6 +151,12 @@ export function VerificationDialog({
             <div className="text-2xl font-bold text-red-600">{summary.flagged}</div>
             <div className="text-sm text-muted-foreground">Flagged</div>
           </div>
+          {summary.corrected !== undefined && (
+            <div>
+              <div className="text-2xl font-bold text-blue-600">{summary.corrected}</div>
+              <div className="text-sm text-muted-foreground">Auto-Corrected</div>
+            </div>
+          )}
           <div>
             <div className="text-2xl font-bold text-green-600">{summary.highConfidence}</div>
             <div className="text-sm text-muted-foreground">High Confidence</div>
@@ -117,9 +194,39 @@ export function VerificationDialog({
                 <div>{getConfidenceBadge(event.confidence)}</div>
               </div>
               
+              {event.corrected && (
+                <div className="mt-2 pt-2 border-t">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Auto-Corrected
+                  </Badge>
+                </div>
+              )}
+              
               {event.issues && event.issues.length > 0 && (
                 <div className="mt-2 pt-2 border-t">
-                  <p className="text-sm font-medium mb-1">Issues Found:</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Issues Found:</p>
+                    {event.confidence !== 'high' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCorrectEvent(idx, event)}
+                        disabled={correctingIndex === idx}
+                      >
+                        {correctingIndex === idx ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Correcting...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Correct
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                     {event.issues.map((issue, issueIdx) => (
                       <li key={issueIdx}>{issue}</li>

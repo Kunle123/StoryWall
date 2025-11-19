@@ -204,6 +204,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
             themeColor, // Include if available
             sourceRestrictions: sourceRestrictions.length > 0 ? sourceRestrictions : undefined,
             timelineType, // Pass timeline type for social media prompts
+            verifyAndCorrect: true, // Enable verification and auto-correction
           }),
           signal: controller.signal,
         });
@@ -255,12 +256,39 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         setHashtags(data.hashtags);
       }
       
+      // Handle verification results
+      if (data.verificationSummary) {
+        const { verified, flagged, corrected, total } = data.verificationSummary;
+        let verificationMessage = `Verified ${verified}/${total} events`;
+        if (corrected > 0) {
+          verificationMessage += `, auto-corrected ${corrected} events`;
+        }
+        if (flagged > 0) {
+          verificationMessage += `, ${flagged} flagged`;
+        }
+        
+        // Show verification results in dialog if there are issues
+        if (data.verifiedEvents && (flagged > 0 || corrected > 0)) {
+          setVerificationResults({
+            verifiedEvents: data.verifiedEvents,
+            summary: data.verificationSummary,
+          });
+          setShowVerificationDialog(true);
+        }
+        
+        toast({
+          title: "Success!",
+          description: `Generated and verified descriptions for ${events.length} events. ${verificationMessage}.${data.hashtags ? ` ${data.hashtags.length} hashtags added.` : ''}`,
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
+        });
+      }
+      
       // Mark all events as generated
       setGeneratedEventIds(new Set(events.map(e => e.id)));
-      toast({
-        title: "Success!",
-        description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
-      });
     } catch (error: any) {
       console.error("Error generating descriptions:", error);
       toast({
@@ -294,7 +322,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
             ) : (
               <Sparkles className="mr-2 h-5 w-5" />
             )}
-            {isGeneratingAll ? "Generating All..." : "Generate Descriptions with AI"}
+            {isGeneratingAll ? "Generating & Verifying..." : "Generate Descriptions with AI"}
           </Button>
           <Button
             onClick={verifyEvents}
@@ -343,15 +371,41 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         ))}
       </div>
 
-      {/* Verification Dialog */}
-      {verificationResults && (
-        <VerificationDialog
-          open={showVerificationDialog}
-          onOpenChange={setShowVerificationDialog}
-          verifiedEvents={verificationResults.verifiedEvents}
-          summary={verificationResults.summary}
-        />
-      )}
+            {/* Verification Dialog */}
+            {verificationResults && (
+              <VerificationDialog
+                open={showVerificationDialog}
+                onOpenChange={setShowVerificationDialog}
+                verifiedEvents={verificationResults.verifiedEvents}
+                summary={verificationResults.summary}
+                timelineDescription={timelineDescription}
+                timelineName={timelineName || "Untitled Timeline"}
+                onEventCorrected={(eventIndex, correctedEvent) => {
+                  // Update the event in the events array
+                  const updatedEvents = [...events];
+                  const eventId = updatedEvents[eventIndex]?.id;
+                  if (eventId) {
+                    updatedEvents[eventIndex] = {
+                      ...updatedEvents[eventIndex],
+                      description: correctedEvent.description || updatedEvents[eventIndex].description,
+                      title: correctedEvent.title || updatedEvents[eventIndex].title,
+                    };
+                    setEvents(updatedEvents);
+                  }
+                  
+                  // Update verification results
+                  const updatedVerificationResults = { ...verificationResults };
+                  updatedVerificationResults.verifiedEvents[eventIndex] = {
+                    ...updatedVerificationResults.verifiedEvents[eventIndex],
+                    ...correctedEvent,
+                    corrected: true,
+                    confidence: 'high' as const,
+                    issues: [],
+                  };
+                  setVerificationResults(updatedVerificationResults);
+                }}
+              />
+            )}
 
       {/* Terms Violation Dialog */}
       <TermsViolationDialog

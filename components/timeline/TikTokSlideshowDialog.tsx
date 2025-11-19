@@ -92,123 +92,242 @@ export function TikTokSlideshowDialog({
       
       if (options.addVoiceover) {
         setProgress(40);
-        setProgressMessage("Generating narration scripts per slide...");
+        setProgressMessage("Generating natural narration scripts...");
         
         // Generate narration script for each event that has an image
         const eventsWithImages = events.filter(e => e.image).slice(0, 20);
-        const narrationScripts: string[] = [];
         
-        // Generate script for each event (no separate intro - first event gets intro text)
-        eventsWithImages.forEach((event, index) => {
-          const isFirst = index === 0;
-          const isLast = index === eventsWithImages.length - 1;
-          let script = generateEventNarrationScript(event, isFirst, isLast);
-          
-          // Add intro to first event
-          if (isFirst) {
-            let introText = `Welcome to ${timelineTitle}.`;
-            if (timelineDescription) {
-              const shortDesc = timelineDescription.length > 100
-                ? timelineDescription.substring(0, 100) + '...'
-                : timelineDescription;
-              introText += ` ${shortDesc}`;
-            }
-            introText += ' Let\'s explore the key moments. ';
-            script = introText + script;
-          }
-          
-          narrationScripts.push(script);
-        });
-        
-        setProgress(45);
-        setProgressMessage(`Generating audio for ${narrationScripts.length} segments in one batch...`);
-        
-        // Use batched API to reduce API calls - all scripts in one call
-        const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            scripts: narrationScripts, // Pass array of scripts for batching
-            voice: options.voice,
-          }),
-        });
+        // Use AI to generate natural, abridged narration scripts
+        try {
+          const narrationResponse = await fetch('/api/ai/generate-slideshow-narration', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              events: eventsWithImages,
+              timelineTitle,
+              timelineDescription,
+            }),
+          });
 
-        if (!voiceoverResponse.ok) {
-          let errorMessage = 'Failed to generate voiceover';
-          try {
-            const errorData = await voiceoverResponse.json();
-            errorMessage = errorData.error || errorData.details || errorMessage;
-          } catch (e) {
-            errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+          if (!narrationResponse.ok) {
+            throw new Error('Failed to generate narration scripts');
           }
-          throw new Error(errorMessage);
-        }
 
-        const { audioUrl, duration: totalDuration, segmentDurations, segmentBoundaries, isBatch } = await voiceoverResponse.json();
-        if (!audioUrl) {
-          throw new Error('No audio URL returned from voiceover generation');
-        }
-        
-        // Create audio segments array from batched response
-        const audioSegments: { url: string; duration: number }[] = [];
-        if (isBatch && segmentDurations && segmentDurations.length > 0) {
-          // For batched mode, we have one audio URL but multiple segment durations
-          // We'll need to split the audio later, but for now use the combined audio
-          // and store individual durations for video sync
-          for (let i = 0; i < segmentDurations.length; i++) {
-            audioSegments.push({ 
-              url: audioUrl, // Same URL for all segments (we'll split it)
-              duration: segmentDurations[i] 
-            });
+          const { scripts: narrationScripts } = await narrationResponse.json();
+          
+          if (!narrationScripts || narrationScripts.length === 0) {
+            throw new Error('No narration scripts generated');
           }
-        } else {
-          // Fallback: single segment
-          audioSegments.push({ url: audioUrl, duration: totalDuration });
-        }
-        
-        setProgress(60);
-        setProgressMessage("Preparing audio...");
-        
-        // Download the combined audio (already combined by the API in batched mode)
-        audioBlob = await downloadAudio(audioUrl);
-        
-        // Store per-image durations - each image gets its corresponding narration duration
-        // This ensures each slide matches its audio description
-        perImageDurations = [];
-        if (isBatch && segmentDurations && segmentDurations.length > 0) {
-          // Use the segment durations from the batched API response
-          for (let i = 0; i < preparedImages.length; i++) {
-            if (i < segmentDurations.length) {
-              perImageDurations.push(segmentDurations[i]);
-            } else {
-              // If we have more images than segments, use the last segment duration
-              perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+          
+          // Use AI-generated scripts
+          const finalScripts = narrationScripts;
+          
+          setProgress(45);
+          setProgressMessage(`Generating audio for ${finalScripts.length} segments in one batch...`);
+          
+          // Use batched API to reduce API calls - all scripts in one call
+          const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              scripts: finalScripts, // Pass array of scripts for batching
+              voice: options.voice,
+            }),
+          });
+
+          if (!voiceoverResponse.ok) {
+            let errorMessage = 'Failed to generate voiceover';
+            try {
+              const errorData = await voiceoverResponse.json();
+              errorMessage = errorData.error || errorData.details || errorMessage;
+            } catch (e) {
+              errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const { audioUrl, duration: totalDuration, segmentDurations, segmentBoundaries, isBatch } = await voiceoverResponse.json();
+          if (!audioUrl) {
+            throw new Error('No audio URL returned from voiceover generation');
+          }
+          
+          // Create audio segments array from batched response
+          const audioSegments: { url: string; duration: number }[] = [];
+          if (isBatch && segmentDurations && segmentDurations.length > 0) {
+            // For batched mode, we have one audio URL but multiple segment durations
+            // We'll need to split the audio later, but for now use the combined audio
+            // and store individual durations for video sync
+            for (let i = 0; i < segmentDurations.length; i++) {
+              audioSegments.push({ 
+                url: audioUrl, // Same URL for all segments (we'll split it)
+                duration: segmentDurations[i] 
+              });
+            }
+          } else {
+            // Fallback: single segment
+            audioSegments.push({ url: audioUrl, duration: totalDuration });
+          }
+          
+          setProgress(60);
+          setProgressMessage("Preparing audio...");
+          
+          // Download the combined audio (already combined by the API in batched mode)
+          audioBlob = await downloadAudio(audioUrl);
+          
+          // Store per-image durations - each image gets its corresponding narration duration
+          // This ensures each slide matches its audio description
+          perImageDurations = [];
+          if (isBatch && segmentDurations && segmentDurations.length > 0) {
+            // Use the segment durations from the batched API response
+            for (let i = 0; i < preparedImages.length; i++) {
+              if (i < segmentDurations.length) {
+                perImageDurations.push(segmentDurations[i]);
+              } else {
+                // If we have more images than segments, use the last segment duration
+                perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+              }
+            }
+          } else if (audioSegments.length > 0) {
+            // Fallback: use audio segments durations
+            for (let i = 0; i < preparedImages.length; i++) {
+              if (i < audioSegments.length) {
+                perImageDurations.push(audioSegments[i].duration);
+              } else {
+                perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+              }
+            }
+          } else {
+            // Fallback: if no audio segments, use default duration
+            console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
+            for (let i = 0; i < preparedImages.length; i++) {
+              perImageDurations.push(options.durationPerSlide);
             }
           }
-        } else if (audioSegments.length > 0) {
-          // Fallback: use audio segments durations
-          for (let i = 0; i < preparedImages.length; i++) {
-            if (i < audioSegments.length) {
-              perImageDurations.push(audioSegments[i].duration);
-            } else {
-              perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+          
+          console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
+          console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
+          
+          setProgress(65);
+          setProgressMessage("Voiceover ready!");
+        } catch (narrationError: any) {
+          console.warn('[TikTokSlideshowDialog] AI narration generation failed, using fallback:', narrationError);
+          // Fallback to simple script generation
+          const fallbackScripts: string[] = [];
+          eventsWithImages.forEach((event, index) => {
+            const isFirst = index === 0;
+            const isLast = index === eventsWithImages.length - 1;
+            let script = generateEventNarrationScript(event, isFirst, isLast);
+            
+            // Add intro to first event
+            if (isFirst) {
+              let introText = `Welcome to ${timelineTitle}.`;
+              if (timelineDescription) {
+                const shortDesc = timelineDescription.length > 80
+                  ? timelineDescription.substring(0, 80) + '...'
+                  : timelineDescription;
+                introText += ` ${shortDesc}`;
+              }
+              introText += ' Let\'s explore the key moments. ';
+              script = introText + script;
+            }
+            
+            fallbackScripts.push(script);
+          });
+          
+          setProgress(45);
+          setProgressMessage(`Generating audio for ${fallbackScripts.length} segments in one batch...`);
+          
+          // Use batched API to reduce API calls - all scripts in one call
+          const voiceoverResponse = await fetch('/api/ai/generate-voiceover', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              scripts: fallbackScripts, // Pass array of scripts for batching
+              voice: options.voice,
+            }),
+          });
+
+          if (!voiceoverResponse.ok) {
+            let errorMessage = 'Failed to generate voiceover';
+            try {
+              const errorData = await voiceoverResponse.json();
+              errorMessage = errorData.error || errorData.details || errorMessage;
+            } catch (e) {
+              errorMessage = `${errorMessage}: ${voiceoverResponse.statusText}`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const { audioUrl, duration: totalDuration, segmentDurations, segmentBoundaries, isBatch } = await voiceoverResponse.json();
+          if (!audioUrl) {
+            throw new Error('No audio URL returned from voiceover generation');
+          }
+          
+          // Create audio segments array from batched response
+          const audioSegments: { url: string; duration: number }[] = [];
+          if (isBatch && segmentDurations && segmentDurations.length > 0) {
+            // For batched mode, we have one audio URL but multiple segment durations
+            // We'll need to split the audio later, but for now use the combined audio
+            // and store individual durations for video sync
+            for (let i = 0; i < segmentDurations.length; i++) {
+              audioSegments.push({ 
+                url: audioUrl, // Same URL for all segments (we'll split it)
+                duration: segmentDurations[i] 
+              });
+            }
+          } else {
+            // Fallback: single segment
+            audioSegments.push({ url: audioUrl, duration: totalDuration });
+          }
+          
+          setProgress(60);
+          setProgressMessage("Preparing audio...");
+          
+          // Download the combined audio (already combined by the API in batched mode)
+          audioBlob = await downloadAudio(audioUrl);
+          
+          // Store per-image durations - each image gets its corresponding narration duration
+          // This ensures each slide matches its audio description
+          perImageDurations = [];
+          if (isBatch && segmentDurations && segmentDurations.length > 0) {
+            // Use the segment durations from the batched API response
+            for (let i = 0; i < preparedImages.length; i++) {
+              if (i < segmentDurations.length) {
+                perImageDurations.push(segmentDurations[i]);
+              } else {
+                // If we have more images than segments, use the last segment duration
+                perImageDurations.push(segmentDurations[segmentDurations.length - 1]);
+              }
+            }
+          } else if (audioSegments.length > 0) {
+            // Fallback: use audio segments durations
+            for (let i = 0; i < preparedImages.length; i++) {
+              if (i < audioSegments.length) {
+                perImageDurations.push(audioSegments[i].duration);
+              } else {
+                perImageDurations.push(audioSegments[audioSegments.length - 1].duration);
+              }
+            }
+          } else {
+            // Fallback: if no audio segments, use default duration
+            console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
+            for (let i = 0; i < preparedImages.length; i++) {
+              perImageDurations.push(options.durationPerSlide);
             }
           }
-        } else {
-          // Fallback: if no audio segments, use default duration
-          console.warn('[TikTokSlideshowDialog] No audio segments, using default duration per slide');
-          for (let i = 0; i < preparedImages.length; i++) {
-            perImageDurations.push(options.durationPerSlide);
-          }
+          
+          console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
+          console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
+          
+          setProgress(65);
+          setProgressMessage("Voiceover ready!");
         }
-        
-        console.log('[TikTokSlideshowDialog] Per-image durations (ensuring each slide matches its audio):', perImageDurations);
-        console.log('[TikTokSlideshowDialog] Audio segment durations:', isBatch ? segmentDurations : audioSegments.map(s => s.duration));
-        
-        setProgress(65);
-        setProgressMessage("Voiceover ready!");
       }
 
       // Step 3: Generate video
