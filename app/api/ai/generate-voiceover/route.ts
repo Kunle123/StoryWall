@@ -69,10 +69,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for Cloudinary environment variables
-    if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.error('[generate-voiceover] Missing Cloudinary credentials');
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const cloudinaryApiKey = process.env.CLOUDINARY_API_KEY;
+    const cloudinaryApiSecret = process.env.CLOUDINARY_API_SECRET;
+    
+    if (!cloudName || !cloudinaryApiKey || !cloudinaryApiSecret) {
+      console.error('[generate-voiceover] Missing Cloudinary credentials:', {
+        hasCloudName: !!cloudName,
+        hasApiKey: !!cloudinaryApiKey,
+        hasApiSecret: !!cloudinaryApiSecret,
+      });
       return NextResponse.json(
-        { error: 'Cloudinary not configured', details: 'Cloudinary environment variables are missing' },
+        { error: 'Cloudinary not configured', details: 'Cloudinary environment variables are missing. Please configure NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.' },
         { status: 500 }
       );
     }
@@ -80,9 +88,9 @@ export async function POST(request: NextRequest) {
     // Upload to Cloudinary as temporary file (24h expiry)
     const cloudinary = require('cloudinary').v2;
     cloudinary.config({
-      cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
+      cloud_name: cloudName,
+      api_key: cloudinaryApiKey,
+      api_secret: cloudinaryApiSecret,
     });
 
     console.log('[generate-voiceover] Uploading to Cloudinary...');
