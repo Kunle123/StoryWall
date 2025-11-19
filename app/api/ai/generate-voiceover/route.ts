@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
     const separator = ' ... ';
     const separatorLength = separator.length;
     
+    // Validate voice option (must be declared before use in batch processing)
+    const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+    const selectedVoice = validVoices.includes(voice) ? voice : 'alloy';
+    
     let isBatch = scriptsToProcess.length > 1;
     let combinedScript: string;
     let segmentDurations: number[] = [];
@@ -186,10 +190,6 @@ export async function POST(request: NextRequest) {
       // Single script mode
       combinedScript = scriptsToProcess[0];
     }
-
-    // Validate voice option
-    const validVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
-    const selectedVoice = validVoices.includes(voice) ? voice : 'alloy';
 
     console.log('[generate-voiceover] Generating speech:', { 
       scriptCount: scriptsToProcess.length,
