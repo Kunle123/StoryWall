@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
-import { postTwitterThread } from '@/lib/twitter/api';
+import { postTwitterThread, uploadMedia } from '@/lib/twitter/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { tweets } = body;
+    const { tweets, imageUrl } = body;
     
     if (!tweets || !Array.isArray(tweets) || tweets.length === 0) {
       return NextResponse.json(
@@ -39,10 +39,27 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Post the thread
+    // Upload image if provided (for first tweet)
+    let mediaId: string | undefined;
+    if (imageUrl && tweets.length > 0) {
+      try {
+        mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
+        console.log(`[Twitter Post Thread] Uploaded image, media_id: ${mediaId}`);
+      } catch (error: any) {
+        console.error('[Twitter Post Thread] Failed to upload image:', error);
+        // Continue without image if upload fails
+      }
+    }
+    
+    // Post the thread with image attached to first tweet
+    const tweetsWithMedia = tweets.map((t: any, index: number) => ({
+      text: t.text,
+      mediaId: index === 0 ? mediaId : undefined, // Only attach to first tweet
+    }));
+    
     const results = await postTwitterThread(
       userWithToken.twitterAccessToken,
-      tweets.map((t: any) => ({ text: t.text }))
+      tweetsWithMedia
     );
     
     return NextResponse.json({

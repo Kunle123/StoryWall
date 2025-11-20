@@ -17,6 +17,7 @@ interface TwitterThreadDialogProps {
   timelineDescription?: string;
   events: TimelineEvent[];
   timelineUrl?: string;
+  timelineImageUrl?: string; // First event's image URL for Twitter card
 }
 
 export function TwitterThreadDialog({
@@ -26,6 +27,7 @@ export function TwitterThreadDialog({
   timelineDescription,
   events,
   timelineUrl,
+  timelineImageUrl,
 }: TwitterThreadDialogProps) {
   const { toast } = useToast();
   const { isSignedIn } = useUser();
@@ -37,7 +39,8 @@ export function TwitterThreadDialog({
     timelineTitle,
     timelineDescription,
     events,
-    timelineUrl
+    timelineUrl,
+    timelineImageUrl
   );
   
   const threadText = formatTweetsAsThreadString(tweets);
@@ -115,6 +118,7 @@ export function TwitterThreadDialog({
         },
         body: JSON.stringify({
           tweets: tweets.map(t => ({ text: t.text })),
+          imageUrl: timelineImageUrl, // Include image URL for first tweet
         }),
       });
       

@@ -14,25 +14,57 @@ export function formatTimelineAsTwitterThread(
   timelineTitle: string,
   timelineDescription: string | undefined,
   events: TimelineEvent[],
-  timelineUrl?: string
+  timelineUrl?: string,
+  timelineImageUrl?: string
 ): TwitterThreadTweet[] {
   const tweets: TwitterThreadTweet[] = [];
   
-  // First tweet: Timeline title and description
-  let firstTweet = `🧵 ${timelineTitle}`;
+  // First tweet: Timeline description as subject, with title and URL
+  // Twitter doesn't support markdown, so URLs will be auto-linked
+  let firstTweet = '';
+  
+  // Use description as the subject/topic of the tweet
   if (timelineDescription) {
-    const remainingChars = 280 - firstTweet.length - 1; // -1 for space
-    const truncatedDesc = timelineDescription.length > remainingChars
-      ? timelineDescription.substring(0, remainingChars - 3) + '...'
-      : timelineDescription;
-    firstTweet += `\n\n${truncatedDesc}`;
+    firstTweet = timelineDescription;
+    
+    // Truncate description to leave room for title and URL
+    // URL takes ~23 chars (t.co shortened), title takes ~title.length + 3 chars (emoji + spacing)
+    const urlOverhead = timelineUrl ? 25 : 0; // Reserve space for URL
+    const titleOverhead = timelineTitle ? timelineTitle.length + 5 : 0; // Reserve space for title with emoji
+    const totalOverhead = urlOverhead + titleOverhead;
+    
+    const maxDescLength = 280 - totalOverhead - 10; // -10 for safety margin
+    if (firstTweet.length > maxDescLength) {
+      firstTweet = firstTweet.substring(0, maxDescLength - 3) + '...';
+    }
+  } else {
+    // Fallback if no description
+    firstTweet = `🧵 ${timelineTitle}`;
   }
   
-  // Add URL if provided (takes ~23 chars for t.co shortened URLs)
-  if (timelineUrl) {
-    const urlText = `\n\n${timelineUrl}`;
-    if (firstTweet.length + urlText.length <= 280) {
-      firstTweet += urlText;
+  // Add title and URL (Twitter will auto-link the URL)
+  if (timelineTitle && timelineUrl) {
+    const titleAndUrl = `\n\n🧵 ${timelineTitle}\n\n${timelineUrl}`;
+    if (firstTweet.length + titleAndUrl.length <= 280) {
+      firstTweet += titleAndUrl;
+    } else {
+      // If too long, prioritize URL over title
+      const urlOnly = `\n\n${timelineUrl}`;
+      if (firstTweet.length + urlOnly.length <= 280) {
+        firstTweet += urlOnly;
+      }
+    }
+  } else if (timelineTitle) {
+    // If no URL, just add title
+    const titleText = `\n\n🧵 ${timelineTitle}`;
+    if (firstTweet.length + titleText.length <= 280) {
+      firstTweet += titleText;
+    }
+  } else if (timelineUrl) {
+    // If no title, just add URL
+    const urlOnly = `\n\n${timelineUrl}`;
+    if (firstTweet.length + urlOnly.length <= 280) {
+      firstTweet += urlOnly;
     }
   }
   

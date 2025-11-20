@@ -1853,8 +1853,11 @@ export async function POST(request: NextRequest) {
         }
         
         // Build input - structure varies by model (for Replicate models)
+        // Set 1:1 aspect ratio (1024x1024) for all images going forward
         const input: any = {
           prompt: prompt,
+          width: 1024,
+          height: 1024,
         };
         
         // Model-specific parameters

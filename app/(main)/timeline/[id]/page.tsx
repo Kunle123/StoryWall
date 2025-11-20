@@ -267,6 +267,7 @@ const TimelinePage = () => {
             timelineDescription={timeline.description || undefined}
             events={events.length > 0 ? events : (timeline.events || []).map((e: any) => transformApiEventToTimelineEvent(e))}
             timelineUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/timeline/${timeline.id}`}
+            timelineImageUrl={events.length > 0 && events[0]?.imageUrl ? events[0].imageUrl : (timeline.events?.[0]?.image_url || undefined)}
           />
           <TikTokSlideshowDialog
             open={showTikTokSlideshow}
