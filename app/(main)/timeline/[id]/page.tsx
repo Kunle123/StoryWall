@@ -275,6 +275,8 @@ const TimelinePage = () => {
             timelineTitle={timeline.title}
             timelineDescription={timeline.description || undefined}
             events={events.length > 0 ? events : (timeline.events || []).map((e: any) => transformApiEventToTimelineEvent(e))}
+            timelineId={timeline.id}
+            timelineUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/timeline/${timeline.id}`}
           />
         </>
       )}
