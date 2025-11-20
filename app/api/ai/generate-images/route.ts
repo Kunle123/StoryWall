@@ -2444,7 +2444,7 @@ export async function POST(request: NextRequest) {
                     controller.close();
                   }
                 }
-              }).catch((error) => {
+              }).catch(async (error) => {
                 console.error('[ImageGen] Error in streaming promise:', error);
                 completedCount++;
                 if (completedCount === totalEvents) {
