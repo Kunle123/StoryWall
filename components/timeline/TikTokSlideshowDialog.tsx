@@ -14,6 +14,7 @@ import { TimelineEvent } from "./Timeline";
 import { SlideshowOptions, generateNarrationScript, generateEventNarrationScript, prepareImagesForSlideshow } from "@/lib/utils/tiktokSlideshow";
 import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
 import JSZip from "jszip";
+import { TikTokSlideshowPreview } from "./TikTokSlideshowPreview";
 
 interface TikTokSlideshowDialogProps {
   open: boolean;
@@ -496,6 +497,19 @@ export function TikTokSlideshowDialog({
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Preview Section - Show preview of slideshow design */}
+          {eventsWithImages.length > 0 && !isGenerating && (
+            <div className="space-y-2">
+              <Label>Preview</Label>
+              <div className="border rounded-lg p-2 bg-muted/30">
+                <TikTokSlideshowPreview
+                  events={eventsWithImages}
+                  title={timelineTitle}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Mode Selector */}
           {!videoUrl && !zipUrl && (
             <div className="space-y-2">
