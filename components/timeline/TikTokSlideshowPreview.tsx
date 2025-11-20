@@ -66,9 +66,9 @@ export const TikTokSlideshowPreview = ({ events, title }: TikTokSlideshowPreview
                   className="relative w-full rounded-lg overflow-hidden shadow-lg animate-fade-in"
                   style={{ aspectRatio: "1/1" }}
                 >
-                  {currentEvent.imageUrl || currentEvent.image ? (
+                  {currentEvent.image ? (
                     <img
-                      src={currentEvent.imageUrl || currentEvent.image}
+                      src={currentEvent.image}
                       alt={currentEvent.title}
                       className="w-full h-full object-cover"
                     />
