@@ -76,7 +76,7 @@ export const GenerateImagesStep = ({
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [totalRegenerations, setTotalRegenerations] = useState(0); // Cumulative regenerations across all images
   const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
-  const { deductCredits, credits } = useCredits();
+  const { deductCredits, credits, fetchCredits } = useCredits();
 
   const handleSaveEdit = () => {
     if (editingEvent) {
@@ -360,6 +360,12 @@ export const GenerateImagesStep = ({
                 setProgress(100);
                 setGeneratingCount(eventCount);
                 
+                // Credits are deducted server-side - refresh balance
+                if (data.creditsDeducted !== undefined) {
+                  console.log(`[GenerateImages] Server deducted ${data.creditsDeducted} credits (streaming)`);
+                  await fetchCredits();
+                }
+                
                 // Ensure all events are updated (in case any were missed)
                 // data.images array corresponds to selectedEventsList order
                 setEvents(prevEvents => {
@@ -408,14 +414,22 @@ export const GenerateImagesStep = ({
       const successfulImages = finalData.images.filter((img: any) => img !== null);
       const failedCount = finalData.images.length - successfulImages.length;
       
-      // Deduct credits AFTER successful generation
-      const creditsDeducted = await deductCredits(
-        totalCost, 
-        `AI Image Generation for ${eventCount} events`
-      );
-      
-      if (!creditsDeducted) {
-        console.warn('Failed to deduct credits after image generation');
+      // Credits are now deducted server-side by the API
+      // Only refresh credits balance to reflect server-side deduction
+      if (finalData.creditsDeducted !== undefined) {
+        console.log(`[GenerateImages] Server deducted ${finalData.creditsDeducted} credits`);
+        // Refresh credits to get updated balance from server
+        await fetchCredits();
+      } else {
+        // Fallback: if server didn't deduct (old API version), deduct client-side
+        console.warn('[GenerateImages] Server did not deduct credits, using client-side fallback');
+        const creditsDeducted = await deductCredits(
+          totalCost, 
+          `AI Image Generation for ${eventCount} events`
+        );
+        if (!creditsDeducted) {
+          console.warn('Failed to deduct credits after image generation');
+        }
       }
       
       setIsGenerating(false);

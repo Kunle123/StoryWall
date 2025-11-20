@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
 import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
+import { auth } from '@clerk/nextjs/server';
+import { getOrCreateUser } from '@/lib/db/users';
+import { prisma } from '@/lib/db/prisma';
 
 // Helper to extract famous person names from event text using OpenAI
 // Returns array of objects with {name, search_query}
@@ -1413,6 +1416,18 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get or create user for credit management
+    const user = await getOrCreateUser(userId);
+
     const body = await request.json();
     const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
     
@@ -1426,6 +1441,24 @@ export async function POST(request: NextRequest) {
     if (!events || !Array.isArray(events) || events.length === 0) {
       return NextResponse.json(
         { error: 'Events array is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check credits before generation (1 credit per image)
+    const requiredCredits = events.length;
+    const userCredits = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { credits: true },
+    });
+
+    if (!userCredits || userCredits.credits < requiredCredits) {
+      return NextResponse.json(
+        { 
+          error: 'Insufficient credits',
+          credits: userCredits?.credits || 0,
+          required: requiredCredits,
+        },
         { status: 400 }
       );
     }
@@ -2327,14 +2360,36 @@ export async function POST(request: NextRequest) {
                   
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify(update)}\n\n`));
                   
-                  // If all done, send final message and close
+                  // If all done, deduct credits and send final message
                   if (completedCount === totalEvents) {
+                    const successfulImages = images.filter(img => img !== null);
+                    const creditsToDeduct = successfulImages.length;
+                    
+                    // Deduct credits AFTER all images are generated
+                    if (creditsToDeduct > 0) {
+                      try {
+                        await prisma.user.update({
+                          where: { id: user.id },
+                          data: {
+                            credits: {
+                              decrement: creditsToDeduct,
+                            },
+                          },
+                        });
+                        console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images`);
+                      } catch (creditError: any) {
+                        console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
+                        // Don't fail the request if credit deduction fails - images were already generated
+                      }
+                    }
+                    
                     const finalUpdate = {
                       type: 'complete',
                       images: images,
                       prompts: prompts,
-                      successful: images.filter(img => img !== null).length,
-                      failed: errors.filter(err => err !== null).length
+                      successful: successfulImages.length,
+                      failed: errors.filter(err => err !== null).length,
+                      creditsDeducted: creditsToDeduct, // Inform client how many credits were deducted
                     };
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalUpdate)}\n\n`));
                     controller.close();
@@ -2356,6 +2411,36 @@ export async function POST(request: NextRequest) {
                   })}\n\n`));
                   
                   if (completedCount === totalEvents) {
+                    // Deduct credits for successful images even if some failed
+                    const successfulImages = images.filter(img => img !== null);
+                    const creditsToDeduct = successfulImages.length;
+                    
+                    if (creditsToDeduct > 0) {
+                      try {
+                        await prisma.user.update({
+                          where: { id: user.id },
+                          data: {
+                            credits: {
+                              decrement: creditsToDeduct,
+                            },
+                          },
+                        });
+                        console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images (with processing errors)`);
+                      } catch (creditError: any) {
+                        console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
+                      }
+                    }
+                    
+                    // Send final update
+                    const finalUpdate = {
+                      type: 'complete',
+                      images: images,
+                      prompts: prompts,
+                      successful: successfulImages.length,
+                      failed: errors.filter(err => err !== null).length,
+                      creditsDeducted: creditsToDeduct,
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalUpdate)}\n\n`));
                     controller.close();
                   }
                 }
@@ -2363,6 +2448,36 @@ export async function POST(request: NextRequest) {
                 console.error('[ImageGen] Error in streaming promise:', error);
                 completedCount++;
                 if (completedCount === totalEvents) {
+                  // Even if there were errors, deduct credits for successful images
+                  const successfulImages = images.filter(img => img !== null);
+                  const creditsToDeduct = successfulImages.length;
+                  
+                  if (creditsToDeduct > 0) {
+                    try {
+                      await prisma.user.update({
+                        where: { id: user.id },
+                        data: {
+                          credits: {
+                            decrement: creditsToDeduct,
+                          },
+                        },
+                      });
+                      console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images (with errors)`);
+                    } catch (creditError: any) {
+                      console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
+                    }
+                  }
+                  
+                  // Send final update with credits deducted
+                  const finalUpdate = {
+                    type: 'complete',
+                    images: images,
+                    prompts: prompts,
+                    successful: successfulImages.length,
+                    failed: errors.filter(err => err !== null).length,
+                    creditsDeducted: creditsToDeduct,
+                  };
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalUpdate)}\n\n`));
                   controller.close();
                 }
               });
@@ -2454,12 +2569,33 @@ export async function POST(request: NextRequest) {
       console.log(`[ImageGen] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
     }
     
+    // Deduct credits AFTER successful generation (1 credit per successfully generated image)
+    const creditsToDeduct = successfulImages.length;
+    if (creditsToDeduct > 0) {
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            credits: {
+              decrement: creditsToDeduct,
+            },
+          },
+        });
+        console.log(`[ImageGen] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images`);
+      } catch (creditError: any) {
+        console.error(`[ImageGen] Failed to deduct credits:`, creditError);
+        // Don't fail the request if credit deduction fails - images were already generated
+        // But log the error for investigation
+      }
+    }
+    
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
     // Images are now Cloudinary URLs (if Cloudinary is configured) or original Replicate URLs
     return NextResponse.json({ 
       images: persistedImages,
       prompts: prompts, // Include prompts for debugging/testing
-      referenceImages: finalImageReferences // Include auto-fetched reference images
+      referenceImages: finalImageReferences, // Include auto-fetched reference images
+      creditsDeducted: creditsToDeduct, // Inform client how many credits were deducted
     });
   } catch (error: any) {
     console.error('[ImageGen] Error generating images:', error);
