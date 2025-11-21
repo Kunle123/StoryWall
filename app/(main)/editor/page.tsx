@@ -876,12 +876,12 @@ const TimelineEditor = () => {
                             />
                           </div>
                           {/* Show data values for statistics */}
-                          {'data' in event && event.data && (
+                          {timelineType === 'statistics' && 'data' in event && event.data && (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/30 rounded-lg">
                               {statisticsMetrics.map((metric) => (
                                 <div key={metric} className="text-sm">
                                   <span className="text-muted-foreground">{metric}:</span>{' '}
-                                  <span className="font-medium">{event.data[metric] ?? 0}</span>
+                                  <span className="font-medium">{(event.data as Record<string, number>)[metric] ?? 0}</span>
                                 </div>
                               ))}
                             </div>
