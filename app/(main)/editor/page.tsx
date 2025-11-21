@@ -605,36 +605,81 @@ const TimelineEditor = () => {
       for (const event of eventsList) {
         try {
           let dateStr: string;
+          let eventTitle: string;
+          let eventDescription: string;
+          let imageUrl: string | undefined;
+          let imagePrompt: string | undefined;
+          let eventNumber: number | undefined;
+          let eventNumberLabel: string | undefined;
           
-          if (isNumbered && event.number) {
-            // For numbered events, use year 1 as placeholder (DB requires a date)
-            // The number will be stored in the number field
-            dateStr = `1-01-01`; // Placeholder date for numbered events
+          if (timelineType === 'statistics') {
+            // Statistics event handling
+            const statsEvent = event as typeof statisticsEvents[0];
+            eventTitle = toTitleCase(statsEvent.title);
+            eventDescription = statsEvent.description || "";
+            
+            // Use date if provided, otherwise use current date as placeholder
+            if (statsEvent.date) {
+              const { formatDateForDB } = await import('@/lib/utils/dateFormat');
+              const eventDate = new Date(statsEvent.date);
+              dateStr = formatDateForDB(
+                eventDate.getFullYear(),
+                eventDate.getMonth() + 1,
+                eventDate.getDate()
+              );
+            } else {
+              // Use current date as placeholder
+              const { formatDateForDB } = await import('@/lib/utils/dateFormat');
+              dateStr = formatDateForDB(new Date().getFullYear(), 1, 1);
+            }
+            
+            // Store chart URL in image_url field
+            imageUrl = statsEvent.chartUrl || undefined;
+            
+            // Store statistics data in description (we'll enhance this later with proper schema)
+            const statsData = JSON.stringify({
+              metrics: statisticsMetrics,
+              data: statsEvent.data,
+              chartType: statisticsChartType,
+            });
+            eventDescription = eventDescription 
+              ? `${eventDescription}\n\n[STATS_DATA:${statsData}]`
+              : `[STATS_DATA:${statsData}]`;
           } else {
-            // Format date: only include month/day if they are actually provided
-            // Use Jan 1 as placeholder for year-only dates (DB requires full date)
-            // We'll detect this in formatting to show year-only when appropriate
-            const hasMonth = (event as any).month && (event as any).month >= 1 && (event as any).month <= 12;
-            const hasDay = (event as any).day && (event as any).day >= 1 && (event as any).day <= 31;
+            // Regular event handling
+            const regularEvent = event as TimelineEvent;
+            eventTitle = toTitleCase(regularEvent.title);
+            eventDescription = regularEvent.description || "";
             
-            // Only use month/day if both are provided, otherwise use Jan 1 as placeholder
-            // This ensures year-only events are stored as Jan 1 but displayed as year-only
-            const month = (hasMonth && hasDay) ? (event as any).month : undefined;
-            const day = (hasMonth && hasDay) ? (event as any).day : undefined;
+            if (isNumbered && regularEvent.number) {
+              // For numbered events, use year 1 as placeholder (DB requires a date)
+              dateStr = `1-01-01`; // Placeholder date for numbered events
+              eventNumber = regularEvent.number;
+              eventNumberLabel = regularEvent.numberLabel;
+            } else {
+              // Format date: only include month/day if they are actually provided
+              const hasMonth = (regularEvent as any).month && (regularEvent as any).month >= 1 && (regularEvent as any).month <= 12;
+              const hasDay = (regularEvent as any).day && (regularEvent as any).day >= 1 && (regularEvent as any).day <= 31;
+              
+              const month = (hasMonth && hasDay) ? (regularEvent as any).month : undefined;
+              const day = (hasMonth && hasDay) ? (regularEvent as any).day : undefined;
+              
+              const { formatDateForDB } = await import('@/lib/utils/dateFormat');
+              dateStr = formatDateForDB(regularEvent.year || new Date().getFullYear(), month, day);
+            }
             
-            // Use formatDateForDB to handle BC dates correctly
-            const { formatDateForDB } = await import('@/lib/utils/dateFormat');
-            dateStr = formatDateForDB(event.year || new Date().getFullYear(), month, day);
+            imageUrl = regularEvent.imageUrl || undefined;
+            imagePrompt = regularEvent.imagePrompt || undefined;
           }
 
           const eventResult = await createEvent(timelineId, {
-            title: event.title,
-            description: event.description || "",
+            title: eventTitle,
+            description: eventDescription,
             date: dateStr,
-            number: isNumbered && event.number ? event.number : undefined,
-            number_label: isNumbered && event.numberLabel ? event.numberLabel : undefined,
-            image_url: event.imageUrl || undefined,
-            image_prompt: event.imagePrompt || undefined, // Save the image prompt if available
+            number: eventNumber,
+            number_label: eventNumberLabel,
+            image_url: imageUrl,
+            image_prompt: imagePrompt,
           });
 
           // Log if image/chart is missing
