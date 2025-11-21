@@ -87,11 +87,20 @@ export const StatisticsDataEntryStep = ({
         throw new Error(errorData.error || 'Failed to generate data');
       }
 
-      const data = await response.json();
+      const data = await response.json() as {
+        events?: Array<{
+          id?: string;
+          date?: string;
+          number?: number;
+          title: string;
+          description?: string;
+          data?: Record<string, number>;
+        }>;
+      };
       
       if (data.events && Array.isArray(data.events)) {
         // Transform API events to StatisticsEvent format
-        const transformedEvents = data.events.map((event: any) => ({
+        const transformedEvents: StatisticsEvent[] = data.events.map((event) => ({
           id: event.id || `event-${Date.now()}-${Math.random()}`,
           date: event.date ? new Date(event.date) : undefined,
           number: event.number,
@@ -108,11 +117,12 @@ export const StatisticsDataEntryStep = ({
       } else {
         throw new Error('Invalid response format');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating data:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate data. Please try again.";
       toast({
         title: "Error",
-        description: error.message || "Failed to generate data. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -134,7 +144,11 @@ export const StatisticsDataEntryStep = ({
     setEvents(events.filter(e => e.id !== eventId));
   };
 
-  const handleEventChange = (eventId: string, field: keyof StatisticsEvent, value: any) => {
+  const handleEventChange = (
+    eventId: string, 
+    field: keyof StatisticsEvent, 
+    value: string | Date | number | Record<string, number> | undefined
+  ) => {
     setEvents(events.map(e => 
       e.id === eventId ? { ...e, [field]: value } : e
     ));

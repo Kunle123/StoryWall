@@ -120,11 +120,9 @@ export const StatisticsGenerateChartsStep = ({
                 // Update event with chart URL as soon as it's ready
                 if (data.chartUrl && data.index < events.length) {
                   const eventId = events[data.index].id;
-                  setEvents((prevEvents: typeof events) =>
-                    prevEvents.map(e =>
-                      e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
-                    )
-                  );
+                  setEvents(events.map(e =>
+                    e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
+                  ));
                 }
               } else if (data.type === 'complete') {
                 // All charts complete
@@ -144,11 +142,12 @@ export const StatisticsGenerateChartsStep = ({
           }
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating charts:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate charts. Please try again.";
       toast({
         title: "Error",
-        description: error.message || "Failed to generate charts. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
       setIsGenerating(false);
