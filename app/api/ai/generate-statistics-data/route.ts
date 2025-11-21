@@ -284,7 +284,7 @@ Focus on creating a complete timeline with real, verifiable data for every year 
     // Post-process: Detect missing years and create explanatory events ONLY if data is truly unavailable
     // Extract years from events
     const eventYears = validatedEvents
-      .map(e => {
+      .map((e: { date?: Date; title: string }) => {
         if (e.date) {
           return new Date(e.date).getFullYear();
         }
