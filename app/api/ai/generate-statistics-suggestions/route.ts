@@ -14,37 +14,52 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { timelineName, timelineDescription } = body;
+    const { measurementQuestion, timelineName, timelineDescription } = body;
 
-    if (!timelineName || !timelineDescription) {
+    // Support both new question-based format and legacy format
+    const question = measurementQuestion || (timelineName && timelineDescription ? `${timelineName}: ${timelineDescription}` : null);
+
+    if (!question) {
       return NextResponse.json(
-        { error: 'Timeline name and description are required' },
+        { error: 'Measurement question is required' },
         { status: 400 }
       );
     }
 
     const aiClient = getAIClient();
 
-    const systemPrompt = `You are a statistics and data analysis expert. Your task is to suggest relevant metrics that should be tracked for a given statistical timeline.
+    const systemPrompt = `You are a statistics and data analysis expert. Your task is to analyze what a user wants to measure and suggest:
+1. Relevant metrics that should be tracked
+2. Available data sources for this topic
 
 Guidelines:
-- Suggest 3-8 metrics that are relevant to the timeline topic
+- Suggest 3-8 metrics that are relevant to what the user wants to measure
 - Metrics should be measurable and trackable over time
-- Use clear, concise names (e.g., "Conservative Party", "Labour Party", "EV Sales", "ICE Sales")
+- Use clear, concise names (e.g., "Conservative Party", "Labour Party", "Violent Crime", "Theft", "Car Crime")
 - If the topic involves categories that may change names over time (e.g., UKIP → Reform), suggest them as separate metrics
-- Focus on the most important and relevant metrics for the topic
-- Return ONLY a JSON array of metric names, no explanations
+- Focus on the most important and relevant metrics
+- Identify official data sources (e.g., "Office for National Statistics", "UK Parliament", "Police.uk", "NHS Digital")
+- Return JSON with "metrics" array and "dataSource" string
+
+Example for "Crime in West Midlands":
+{
+  "metrics": ["Violent Crime", "Theft", "Car Crime", "Burglary", "Drug Offences", "Public Order Offences"],
+  "dataSource": "Police.uk - Crime Statistics"
+}
 
 Example for "UK Political Party Polling":
-["Conservative Party", "Labour Party", "Liberal Democrats", "Green Party", "Reform UK", "Scottish National Party"]
+{
+  "metrics": ["Conservative Party", "Labour Party", "Liberal Democrats", "Green Party", "Reform UK", "Scottish National Party"],
+  "dataSource": "YouGov / Ipsos MORI / Office for National Statistics"
+}`;
 
-Example for "UK Car Production":
-["Electric Vehicles (EVs)", "Internal Combustion Engine (ICE)", "Hybrid Vehicles", "Hydrogen Fuel Cell", "Other"]`;
+    const userPrompt = `What the user wants to measure: "${question}"
 
-    const userPrompt = `Timeline: "${timelineName}"
-Description: ${timelineDescription}
+Analyze this request and suggest:
+1. Relevant metrics to track (3-8 metrics)
+2. Available data sources
 
-Suggest relevant metrics to track for this statistical timeline. Return a JSON array of metric names (3-8 metrics).`;
+Return JSON with "metrics" array and "dataSource" string.`;
 
     const response = await aiClient.chat.completions.create({
       model: process.env.AI_MODEL || 'gpt-4o-mini',
@@ -76,6 +91,7 @@ Suggest relevant metrics to track for this statistical timeline. Return a JSON a
 
     // Ensure we have a metrics array
     const metrics = parsed.metrics || parsed.metric || (Array.isArray(parsed) ? parsed : []);
+    const dataSource = parsed.dataSource || parsed.data_source || '';
 
     if (!Array.isArray(metrics) || metrics.length === 0) {
       throw new Error('No metrics found in response');
@@ -89,6 +105,7 @@ Suggest relevant metrics to track for this statistical timeline. Return a JSON a
 
     return NextResponse.json({
       metrics: validMetrics,
+      dataSource: typeof dataSource === 'string' ? dataSource.trim() : '',
     });
   } catch (error: any) {
     console.error('[Statistics Suggestions] Error:', error);

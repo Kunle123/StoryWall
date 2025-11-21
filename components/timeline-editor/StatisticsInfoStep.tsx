@@ -4,8 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -30,10 +29,8 @@ export const StatisticsInfoStep = ({
   setIsPublic,
   metrics,
   setMetrics,
-  onGenerateSuggestions,
 }: StatisticsInfoStepProps) => {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleAddMetric = () => {
     if (metrics.length >= 8) {
@@ -59,50 +56,8 @@ export const StatisticsInfoStep = ({
     setMetrics(newMetrics);
   };
 
-  const handleGenerateSuggestions = async () => {
-    if (!timelineDescription.trim()) {
-      toast({
-        title: "Missing description",
-        description: "Please provide a timeline description first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/ai/generate-statistics-suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          timelineName,
-          timelineDescription,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate suggestions');
-      }
-
-      const data = await response.json();
-      if (data.metrics && Array.isArray(data.metrics)) {
-        setMetrics(data.metrics.slice(0, 8)); // Limit to 8 metrics
-        toast({
-          title: "Suggestions generated",
-          description: `Generated ${data.metrics.length} metric suggestions.`,
-        });
-      }
-    } catch (error: any) {
-      console.error('Error generating suggestions:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate suggestions. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  // Metrics are already generated from the statistics page, so we just show them here
+  // User can still edit them if needed
 
   return (
     <div className="space-y-6">
@@ -142,30 +97,9 @@ export const StatisticsInfoStep = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-[15px]">Metrics to Track *</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateSuggestions}
-            disabled={isGenerating || !timelineDescription.trim()}
-            className="gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <Sparkles className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                AI Suggest Metrics
-              </>
-            )}
-          </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Define up to 8 metrics you want to track (e.g., "Conservative Party", "Labour Party", "Lib Dem"). 
-          These will remain consistent across all events.
+          These metrics will remain consistent across all events. You can edit them if needed.
         </p>
         
         {metrics.map((metric, index) => (
