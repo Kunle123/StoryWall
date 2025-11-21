@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
 import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep";
+import { StatisticsInfoStep } from "@/components/timeline-editor/StatisticsInfoStep";
 import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -63,6 +64,20 @@ const TimelineEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [timelineType, setTimelineType] = useState<string | undefined>(); // 'social' or 'statistics'
+  
+  // Statistics-specific state
+  const [statisticsMetrics, setStatisticsMetrics] = useState<string[]>([]); // Up to 8 metrics
+  const [statisticsChartType, setStatisticsChartType] = useState<string>('bar'); // bar, pie, line, etc.
+  const [statisticsDataSource, setStatisticsDataSource] = useState<string>(''); // Data source name
+  const [statisticsDataMode, setStatisticsDataMode] = useState<'ai' | 'manual'>('ai'); // AI or manual entry
+  const [statisticsEvents, setStatisticsEvents] = useState<Array<{
+    id: string;
+    date?: Date;
+    number?: number;
+    title: string;
+    description?: string;
+    data: Record<string, number>; // Metric name -> value
+  }>>([]);
   
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -162,6 +177,15 @@ const TimelineEditor = () => {
         });
         const loadedStep = typeof state.currentStep === 'number' && state.currentStep >= 1 && state.currentStep <= 6 ? state.currentStep : 1;
         setCurrentStep(loadedStep);
+        // Load statistics state if present
+        if (state.timelineType === 'statistics') {
+          setTimelineType('statistics');
+          setStatisticsMetrics(Array.isArray(state.statisticsMetrics) ? state.statisticsMetrics : []);
+          setStatisticsChartType(state.statisticsChartType || 'bar');
+          setStatisticsDataSource(state.statisticsDataSource || '');
+          setStatisticsDataMode(state.statisticsDataMode || 'ai');
+          setStatisticsEvents(Array.isArray(state.statisticsEvents) ? state.statisticsEvents : []);
+        }
         // Automatically show preview when on step 6
         if (loadedStep === 6) {
           setShowPreview(true);
@@ -209,6 +233,13 @@ const TimelineEditor = () => {
           // Don't store File object in localStorage
         },
         currentStep,
+        timelineType,
+        // Statistics-specific state
+        statisticsMetrics: Array.isArray(statisticsMetrics) ? statisticsMetrics : [],
+        statisticsChartType,
+        statisticsDataSource,
+        statisticsDataMode,
+        statisticsEvents: Array.isArray(statisticsEvents) ? statisticsEvents : [],
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -220,7 +251,7 @@ const TimelineEditor = () => {
         // Ignore errors when clearing
       }
     }
-  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep, timelineType, statisticsMetrics, statisticsChartType, statisticsDataSource, statisticsDataMode, statisticsEvents]);
 
   // Handle Stripe success return and query parameters
   useEffect(() => {
@@ -274,11 +305,10 @@ const TimelineEditor = () => {
           const dataSource = params.get('dataSource');
           
           if (fields) {
-            // Store statistics metadata (could be stored in a separate state or in description)
-            // For now, append to description
-            const fieldsList = fields.split('|');
-            const statsInfo = `\n\nStatistics Fields: ${fieldsList.join(', ')}\nChart Type: ${chartType || 'bar'}\nData Source: ${dataSource || 'Not specified'}`;
-            setTimelineDescription(description + statsInfo);
+            const fieldsList = fields.split('|').filter(f => f.trim().length > 0);
+            setStatisticsMetrics(fieldsList);
+            setStatisticsChartType(chartType || 'bar');
+            setStatisticsDataSource(dataSource || '');
           }
         }
         
@@ -318,7 +348,14 @@ const TimelineEditor = () => {
     );
   }
 
-  const steps = [
+  const steps = timelineType === 'statistics' ? [
+    { number: 1, title: "Metrics Definition" },
+    { number: 2, title: "Data Source" },
+    { number: 3, title: "Data Entry" },
+    { number: 4, title: "Chart Style" },
+    { number: 5, title: "Generate Charts" },
+    { number: 6, title: "Review & Publish" },
+  ] : [
     { number: 1, title: "Timeline Info" },
     { number: 2, title: "Writing Style & Events" },
     { number: 3, title: "Event Details" },
@@ -333,7 +370,15 @@ const TimelineEditor = () => {
       let errorMessage = "Please complete the required fields before proceeding.";
       switch (currentStep) {
         case 1:
-          errorMessage = "Please provide a timeline name and description.";
+          if (timelineType === 'statistics') {
+            if (!timelineName || !timelineDescription) {
+              errorMessage = "Please provide a timeline name and description.";
+            } else if (statisticsMetrics.length === 0 || !statisticsMetrics.every(m => m.trim().length > 0)) {
+              errorMessage = "Please define at least one metric to track.";
+            }
+          } else {
+            errorMessage = "Please provide a timeline name and description.";
+          }
           break;
         case 2:
           if (!writingStyle && !customStyle) {
@@ -422,7 +467,12 @@ const TimelineEditor = () => {
     let result = false;
     switch (currentStep) {
       case 1:
-        result = !!(timelineName && timelineDescription);
+        if (timelineType === 'statistics') {
+          // For statistics: need name, description, and at least one metric
+          result = !!(timelineName && timelineDescription && statisticsMetrics.length > 0 && statisticsMetrics.every(m => m.trim().length > 0));
+        } else {
+          result = !!(timelineName && timelineDescription);
+        }
         break;
       case 2:
         result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
@@ -691,91 +741,104 @@ const TimelineEditor = () => {
             </div>
           </Card>
         ) : (
-          <Card className="p-6 mb-6">
-            {currentStep === 1 && (
-              <TimelineInfoStep
-                timelineName={timelineName}
-                setTimelineName={setTimelineName}
-                timelineDescription={timelineDescription}
-                setTimelineDescription={setTimelineDescription}
-                isPublic={isPublic}
-                setIsPublic={setIsPublic}
-                isFactual={isFactual}
-                setIsFactual={setIsFactual}
-                isNumbered={isNumbered}
-                setIsNumbered={setIsNumbered}
-                numberLabel={numberLabel}
-                setNumberLabel={setNumberLabel}
-                maxEvents={maxEvents}
-                setMaxEvents={setMaxEvents}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-                sourceRestrictions={sourceRestrictions}
-                setSourceRestrictions={setSourceRestrictions}
-                referencePhoto={referencePhoto}
-                setReferencePhoto={setReferencePhoto}
-                hashtags={hashtags}
-                setHashtags={setHashtags}
-              />
-            )}
-            {currentStep === 2 && (
-              <WritingStyleStep
-                writingStyle={writingStyle}
-                setWritingStyle={setWritingStyle}
-                customStyle={customStyle}
-                setCustomStyle={setCustomStyle}
-                events={events}
-                setEvents={setEvents}
-                timelineDescription={timelineDescription}
-                timelineName={timelineName}
-                isFactual={isFactual}
-                isNumbered={isNumbered}
-                numberLabel={numberLabel}
-                maxEvents={maxEvents}
-                setImageReferences={setImageReferences}
-                sourceRestrictions={sourceRestrictions}
-              />
-            )}
-            {currentStep === 3 && (
-              <EventDetailsStep 
-                events={events} 
-                setEvents={setEvents}
-                timelineDescription={timelineDescription}
-                timelineName={timelineName}
-                writingStyle={writingStyle}
-                imageStyle={imageStyle} // Pass if already selected (user may have gone back)
-                themeColor={themeColor} // Pass if already selected
-                sourceRestrictions={sourceRestrictions}
-                hashtags={hashtags}
-                setHashtags={setHashtags}
-              />
-            )}
-            {currentStep === 4 && (
-              <ImageStyleStep 
-                imageStyle={imageStyle}
-                setImageStyle={setImageStyle}
-                themeColor={themeColor}
-                setThemeColor={setThemeColor}
-                hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
-              />
-            )}
-            {currentStep === 5 && (
-              <GenerateImagesStep 
-                events={events} 
-                setEvents={setEvents}
-                imageStyle={imageStyle}
-                setImageStyle={setImageStyle}
-                themeColor={themeColor}
-                setThemeColor={setThemeColor}
-                imageReferences={imageReferences}
-                referencePhoto={referencePhoto}
-                includesPeople={includesPeople}
-                hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
-              />
-            )}
-          </Card>
+            <Card className="p-6 mb-6">
+                  {currentStep === 1 && (
+                    timelineType === 'statistics' ? (
+                      <StatisticsInfoStep
+                        timelineName={timelineName}
+                        setTimelineName={setTimelineName}
+                        timelineDescription={timelineDescription}
+                        setTimelineDescription={setTimelineDescription}
+                        isPublic={isPublic}
+                        setIsPublic={setIsPublic}
+                        metrics={statisticsMetrics}
+                        setMetrics={setStatisticsMetrics}
+                      />
+                    ) : (
+                      <TimelineInfoStep
+                        timelineName={timelineName}
+                        setTimelineName={setTimelineName}
+                        timelineDescription={timelineDescription}
+                        setTimelineDescription={setTimelineDescription}
+                        isPublic={isPublic}
+                        setIsPublic={setIsPublic}
+                        isFactual={isFactual}
+                        setIsFactual={setIsFactual}
+                        isNumbered={isNumbered}
+                        setIsNumbered={setIsNumbered}
+                        numberLabel={numberLabel}
+                        setNumberLabel={setNumberLabel}
+                        maxEvents={maxEvents}
+                        setMaxEvents={setMaxEvents}
+                        startDate={startDate}
+                        setStartDate={setStartDate}
+                        endDate={endDate}
+                        setEndDate={setEndDate}
+                        sourceRestrictions={sourceRestrictions}
+                        setSourceRestrictions={setSourceRestrictions}
+                        referencePhoto={referencePhoto}
+                        setReferencePhoto={setReferencePhoto}
+                        hashtags={hashtags}
+                        setHashtags={setHashtags}
+                      />
+                    )
+                  )}
+              {currentStep === 2 && (
+                <WritingStyleStep
+                  writingStyle={writingStyle}
+                  setWritingStyle={setWritingStyle}
+                  customStyle={customStyle}
+                  setCustomStyle={setCustomStyle}
+                  events={events}
+                  setEvents={setEvents}
+                  timelineDescription={timelineDescription}
+                  timelineName={timelineName}
+                  isFactual={isFactual}
+                  isNumbered={isNumbered}
+                  numberLabel={numberLabel}
+                  maxEvents={maxEvents}
+                  setImageReferences={setImageReferences}
+                  sourceRestrictions={sourceRestrictions}
+                />
+              )}
+              {currentStep === 3 && (
+                <EventDetailsStep 
+                  events={events} 
+                  setEvents={setEvents}
+                  timelineDescription={timelineDescription}
+                  timelineName={timelineName}
+                  writingStyle={writingStyle}
+                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                  themeColor={themeColor} // Pass if already selected
+                  sourceRestrictions={sourceRestrictions}
+                  hashtags={hashtags}
+                  setHashtags={setHashtags}
+                />
+              )}
+              {currentStep === 4 && (
+                <ImageStyleStep 
+                  imageStyle={imageStyle}
+                  setImageStyle={setImageStyle}
+                  themeColor={themeColor}
+                  setThemeColor={setThemeColor}
+                  hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
+                />
+              )}
+              {currentStep === 5 && (
+                <GenerateImagesStep 
+                  events={events} 
+                  setEvents={setEvents}
+                  imageStyle={imageStyle}
+                  setImageStyle={setImageStyle}
+                  themeColor={themeColor}
+                  setThemeColor={setThemeColor}
+                  imageReferences={imageReferences}
+                  referencePhoto={referencePhoto}
+                  includesPeople={includesPeople}
+                  hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
+                />
+              )}
+            </Card>
         )}
         </main>
         

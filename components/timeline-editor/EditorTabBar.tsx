@@ -39,15 +39,15 @@ export const EditorTabBar = ({
 
           {/* Back and Next buttons on same row in mobile */}
           <div className="flex gap-3 w-full sm:w-auto order-2 sm:order-1">
-            <Button
-              variant="outline"
-              onClick={onBack}
-              disabled={currentStep === 1}
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={currentStep === 1}
               className="flex-1 sm:flex-initial"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
 
             {/* Next/Save/Preview buttons */}
             {currentStep === 5 ? (
@@ -62,20 +62,20 @@ export const EditorTabBar = ({
             ) : currentStep === 6 ? (
               // Step 6: Always show Save button (preview is always visible)
               onSave && (
-                <Button
-                  onClick={onSave}
+                      <Button
+                        onClick={onSave}
                   disabled={isSaving}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {isSaving ? (
-                    <>Saving...</>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Timeline
-                    </>
-                  )}
-                </Button>
+                        className="flex-1 sm:flex-initial"
+                      >
+                        {isSaving ? (
+                          <>Saving...</>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Timeline
+                          </>
+                        )}
+                      </Button>
               )
             ) : (
               <Button
@@ -90,14 +90,14 @@ export const EditorTabBar = ({
           </div>
 
           {/* Cancel button */}
-          <Button
-            variant="ghost"
-            onClick={onCancel}
+            <Button
+              variant="ghost"
+              onClick={onCancel}
             className="w-full sm:w-auto text-muted-foreground hover:text-destructive order-3 sm:order-3"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Cancel
-          </Button>
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
         </div>
       </div>
     </div>
