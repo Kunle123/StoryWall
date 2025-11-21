@@ -3,12 +3,14 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Copy, Twitter, Check, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { formatTimelineAsTwitterThread, formatTweetsAsThreadString, copyThreadToClipboard } from "@/lib/utils/twitterThread";
 import { TimelineEvent } from "./Timeline";
+import { TimelineTweetTemplate } from "./TimelineTweetTemplate";
 
 interface TwitterThreadDialogProps {
   open: boolean;
@@ -177,6 +179,19 @@ export function TwitterThreadDialog({
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          {/* Tweet Template Preview */}
+          {timelineImageUrl && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Tweet Preview</Label>
+              <TimelineTweetTemplate
+                title={timelineTitle}
+                description={timelineDescription || `Explore this timeline: ${timelineTitle}`}
+                imageUrl={timelineImageUrl}
+                timelineUrl={timelineUrl || ''}
+              />
+            </div>
+          )}
+          
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Thread Preview</label>
