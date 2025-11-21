@@ -142,7 +142,9 @@ export function TwitterThreadDialog({
       const result = await response.json();
       toast({
         title: "Success!",
-        description: `Posted ${result.tweetsPosted} tweets to Twitter`,
+        description: result.imageAttached 
+          ? `Posted ${result.tweetsPosted} tweets to Twitter with image attached`
+          : `Posted ${result.tweetsPosted} tweets to Twitter`,
       });
       
       if (result.threadUrl) {
@@ -180,15 +182,19 @@ export function TwitterThreadDialog({
         
         <div className="space-y-4 py-4">
           {/* Tweet Template Preview */}
-          {timelineImageUrl && (
+          {timelineImageUrl ? (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Tweet Preview</Label>
+              <Label className="text-sm font-medium">Tweet Preview (Image will be attached)</Label>
               <TimelineTweetTemplate
                 title={timelineTitle}
                 description={timelineDescription || `Explore this timeline: ${timelineTitle}`}
                 imageUrl={timelineImageUrl}
                 timelineUrl={timelineUrl || ''}
               />
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground p-4 bg-muted rounded-lg">
+              <p>⚠️ No image available for this timeline. The tweet will be posted without an image.</p>
             </div>
           )}
           

@@ -43,13 +43,38 @@ export async function POST(request: NextRequest) {
     let mediaId: string | undefined;
     if (imageUrl && tweets.length > 0) {
       try {
+        // Validate image URL is accessible before attempting upload
+        console.log(`[Twitter Post Thread] Validating image URL: ${imageUrl}`);
+        const imageCheckResponse = await fetch(imageUrl, { method: 'HEAD' });
+        if (!imageCheckResponse.ok) {
+          throw new Error(`Image URL not accessible: ${imageCheckResponse.status} ${imageCheckResponse.statusText}`);
+        }
+        
+        const contentType = imageCheckResponse.headers.get('content-type');
+        if (!contentType || !contentType.startsWith('image/')) {
+          throw new Error(`URL does not point to an image. Content-Type: ${contentType}`);
+        }
+        
+        console.log(`[Twitter Post Thread] Image URL validated. Content-Type: ${contentType}`);
         console.log(`[Twitter Post Thread] Attempting to upload image: ${imageUrl}`);
         mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
         console.log(`[Twitter Post Thread] Successfully uploaded image, media_id: ${mediaId}`);
+        
+        if (!mediaId) {
+          throw new Error('Media upload succeeded but no media_id returned');
+        }
       } catch (error: any) {
         console.error('[Twitter Post Thread] Failed to upload image:', error);
         console.error('[Twitter Post Thread] Error details:', error.message);
-        // Continue without image if upload fails, but log the error
+        // Return error instead of silently continuing - user should know image failed
+        return NextResponse.json(
+          { 
+            error: 'Failed to upload image for tweet',
+            details: error.message || 'Image upload failed. Please check the image URL is accessible.',
+            continueWithoutImage: false
+          },
+          { status: 400 }
+        );
       }
     } else {
       console.log('[Twitter Post Thread] No image URL provided or no tweets');
@@ -61,10 +86,22 @@ export async function POST(request: NextRequest) {
       mediaId: index === 0 ? mediaId : undefined, // Only attach to first tweet
     }));
     
+    console.log(`[Twitter Post Thread] Posting thread with ${tweetsWithMedia.length} tweets`);
+    if (mediaId) {
+      console.log(`[Twitter Post Thread] First tweet will include image with media_id: ${mediaId}`);
+    } else {
+      console.log(`[Twitter Post Thread] No image will be attached to first tweet`);
+    }
+    
     const results = await postTwitterThread(
       userWithToken.twitterAccessToken,
       tweetsWithMedia
     );
+    
+    console.log(`[Twitter Post Thread] Successfully posted ${results.length} tweets`);
+    if (results[0]?.tweetId) {
+      console.log(`[Twitter Post Thread] First tweet ID: ${results[0].tweetId}`);
+    }
     
     return NextResponse.json({
       success: true,
@@ -74,6 +111,7 @@ export async function POST(request: NextRequest) {
       threadUrl: results[0]?.tweetId 
         ? `https://twitter.com/i/web/status/${results[0].tweetId}`
         : null,
+      imageAttached: !!mediaId,
     });
   } catch (error: any) {
     console.error('[Twitter Post Thread] Error:', error);

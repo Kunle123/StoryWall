@@ -21,16 +21,27 @@ export async function uploadMedia(
   accessToken: string,
   imageUrl: string
 ): Promise<string> {
+  console.log(`[Twitter Upload Media] Starting upload for: ${imageUrl}`);
+  
   // First, download the image
   const imageResponse = await fetch(imageUrl);
   if (!imageResponse.ok) {
-    throw new Error(`Failed to download image: ${imageResponse.statusText}`);
+    throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
   }
   
   const imageBuffer = await imageResponse.arrayBuffer();
   const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
   
+  console.log(`[Twitter Upload Media] Downloaded image. Size: ${imageBuffer.byteLength} bytes, Type: ${contentType}`);
+  
+  // Validate image size (Twitter limit is 5MB for images)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (imageBuffer.byteLength > maxSize) {
+    throw new Error(`Image too large: ${imageBuffer.byteLength} bytes (max: ${maxSize} bytes)`);
+  }
+  
   // Step 1: Initialize media upload
+  console.log(`[Twitter Upload Media] Initializing upload...`);
   const initResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
     method: 'POST',
     headers: {
@@ -44,12 +55,21 @@ export async function uploadMedia(
   });
   
   if (!initResponse.ok) {
-    const error = await initResponse.json();
-    throw new Error(error.error || 'Failed to initialize media upload');
+    const errorText = await initResponse.text();
+    let errorMessage = 'Failed to initialize media upload';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${initResponse.status} ${initResponse.statusText}`;
+    }
+    console.error(`[Twitter Upload Media] Init failed:`, errorMessage);
+    throw new Error(errorMessage);
   }
   
   const initData = await initResponse.json();
   const mediaId = initData.media_id_string;
+  console.log(`[Twitter Upload Media] Initialized. Media ID: ${mediaId}`);
   
   // Step 2: Append media data (in chunks if needed)
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
@@ -80,6 +100,7 @@ export async function uploadMedia(
   }
   
   // Step 3: Finalize media upload
+  console.log(`[Twitter Upload Media] Finalizing upload...`);
   const finalizeResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
     method: 'POST',
     headers: {
@@ -92,14 +113,25 @@ export async function uploadMedia(
   });
   
   if (!finalizeResponse.ok) {
-    const error = await finalizeResponse.json();
-    throw new Error(error.error || 'Failed to finalize media upload');
+    const errorText = await finalizeResponse.text();
+    let errorMessage = 'Failed to finalize media upload';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${finalizeResponse.status} ${finalizeResponse.statusText}`;
+    }
+    console.error(`[Twitter Upload Media] Finalize failed:`, errorMessage);
+    throw new Error(errorMessage);
   }
   
   // Wait for processing to complete
   let processingInfo = await finalizeResponse.json();
   let attempts = 0;
-  while (processingInfo.processing_info && processingInfo.processing_info.state === 'in_progress' && attempts < 10) {
+  const maxAttempts = 15; // Increased timeout
+  console.log(`[Twitter Upload Media] Processing state: ${processingInfo.processing_info?.state || 'none'}`);
+  
+  while (processingInfo.processing_info && processingInfo.processing_info.state === 'in_progress' && attempts < maxAttempts) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     const statusResponse = await fetch(`https://upload.twitter.com/1.1/media/upload.json?command=STATUS&media_id=${mediaId}`, {
       headers: {
@@ -108,12 +140,16 @@ export async function uploadMedia(
     });
     processingInfo = await statusResponse.json();
     attempts++;
+    console.log(`[Twitter Upload Media] Processing attempt ${attempts}/${maxAttempts}, state: ${processingInfo.processing_info?.state}`);
   }
   
   if (processingInfo.processing_info?.state === 'failed') {
-    throw new Error('Media processing failed');
+    const errorMessage = processingInfo.processing_info.error?.message || 'Media processing failed';
+    console.error(`[Twitter Upload Media] Processing failed:`, errorMessage);
+    throw new Error(`Media processing failed: ${errorMessage}`);
   }
   
+  console.log(`[Twitter Upload Media] Upload complete. Media ID: ${mediaId}`);
   return mediaId;
 }
 
@@ -142,8 +178,10 @@ export async function postTweet(
     body.media = {
       media_ids: [mediaId],
     };
+    console.log(`[Twitter Post Tweet] Attaching media_id: ${mediaId} to tweet`);
   }
   
+  console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${mediaId ? ' with image' : ''}`);
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -154,9 +192,20 @@ export async function postTweet(
   });
   
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || `Failed to post tweet: ${response.statusText}`);
+    const errorText = await response.text();
+    let errorMessage = `Failed to post tweet: ${response.statusText}`;
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.detail || error.errors?.[0]?.message || errorMessage;
+    } catch {
+      // Use default error message
+    }
+    console.error(`[Twitter Post Tweet] Failed:`, errorMessage);
+    throw new Error(errorMessage);
   }
+  
+  const data = await response.json();
+  console.log(`[Twitter Post Tweet] Successfully posted. Tweet ID: ${data.data.id}`);
   
   const data = await response.json();
   return {
