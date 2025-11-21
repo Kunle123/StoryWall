@@ -403,45 +403,46 @@ export const ExperimentalBottomMenuBar = ({
                   {rightLabel}
                 </div>
               )}
-              <Popover open={showShareMenu} onOpenChange={setShowShareMenu}>
-                <PopoverTrigger asChild>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-12 w-12"
+                  onClick={handleShare}
+                >
+                  <Share2 className="w-10 h-10" />
+                </Button>
+                {onShareTwitterThread && (
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-12 w-12"
+                    onClick={() => {
+                      const timelineId = window.location.pathname.split('/')[2];
+                      if (timelineId) {
+                        router.push(`/timeline/${timelineId}/share/twitter`);
+                      }
+                    }}
                   >
-                    <Share2 className="w-10 h-10" />
+                    <Twitter className="w-10 h-10" />
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-1" align="end">
-                  <div className="space-y-1">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2"
-                      onClick={() => {
-                        handleShare();
-                        setShowShareMenu(false);
-                      }}
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share Link
-                    </Button>
-                    {onShareTikTokSlideshow && (
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2"
-                        onClick={() => {
-                          onShareTikTokSlideshow();
-                          setShowShareMenu(false);
-                        }}
-                      >
-                        <Music className="w-4 h-4" />
-                        Create TikTok Slideshow
-                      </Button>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                )}
+                {onShareTikTokSlideshow && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-12 w-12"
+                    onClick={() => {
+                      const timelineId = window.location.pathname.split('/')[2];
+                      if (timelineId) {
+                        router.push(`/timeline/${timelineId}/share/tiktok`);
+                      }
+                    }}
+                  >
+                    <Music className="w-10 h-10" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

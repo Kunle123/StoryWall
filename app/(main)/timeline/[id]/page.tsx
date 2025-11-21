@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
 import { fetchTimelineById, fetchEventsByTimelineId, transformApiEventToTimelineEvent } from "@/lib/api/client";
@@ -11,12 +11,11 @@ import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBotto
 import { Toaster } from "@/components/ui/toaster";
 import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
-import { TwitterThreadDialog } from "@/components/timeline/TwitterThreadDialog";
-import { TikTokSlideshowDialog } from "@/components/timeline/TikTokSlideshowDialog";
 
 const TimelinePage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { user, isSignedIn } = useUser();
   const timelineId = params.id as string;
   const isEditMode = searchParams?.get('edit') === 'true';
@@ -32,8 +31,6 @@ const TimelinePage = () => {
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
-  const [showTwitterThread, setShowTwitterThread] = useState(false);
-  const [showTikTokSlideshow, setShowTikTokSlideshow] = useState(false);
   
   // Reset commentsRequested flag after scroll animation completes
   useEffect(() => {
@@ -258,28 +255,6 @@ const TimelinePage = () => {
         headerVisible={showHeader}
       />
       <Toaster />
-      {timeline && (
-        <>
-          <TwitterThreadDialog
-            open={showTwitterThread}
-            onOpenChange={setShowTwitterThread}
-            timelineTitle={timeline.title}
-            timelineDescription={timeline.description || undefined}
-            events={events.length > 0 ? events : (timeline.events || []).map((e: any) => transformApiEventToTimelineEvent(e))}
-            timelineUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/timeline/${timeline.id}`}
-            timelineImageUrl={events.length > 0 && events[0]?.image ? events[0].image : (timeline.events?.[0]?.image_url || undefined)}
-          />
-          <TikTokSlideshowDialog
-            open={showTikTokSlideshow}
-            onOpenChange={setShowTikTokSlideshow}
-            timelineTitle={timeline.title}
-            timelineDescription={timeline.description || undefined}
-            events={events.length > 0 ? events : (timeline.events || []).map((e: any) => transformApiEventToTimelineEvent(e))}
-            timelineId={timeline.id}
-            timelineUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/timeline/${timeline.id}`}
-          />
-        </>
-      )}
       <main className={`container mx-auto px-3 pb-32 md:pb-40 max-w-6xl transition-all duration-300 ${
         showHeader ? 'pt-[96px]' : 'pt-[44px]'
       }`}>
@@ -409,8 +384,12 @@ const TimelinePage = () => {
             endDate={endDate}
             isNumbered={timeline?.is_numbered || false}
             totalEvents={allEvents.length}
-            onShareTwitterThread={() => setShowTwitterThread(true)}
-            onShareTikTokSlideshow={() => setShowTikTokSlideshow(true)}
+            onShareTwitterThread={() => {
+              router.push(`/timeline/${timelineId}/share/twitter`);
+            }}
+            onShareTikTokSlideshow={() => {
+              router.push(`/timeline/${timelineId}/share/tiktok`);
+            }}
           />
         );
       })()}
