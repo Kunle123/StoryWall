@@ -36,23 +36,26 @@ interface StatisticsDataEntryStepProps {
 }
 
 export const StatisticsDataEntryStep = ({
-  dataMode,
-  metrics,
-  events,
+  dataMode = 'ai',
+  metrics = [],
+  events = [],
   setEvents,
-  timelineName,
-  timelineDescription,
-  dataSource,
+  timelineName = '',
+  timelineDescription = '',
+  dataSource = '',
   useSequence = false,
   setUseSequence,
 }: StatisticsDataEntryStepProps) => {
   const { toast } = useToast();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('auto');
+
+  // Safety check: ensure metrics is an array
+  const safeMetrics = Array.isArray(metrics) ? metrics.filter(m => m && m.trim().length > 0) : [];
 
   const handleGenerateWithAI = async () => {
-    if (!timelineName || !timelineDescription || metrics.length === 0) {
+    if (!timelineName || !timelineDescription || safeMetrics.length === 0) {
       toast({
         title: "Missing Information",
         description: "Please complete previous steps first.",
@@ -71,9 +74,9 @@ export const StatisticsDataEntryStep = ({
         body: JSON.stringify({
           timelineName,
           timelineDescription,
-          metrics,
+          metrics: safeMetrics,
           dataSource,
-          period: selectedPeriod || undefined,
+          period: selectedPeriod === 'auto' ? undefined : selectedPeriod,
         }),
       });
 
@@ -145,7 +148,7 @@ export const StatisticsDataEntryStep = ({
   };
 
   const periodOptions = [
-    { value: '', label: 'Auto-select based on data availability' },
+    { value: 'auto', label: 'Auto-select based on data availability' },
     { value: 'since-brexit', label: 'Since Brexit (2016)' },
     { value: 'since-2020', label: 'Since 2020' },
     { value: 'since-2010', label: 'Since 2010' },
@@ -166,7 +169,7 @@ export const StatisticsDataEntryStep = ({
         </p>
       </div>
 
-      <Tabs defaultValue={dataMode} className="w-full">
+      <Tabs defaultValue={dataMode || 'ai'} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ai">Find Data</TabsTrigger>
           <TabsTrigger value="manual">Manual Entry</TabsTrigger>
@@ -274,7 +277,7 @@ export const StatisticsDataEntryStep = ({
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-3">
-                      {metrics.map((metric) => (
+                      {safeMetrics.map((metric) => (
                         <div key={metric} className="text-sm">
                           <span className="text-muted-foreground">{metric}:</span>{' '}
                           <span className="font-medium">{event.data[metric] ?? 0}</span>
@@ -378,7 +381,7 @@ export const StatisticsDataEntryStep = ({
                   <div className="space-y-3">
                     <Label>Data Values *</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {metrics.map((metric) => (
+                      {safeMetrics.map((metric) => (
                         <div key={metric} className="space-y-1">
                           <Label className="text-xs text-muted-foreground">{metric}</Label>
                           <Input
