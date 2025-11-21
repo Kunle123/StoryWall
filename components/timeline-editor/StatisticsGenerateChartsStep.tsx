@@ -81,14 +81,17 @@ export const StatisticsGenerateChartsStep = ({
           'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
-          events: events.map(event => ({
-            id: event.id,
-            title: event.title,
-            description: event.description,
-            date: event.date?.toISOString(),
-            number: event.number,
-            data: event.data,
-          })),
+          events: events
+            .filter(event => !(event as any).dataUnavailable) // Filter out events without data
+            .map(event => ({
+              id: event.id,
+              title: event.title,
+              description: event.description,
+              date: event.date?.toISOString(),
+              number: event.number,
+              data: event.data,
+              dataUnavailable: (event as any).dataUnavailable || false,
+            })),
           metrics,
           chartType,
           themeColor,

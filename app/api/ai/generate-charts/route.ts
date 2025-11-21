@@ -5,6 +5,7 @@ import { Readable } from 'stream';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { ChartConfiguration } from 'chart.js';
 import { toTitleCase } from '@/lib/utils/titleCase';
+import { registerFont } from 'canvas';
 
 // Configure Cloudinary
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -22,6 +23,7 @@ interface ChartEvent {
   date?: string;
   number?: number;
   data: Record<string, number>;
+  dataUnavailable?: boolean;
 }
 
 function bufferToStream(buffer: Buffer): Readable {
@@ -29,6 +31,55 @@ function bufferToStream(buffer: Buffer): Readable {
   readable.push(buffer);
   readable.push(null);
   return readable;
+}
+
+/**
+ * Get color for a metric based on common conventions
+ */
+function getMetricColor(metric: string): string {
+  const metricLower = metric.toLowerCase();
+  
+  // UK Political Parties
+  if (metricLower.includes('conservative') || metricLower.includes('tory')) {
+    return '#0087DC'; // Conservative blue
+  }
+  if (metricLower.includes('labour')) {
+    return '#E4003B'; // Labour red
+  }
+  if (metricLower.includes('liberal democrat') || metricLower.includes('lib dem')) {
+    return '#FDBB30'; // Lib Dem yellow
+  }
+  if (metricLower.includes('green')) {
+    return '#6AB023'; // Green Party green
+  }
+  if (metricLower.includes('reform') || metricLower.includes('ukip')) {
+    return '#6D2E5B'; // Reform/UKIP purple
+  }
+  if (metricLower.includes('scottish national') || metricLower.includes('snp')) {
+    return '#FDF38E'; // SNP yellow
+  }
+  if (metricLower.includes('plaid cymru')) {
+    return '#3F8428'; // Plaid Cymru green
+  }
+  
+  // Default color palette for other metrics
+  const defaultColors = [
+    '#3B82F6', // Blue
+    '#EF4444', // Red
+    '#10B981', // Green
+    '#F59E0B', // Amber
+    '#8B5CF6', // Purple
+    '#EC4899', // Pink
+    '#14B8A6', // Teal
+    '#F97316', // Orange
+  ];
+  
+  // Use a simple hash to consistently assign colors
+  let hash = 0;
+  for (let i = 0; i < metric.length; i++) {
+    hash = metric.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return defaultColors[Math.abs(hash) % defaultColors.length];
 }
 
 /**
@@ -68,6 +119,10 @@ async function generateChartImage(
   let chartConfig: ChartConfiguration;
 
   if (chartType === 'bar') {
+    // Generate individual colors for each bar based on metric names
+    const backgroundColors = labels.map(metric => getMetricColor(metric));
+    const borderColors = backgroundColors.map(color => color);
+    
     chartConfig = {
       type: 'bar',
       data: {
@@ -75,8 +130,8 @@ async function generateChartImage(
         datasets: [{
           label: title,
           data: values,
-          backgroundColor: themeColor || '#3B82F6',
-          borderColor: themeColor || '#3B82F6',
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
           borderWidth: 1,
         }],
       },
@@ -89,18 +144,40 @@ async function generateChartImage(
             font: {
               size: 18,
               weight: 'bold',
+              family: 'Arial, sans-serif',
             },
             padding: 20,
+            color: '#000000',
           },
           legend: {
             display: false,
           },
         },
         scales: {
+          x: {
+            ticks: {
+              font: {
+                size: 12,
+                family: 'Arial, sans-serif',
+              },
+              color: '#000000',
+            },
+            grid: {
+              color: '#E5E7EB',
+            },
+          },
           y: {
             beginAtZero: true,
             ticks: {
               precision: 0,
+              font: {
+                size: 12,
+                family: 'Arial, sans-serif',
+              },
+              color: '#000000',
+            },
+            grid: {
+              color: '#E5E7EB',
             },
           },
         },
@@ -224,11 +301,19 @@ async function generateChartImage(
     };
   }
 
-  // Create Chart.js Node Canvas instance
+  // Create Chart.js Node Canvas instance with font configuration
   const chartJSNodeCanvas = new ChartJSNodeCanvas({
     width,
     height,
     backgroundColour: 'white',
+    plugins: {
+      globalVariableLegacy: ['chartjs-adapter-date-fns'],
+    },
+    // Configure fonts - use system fonts that are available
+    chartCallback: (ChartJS) => {
+      ChartJS.defaults.font.family = 'Arial, sans-serif';
+      ChartJS.defaults.font.size = 12;
+    },
   });
 
   // Render chart to buffer
@@ -308,8 +393,11 @@ export async function POST(request: NextRequest) {
           const encoder = new TextEncoder();
           
           try {
-            for (let i = 0; i < events.length; i++) {
-              const event = events[i];
+            // Filter out events without data
+            const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
+            
+            for (let i = 0; i < eventsWithData.length; i++) {
+              const event = eventsWithData[i];
               
               try {
                 // Generate chart image
@@ -333,7 +421,7 @@ export async function POST(request: NextRequest) {
                     eventId: event.id,
                     chartUrl,
                     completed: i + 1,
-                    total: events.length,
+                    total: eventsWithData.length,
                   })}\n\n`)
                 );
               } catch (error: any) {
@@ -350,11 +438,12 @@ export async function POST(request: NextRequest) {
             }
 
             // Send completion
+            const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({
                 type: 'complete',
-                completed: events.length,
-                total: events.length,
+                completed: eventsWithData.length,
+                total: eventsWithData.length,
               })}\n\n`)
             );
             controller.close();
@@ -379,8 +468,11 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Non-streaming: Generate all charts and return
+      // Filter out events without data
+      const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
+      
       const chartResults = await Promise.all(
-        events.map(async (event: ChartEvent, index: number) => {
+        eventsWithData.map(async (event: ChartEvent, index: number) => {
           try {
             const chartBuffer = await generateChartImage(
               metrics,
@@ -415,7 +507,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         charts: chartUrls,
         successful: successfulCount,
-        total: events.length,
+        total: eventsWithData.length,
       });
     }
   } catch (error: any) {
