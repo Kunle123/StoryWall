@@ -5,7 +5,6 @@ import { Readable } from 'stream';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { ChartConfiguration } from 'chart.js';
 import { toTitleCase } from '@/lib/utils/titleCase';
-import { registerFont } from 'canvas';
 
 // Configure Cloudinary
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
