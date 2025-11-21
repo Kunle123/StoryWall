@@ -11,6 +11,7 @@ import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep"
 import { StatisticsInfoStep } from "@/components/timeline-editor/StatisticsInfoStep";
 import { StatisticsDataSourceStep } from "@/components/timeline-editor/StatisticsDataSourceStep";
 import { StatisticsDataEntryStep } from "@/components/timeline-editor/StatisticsDataEntryStep";
+import { StatisticsChartStyleStep } from "@/components/timeline-editor/StatisticsChartStyleStep";
 import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -378,7 +379,7 @@ const TimelineEditor = () => {
         case 1:
           if (timelineType === 'statistics') {
             if (!timelineName || !timelineDescription) {
-              errorMessage = "Please provide a timeline name and description.";
+          errorMessage = "Please provide a timeline name and description.";
             } else if (statisticsMetrics.length === 0 || !statisticsMetrics.every(m => m.trim().length > 0)) {
               errorMessage = "Please define at least one metric to track.";
             }
@@ -394,12 +395,12 @@ const TimelineEditor = () => {
               errorMessage = "Please provide a data source for AI to search.";
             }
           } else {
-            if (!writingStyle && !customStyle) {
-              errorMessage = "Please select a writing style or enter a custom style.";
-            } else if (events.length === 0) {
-              errorMessage = "Please add at least one event (generate with AI or add manually).";
-            } else if (!events.every(e => e.title)) {
-              errorMessage = "Please add titles to all events.";
+          if (!writingStyle && !customStyle) {
+            errorMessage = "Please select a writing style or enter a custom style.";
+          } else if (events.length === 0) {
+            errorMessage = "Please add at least one event (generate with AI or add manually).";
+          } else if (!events.every(e => e.title)) {
+            errorMessage = "Please add titles to all events.";
             }
           }
           break;
@@ -413,7 +414,7 @@ const TimelineEditor = () => {
               errorMessage = "Please add data values for all events.";
             }
           } else {
-            errorMessage = "Please add descriptions to all events.";
+          errorMessage = "Please add descriptions to all events.";
           }
           break;
         case 4:
@@ -495,7 +496,7 @@ const TimelineEditor = () => {
           // For statistics: need name, description, and at least one metric
           result = !!(timelineName && timelineDescription && statisticsMetrics.length > 0 && statisticsMetrics.every(m => m.trim().length > 0));
         } else {
-          result = !!(timelineName && timelineDescription);
+        result = !!(timelineName && timelineDescription);
         }
         break;
       case 2:
@@ -503,7 +504,7 @@ const TimelineEditor = () => {
           // For statistics: need data mode selected and data source if AI mode
           result = !!(statisticsDataMode && (statisticsDataMode === 'manual' || statisticsDataSource.trim().length > 0));
         } else {
-          result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
+        result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
         }
         break;
       case 3:
@@ -515,18 +516,33 @@ const TimelineEditor = () => {
             statisticsMetrics.every(m => typeof e.data[m] === 'number')
           );
         } else {
-          result = events.every(e => e.description);
+        result = events.every(e => e.description);
         }
         break;
       case 4:
-        // Accept either preset style or custom style (from ImageStyleStep's customStyle textarea)
-        // ImageStyleStep syncs customStyle to imageStyle via useEffect, so check imageStyle
-        result = !!(imageStyle && imageStyle.trim().length > 0);
-        console.log('[canProceed] Step 4 validation:', { imageStyle, result, imageStyleLength: imageStyle?.length });
+        if (timelineType === 'statistics') {
+          // For statistics: need chart type selected
+          result = !!(statisticsChartType && statisticsChartType.trim().length > 0);
+        } else {
+          // Accept either preset style or custom style (from ImageStyleStep's customStyle textarea)
+          // ImageStyleStep syncs customStyle to imageStyle via useEffect, so check imageStyle
+          result = !!(imageStyle && imageStyle.trim().length > 0);
+        }
+        console.log('[canProceed] Step 4 validation:', { 
+          timelineType, 
+          statisticsChartType, 
+          imageStyle, 
+          result 
+        });
         break;
       case 5:
-        // Step 5: Can proceed only if at least one image has been generated
-        result = events.some(e => e.imageUrl);
+        if (timelineType === 'statistics') {
+          // For statistics: charts will be generated in step 5, so we can proceed if we have events
+          result = statisticsEvents.length > 0;
+        } else {
+          // Step 5: Can proceed only if at least one image has been generated
+          result = events.some(e => e.imageUrl);
+        }
         break;
       default:
         result = true;
@@ -745,7 +761,13 @@ const TimelineEditor = () => {
           // Step 6: Show preview directly
           <Card className="p-6 mb-6">
             <div className="mb-6">
-              <h2 className="text-2xl font-display font-semibold mb-2">Review & Publish</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
+                  Step {currentStep} of {steps.length}
+                </div>
+                <div className="h-px bg-border flex-1" />
+              </div>
+              <h2 className="text-2xl font-display font-semibold mb-2">{steps[currentStep - 1]?.title || "Review & Publish"}</h2>
               <p className="text-muted-foreground mb-4">
                 Review your timeline and publish it when ready.
               </p>
@@ -780,6 +802,22 @@ const TimelineEditor = () => {
           </Card>
         ) : (
             <Card className="p-6 mb-6">
+              {/* Step Header */}
+              <div className="mb-6 pb-4 border-b">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    currentStep === steps.find(s => s.number === currentStep)?.number
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    Step {currentStep} of {steps.length}
+                  </div>
+                  <div className="h-px bg-border flex-1" />
+                </div>
+                <h2 className="text-xl font-display font-semibold text-muted-foreground">
+                  {steps.find(s => s.number === currentStep)?.title || `Step ${currentStep}`}
+                </h2>
+              </div>
                   {currentStep === 1 && (
                     timelineType === 'statistics' ? (
                       <StatisticsInfoStep
@@ -793,32 +831,32 @@ const TimelineEditor = () => {
                         setMetrics={setStatisticsMetrics}
                       />
                     ) : (
-                      <TimelineInfoStep
-                        timelineName={timelineName}
-                        setTimelineName={setTimelineName}
-                        timelineDescription={timelineDescription}
-                        setTimelineDescription={setTimelineDescription}
-                        isPublic={isPublic}
-                        setIsPublic={setIsPublic}
-                        isFactual={isFactual}
-                        setIsFactual={setIsFactual}
-                        isNumbered={isNumbered}
-                        setIsNumbered={setIsNumbered}
-                        numberLabel={numberLabel}
-                        setNumberLabel={setNumberLabel}
-                        maxEvents={maxEvents}
-                        setMaxEvents={setMaxEvents}
-                        startDate={startDate}
-                        setStartDate={setStartDate}
-                        endDate={endDate}
-                        setEndDate={setEndDate}
-                        sourceRestrictions={sourceRestrictions}
-                        setSourceRestrictions={setSourceRestrictions}
-                        referencePhoto={referencePhoto}
-                        setReferencePhoto={setReferencePhoto}
-                        hashtags={hashtags}
-                        setHashtags={setHashtags}
-                      />
+                    <TimelineInfoStep
+                      timelineName={timelineName}
+                      setTimelineName={setTimelineName}
+                      timelineDescription={timelineDescription}
+                      setTimelineDescription={setTimelineDescription}
+                      isPublic={isPublic}
+                      setIsPublic={setIsPublic}
+                      isFactual={isFactual}
+                      setIsFactual={setIsFactual}
+                      isNumbered={isNumbered}
+                      setIsNumbered={setIsNumbered}
+                      numberLabel={numberLabel}
+                      setNumberLabel={setNumberLabel}
+                      maxEvents={maxEvents}
+                      setMaxEvents={setMaxEvents}
+                      startDate={startDate}
+                      setStartDate={setStartDate}
+                      endDate={endDate}
+                      setEndDate={setEndDate}
+                      sourceRestrictions={sourceRestrictions}
+                      setSourceRestrictions={setSourceRestrictions}
+                      referencePhoto={referencePhoto}
+                      setReferencePhoto={setReferencePhoto}
+                      hashtags={hashtags}
+                      setHashtags={setHashtags}
+                    />
                     )
                   )}
               {currentStep === 2 && (
@@ -833,22 +871,22 @@ const TimelineEditor = () => {
                     timelineDescription={timelineDescription}
                   />
                 ) : (
-                  <WritingStyleStep
-                    writingStyle={writingStyle}
-                    setWritingStyle={setWritingStyle}
-                    customStyle={customStyle}
-                    setCustomStyle={setCustomStyle}
-                    events={events}
-                    setEvents={setEvents}
-                    timelineDescription={timelineDescription}
-                    timelineName={timelineName}
-                    isFactual={isFactual}
-                    isNumbered={isNumbered}
-                    numberLabel={numberLabel}
-                    maxEvents={maxEvents}
-                    setImageReferences={setImageReferences}
-                    sourceRestrictions={sourceRestrictions}
-                  />
+                <WritingStyleStep
+                  writingStyle={writingStyle}
+                  setWritingStyle={setWritingStyle}
+                  customStyle={customStyle}
+                  setCustomStyle={setCustomStyle}
+                  events={events}
+                  setEvents={setEvents}
+                  timelineDescription={timelineDescription}
+                  timelineName={timelineName}
+                  isFactual={isFactual}
+                  isNumbered={isNumbered}
+                  numberLabel={numberLabel}
+                  maxEvents={maxEvents}
+                  setImageReferences={setImageReferences}
+                  sourceRestrictions={sourceRestrictions}
+                />
                 )
               )}
               {currentStep === 3 && (
@@ -863,28 +901,38 @@ const TimelineEditor = () => {
                     dataSource={statisticsDataSource}
                   />
                 ) : (
-                  <EventDetailsStep 
-                    events={events} 
-                    setEvents={setEvents}
-                    timelineDescription={timelineDescription}
-                    timelineName={timelineName}
-                    writingStyle={writingStyle}
-                    imageStyle={imageStyle} // Pass if already selected (user may have gone back)
-                    themeColor={themeColor} // Pass if already selected
-                    sourceRestrictions={sourceRestrictions}
-                    hashtags={hashtags}
-                    setHashtags={setHashtags}
-                  />
+                <EventDetailsStep 
+                  events={events} 
+                  setEvents={setEvents}
+                  timelineDescription={timelineDescription}
+                  timelineName={timelineName}
+                  writingStyle={writingStyle}
+                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                  themeColor={themeColor} // Pass if already selected
+                  sourceRestrictions={sourceRestrictions}
+                  hashtags={hashtags}
+                  setHashtags={setHashtags}
+                />
                 )
               )}
               {currentStep === 4 && (
-                <ImageStyleStep 
-                  imageStyle={imageStyle}
-                  setImageStyle={setImageStyle}
-                  themeColor={themeColor}
-                  setThemeColor={setThemeColor}
-                  hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
-                />
+                timelineType === 'statistics' ? (
+                  <StatisticsChartStyleStep
+                    chartType={statisticsChartType}
+                    setChartType={setStatisticsChartType}
+                    themeColor={themeColor}
+                    setThemeColor={setThemeColor}
+                    metrics={statisticsMetrics}
+                  />
+                ) : (
+                  <ImageStyleStep 
+                    imageStyle={imageStyle}
+                    setImageStyle={setImageStyle}
+                    themeColor={themeColor}
+                    setThemeColor={setThemeColor}
+                    hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
+                  />
+                )
               )}
               {currentStep === 5 && (
                 <GenerateImagesStep 

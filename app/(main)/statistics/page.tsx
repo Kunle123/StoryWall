@@ -149,12 +149,12 @@ const StatisticsPage = () => {
               {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing and finding data sources...
+                  Searching for available metrics and data sources...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  Generate Metrics & Find Data Sources
+                  Find Metrics & Data Sources
                 </>
               )}
             </Button>

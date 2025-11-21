@@ -161,14 +161,14 @@ export const StatisticsDataEntryStep = ({
         <h2 className="text-2xl font-display font-semibold mb-2">Enter Data</h2>
         <p className="text-muted-foreground">
           {dataMode === 'ai' 
-            ? 'AI will search for real statistical data and create events at significant periods.'
+            ? 'AI will search the data source for real statistical data matching your metrics and create events at significant periods. Only metrics available in the data source will be included.'
             : 'Enter data manually for each event. Each event should have values for all metrics.'}
         </p>
       </div>
 
       <Tabs defaultValue={dataMode} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ai">AI Generate</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="ai">Find Data</TabsTrigger>
           <TabsTrigger value="manual">Manual Entry</TabsTrigger>
         </TabsList>
 
@@ -178,7 +178,7 @@ export const StatisticsDataEntryStep = ({
               <div className="space-y-2">
                 <Label className="text-[15px]">Time Period (Optional)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Select a specific period or let AI choose based on data availability.
+                  Select a specific period or let AI choose based on data availability. AI will only use metrics that are available in the data source.
                 </p>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                   <SelectTrigger className="w-full">

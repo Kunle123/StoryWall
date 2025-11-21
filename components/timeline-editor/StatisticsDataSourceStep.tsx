@@ -56,14 +56,14 @@ export const StatisticsDataSourceStep = ({
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4" />
-                  <span className="font-semibold">AI-Generated Data</span>
+                  <span className="font-semibold">Find Data from Sources</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  AI will search for real statistical data from official sources. Data will be verified for accuracy.
+                  AI will search for real statistical data from official sources. Only metrics available in the data source will be used.
                 </p>
                 <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
                   <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                  <span>AI will find historical data points and create events at significant periods based on data availability.</span>
+                  <span>AI will find historical data points from the specified source and create events at significant periods based on data availability.</span>
                 </div>
               </div>
             </div>
@@ -108,7 +108,7 @@ export const StatisticsDataSourceStep = ({
         </Label>
         <p className="text-xs text-muted-foreground">
           {dataMode === 'ai' 
-            ? 'This is the suggested data source. AI will use this to find real data. You can edit it if needed.'
+            ? 'This is the suggested data source. AI will search this source for real data matching your metrics. You can edit it if needed. Only metrics available in this source will be used.'
             : 'Specify where your data comes from (e.g., "Office for National Statistics", "Police.uk"). This will be displayed on charts.'}
         </p>
         <Input
