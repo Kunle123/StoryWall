@@ -683,17 +683,10 @@ const TimelineEditor = () => {
           });
 
           // Log if image/chart is missing
-          const eventTitle = timelineType === 'statistics' 
-            ? (event as typeof statisticsEvents[0]).title 
-            : (event as TimelineEvent).title;
-          const eventImageUrl = timelineType === 'statistics'
-            ? (event as typeof statisticsEvents[0]).chartUrl
-            : (event as TimelineEvent).imageUrl;
-            
-          if (!eventImageUrl) {
+          if (!imageUrl) {
             console.warn(`[Timeline Save] Event "${eventTitle}" created without ${timelineType === 'statistics' ? 'chart' : 'image'} URL`);
           } else {
-            console.log(`[Timeline Save] Event "${eventTitle}" created with ${timelineType === 'statistics' ? 'chart' : 'image'}: ${eventImageUrl.substring(0, 50)}...`);
+            console.log(`[Timeline Save] Event "${eventTitle}" created with ${timelineType === 'statistics' ? 'chart' : 'image'}: ${imageUrl.substring(0, 50)}...`);
           }
 
           eventResults.push({ success: true, event: eventTitle });
