@@ -292,7 +292,7 @@ Focus on creating a complete timeline with real, verifiable data for every year 
         const yearMatch = e.title.match(/\b(19|20)\d{2}\b/);
         return yearMatch ? parseInt(yearMatch[0]) : null;
       })
-      .filter((y): y is number => y !== null)
+      .filter((y: number | null): y is number => y !== null)
       .sort((a, b) => a - b);
 
     if (eventYears.length > 0) {
