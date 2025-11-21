@@ -233,10 +233,14 @@ Focus on creating a complete timeline with contiguous years, noting any gaps wit
       .map((event: any, index: number) => {
         // Sanitize and validate data
         const sanitizedData: Record<string, number> = {};
+        const isMissingData = event.dataUnavailable === true;
         metrics.forEach(metric => {
           const value = event.data[metric];
           if (typeof value === 'number' && !isNaN(value)) {
             sanitizedData[metric] = value;
+          } else if (value === null || value === undefined) {
+            // For missing data events, use 0
+            sanitizedData[metric] = 0;
           } else {
             // Try to parse if it's a string
             const parsed = parseFloat(String(value));
