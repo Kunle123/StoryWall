@@ -32,6 +32,12 @@ export async function POST(request: NextRequest) {
 1. Relevant metrics that should be tracked
 2. Available data sources for this topic
 
+CRITICAL: You MUST return ONLY valid JSON in this exact format:
+{
+  "metrics": ["Metric 1", "Metric 2", "Metric 3", ...],
+  "dataSource": "Data Source Name"
+}
+
 Guidelines:
 - Suggest 3-8 metrics that are relevant to what the user wants to measure
 - Metrics should be measurable and trackable over time
@@ -39,7 +45,10 @@ Guidelines:
 - If the topic involves categories that may change names over time (e.g., UKIP → Reform), suggest them as separate metrics
 - Focus on the most important and relevant metrics
 - Identify official data sources (e.g., "Office for National Statistics", "UK Parliament", "Police.uk", "NHS Digital")
-- Return JSON with "metrics" array and "dataSource" string
+- The "metrics" field MUST be an array of strings
+- The "dataSource" field MUST be a string
+- Do NOT include any explanatory text, comments, or markdown formatting
+- Start your response with { and end with }
 
 Example for "Crime in West Midlands":
 {
@@ -55,11 +64,16 @@ Example for "UK Political Party Polling":
 
     const userPrompt = `What the user wants to measure: "${question}"
 
-Analyze this request and suggest:
-1. Relevant metrics to track (3-8 metrics)
-2. Available data sources
+Analyze this request and return ONLY a JSON object with this exact structure:
+{
+  "metrics": ["Metric 1", "Metric 2", "Metric 3", ...],
+  "dataSource": "Data Source Name"
+}
 
-Return JSON with "metrics" array and "dataSource" string.`;
+Requirements:
+- "metrics" must be an array of 3-8 strings
+- "dataSource" must be a string
+- Return ONLY the JSON object, no other text`;
 
     const response = await createChatCompletion(aiClient, {
       model: process.env.AI_MODEL || 'gpt-4o-mini',
