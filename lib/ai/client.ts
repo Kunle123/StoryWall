@@ -277,6 +277,7 @@ export async function createChatCompletion(
 
 /**
  * Get the configured AI client from environment variables
+ * Returns the appropriate AI client configuration based on environment variables
  */
 export function getAIClient(): AIClientConfig {
   const provider = (process.env.AI_PROVIDER || 'openai').toLowerCase() as AIProvider;
