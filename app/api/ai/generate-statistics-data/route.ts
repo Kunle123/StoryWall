@@ -79,10 +79,11 @@ CRITICAL REQUIREMENTS:
 7. If you cannot find real data, create an explanatory event rather than omitting the year
 
 CONTIGUOUS DATA REQUIREMENT:
-- When retrieving data for a time period, prioritize getting data for ALL years in that period
-- If data exists for 2015, 2016, 2018, 2019, 2021, 2022 - you MUST also check for 2017, 2020, 2023
-- If a year is missing from official sources, create an event explaining WHY (e.g., "GCSEs abandoned due to COVID-19 pandemic", "Results unavailable - data collection suspended", "No data published for this year")
-- Missing year events should have ALL metric values set to 0 or null, with a clear description explaining the absence
+- When retrieving data for a time period, you MUST attempt to retrieve data for ALL years in that period
+- DO NOT skip years - search for data for every year in the requested period
+- If you find data for 2015, 2016, 2018, 2019, 2021, 2022 - you MUST also search for and include 2017, 2020, 2023
+- Only if data is genuinely unavailable from official sources after thorough searching should you omit a year
+- The system will automatically create explanatory events for any missing years, so focus on finding real data for all years
 
 MISSING DATA EVENTS:
 When data is unavailable for a year, create an event like this:
@@ -156,20 +157,16 @@ Generate 5-15 events with real statistical data for these metrics. Each event sh
 - Cite the data source
 - If data is unavailable, include "dataUnavailable": true and a "reason" field
 
-CRITICAL: You MUST include events for ALL years in the requested period, even if data is unavailable.
+CRITICAL INSTRUCTION: You MUST search for and include data for ALL years in the requested period.
 
-SPECIFIC YEAR REQUIREMENTS:
-- If the period includes 2015-2023, you MUST include events for: 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023
-- If the period includes 2010-2023, you MUST include events for ALL years from 2010 to 2023
-- NO EXCEPTIONS: Every year in the period must have an event, either with data OR with an explanation
+DO NOT skip years. For each year in the period:
+1. Search thoroughly for data from the specified data source
+2. Include the year if data is found
+3. Only omit a year if you have confirmed through multiple searches that no data exists
 
-For missing years, create events like:
-- "2017 - [Reason data unavailable]" (e.g., "2017 - Results not published", "2017 - Data collection suspended")
-- "2023 - [Reason data unavailable]" (e.g., "2023 - Data not yet published", "2023 - Results pending", "2023 - Data collection in progress")
+The system will automatically handle any years you cannot find data for, so your job is to find as much real data as possible for ALL years in the period.
 
-DO NOT skip years. If you cannot find data for 2017 or 2023, you MUST still create an event explaining why the data is unavailable.
-
-Focus on creating a complete timeline with contiguous years, noting any gaps with explanatory events.`;
+Focus on creating a complete timeline with real, verifiable data for every year you can find.`;
 
     const response = await createChatCompletion(aiClient, {
       model: process.env.AI_MODEL || 'gpt-4o-mini',
@@ -284,7 +281,7 @@ Focus on creating a complete timeline with contiguous years, noting any gaps wit
       throw new Error('No valid events generated. Please check your metrics and data source.');
     }
 
-    // Post-process: Detect missing years and create explanatory events
+    // Post-process: Detect missing years and create explanatory events ONLY if data is truly unavailable
     // Extract years from events
     const eventYears = validatedEvents
       .map(e => {
@@ -303,7 +300,7 @@ Focus on creating a complete timeline with contiguous years, noting any gaps wit
       const maxYear = eventYears[eventYears.length - 1];
       const missingYears: number[] = [];
 
-      // Find gaps in the year sequence
+      // Find gaps in the year sequence (only for years within the range)
       for (let year = minYear; year <= maxYear; year++) {
         if (!eventYears.includes(year)) {
           missingYears.push(year);
