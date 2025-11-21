@@ -48,7 +48,7 @@ export default function TwitterSharePage() {
         const eventsData = await fetchEventsByTimelineId(timelineId);
         if (eventsData.error) {
           console.error("Error fetching events:", eventsData.error);
-        } else {
+        } else if (eventsData.data) {
           setEvents(eventsData.data.map((e: any) => transformApiEventToTimelineEvent(e)));
         }
       } catch (error) {
