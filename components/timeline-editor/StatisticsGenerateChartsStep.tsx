@@ -120,7 +120,7 @@ export const StatisticsGenerateChartsStep = ({
                 // Update event with chart URL as soon as it's ready
                 if (data.chartUrl && data.index < events.length) {
                   const eventId = events[data.index].id;
-                  setEvents(prevEvents =>
+                  setEvents((prevEvents: typeof events) =>
                     prevEvents.map(e =>
                       e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
                     )
