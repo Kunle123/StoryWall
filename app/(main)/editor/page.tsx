@@ -935,18 +935,35 @@ const TimelineEditor = () => {
                 )
               )}
               {currentStep === 5 && (
-                <GenerateImagesStep 
-                  events={events} 
-                  setEvents={setEvents}
-                  imageStyle={imageStyle}
-                  setImageStyle={setImageStyle}
-                  themeColor={themeColor}
-                  setThemeColor={setThemeColor}
-                  imageReferences={imageReferences}
-                  referencePhoto={referencePhoto}
-                  includesPeople={includesPeople}
-                  hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
-                />
+                timelineType === 'statistics' ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-display font-semibold mb-2">Generate Charts</h2>
+                      <p className="text-muted-foreground">
+                        Charts will be generated for each event. This feature is coming soon.
+                      </p>
+                    </div>
+                    <div className="p-6 border rounded-lg bg-muted/30">
+                      <p className="text-sm text-muted-foreground">
+                        Chart generation will create visual representations of your statistical data for each event.
+                        The charts will use the style and colors you selected in Step 4.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <GenerateImagesStep 
+                    events={events} 
+                    setEvents={setEvents}
+                    imageStyle={imageStyle}
+                    setImageStyle={setImageStyle}
+                    themeColor={themeColor}
+                    setThemeColor={setThemeColor}
+                    imageReferences={imageReferences}
+                    referencePhoto={referencePhoto}
+                    includesPeople={includesPeople}
+                    hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
+                  />
+                )
               )}
             </Card>
         )}
