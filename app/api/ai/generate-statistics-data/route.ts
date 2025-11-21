@@ -217,7 +217,7 @@ Focus on significant periods where data is available and meaningful changes occu
     const warnings: string[] = [];
     
     // Check for unrealistic values (e.g., negative percentages, values > 1000% for percentages)
-    validatedEvents.forEach((event, idx) => {
+    validatedEvents.forEach((event: { title: string; data: Record<string, number> }, idx: number) => {
       metrics.forEach(metric => {
         const value = event.data[metric];
         if (value < 0) {
