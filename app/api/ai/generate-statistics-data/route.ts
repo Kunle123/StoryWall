@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 
 /**
@@ -10,7 +10,7 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await getAuth(request);
+    const { userId } = await auth();
     
     if (!userId) {
       return NextResponse.json(
