@@ -120,6 +120,7 @@ export const StatisticsGenerateChartsStep = ({
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
+              console.log('[ChartGen] Received SSE event:', { type: data.type, index: data.index, hasChartUrl: !!data.chartUrl, hasError: !!data.message });
               
               if (data.type === 'chart') {
                 // Update progress based on completed charts
@@ -188,18 +189,24 @@ export const StatisticsGenerateChartsStep = ({
                 setProgress(100);
               } else if (data.type === 'error') {
                 console.error('[ChartGen] Error event received:', data);
-                // Don't throw - continue processing other charts
-                // Show error toast for this specific chart
+                // Track errors but don't throw - continue processing other charts
+                // Show error toast for this specific chart only once
                 if (data.index !== undefined && data.eventId) {
-                  toast({
-                    title: "Chart Generation Error",
-                    description: `Failed to generate chart for event: ${data.message || 'Unknown error'}`,
-                    variant: "destructive",
-                  });
+                  // Only show toast for first error to avoid spam
+                  if (data.index === 0) {
+                    toast({
+                      title: "Chart Generation Error",
+                      description: `Failed to generate charts. The canvas module may not be installed on the server. Error: ${data.message || 'Unknown error'}`,
+                      variant: "destructive",
+                    });
+                  }
                 } else {
-                  // General error
+                  // General error - this will stop the stream
                   throw new Error(data.message || 'Chart generation failed');
                 }
+              } else {
+                // Unknown event type
+                console.warn('[ChartGen] Unknown event type:', data.type, data);
               }
             } catch (parseError) {
               // Skip invalid JSON lines
