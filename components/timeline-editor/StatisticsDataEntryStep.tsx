@@ -13,6 +13,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 interface StatisticsEvent {
   id: string;
@@ -214,12 +215,12 @@ export const StatisticsDataEntryStep = ({
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Searching for data and generating events... {generationProgress > 0 && `${generationProgress}%`}
+                    Retrieving data and creating events... {generationProgress > 0 && `${generationProgress}%`}
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Data with AI
+                    Use AI to Retrieve Data
                   </>
                 )}
               </Button>
@@ -257,7 +258,7 @@ export const StatisticsDataEntryStep = ({
                   <Card key={event.id} className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-semibold">{event.title || 'Untitled Event'}</h4>
+                        <h4 className="font-semibold">{toTitleCase(event.title || 'Untitled Event')}</h4>
                         {event.description && (
                           <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                         )}
@@ -338,7 +339,7 @@ export const StatisticsDataEntryStep = ({
                       <Input
                         placeholder="e.g., January 2024"
                         value={event.title}
-                        onChange={(e) => handleEventChange(event.id, 'title', e.target.value)}
+                        onChange={(e) => handleEventChange(event.id, 'title', toTitleCase(e.target.value))}
                       />
                     </div>
 

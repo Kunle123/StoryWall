@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 interface StatisticsInfoStepProps {
   timelineName: string;
@@ -75,7 +76,7 @@ export const StatisticsInfoStep = ({
           id="timeline-name"
           placeholder="e.g., UK Political Party Polling 2020-2024"
           value={timelineName}
-          onChange={(e) => setTimelineName(e.target.value)}
+          onChange={(e) => setTimelineName(toTitleCase(e.target.value))}
           className="h-10"
         />
       </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { toTitleCase } from '@/lib/utils/titleCase';
 
 // Configure Cloudinary
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
@@ -232,12 +233,13 @@ export async function POST(request: NextRequest) {
               
               try {
                 // Generate chart image
+                const chartTitle = toTitleCase(event.title || timelineName || 'Chart');
                 const chartBuffer = await generateChartImage(
                   metrics,
                   event.data,
                   chartType,
                   themeColor,
-                  event.title || timelineName || 'Chart'
+                  chartTitle
                 );
 
                 // Upload to Cloudinary

@@ -8,6 +8,7 @@ import { BarChart3, Loader2, Eye, CheckCircle2, AlertCircle } from "lucide-react
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 interface StatisticsEvent {
   id: string;
@@ -257,7 +258,7 @@ export const StatisticsGenerateChartsStep = ({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold">{event.title || `Event ${index + 1}`}</h4>
+                      <h4 className="font-semibold">{toTitleCase(event.title || `Event ${index + 1}`)}</h4>
                       {event.chartUrl ? (
                         <CheckCircle2 className="w-4 h-4 text-green-600" />
                       ) : (
