@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
 import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep";
 import { StatisticsInfoStep } from "@/components/timeline-editor/StatisticsInfoStep";
+import { StatisticsDataSourceStep } from "@/components/timeline-editor/StatisticsDataSourceStep";
 import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -309,6 +310,10 @@ const TimelineEditor = () => {
             setStatisticsMetrics(fieldsList);
             setStatisticsChartType(chartType || 'bar');
             setStatisticsDataSource(dataSource || '');
+            // Default to AI mode if data source is provided
+            if (dataSource) {
+              setStatisticsDataMode('ai');
+            }
           }
         }
         
@@ -472,6 +477,14 @@ const TimelineEditor = () => {
           result = !!(timelineName && timelineDescription && statisticsMetrics.length > 0 && statisticsMetrics.every(m => m.trim().length > 0));
         } else {
           result = !!(timelineName && timelineDescription);
+        }
+        break;
+      case 2:
+        if (timelineType === 'statistics') {
+          // For statistics: need data mode selected and data source if AI mode
+          result = !!(statisticsDataMode && (statisticsDataMode === 'manual' || statisticsDataSource.trim().length > 0));
+        } else {
+          result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
         }
         break;
       case 2:
@@ -784,22 +797,34 @@ const TimelineEditor = () => {
                     )
                   )}
               {currentStep === 2 && (
-                <WritingStyleStep
-                  writingStyle={writingStyle}
-                  setWritingStyle={setWritingStyle}
-                  customStyle={customStyle}
-                  setCustomStyle={setCustomStyle}
-                  events={events}
-                  setEvents={setEvents}
-                  timelineDescription={timelineDescription}
-                  timelineName={timelineName}
-                  isFactual={isFactual}
-                  isNumbered={isNumbered}
-                  numberLabel={numberLabel}
-                  maxEvents={maxEvents}
-                  setImageReferences={setImageReferences}
-                  sourceRestrictions={sourceRestrictions}
-                />
+                timelineType === 'statistics' ? (
+                  <StatisticsDataSourceStep
+                    dataMode={statisticsDataMode}
+                    setDataMode={setStatisticsDataMode}
+                    dataSource={statisticsDataSource}
+                    setDataSource={setStatisticsDataSource}
+                    metrics={statisticsMetrics}
+                    timelineName={timelineName}
+                    timelineDescription={timelineDescription}
+                  />
+                ) : (
+                  <WritingStyleStep
+                    writingStyle={writingStyle}
+                    setWritingStyle={setWritingStyle}
+                    customStyle={customStyle}
+                    setCustomStyle={setCustomStyle}
+                    events={events}
+                    setEvents={setEvents}
+                    timelineDescription={timelineDescription}
+                    timelineName={timelineName}
+                    isFactual={isFactual}
+                    isNumbered={isNumbered}
+                    numberLabel={numberLabel}
+                    maxEvents={maxEvents}
+                    setImageReferences={setImageReferences}
+                    sourceRestrictions={sourceRestrictions}
+                  />
+                )
               )}
               {currentStep === 3 && (
                 <EventDetailsStep 
