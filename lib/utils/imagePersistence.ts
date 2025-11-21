@@ -95,10 +95,15 @@ export async function persistImagesToCloudinary(imageUrls: (string | null)[]): P
   }
 
   console.log(`[Image Persistence] Persisting ${validUrls.length} images to Cloudinary...`);
+  const startTime = Date.now();
 
   // Process all images in parallel
   const persistencePromises = validUrls.map(url => persistImageToCloudinary(url));
   const persistedUrls = await Promise.all(persistencePromises);
+  
+  const totalTime = Date.now() - startTime;
+  const avgTimePerImage = totalTime / validUrls.length;
+  console.log(`[Image Persistence] Completed persisting ${validUrls.length} images in ${(totalTime / 1000).toFixed(1)}s (avg ${(avgTimePerImage / 1000).toFixed(1)}s per image)`);
 
   // Map back to original array structure (preserving null values)
   let persistedIndex = 0;

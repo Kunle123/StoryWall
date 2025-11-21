@@ -1649,6 +1649,7 @@ export async function POST(request: NextRequest) {
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
+    const totalGenerationStartTime = Date.now();
     
         // Step 1: Create all predictions in parallel
     const predictionPromises = eventsWithTextNeeds.map(async ({ event, needsText }, index) => {
@@ -2361,6 +2362,7 @@ export async function POST(request: NextRequest) {
             const errors: (Error | null)[] = new Array(events.length).fill(null);
             let completedCount = 0;
             const totalEvents = events.length;
+            const streamingStartTime = Date.now();
             
             // Process each promise as it completes
             imagePromises.forEach((promise, promiseIndex) => {
@@ -2415,6 +2417,10 @@ export async function POST(request: NextRequest) {
                       }
                     }
                     
+                    const streamingTime = Date.now() - streamingStartTime;
+                    const totalStreamingTime = Date.now() - totalGenerationStartTime;
+                    console.log(`[ImageGen] [Streaming] All images generated: ${successfulImages.length}/${totalEvents} in ${(streamingTime / 1000).toFixed(1)}s (total: ${(totalStreamingTime / 1000).toFixed(1)}s, avg ${(totalStreamingTime / totalEvents / 1000).toFixed(1)}s per image)`);
+                    
                     const finalUpdate = {
                       type: 'complete',
                       images: images,
@@ -2464,6 +2470,10 @@ export async function POST(request: NextRequest) {
                     }
                     
                     // Send final update
+                    const streamingTime = Date.now() - streamingStartTime;
+                    const totalStreamingTime = Date.now() - totalGenerationStartTime;
+                    console.log(`[ImageGen] [Streaming] All images generated: ${successfulImages.length}/${totalEvents} in ${(streamingTime / 1000).toFixed(1)}s (total: ${(totalStreamingTime / 1000).toFixed(1)}s, avg ${(totalStreamingTime / totalEvents / 1000).toFixed(1)}s per image)`);
+                    
                     const finalUpdate = {
                       type: 'complete',
                       images: images,
@@ -2501,6 +2511,10 @@ export async function POST(request: NextRequest) {
                   }
                   
                   // Send final update with credits deducted
+                  const streamingTime = Date.now() - streamingStartTime;
+                  const totalStreamingTime = Date.now() - totalGenerationStartTime;
+                  console.log(`[ImageGen] [Streaming] All images generated: ${successfulImages.length}/${totalEvents} in ${(streamingTime / 1000).toFixed(1)}s (total: ${(totalStreamingTime / 1000).toFixed(1)}s, avg ${(totalStreamingTime / totalEvents / 1000).toFixed(1)}s per image)`);
+                  
                   const finalUpdate = {
                     type: 'complete',
                     images: images,
@@ -2534,8 +2548,10 @@ export async function POST(request: NextRequest) {
     // All images are polled in parallel - they complete as soon as Replicate finishes each one
     const imageResults = await Promise.all(imagePromises);
     const pollingTime = Date.now() - pollingStartTime;
+    const totalGenerationTime = Date.now() - totalGenerationStartTime;
     const successfulImagesCount = imageResults.filter(r => r.imageUrl).length;
     console.log(`[ImageGen] Parallel polling complete: ${successfulImagesCount}/${imageResults.length} images generated in ${(pollingTime / 1000).toFixed(1)}s (all processed simultaneously)`);
+    console.log(`[ImageGen] Total generation time: ${(totalGenerationTime / 1000).toFixed(1)}s (creation: ${(creationTime / 1000).toFixed(1)}s + polling: ${(pollingTime / 1000).toFixed(1)}s) - avg ${(totalGenerationTime / events.length / 1000).toFixed(1)}s per image`);
     
     // Step 3: Assemble results in correct order
     const images: (string | null)[] = new Array(events.length).fill(null);
@@ -2596,13 +2612,15 @@ export async function POST(request: NextRequest) {
     // Step 4: Persist all images to Cloudinary (if configured)
     // This ensures images are permanently stored and won't expire from Replicate
     console.log(`[ImageGen] Persisting ${successfulImages.length} images to Cloudinary...`);
+    const persistenceStartTime = Date.now();
     const persistedImages = await persistImagesToCloudinary(images);
+    const persistenceTime = Date.now() - persistenceStartTime;
     
     // Log summary
     const persistedCount = persistedImages.filter(img => img !== null && img.includes('res.cloudinary.com')).length;
     console.log(`[ImageGen] Generated ${successfulImages.length} of ${events.length} images successfully`);
     if (persistedCount > 0) {
-      console.log(`[ImageGen] Persisted ${persistedCount} images to Cloudinary for permanent storage`);
+      console.log(`[ImageGen] Persisted ${persistedCount} images to Cloudinary for permanent storage in ${(persistenceTime / 1000).toFixed(1)}s (${(persistenceTime / persistedCount / 1000).toFixed(1)}s per image)`);
     }
     
     // Deduct credits AFTER successful generation (1 credit per successfully generated image)
