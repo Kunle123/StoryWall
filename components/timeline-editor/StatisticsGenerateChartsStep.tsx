@@ -70,7 +70,10 @@ export const StatisticsGenerateChartsStep = ({
     try {
       const response = await fetch('/api/ai/generate-charts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
         body: JSON.stringify({
           events: events.map(event => ({
             id: event.id,

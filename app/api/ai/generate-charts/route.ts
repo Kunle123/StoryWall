@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import { ChartConfiguration } from 'chart.js';
 import { toTitleCase } from '@/lib/utils/titleCase';
 
 // Configure Cloudinary
@@ -30,8 +32,7 @@ function bufferToStream(buffer: Buffer): Readable {
 }
 
 /**
- * Generate a chart image using QuickChart.io (free chart generation service)
- * This is a temporary solution until we implement server-side Chart.js
+ * Generate a chart image natively using Chart.js and node-canvas
  */
 async function generateChartImage(
   metrics: string[],
@@ -44,12 +45,30 @@ async function generateChartImage(
   const labels = metrics;
   const values = metrics.map(metric => data[metric] || 0);
 
-  // Generate chart URL based on chart type
-  let chartUrl = '';
-  const baseUrl = 'https://quickchart.io/chart';
+  // Create color palette based on theme color
+  const generateColorPalette = (baseColor: string, count: number): string[] => {
+    const colors = [
+      baseColor || '#3B82F6',
+      '#A855F7',
+      '#10B981',
+      '#F97316',
+      '#EF4444',
+      '#EC4899',
+      '#14B8A6',
+      '#EAB308',
+    ];
+    return colors.slice(0, count);
+  };
+
+  // Chart dimensions
+  const width = 800;
+  const height = 600;
+
+  // Create Chart.js configuration
+  let chartConfig: ChartConfiguration;
 
   if (chartType === 'bar') {
-    chartUrl = `${baseUrl}?c=${encodeURIComponent(JSON.stringify({
+    chartConfig = {
       type: 'bar',
       data: {
         labels,
@@ -57,13 +76,140 @@ async function generateChartImage(
           label: title,
           data: values,
           backgroundColor: themeColor || '#3B82F6',
+          borderColor: themeColor || '#3B82F6',
+          borderWidth: 1,
         }],
       },
       options: {
+        responsive: true,
         plugins: {
           title: {
             display: true,
-            text: title,
+            text: toTitleCase(title),
+            font: {
+              size: 18,
+              weight: 'bold',
+            },
+            padding: 20,
+          },
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0,
+            },
+          },
+        },
+      },
+    };
+  } else if (chartType === 'line') {
+    chartConfig = {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: title,
+          data: values,
+          borderColor: themeColor || '#3B82F6',
+          backgroundColor: themeColor ? `${themeColor}33` : '#3B82F633',
+          fill: true,
+          tension: 0.4,
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: toTitleCase(title),
+            font: {
+              size: 18,
+              weight: 'bold',
+            },
+            padding: 20,
+          },
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0,
+            },
+          },
+        },
+      },
+    };
+  } else if (chartType === 'pie' || chartType === 'doughnut') {
+    const colorPalette = generateColorPalette(themeColor, metrics.length);
+    chartConfig = {
+      type: chartType as 'pie' | 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colorPalette,
+          borderColor: '#ffffff',
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: toTitleCase(title),
+            font: {
+              size: 18,
+              weight: 'bold',
+            },
+            padding: 20,
+          },
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              padding: 15,
+              font: {
+                size: 12,
+              },
+            },
+          },
+        },
+      },
+    };
+  } else {
+    // Default to bar chart
+    chartConfig = {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: title,
+          data: values,
+          backgroundColor: themeColor || '#3B82F6',
+          borderColor: themeColor || '#3B82F6',
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: toTitleCase(title),
+            font: {
+              size: 18,
+              weight: 'bold',
+            },
+            padding: 20,
           },
           legend: {
             display: false,
@@ -75,85 +221,19 @@ async function generateChartImage(
           },
         },
       },
-    }))}`;
-  } else if (chartType === 'line') {
-    chartUrl = `${baseUrl}?c=${encodeURIComponent(JSON.stringify({
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: title,
-          data: values,
-          borderColor: themeColor || '#3B82F6',
-          backgroundColor: themeColor ? `${themeColor}33` : '#3B82F633',
-          fill: true,
-        }],
-      },
-      options: {
-        plugins: {
-          title: {
-            display: true,
-            text: title,
-          },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-          },
-        },
-      },
-    }))}`;
-  } else if (chartType === 'pie' || chartType === 'doughnut') {
-    chartUrl = `${baseUrl}?c=${encodeURIComponent(JSON.stringify({
-      type: chartType,
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          backgroundColor: [
-            themeColor || '#3B82F6',
-            '#A855F7',
-            '#10B981',
-            '#F97316',
-            '#EF4444',
-            '#EC4899',
-            '#14B8A6',
-            '#EAB308',
-          ].slice(0, metrics.length),
-        }],
-      },
-      options: {
-        plugins: {
-          title: {
-            display: true,
-            text: title,
-          },
-        },
-      },
-    }))}`;
-  } else {
-    // Default to bar chart
-    chartUrl = `${baseUrl}?c=${encodeURIComponent(JSON.stringify({
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: title,
-          data: values,
-          backgroundColor: themeColor || '#3B82F6',
-        }],
-      },
-    }))}`;
+    };
   }
 
-  // Fetch the chart image
-  const response = await fetch(chartUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to generate chart: ${response.statusText}`);
-  }
+  // Create Chart.js Node Canvas instance
+  const chartJSNodeCanvas = new ChartJSNodeCanvas({
+    width,
+    height,
+    backgroundColour: 'white',
+  });
 
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  // Render chart to buffer
+  const buffer = await chartJSNodeCanvas.renderToBuffer(chartConfig);
+  return buffer;
 }
 
 /**
