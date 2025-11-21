@@ -167,21 +167,39 @@ export const StatisticsGenerateChartsStep = ({
                   totalEvents: finalEvents.length
                 });
                 
-                // If we're missing any chart URLs, try to refresh from parent
+                // If we're missing any chart URLs, show error
                 if (chartsGenerated < finalEvents.length) {
                   console.warn('[ChartGen] Missing chart URLs, refreshing events from parent');
+                  const failedCount = finalEvents.length - chartsGenerated;
+                  toast({
+                    title: "Chart Generation Failed",
+                    description: `Failed to generate ${failedCount} of ${finalEvents.length} charts. The canvas module may not be properly installed on the server. Please try again after the deployment completes.`,
+                    variant: "destructive",
+                  });
                   // Force a re-check by updating with current events
                   setEvents([...finalEvents]);
+                } else {
+                  toast({
+                    title: "Charts Generated",
+                    description: `Successfully generated ${chartsGenerated} of ${finalEvents.length} charts.`,
+                  });
                 }
-                
-                toast({
-                  title: "Charts Generated",
-                  description: `Successfully generated ${chartsGenerated} of ${finalEvents.length} charts.`,
-                });
                 setIsGenerating(false);
                 setProgress(100);
               } else if (data.type === 'error') {
-                throw new Error(data.message || 'Chart generation failed');
+                console.error('[ChartGen] Error event received:', data);
+                // Don't throw - continue processing other charts
+                // Show error toast for this specific chart
+                if (data.index !== undefined && data.eventId) {
+                  toast({
+                    title: "Chart Generation Error",
+                    description: `Failed to generate chart for event: ${data.message || 'Unknown error'}`,
+                    variant: "destructive",
+                  });
+                } else {
+                  // General error
+                  throw new Error(data.message || 'Chart generation failed');
+                }
               }
             } catch (parseError) {
               // Skip invalid JSON lines
