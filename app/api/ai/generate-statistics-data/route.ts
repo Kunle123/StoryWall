@@ -293,7 +293,7 @@ Focus on creating a complete timeline with real, verifiable data for every year 
         return yearMatch ? parseInt(yearMatch[0]) : null;
       })
       .filter((y: number | null): y is number => y !== null)
-      .sort((a, b) => a - b);
+      .sort((a: number, b: number) => a - b);
 
     if (eventYears.length > 0) {
       const minYear = eventYears[0];
