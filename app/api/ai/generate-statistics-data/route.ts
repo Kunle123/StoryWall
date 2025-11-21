@@ -73,38 +73,65 @@ CRITICAL REQUIREMENTS:
 1. You MUST only use REAL, VERIFIABLE data from official sources
 2. You MUST NOT hallucinate or invent data
 3. You MUST cite the data source for each data point
-4. You MUST create events at significant periods (e.g., major policy changes, elections, economic events)
-5. You MUST return data in the exact JSON format specified below
-6. If you cannot find real data, return fewer events rather than making up data
+4. You MUST prioritize CONTIGUOUS YEARS - try to retrieve data for consecutive years without gaps
+5. You MUST create events for missing years with explanatory notes when data is unavailable
+6. You MUST return data in the exact JSON format specified below
+7. If you cannot find real data, create an explanatory event rather than omitting the year
+
+CONTIGUOUS DATA REQUIREMENT:
+- When retrieving data for a time period, prioritize getting data for ALL years in that period
+- If data exists for 2015, 2016, 2018, 2019, 2021, 2022 - you MUST also check for 2017, 2020, 2023
+- If a year is missing from official sources, create an event explaining WHY (e.g., "GCSEs abandoned due to COVID-19 pandemic", "Results unavailable - data collection suspended", "No data published for this year")
+- Missing year events should have ALL metric values set to 0 or null, with a clear description explaining the absence
+
+MISSING DATA EVENTS:
+When data is unavailable for a year, create an event like this:
+{
+  "id": "event-missing-2020",
+  "title": "2020 - GCSEs Cancelled",
+  "description": "GCSE examinations were cancelled due to the COVID-19 pandemic. No official results were published for this year.",
+  "date": "2020-08-01",
+  "data": {
+    "Metric 1": 0,
+    "Metric 2": 0,
+    "Metric 3": 0
+  },
+  "source": "Department for Education / Official announcement",
+  "dataUnavailable": true,
+  "reason": "GCSEs cancelled due to COVID-19 pandemic"
+}
 
 Data Quality Checks:
 - All values must be realistic and consistent with known trends
 - Percentages should sum appropriately (if applicable)
 - Dates should be accurate and correspond to real events
 - Values should show logical progression over time
+- Missing years should be explicitly noted with explanations
 
 Return ONLY valid JSON in this exact format:
 {
   "events": [
     {
       "id": "event-1",
-      "title": "Event Title (e.g., 'January 2020')",
-      "description": "Brief description of what happened at this time",
+      "title": "Event Title (e.g., '2020 - GCSEs Cancelled' or '2017 Results')",
+      "description": "Brief description of what happened at this time, or explanation if data unavailable",
       "date": "2020-01-15",
       "data": {
         "Metric 1": 35.5,
         "Metric 2": 42.3,
         "Metric 3": 8.2
       },
-      "source": "Official source name"
+      "source": "Official source name",
+      "dataUnavailable": false,
+      "reason": "Optional: reason if data unavailable (e.g., 'COVID-19 pandemic', 'Data collection suspended')"
     }
   ],
   "periodUsed": "Description of the time period covered",
   "dataQuality": "high|medium|low",
-  "warnings": ["Any warnings about data availability or quality"]
+  "warnings": ["Any warnings about data availability or quality", "Note any years where data was unavailable and why"]
 }
 
-If you cannot find sufficient real data, return fewer events with a warning.`;
+If you cannot find sufficient real data, create explanatory events for missing years rather than omitting them.`;
 
     const userPrompt = `Timeline: "${timelineName}"
 Description: ${timelineDescription}
@@ -115,14 +142,25 @@ Data Source: ${dataSource}
 
 ${periodContext ? `Time Period: ${periodContext}` : 'Time Period: Choose significant periods based on data availability'}
 
-Generate 5-15 events with real statistical data for these metrics. Each event should:
-- Have a clear title (e.g., "January 2020", "Q1 2021", "After Brexit Vote")
-- Include a brief description of what happened
-- Have accurate dates
-- Include data values for ALL metrics: ${metrics.join(', ')}
-- Cite the data source
+CRITICAL: Generate events for CONTIGUOUS YEARS. If data exists for some years but not others in the period:
+1. Include events for ALL years where data is available
+2. Create explanatory events for missing years explaining why data is unavailable
+3. Common reasons: COVID-19 pandemic, data collection suspended, results not published, examinations cancelled
+4. For missing years, set all metric values to 0 and include a clear description (e.g., "2020 - GCSEs cancelled due to COVID-19 pandemic")
 
-Focus on significant periods where data is available and meaningful changes occurred.`;
+Generate 5-15 events with real statistical data for these metrics. Each event should:
+- Have a clear title (e.g., "2020 Results", "2020 - GCSEs Cancelled", "2017 Results")
+- Include a brief description of what happened OR explanation if data unavailable
+- Have accurate dates (use mid-year dates like "2020-08-01" for annual data)
+- Include data values for ALL metrics: ${metrics.join(', ')} (use 0 for missing years)
+- Cite the data source
+- If data is unavailable, include "dataUnavailable": true and a "reason" field
+
+PRIORITY: Retrieve data for consecutive years. If you find data for 2015, 2016, 2018, 2019, 2021, 2022 - you MUST:
+- Check for 2017, 2020, 2023
+- If those years are missing, create events explaining why (e.g., "2017 - Results unavailable", "2020 - Examinations cancelled due to COVID-19", "2023 - Data not yet published")
+
+Focus on creating a complete timeline with contiguous years, noting any gaps with explanatory events.`;
 
     const response = await createChatCompletion(aiClient, {
       model: process.env.AI_MODEL || 'gpt-4o-mini',

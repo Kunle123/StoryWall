@@ -95,19 +95,31 @@ export const StatisticsDataEntryStep = ({
           title: string;
           description?: string;
           data?: Record<string, number>;
+          dataUnavailable?: boolean;
+          reason?: string;
         }>;
       };
       
       if (data.events && Array.isArray(data.events)) {
         // Transform API events to StatisticsEvent format
-        const transformedEvents: StatisticsEvent[] = data.events.map((event) => ({
-          id: event.id || `event-${Date.now()}-${Math.random()}`,
-          date: event.date ? new Date(event.date) : undefined,
-          number: event.number,
-          title: event.title,
-          description: event.description,
-          data: event.data || {},
-        }));
+        const transformedEvents: StatisticsEvent[] = data.events.map((event) => {
+          // Build description - include reason if data unavailable
+          let description = event.description || '';
+          if (event.dataUnavailable && event.reason) {
+            description = description 
+              ? `${description} (${event.reason})`
+              : `Data unavailable: ${event.reason}`;
+          }
+          
+          return {
+            id: event.id || `event-${Date.now()}-${Math.random()}`,
+            date: event.date ? new Date(event.date) : undefined,
+            number: event.number,
+            title: event.title,
+            description: description || undefined,
+            data: event.data || {},
+          };
+        });
         
         setEvents(transformedEvents);
         toast({
