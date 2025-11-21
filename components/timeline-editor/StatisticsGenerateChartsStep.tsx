@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -42,6 +42,12 @@ export const StatisticsGenerateChartsStep = ({
   const [progress, setProgress] = useState(0);
   const [generatingCount, setGeneratingCount] = useState(0);
   const [totalEvents, setTotalEvents] = useState(0);
+  
+  // Use ref to track latest events to avoid stale closures
+  const eventsRef = useRef(events);
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   const handleGenerateCharts = async () => {
     if (events.length === 0) {
@@ -121,12 +127,16 @@ export const StatisticsGenerateChartsStep = ({
                 setProgress((data.completed / data.total) * 100);
                 
                 // Update event with chart URL as soon as it's ready
-                if (data.chartUrl && data.index !== undefined && data.index < events.length) {
-                  const eventId = events[data.index].id;
-                  const updatedEvents = events.map(e =>
-                    e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
-                  );
-                  setEvents(updatedEvents);
+                if (data.chartUrl && data.index !== undefined) {
+                  // Use ref to get latest events to avoid stale closure
+                  const currentEvents = eventsRef.current;
+                  if (data.index < currentEvents.length) {
+                    const eventId = currentEvents[data.index].id;
+                    const updatedEvents = currentEvents.map(e =>
+                      e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
+                    );
+                    setEvents(updatedEvents);
+                  }
                 }
               } else if (data.type === 'complete') {
                 // All charts complete
