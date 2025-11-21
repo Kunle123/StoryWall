@@ -2534,8 +2534,8 @@ export async function POST(request: NextRequest) {
     // All images are polled in parallel - they complete as soon as Replicate finishes each one
     const imageResults = await Promise.all(imagePromises);
     const pollingTime = Date.now() - pollingStartTime;
-    const successfulImages = imageResults.filter(r => r.imageUrl).length;
-    console.log(`[ImageGen] Parallel polling complete: ${successfulImages}/${imageResults.length} images generated in ${(pollingTime / 1000).toFixed(1)}s (all processed simultaneously)`);
+    const successfulImagesCount = imageResults.filter(r => r.imageUrl).length;
+    console.log(`[ImageGen] Parallel polling complete: ${successfulImagesCount}/${imageResults.length} images generated in ${(pollingTime / 1000).toFixed(1)}s (all processed simultaneously)`);
     
     // Step 3: Assemble results in correct order
     const images: (string | null)[] = new Array(events.length).fill(null);
