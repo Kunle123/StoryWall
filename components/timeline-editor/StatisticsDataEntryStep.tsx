@@ -22,6 +22,7 @@ interface StatisticsEvent {
   title: string;
   description?: string;
   data: Record<string, number>; // Metric name -> value
+  chartUrl?: string; // URL of the generated chart image
 }
 
 interface StatisticsDataEntryStepProps {

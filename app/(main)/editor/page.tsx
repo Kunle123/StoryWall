@@ -81,6 +81,7 @@ const TimelineEditor = () => {
     title: string;
     description?: string;
     data: Record<string, number>; // Metric name -> value
+    chartUrl?: string; // URL of the generated chart image
   }>>([]);
   
   // Redirect to sign-in if not authenticated
