@@ -72,29 +72,71 @@ Return JSON with "metrics" array and "dataSource" string.`;
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) {
+    if (!content || typeof content !== 'string') {
       throw new Error('No response from AI');
     }
 
+    // Remove markdown code blocks if present
+    let jsonText = content.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    // Remove trailing commas before } or ]
+    jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+
     let parsed;
     try {
-      parsed = JSON.parse(content);
-    } catch (e) {
-      // Try to extract array if wrapped in object
-      const arrayMatch = content.match(/\[.*\]/s);
-      if (arrayMatch) {
-        parsed = { metrics: JSON.parse(arrayMatch[0]) };
+      parsed = JSON.parse(jsonText);
+    } catch (parseError: any) {
+      console.error('[Statistics Suggestions] JSON parse error:', {
+        error: parseError.message,
+        contentPreview: jsonText.substring(0, 200),
+      });
+      
+      // Try to extract JSON object from text
+      const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          throw new Error(`Invalid JSON response: ${parseError.message}`);
+        }
       } else {
-        throw new Error('Invalid JSON response');
+        throw new Error(`Invalid JSON response: ${parseError.message}`);
       }
     }
 
-    // Ensure we have a metrics array
-    const metrics = parsed.metrics || parsed.metric || (Array.isArray(parsed) ? parsed : []);
-    const dataSource = parsed.dataSource || parsed.data_source || '';
+    // Validate structure - must have metrics array and dataSource string
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Response is not a valid JSON object');
+    }
 
+    // Extract metrics - try multiple possible keys
+    let metrics = parsed.metrics || parsed.metric || parsed.metricNames || [];
+    
+    // If metrics is not an array, try to find an array in the object
+    if (!Array.isArray(metrics)) {
+      const arrayKeys = Object.keys(parsed).filter(key => Array.isArray(parsed[key]));
+      if (arrayKeys.length > 0) {
+        metrics = parsed[arrayKeys[0]];
+      } else {
+        throw new Error('No metrics array found in response. Expected format: { "metrics": [...], "dataSource": "..." }');
+      }
+    }
+
+    // Extract dataSource - try multiple possible keys
+    let dataSource = parsed.dataSource || parsed.data_source || parsed.source || parsed.dataSourceName || '';
+
+    // Validate metrics array
     if (!Array.isArray(metrics) || metrics.length === 0) {
-      throw new Error('No metrics found in response');
+      throw new Error('Metrics array is empty or invalid. Expected at least 3 metrics.');
+    }
+
+    if (metrics.length < 3) {
+      console.warn(`[Statistics Suggestions] Only ${metrics.length} metrics found, expected at least 3`);
     }
 
     // Validate and clean metrics
@@ -103,9 +145,20 @@ Return JSON with "metrics" array and "dataSource" string.`;
       .map((m: string) => m.trim())
       .slice(0, 8); // Limit to 8
 
+    if (validMetrics.length === 0) {
+      throw new Error('No valid metrics found after validation. All metrics must be non-empty strings.');
+    }
+
+    // Validate dataSource
+    if (typeof dataSource !== 'string') {
+      dataSource = '';
+    }
+    const validDataSource = dataSource.trim();
+
+    // Return validated response
     return NextResponse.json({
       metrics: validMetrics,
-      dataSource: typeof dataSource === 'string' ? dataSource.trim() : '',
+      dataSource: validDataSource,
     });
   } catch (error: any) {
     console.error('[Statistics Suggestions] Error:', error);
