@@ -43,12 +43,16 @@ export async function POST(request: NextRequest) {
     let mediaId: string | undefined;
     if (imageUrl && tweets.length > 0) {
       try {
+        console.log(`[Twitter Post Thread] Attempting to upload image: ${imageUrl}`);
         mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
-        console.log(`[Twitter Post Thread] Uploaded image, media_id: ${mediaId}`);
+        console.log(`[Twitter Post Thread] Successfully uploaded image, media_id: ${mediaId}`);
       } catch (error: any) {
         console.error('[Twitter Post Thread] Failed to upload image:', error);
-        // Continue without image if upload fails
+        console.error('[Twitter Post Thread] Error details:', error.message);
+        // Continue without image if upload fails, but log the error
       }
+    } else {
+      console.log('[Twitter Post Thread] No image URL provided or no tweets');
     }
     
     // Post the thread with image attached to first tweet

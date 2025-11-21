@@ -426,19 +426,6 @@ export const ExperimentalBottomMenuBar = ({
                       <Share2 className="w-4 h-4" />
                       Share Link
                     </Button>
-                    {onShareTwitterThread && (
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2"
-                        onClick={() => {
-                          onShareTwitterThread();
-                          setShowShareMenu(false);
-                        }}
-                      >
-                        <Twitter className="w-4 h-4" />
-                        Share as Twitter Thread
-                      </Button>
-                    )}
                     {onShareTikTokSlideshow && (
                       <Button
                         variant="ghost"

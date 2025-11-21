@@ -120,7 +120,7 @@ export function TwitterThreadDialog({
         },
         body: JSON.stringify({
           tweets: tweets.map(t => ({ text: t.text })),
-          imageUrl: timelineImageUrl, // Include image URL for first tweet
+          imageUrl: timelineImageUrl || undefined, // Include image URL for first tweet
         }),
       });
       
@@ -170,7 +170,7 @@ export function TwitterThreadDialog({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Share as Twitter Thread</DialogTitle>
           <DialogDescription>

@@ -36,7 +36,7 @@ export const TimelineTweetTemplate = ({
   };
 
   return (
-    <Card className="max-w-2xl mx-auto p-6 space-y-4">
+    <Card className="w-full max-w-2xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Tweet Preview</h3>
         <p className="text-sm text-muted-foreground">
@@ -45,7 +45,8 @@ export const TimelineTweetTemplate = ({
       </div>
 
       {/* Image with StoryWall branding */}
-      <div className="relative aspect-square w-full max-w-md mx-auto overflow-hidden rounded-lg border border-border">
+      {imageUrl && (
+        <div className="relative aspect-square w-full max-w-md mx-auto overflow-hidden rounded-lg border border-border">
         <img
           src={imageUrl}
           alt={title}
@@ -58,6 +59,7 @@ export const TimelineTweetTemplate = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Tweet text */}
       <div className="space-y-2">
