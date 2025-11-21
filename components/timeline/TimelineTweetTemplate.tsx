@@ -2,8 +2,10 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Share2 } from "lucide-react";
+import { Copy, Share2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
 
 interface TimelineTweetTemplateProps {
   title: string;
@@ -19,8 +21,26 @@ export const TimelineTweetTemplate = ({
   timelineUrl,
 }: TimelineTweetTemplateProps) => {
   const { toast } = useToast();
+  const { isSignedIn } = useUser();
+  const [isConnected, setIsConnected] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
 
   const tweetText = `${title}\n\n${description}\n\n${timelineUrl}`;
+
+  // Check Twitter connection status
+  useEffect(() => {
+    if (isSignedIn && imageUrl) {
+      setIsChecking(true);
+      fetch('/api/twitter/status')
+        .then(res => res.json())
+        .then(data => {
+          setIsConnected(data.connected || false);
+        })
+        .catch(() => setIsConnected(false))
+        .finally(() => setIsChecking(false));
+    }
+  }, [isSignedIn, imageUrl]);
 
   const handleCopyTweet = () => {
     navigator.clipboard.writeText(tweetText);
@@ -30,9 +50,76 @@ export const TimelineTweetTemplate = ({
     });
   };
 
-  const handleShareOnTwitter = () => {
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    window.open(twitterUrl, "_blank");
+  const handleConnectTwitter = async () => {
+    try {
+      const response = await fetch('/api/twitter/oauth');
+      if (!response.ok) {
+        throw new Error('Failed to initiate Twitter connection');
+      }
+      const { authUrl } = await response.json();
+      window.location.href = authUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to connect Twitter",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShareOnTwitter = async () => {
+    // If image is present and user is connected, use API to post with image
+    if (imageUrl && isSignedIn && isConnected) {
+      setIsPosting(true);
+      try {
+        const response = await fetch('/api/twitter/post-tweet', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: tweetText,
+            imageUrl: imageUrl,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          if (error.error?.includes('not connected')) {
+            setIsConnected(false);
+            toast({
+              title: "Twitter not connected",
+              description: "Please connect your Twitter account to post with image",
+              variant: "destructive",
+            });
+            return;
+          }
+          throw new Error(error.error || 'Failed to post tweet');
+        }
+
+        const result = await response.json();
+        toast({
+          title: "Success!",
+          description: "Tweet posted with image attached",
+        });
+
+        if (result.tweetUrl) {
+          window.open(result.tweetUrl, '_blank');
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to post tweet",
+          variant: "destructive",
+        });
+      } finally {
+        setIsPosting(false);
+      }
+    } else {
+      // Fallback to intent URL (no image support)
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+      window.open(twitterUrl, "_blank");
+    }
   };
 
   return (
@@ -81,22 +168,57 @@ export const TimelineTweetTemplate = ({
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-2">
-        <Button
-          onClick={handleCopyTweet}
-          variant="outline"
-          className="flex-1 gap-2"
-        >
-          <Copy className="h-4 w-4" />
-          Copy Tweet
-        </Button>
-        <Button
-          onClick={handleShareOnTwitter}
-          className="flex-1 gap-2"
-        >
-          <Share2 className="h-4 w-4" />
-          Share on X
-        </Button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Button
+            onClick={handleCopyTweet}
+            variant="outline"
+            className="flex-1 gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Copy Tweet
+          </Button>
+          <Button
+            onClick={handleShareOnTwitter}
+            disabled={isPosting || isChecking}
+            className="flex-1 gap-2"
+          >
+            {isPosting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Posting...
+              </>
+            ) : (
+              <>
+                <Share2 className="h-4 w-4" />
+                {imageUrl && isSignedIn && isConnected ? "Post on X" : "Share on X"}
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {/* Twitter connection status */}
+        {imageUrl && isSignedIn && (
+          <div className="text-xs text-muted-foreground">
+            {isChecking ? (
+              "Checking Twitter connection..."
+            ) : isConnected ? (
+              "✓ Connected - Image will be attached when posting"
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>⚠️ Not connected - Image won't be attached</span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={handleConnectTwitter}
+                  className="h-auto p-0 text-xs"
+                >
+                  Connect Twitter
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Character count */}
