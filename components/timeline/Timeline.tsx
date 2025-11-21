@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { TimelineCard } from "./TimelineCard";
 import { TimelineCardSkeleton } from "./TimelineCardSkeleton";
+import { StatisticsTimelineView } from "./StatisticsTimelineView";
 
 export interface TimelineEvent {
   id: string;
@@ -75,6 +76,11 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     // Fallback: keep original order
     return 0;
   });
+
+  // Check if timeline is a statistics timeline
+  const isStatisticsTimeline = sortedEvents.some(event => 
+    event.description?.includes('[STATS_DATA:')
+  );
 
   // Check if timeline is numbered
   const isNumberedTimeline = sortedEvents.length > 0 && sortedEvents[0].number !== undefined;
@@ -434,6 +440,15 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
       return diffDays === 1 ? "1 Day" : `${diffDays} Days`;
     }
   };
+
+  // If this is a statistics timeline, use the special statistics view
+  if (isStatisticsTimeline) {
+    return (
+      <div className="w-full py-8">
+        <StatisticsTimelineView events={events} />
+      </div>
+    );
+  }
 
   // Vertical View - Full screen timeline
   return (
