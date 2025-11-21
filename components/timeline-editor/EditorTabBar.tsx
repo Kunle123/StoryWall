@@ -32,24 +32,24 @@ export const EditorTabBar = ({
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 shadow-lg">
       <div className="container mx-auto px-4 py-4 max-w-5xl">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-          {/* Left side: Back button */}
-          <Button
-            variant="outline"
-            onClick={onBack}
-            disabled={currentStep === 1}
-            className="w-full sm:w-auto order-2 sm:order-1"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-
           {/* Center: Step indicator */}
-          <div className="text-sm text-muted-foreground order-1 sm:order-2">
+          <div className="text-sm text-muted-foreground order-1 sm:order-2 w-full sm:w-auto text-center sm:text-left">
             Step {currentStep} of {totalSteps}
           </div>
 
-          {/* Right side: Next/Save/Preview buttons */}
-          <div className="flex gap-3 w-full sm:w-auto order-3 sm:order-3">
+          {/* Back and Next buttons on same row in mobile */}
+          <div className="flex gap-3 w-full sm:w-auto order-2 sm:order-1">
+            <Button
+              variant="outline"
+              onClick={onBack}
+              disabled={currentStep === 1}
+              className="flex-1 sm:flex-initial"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+
+            {/* Next/Save/Preview buttons */}
             {currentStep === 5 ? (
               <Button
                 onClick={onNext}
@@ -137,7 +137,7 @@ export const EditorTabBar = ({
             <Button
               variant="ghost"
               onClick={onCancel}
-              className="w-full sm:w-auto text-muted-foreground hover:text-destructive order-4 sm:order-4"
+              className="w-full sm:w-auto text-muted-foreground hover:text-destructive order-3 sm:order-3"
             >
               <X className="mr-2 h-4 w-4" />
               Cancel

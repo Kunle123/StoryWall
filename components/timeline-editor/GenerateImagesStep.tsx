@@ -76,6 +76,7 @@ export const GenerateImagesStep = ({
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [totalRegenerations, setTotalRegenerations] = useState(0); // Cumulative regenerations across all images
   const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
+  const [activeTab, setActiveTab] = useState("ai");
   const { deductCredits, credits, fetchCredits } = useCredits();
 
   const handleSaveEdit = () => {
@@ -614,11 +615,34 @@ export const GenerateImagesStep = ({
         </p>
       </div>
 
-      <Tabs defaultValue="ai" className="w-full">
+      <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ai">AI Generated</TabsTrigger>
           <TabsTrigger value="manual">Manual Upload</TabsTrigger>
         </TabsList>
+
+        {/* Generate Images button - appears beneath tabs for AI Generated */}
+        {activeTab === "ai" && !hasStartedGeneration && (
+          <div className="mt-4">
+            <Button
+              onClick={handleGenerateImages}
+              disabled={isGenerating || selectedEvents.size === 0 || !imageStyle || events.some(e => e.imageUrl)}
+              className="w-full"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Images ({selectedEvents.size * CREDIT_COST_PER_IMAGE} credit{selectedEvents.size !== 1 ? 's' : ''})
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         <TabsContent value="manual" className="space-y-4 mt-6">
           <Card className="p-6">
@@ -827,24 +851,6 @@ export const GenerateImagesStep = ({
                 Total cost: {selectedEvents.size * CREDIT_COST_PER_IMAGE} credit{selectedEvents.size !== 1 ? 's' : ''} ({selectedEvents.size} image{selectedEvents.size !== 1 ? 's' : ''})
               </p>
             </div>
-
-              <Button
-                onClick={handleGenerateImages}
-                disabled={isGenerating || selectedEvents.size === 0 || !imageStyle || events.some(e => e.imageUrl)}
-                className="w-full"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Images ({selectedEvents.size * CREDIT_COST_PER_IMAGE} credit{selectedEvents.size !== 1 ? 's' : ''})
-                  </>
-                )}
-              </Button>
 
               {isGenerating && (
                 <div className="mt-4 space-y-2">
