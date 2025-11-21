@@ -9,16 +9,19 @@ import http from 'http';
 export type AIProvider = 'openai' | 'kimi';
 
 // HTTP keep-alive agent for connection pooling
+// Increased timeout for Railway network conditions
 const httpsAgent = new https.Agent({
   keepAlive: true,
   maxSockets: 50,
   keepAliveMsecs: 30000,
+  timeout: 60000, // 60 second connection timeout
 });
 
 const httpAgent = new http.Agent({
   keepAlive: true,
   maxSockets: 50,
   keepAliveMsecs: 30000,
+  timeout: 60000, // 60 second connection timeout
 });
 
 export interface AIClientConfig {
@@ -207,43 +210,70 @@ export async function createChatCompletion(
   const isHttps = url.startsWith('https://');
   const agent = isHttps ? httpsAgent : httpAgent;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${config.apiKey}`,
-      'Content-Type': 'application/json',
-      'Connection': 'keep-alive',
-    },
-    body: JSON.stringify(requestBody),
-    // @ts-ignore - agent is supported in Node.js fetch
-    agent,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorData;
-    try {
-      errorData = JSON.parse(errorText);
-    } catch {
-      errorData = { error: errorText };
-    }
-    
-    // Enhanced logging for Kimi API errors
-    console.error(`[AI Client] ${config.provider.toUpperCase()} API error (${response.status}):`, {
-      status: response.status,
-      statusText: response.statusText,
-      errorData,
-      url: url,
-      model: requestBody.model,
+  // Add timeout to prevent connection timeouts (60 seconds for AI API calls)
+  const timeoutMs = 60000; // 60 seconds
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+        'Connection': 'keep-alive',
+      },
+      body: JSON.stringify(requestBody),
+      // @ts-ignore - agent is supported in Node.js fetch
+      agent,
+      signal: controller.signal,
     });
     
-    throw new Error(
-      `AI API error (${response.status}): ${errorData.error?.message || errorData.error || errorText}`
-    );
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText };
+      }
+      
+      // Enhanced logging for Kimi API errors
+      console.error(`[AI Client] ${config.provider.toUpperCase()} API error (${response.status}):`, {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        url: url,
+        model: requestBody.model,
+      });
+      
+      throw new Error(
+        `AI API error (${response.status}): ${errorData.error?.message || errorData.error || errorText}`
+      );
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    // Handle timeout errors specifically
+    if (error.name === 'AbortError' || error.code === 'UND_ERR_CONNECT_TIMEOUT') {
+      console.error(`[AI Client] ${config.provider.toUpperCase()} API connection timeout:`, {
+        url,
+        model: requestBody.model,
+        timeout: timeoutMs,
+      });
+      throw new Error(
+        `AI API connection timeout after ${timeoutMs}ms. This may be due to network issues or the API being temporarily unavailable.`
+      );
+    }
+    
+    // Re-throw other errors
+    throw error;
   }
 
-  return await response.json();
-}
 
 /**
  * Get the configured AI client from environment variables
