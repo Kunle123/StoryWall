@@ -10,9 +10,19 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    console.log('[Statistics Data] Request received at:', new Date().toISOString());
+    console.log('[Statistics Data] Request headers:', {
+      cookie: request.headers.get('cookie') ? 'present' : 'missing',
+      'user-agent': request.headers.get('user-agent'),
+    });
+    
+    const authResult = await auth();
+    const userId = authResult?.userId || null;
+    
+    console.log('[Statistics Data] Auth result:', { userId: userId || 'null' });
     
     if (!userId) {
+      console.warn('[Statistics Data] Unauthorized - no userId');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
