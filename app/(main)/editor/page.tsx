@@ -160,7 +160,12 @@ const TimelineEditor = () => {
           personName: "",
           hasPermission: false,
         });
-        setCurrentStep(typeof state.currentStep === 'number' && state.currentStep >= 1 && state.currentStep <= 6 ? state.currentStep : 1);
+        const loadedStep = typeof state.currentStep === 'number' && state.currentStep >= 1 && state.currentStep <= 6 ? state.currentStep : 1;
+        setCurrentStep(loadedStep);
+        // Automatically show preview when on step 6
+        if (loadedStep === 6) {
+          setShowPreview(true);
+        }
       }
     } catch (e) {
       console.error('Failed to load saved state:', e);
@@ -288,6 +293,12 @@ const TimelineEditor = () => {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    // Automatically show preview when on step 6
+    if (currentStep === 6) {
+      setShowPreview(true);
+    } else {
+      setShowPreview(false);
+    }
   }, [currentStep]);
 
   // Debug: Log imageStyle changes
@@ -349,7 +360,12 @@ const TimelineEditor = () => {
     }
     
     if (currentStep < 6) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      // Automatically show preview when reaching step 6
+      if (nextStep === 6) {
+        setShowPreview(true);
+      }
     }
   };
 
@@ -636,20 +652,27 @@ const TimelineEditor = () => {
           ))}
               </div>
 
-        {/* Preview Mode */}
-        {showPreview && (
+        {/* Step Content */}
+        {currentStep === 6 ? (
+          // Step 6: Show preview directly
           <Card className="p-6 mb-6">
             <div className="mb-6">
-              <h2 className="text-2xl font-display font-semibold mb-2">{timelineName}</h2>
+              <h2 className="text-2xl font-display font-semibold mb-2">Review & Publish</h2>
+              <p className="text-muted-foreground mb-4">
+                Review your timeline and publish it when ready.
+              </p>
+            </div>
+            <div className="mb-6">
+              <h3 className="text-xl font-display font-semibold mb-2">{timelineName}</h3>
               <p className="text-muted-foreground">{timelineDescription}</p>
             </div>
             <div className="space-y-8">
               {previewEvents.map((event) => (
                 <div key={event.id} className="space-y-3">
                   <div>
-                    <h3 className="text-xl font-semibold mb-1">
+                    <h4 className="text-lg font-semibold mb-1">
                       {event.year} - {event.title}
-                    </h3>
+                    </h4>
                     {event.description && (
                       <p className="text-muted-foreground">{event.description}</p>
                     )}
@@ -667,148 +690,92 @@ const TimelineEditor = () => {
               ))}
             </div>
           </Card>
-        )}
-
-        {/* Step Content */}
-        {!showPreview && (
-          <>
-            <Card className="p-6 mb-6">
-                  {currentStep === 1 && (
-                    <TimelineInfoStep
-                      timelineName={timelineName}
-                      setTimelineName={setTimelineName}
-                      timelineDescription={timelineDescription}
-                      setTimelineDescription={setTimelineDescription}
-                      isPublic={isPublic}
-                      setIsPublic={setIsPublic}
-                      isFactual={isFactual}
-                      setIsFactual={setIsFactual}
-                      isNumbered={isNumbered}
-                      setIsNumbered={setIsNumbered}
-                      numberLabel={numberLabel}
-                      setNumberLabel={setNumberLabel}
-                      maxEvents={maxEvents}
-                      setMaxEvents={setMaxEvents}
-                      startDate={startDate}
-                      setStartDate={setStartDate}
-                      endDate={endDate}
-                      setEndDate={setEndDate}
-                      sourceRestrictions={sourceRestrictions}
-                      setSourceRestrictions={setSourceRestrictions}
-                      referencePhoto={referencePhoto}
-                      setReferencePhoto={setReferencePhoto}
-                      hashtags={hashtags}
-                      setHashtags={setHashtags}
-                    />
-                  )}
-              {currentStep === 2 && (
-                <WritingStyleStep
-                  writingStyle={writingStyle}
-                  setWritingStyle={setWritingStyle}
-                  customStyle={customStyle}
-                  setCustomStyle={setCustomStyle}
-                  events={events}
-                  setEvents={setEvents}
-                  timelineDescription={timelineDescription}
-                  timelineName={timelineName}
-                  isFactual={isFactual}
-                  isNumbered={isNumbered}
-                  numberLabel={numberLabel}
-                  maxEvents={maxEvents}
-                  setImageReferences={setImageReferences}
-                  sourceRestrictions={sourceRestrictions}
-                />
-              )}
-              {currentStep === 3 && (
-                <EventDetailsStep 
-                  events={events} 
-                  setEvents={setEvents}
-                  timelineDescription={timelineDescription}
-                  timelineName={timelineName}
-                  writingStyle={writingStyle}
-                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
-                  themeColor={themeColor} // Pass if already selected
-                  sourceRestrictions={sourceRestrictions}
-                  hashtags={hashtags}
-                  setHashtags={setHashtags}
-                />
-              )}
-              {currentStep === 4 && (
-                <ImageStyleStep 
-                  imageStyle={imageStyle}
-                  setImageStyle={setImageStyle}
-                  themeColor={themeColor}
-                  setThemeColor={setThemeColor}
-                  hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
-                />
-              )}
-              {currentStep === 5 && (
-                <GenerateImagesStep 
-                  events={events} 
-                  setEvents={setEvents}
-                  imageStyle={imageStyle}
-                  setImageStyle={setImageStyle}
-                  themeColor={themeColor}
-                  setThemeColor={setThemeColor}
-                  imageReferences={imageReferences}
-                  referencePhoto={referencePhoto}
-                  includesPeople={includesPeople}
-                  hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
-                />
-              )}
-              {currentStep === 6 && (
-                <div>
-                  <h2 className="text-2xl font-semibold mb-4">Review & Publish</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Review your timeline and publish it when ready.
-                  </p>
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-2">{timelineName}</h3>
-                      <p className="text-sm text-muted-foreground mb-4">{timelineDescription}</p>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        <Badge variant="outline">{isFactual ? "Factual" : "Fictional"}</Badge>
-                        <Badge variant="outline">{isPublic ? "Public" : "Private"}</Badge>
-                        {imageStyle && <Badge variant="outline">{imageStyle}</Badge>}
-                      </div>
-                      {startDate && endDate && (
-                        <p className="text-sm text-muted-foreground">
-                          {format(startDate, "PPP")} - {format(endDate, "PPP")}
-                        </p>
-                      )}
-                      <p className="text-sm mt-2">Total events: {events.length}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Events with images: {events.filter(e => e.imageUrl).length}
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">Event Preview:</h4>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {events.slice(0, 5).map((event) => (
-                          <div key={event.id} className="p-3 border rounded-lg text-sm">
-                            <div className="font-medium">{event.year} - {event.title}</div>
-                            {event.description && (
-                              <div className="text-muted-foreground mt-1 line-clamp-2">
-                                {event.description}
-                              </div>
-                            )}
-                            {event.imageUrl && (
-                              <div className="mt-2 text-xs text-muted-foreground">✓ Has image</div>
-                            )}
-                          </div>
-                        ))}
-                        {events.length > 5 && (
-                          <div className="text-sm text-muted-foreground text-center">
-                            ... and {events.length - 5} more events
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </Card>
-          </>
+        ) : (
+          <Card className="p-6 mb-6">
+            {currentStep === 1 && (
+              <TimelineInfoStep
+                timelineName={timelineName}
+                setTimelineName={setTimelineName}
+                timelineDescription={timelineDescription}
+                setTimelineDescription={setTimelineDescription}
+                isPublic={isPublic}
+                setIsPublic={setIsPublic}
+                isFactual={isFactual}
+                setIsFactual={setIsFactual}
+                isNumbered={isNumbered}
+                setIsNumbered={setIsNumbered}
+                numberLabel={numberLabel}
+                setNumberLabel={setNumberLabel}
+                maxEvents={maxEvents}
+                setMaxEvents={setMaxEvents}
+                startDate={startDate}
+                setStartDate={setStartDate}
+                endDate={endDate}
+                setEndDate={setEndDate}
+                sourceRestrictions={sourceRestrictions}
+                setSourceRestrictions={setSourceRestrictions}
+                referencePhoto={referencePhoto}
+                setReferencePhoto={setReferencePhoto}
+                hashtags={hashtags}
+                setHashtags={setHashtags}
+              />
+            )}
+            {currentStep === 2 && (
+              <WritingStyleStep
+                writingStyle={writingStyle}
+                setWritingStyle={setWritingStyle}
+                customStyle={customStyle}
+                setCustomStyle={setCustomStyle}
+                events={events}
+                setEvents={setEvents}
+                timelineDescription={timelineDescription}
+                timelineName={timelineName}
+                isFactual={isFactual}
+                isNumbered={isNumbered}
+                numberLabel={numberLabel}
+                maxEvents={maxEvents}
+                setImageReferences={setImageReferences}
+                sourceRestrictions={sourceRestrictions}
+              />
+            )}
+            {currentStep === 3 && (
+              <EventDetailsStep 
+                events={events} 
+                setEvents={setEvents}
+                timelineDescription={timelineDescription}
+                timelineName={timelineName}
+                writingStyle={writingStyle}
+                imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                themeColor={themeColor} // Pass if already selected
+                sourceRestrictions={sourceRestrictions}
+                hashtags={hashtags}
+                setHashtags={setHashtags}
+              />
+            )}
+            {currentStep === 4 && (
+              <ImageStyleStep 
+                imageStyle={imageStyle}
+                setImageStyle={setImageStyle}
+                themeColor={themeColor}
+                setThemeColor={setThemeColor}
+                hasRealPeople={isFactual && (imageReferences.length > 0 || hasFamousPeople)}
+              />
+            )}
+            {currentStep === 5 && (
+              <GenerateImagesStep 
+                events={events} 
+                setEvents={setEvents}
+                imageStyle={imageStyle}
+                setImageStyle={setImageStyle}
+                themeColor={themeColor}
+                setThemeColor={setThemeColor}
+                imageReferences={imageReferences}
+                referencePhoto={referencePhoto}
+                includesPeople={includesPeople}
+                hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
+              />
+            )}
+          </Card>
         )}
         </main>
         

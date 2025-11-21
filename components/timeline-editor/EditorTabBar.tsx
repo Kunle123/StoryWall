@@ -60,66 +60,23 @@ export const EditorTabBar = ({
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : currentStep === 6 ? (
-              <>
-                {!showPreview ? (
-                  <>
-                    {onPreview && (
-                      <Button
-                        variant="outline"
-                        onClick={onPreview}
-                        disabled={!canProceed}
-                        className="flex-1 sm:flex-initial"
-                      >
-                        <Eye className="mr-2 h-4 w-4" />
-                        Preview Timeline
-                      </Button>
-                    )}
-                    {onSave && (
-                      <Button
-                        onClick={onSave}
-                        disabled={!canProceed || isSaving}
-                        className="flex-1 sm:flex-initial"
-                      >
-                        {isSaving ? (
-                          <>Saving...</>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Timeline
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={onBack}
-                      className="flex-1 sm:flex-initial"
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back
-                    </Button>
-                    {onSave && (
-                      <Button
-                        onClick={onSave}
-                        disabled={!canProceed || isSaving}
-                        className="flex-1 sm:flex-initial"
-                      >
-                        {isSaving ? (
-                          <>Saving...</>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Timeline
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </>
-                )}
-              </>
+              // Step 6: Always show Save button (preview is always visible)
+              onSave && (
+                <Button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="flex-1 sm:flex-initial"
+                >
+                  {isSaving ? (
+                    <>Saving...</>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Timeline
+                    </>
+                  )}
+                </Button>
+              )
             ) : (
               <Button
                 onClick={onNext}
@@ -133,16 +90,14 @@ export const EditorTabBar = ({
           </div>
 
           {/* Cancel button */}
-          {(currentStep === 6 && showPreview) || currentStep !== 6 ? (
-            <Button
-              variant="ghost"
-              onClick={onCancel}
-              className="w-full sm:w-auto text-muted-foreground hover:text-destructive order-3 sm:order-3"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Cancel
-            </Button>
-          ) : null}
+          <Button
+            variant="ghost"
+            onClick={onCancel}
+            className="w-full sm:w-auto text-muted-foreground hover:text-destructive order-3 sm:order-3"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
         </div>
       </div>
     </div>
