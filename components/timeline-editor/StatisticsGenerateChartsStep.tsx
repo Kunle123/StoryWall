@@ -130,19 +130,53 @@ export const StatisticsGenerateChartsStep = ({
                 if (data.chartUrl && data.index !== undefined) {
                   // Use ref to get latest events to avoid stale closure
                   const currentEvents = eventsRef.current;
+                  console.log('[ChartGen] Received chart:', { 
+                    index: data.index, 
+                    eventId: data.eventId, 
+                    chartUrl: data.chartUrl?.substring(0, 50) + '...',
+                    currentEventsLength: currentEvents.length 
+                  });
+                  
                   if (data.index < currentEvents.length) {
                     const eventId = currentEvents[data.index].id;
                     const updatedEvents = currentEvents.map(e =>
                       e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
                     );
+                    console.log('[ChartGen] Updating events:', {
+                      eventId,
+                      updatedCount: updatedEvents.filter(e => e.chartUrl).length,
+                      totalEvents: updatedEvents.length
+                    });
                     setEvents(updatedEvents);
+                    // Update ref immediately so next update uses latest state
+                    eventsRef.current = updatedEvents;
+                  } else {
+                    console.warn('[ChartGen] Index out of bounds:', {
+                      index: data.index,
+                      eventsLength: currentEvents.length
+                    });
                   }
                 }
               } else if (data.type === 'complete') {
-                // All charts complete
+                // All charts complete - ensure we have the latest state
+                const finalEvents = eventsRef.current;
+                const chartsGenerated = finalEvents.filter(e => e.chartUrl).length;
+                console.log('[ChartGen] Complete:', {
+                  reportedCompleted: data.completed,
+                  actualChartsGenerated: chartsGenerated,
+                  totalEvents: finalEvents.length
+                });
+                
+                // If we're missing any chart URLs, try to refresh from parent
+                if (chartsGenerated < finalEvents.length) {
+                  console.warn('[ChartGen] Missing chart URLs, refreshing events from parent');
+                  // Force a re-check by updating with current events
+                  setEvents([...finalEvents]);
+                }
+                
                 toast({
                   title: "Charts Generated",
-                  description: `Successfully generated ${data.completed} charts.`,
+                  description: `Successfully generated ${chartsGenerated} of ${finalEvents.length} charts.`,
                 });
                 setIsGenerating(false);
                 setProgress(100);

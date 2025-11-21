@@ -554,6 +554,12 @@ const TimelineEditor = () => {
           // For statistics: need ALL charts generated (not just some)
           const eventsWithCharts = statisticsEvents.filter(e => e.chartUrl).length;
           result = statisticsEvents.length > 0 && eventsWithCharts === statisticsEvents.length;
+          console.log('[canProceed] Step 5 statistics:', {
+            totalEvents: statisticsEvents.length,
+            eventsWithCharts,
+            result,
+            events: statisticsEvents.map(e => ({ id: e.id, title: e.title, hasChartUrl: !!e.chartUrl }))
+          });
         } else {
           // Step 5: Can proceed only if at least one image has been generated
           result = events.some(e => e.imageUrl);
