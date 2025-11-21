@@ -26,6 +26,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { toTitleCase } from "@/lib/utils/titleCase";
 
 const STORAGE_KEY = 'timeline-editor-state';
 
