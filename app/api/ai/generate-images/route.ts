@@ -1362,10 +1362,15 @@ function buildImagePrompt(
 
 // Helper to wait for Replicate prediction to complete
 async function waitForPrediction(predictionId: string, replicateApiKey: string): Promise<string | null> {
-  const maxAttempts = 180; // 3 minutes max (180 * 1 second)
+  const maxAttempts = 240; // 4 minutes max (240 * 1 second)
   let attempts = 0;
-  // Adaptive polling: start fast (1s), slow down if taking long (2s after 30 attempts)
-  const getPollInterval = (attempt: number) => attempt < 30 ? 1000 : 2000;
+  // Optimized polling: start very fast (500ms), then moderate (1s), slow down if taking long (2s after 60 attempts)
+  // This detects completion faster while still being respectful of API rate limits
+  const getPollInterval = (attempt: number) => {
+    if (attempt < 20) return 500; // First 10 seconds: poll every 500ms for faster detection
+    if (attempt < 60) return 1000; // Next 40 seconds: poll every 1s
+    return 2000; // After 60 seconds: poll every 2s
+  };
 
   while (attempts < maxAttempts) {
     const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
@@ -2118,11 +2123,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Wait for all predictions to be created
+    // Wait for all predictions to be created (all in parallel)
+    const startTime = Date.now();
     const predictionResults = await Promise.all(predictionPromises);
+    const creationTime = Date.now() - startTime;
     const createdCount = predictionResults.filter(r => r.predictionId).length;
     const failedCreationCount = predictionResults.filter(r => r.error).length;
-    console.log(`[ImageGen] Created ${createdCount}/${events.length} predictions successfully`);
+    console.log(`[ImageGen] Created ${createdCount}/${events.length} predictions successfully in ${(creationTime / 1000).toFixed(1)}s (parallel)`);
     
     // Log creation errors
     if (failedCreationCount > 0) {
@@ -2332,6 +2339,9 @@ export async function POST(request: NextRequest) {
     const stream = request.nextUrl.searchParams.get('stream') === 'true';
     
     // Poll all predictions in parallel (with retry logic built in)
+    // All images are polled simultaneously - as soon as each completes, it's returned
+    console.log(`[ImageGen] Starting parallel polling for ${predictionResults.length} predictions (all running simultaneously)...`);
+    const pollingStartTime = Date.now();
     const imagePromises = predictionResults.map(result => 
       waitForPredictionWithRetry({
         ...result,
@@ -2521,7 +2531,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Non-streaming: Wait for all images to complete (with retries)
+    // All images are polled in parallel - they complete as soon as Replicate finishes each one
     const imageResults = await Promise.all(imagePromises);
+    const pollingTime = Date.now() - pollingStartTime;
+    const successfulImages = imageResults.filter(r => r.imageUrl).length;
+    console.log(`[ImageGen] Parallel polling complete: ${successfulImages}/${imageResults.length} images generated in ${(pollingTime / 1000).toFixed(1)}s (all processed simultaneously)`);
     
     // Step 3: Assemble results in correct order
     const images: (string | null)[] = new Array(events.length).fill(null);
