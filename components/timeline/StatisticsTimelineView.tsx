@@ -215,8 +215,8 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const container = e.currentTarget;
     const scrollLeft = container.scrollLeft;
-    const cardWidth = container.scrollWidth / statisticsEvents.length;
-    const newIndex = Math.round(scrollLeft / cardWidth);
+    const containerWidth = container.clientWidth;
+    const newIndex = Math.round(scrollLeft / containerWidth);
     
     if (newIndex !== currentIndex && newIndex >= 0 && newIndex < statisticsEvents.length) {
       setCurrentIndex(newIndex);
@@ -226,9 +226,9 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
   // Scroll to specific index
   const scrollToIndex = (index: number) => {
     if (scrollContainerRef.current) {
-      const cardWidth = scrollContainerRef.current.scrollWidth / statisticsEvents.length;
+      const containerWidth = scrollContainerRef.current.clientWidth;
       scrollContainerRef.current.scrollTo({
-        left: index * cardWidth,
+        left: index * containerWidth,
         behavior: 'smooth',
       });
     }
