@@ -207,7 +207,6 @@ export async function postTweet(
   const data = await response.json();
   console.log(`[Twitter Post Tweet] Successfully posted. Tweet ID: ${data.data.id}`);
   
-  const data = await response.json();
   return {
     tweetId: data.data.id,
     text: data.data.text,
