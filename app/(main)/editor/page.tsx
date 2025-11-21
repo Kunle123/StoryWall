@@ -551,8 +551,9 @@ const TimelineEditor = () => {
         break;
       case 5:
         if (timelineType === 'statistics') {
-          // For statistics: need at least one chart generated
-          result = statisticsEvents.length > 0 && statisticsEvents.some(e => e.chartUrl);
+          // For statistics: need ALL charts generated (not just some)
+          const eventsWithCharts = statisticsEvents.filter(e => e.chartUrl).length;
+          result = statisticsEvents.length > 0 && eventsWithCharts === statisticsEvents.length;
         } else {
           // Step 5: Can proceed only if at least one image has been generated
           result = events.some(e => e.imageUrl);

@@ -121,11 +121,14 @@ export const StatisticsGenerateChartsStep = ({
                 setProgress((data.completed / data.total) * 100);
                 
                 // Update event with chart URL as soon as it's ready
-                if (data.chartUrl && data.index < events.length) {
-                  const eventId = events[data.index].id;
-                  setEvents(events.map(e =>
-                    e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
-                  ));
+                if (data.chartUrl && data.index !== undefined) {
+                  setEvents((prevEvents: typeof events) => {
+                    if (data.index >= prevEvents.length) return prevEvents;
+                    const eventId = prevEvents[data.index].id;
+                    return prevEvents.map(e =>
+                      e.id === eventId ? { ...e, chartUrl: data.chartUrl } : e
+                    );
+                  });
                 }
               } else if (data.type === 'complete') {
                 // All charts complete
@@ -187,29 +190,26 @@ export const StatisticsGenerateChartsStep = ({
                   <span>All charts generated</span>
                 </div>
               )}
-              <Button
-                onClick={handleGenerateCharts}
-                disabled={isGenerating || events.length === 0 || allChartsGenerated}
-                size="lg"
-                className="gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating Charts... {generatingCount}/{totalEvents}
-                  </>
-                ) : allChartsGenerated ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    All Charts Generated
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="w-4 h-4" />
-                    Generate Charts
-                  </>
-                )}
-              </Button>
+              {!allChartsGenerated && (
+                <Button
+                  onClick={handleGenerateCharts}
+                  disabled={isGenerating || events.length === 0}
+                  size="lg"
+                  className="gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating Charts... {generatingCount}/{totalEvents}
+                    </>
+                  ) : (
+                    <>
+                      <BarChart3 className="w-4 h-4" />
+                      Generate Charts
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
