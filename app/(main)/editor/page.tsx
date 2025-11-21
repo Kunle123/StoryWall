@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
 import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep";
 import { StatisticsInfoStep } from "@/components/timeline-editor/StatisticsInfoStep";
 import { StatisticsDataSourceStep } from "@/components/timeline-editor/StatisticsDataSourceStep";
+import { StatisticsDataEntryStep } from "@/components/timeline-editor/StatisticsDataEntryStep";
 import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -386,16 +387,34 @@ const TimelineEditor = () => {
           }
           break;
         case 2:
-          if (!writingStyle && !customStyle) {
-            errorMessage = "Please select a writing style or enter a custom style.";
-          } else if (events.length === 0) {
-            errorMessage = "Please add at least one event (generate with AI or add manually).";
-          } else if (!events.every(e => e.title)) {
-            errorMessage = "Please add titles to all events.";
+          if (timelineType === 'statistics') {
+            if (!statisticsDataMode) {
+              errorMessage = "Please select a data source method (AI or Manual).";
+            } else if (statisticsDataMode === 'ai' && !statisticsDataSource.trim()) {
+              errorMessage = "Please provide a data source for AI to search.";
+            }
+          } else {
+            if (!writingStyle && !customStyle) {
+              errorMessage = "Please select a writing style or enter a custom style.";
+            } else if (events.length === 0) {
+              errorMessage = "Please add at least one event (generate with AI or add manually).";
+            } else if (!events.every(e => e.title)) {
+              errorMessage = "Please add titles to all events.";
+            }
           }
           break;
         case 3:
-          errorMessage = "Please add descriptions to all events.";
+          if (timelineType === 'statistics') {
+            if (statisticsEvents.length === 0) {
+              errorMessage = "Please generate or add at least one event with data.";
+            } else if (!statisticsEvents.every(e => e.title.trim().length > 0)) {
+              errorMessage = "Please add titles to all events.";
+            } else if (!statisticsEvents.every(e => Object.keys(e.data).length > 0)) {
+              errorMessage = "Please add data values for all events.";
+            }
+          } else {
+            errorMessage = "Please add descriptions to all events.";
+          }
           break;
         case 4:
           errorMessage = "Please select a preset image style or enter a custom style description.";
@@ -487,11 +506,17 @@ const TimelineEditor = () => {
           result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
         }
         break;
-      case 2:
-        result = !!(writingStyle || customStyle) && events.length > 0 && events.every(e => e.title);
-        break;
       case 3:
-        result = events.every(e => e.description);
+        if (timelineType === 'statistics') {
+          // For statistics: need at least one event with data
+          result = statisticsEvents.length > 0 && statisticsEvents.every(e => 
+            e.title.trim().length > 0 && 
+            Object.keys(e.data).length > 0 &&
+            statisticsMetrics.every(m => typeof e.data[m] === 'number')
+          );
+        } else {
+          result = events.every(e => e.description);
+        }
         break;
       case 4:
         // Accept either preset style or custom style (from ImageStyleStep's customStyle textarea)
@@ -827,18 +852,30 @@ const TimelineEditor = () => {
                 )
               )}
               {currentStep === 3 && (
-                <EventDetailsStep 
-                  events={events} 
-                  setEvents={setEvents}
-                  timelineDescription={timelineDescription}
-                  timelineName={timelineName}
-                  writingStyle={writingStyle}
-                  imageStyle={imageStyle} // Pass if already selected (user may have gone back)
-                  themeColor={themeColor} // Pass if already selected
-                  sourceRestrictions={sourceRestrictions}
-                  hashtags={hashtags}
-                  setHashtags={setHashtags}
-                />
+                timelineType === 'statistics' ? (
+                  <StatisticsDataEntryStep
+                    dataMode={statisticsDataMode}
+                    metrics={statisticsMetrics}
+                    events={statisticsEvents}
+                    setEvents={setStatisticsEvents}
+                    timelineName={timelineName}
+                    timelineDescription={timelineDescription}
+                    dataSource={statisticsDataSource}
+                  />
+                ) : (
+                  <EventDetailsStep 
+                    events={events} 
+                    setEvents={setEvents}
+                    timelineDescription={timelineDescription}
+                    timelineName={timelineName}
+                    writingStyle={writingStyle}
+                    imageStyle={imageStyle} // Pass if already selected (user may have gone back)
+                    themeColor={themeColor} // Pass if already selected
+                    sourceRestrictions={sourceRestrictions}
+                    hashtags={hashtags}
+                    setHashtags={setHashtags}
+                  />
+                )
               )}
               {currentStep === 4 && (
                 <ImageStyleStep 
