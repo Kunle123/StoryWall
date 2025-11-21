@@ -156,9 +156,18 @@ Generate 5-15 events with real statistical data for these metrics. Each event sh
 - Cite the data source
 - If data is unavailable, include "dataUnavailable": true and a "reason" field
 
-PRIORITY: Retrieve data for consecutive years. If you find data for 2015, 2016, 2018, 2019, 2021, 2022 - you MUST:
-- Check for 2017, 2020, 2023
-- If those years are missing, create events explaining why (e.g., "2017 - Results unavailable", "2020 - Examinations cancelled due to COVID-19", "2023 - Data not yet published")
+CRITICAL: You MUST include events for ALL years in the requested period, even if data is unavailable.
+
+SPECIFIC YEAR REQUIREMENTS:
+- If the period includes 2015-2023, you MUST include events for: 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023
+- If the period includes 2010-2023, you MUST include events for ALL years from 2010 to 2023
+- NO EXCEPTIONS: Every year in the period must have an event, either with data OR with an explanation
+
+For missing years, create events like:
+- "2017 - [Reason data unavailable]" (e.g., "2017 - Results not published", "2017 - Data collection suspended")
+- "2023 - [Reason data unavailable]" (e.g., "2023 - Data not yet published", "2023 - Results pending", "2023 - Data collection in progress")
+
+DO NOT skip years. If you cannot find data for 2017 or 2023, you MUST still create an event explaining why the data is unavailable.
 
 Focus on creating a complete timeline with contiguous years, noting any gaps with explanatory events.`;
 
@@ -273,6 +282,85 @@ Focus on creating a complete timeline with contiguous years, noting any gaps wit
 
     if (validatedEvents.length === 0) {
       throw new Error('No valid events generated. Please check your metrics and data source.');
+    }
+
+    // Post-process: Detect missing years and create explanatory events
+    // Extract years from events
+    const eventYears = validatedEvents
+      .map(e => {
+        if (e.date) {
+          return new Date(e.date).getFullYear();
+        }
+        // Try to extract year from title
+        const yearMatch = e.title.match(/\b(19|20)\d{2}\b/);
+        return yearMatch ? parseInt(yearMatch[0]) : null;
+      })
+      .filter((y): y is number => y !== null)
+      .sort((a, b) => a - b);
+
+    if (eventYears.length > 0) {
+      const minYear = eventYears[0];
+      const maxYear = eventYears[eventYears.length - 1];
+      const missingYears: number[] = [];
+
+      // Find gaps in the year sequence
+      for (let year = minYear; year <= maxYear; year++) {
+        if (!eventYears.includes(year)) {
+          missingYears.push(year);
+        }
+      }
+
+      // Create explanatory events for missing years
+      const missingYearEvents = missingYears.map(year => {
+        // Determine reason based on year
+        let reason = 'Data not available';
+        let description = `Data for ${year} is not available from the specified data source.`;
+        
+        if (year === 2020) {
+          reason = 'COVID-19 pandemic';
+          description = `Data collection or publication may have been affected by the COVID-19 pandemic.`;
+        } else if (year === 2023) {
+          reason = 'Data not yet published';
+          description = `Data for ${year} may not yet be published or available from the data source.`;
+        } else if (year === 2017) {
+          reason = 'Data not available';
+          description = `Data for ${year} is not available from the specified data source.`;
+        } else if (year > new Date().getFullYear()) {
+          reason = 'Future year';
+          description = `This is a future year - data is not yet available.`;
+        }
+
+        // Create zero data for all metrics
+        const zeroData: Record<string, number> = {};
+        metrics.forEach(metric => {
+          zeroData[metric] = 0;
+        });
+
+        return {
+          id: `event-missing-${year}`,
+          title: `${year} - Data Unavailable`,
+          description: description,
+          date: new Date(year, 7, 1), // August 1st of the missing year
+          data: zeroData,
+          source: dataSource,
+          dataUnavailable: true,
+          reason: reason,
+        };
+      });
+
+      // Merge missing year events with validated events
+      const allEvents = [...validatedEvents, ...missingYearEvents];
+      
+      // Sort by date
+      allEvents.sort((a, b) => {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateA - dateB;
+      });
+
+      // Update validatedEvents to include missing year events
+      validatedEvents.length = 0;
+      validatedEvents.push(...allEvents);
     }
 
     // Sanity check: verify data makes sense
