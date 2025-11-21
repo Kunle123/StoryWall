@@ -273,7 +273,7 @@ export async function createChatCompletion(
     // Re-throw other errors
     throw error;
   }
-
+}
 
 /**
  * Get the configured AI client from environment variables
