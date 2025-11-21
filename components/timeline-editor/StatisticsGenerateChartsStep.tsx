@@ -253,10 +253,15 @@ export const StatisticsGenerateChartsStep = ({
       {/* Events List */}
       {events.length > 0 && (
         <div className="space-y-4">
-          <Label className="text-[15px]">Events ({eventsWithCharts}/{events.length} with charts)</Label>
+          <Label className="text-[15px]">
+            Events ({eventsWithCharts}/{events.length} with charts)
+            {allChartsGenerated && (
+              <span className="ml-2 text-sm text-green-600 font-medium">✓ All charts ready</span>
+            )}
+          </Label>
           <div className="space-y-3">
             {events.map((event, index) => (
-              <Card key={event.id} className="p-4">
+              <Card key={event.id} className={`p-4 ${event.chartUrl ? 'border-green-200 bg-green-50/50' : 'border-amber-200 bg-amber-50/30'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -264,7 +269,10 @@ export const StatisticsGenerateChartsStep = ({
                       {event.chartUrl ? (
                         <CheckCircle2 className="w-4 h-4 text-green-600" />
                       ) : (
-                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                      )}
+                      {!event.chartUrl && (
+                        <span className="text-xs text-amber-600 font-medium">Chart pending</span>
                       )}
                     </div>
                     {event.description && (
