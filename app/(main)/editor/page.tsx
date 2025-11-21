@@ -875,15 +875,17 @@ const TimelineEditor = () => {
                               className="w-full h-auto rounded-lg object-contain max-h-[60vh] mx-auto"
                             />
                           </div>
-                          {/* Show data values for statistics */}
                           {timelineType === 'statistics' && 'data' in event && event.data && (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/30 rounded-lg">
-                              {statisticsMetrics.map((metric) => (
-                                <div key={metric} className="text-sm">
-                                  <span className="text-muted-foreground">{metric}:</span>{' '}
-                                  <span className="font-medium">{(event.data as Record<string, number>)[metric] ?? 0}</span>
-                                </div>
-                              ))}
+                              {statisticsMetrics.map((metric) => {
+                                const eventData = event.data as Record<string, number>;
+                                return (
+                                  <div key={metric} className="text-sm">
+                                    <span className="text-muted-foreground">{metric}:</span>{' '}
+                                    <span className="font-medium">{eventData[metric] ?? 0}</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </div>
