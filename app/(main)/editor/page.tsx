@@ -566,22 +566,24 @@ const TimelineEditor = () => {
   const handleSaveTimeline = async () => {
     setIsSaving(true);
     try {
+      const eventsToSave = timelineType === 'statistics' ? statisticsEvents : events;
       console.log('[Timeline Save] Starting timeline creation...', { 
         title: timelineName, 
-        eventCount: events.length 
+        eventCount: eventsToSave.length,
+        timelineType,
       });
 
       // Create timeline
       const timelineResult = await createTimeline({
-        title: timelineName,
+        title: toTitleCase(timelineName),
         description: timelineDescription,
-        visualization_type: "vertical",
+        visualization_type: timelineType === 'statistics' ? "vertical" : "vertical",
         is_public: isPublic,
         is_collaborative: false,
-        is_numbered: isNumbered,
-        number_label: isNumbered ? numberLabel : null,
-        start_date: startDate?.toISOString() || null,
-        end_date: endDate?.toISOString() || null,
+        is_numbered: timelineType === 'statistics' ? false : isNumbered,
+        number_label: timelineType === 'statistics' ? null : (isNumbered ? numberLabel : null),
+        start_date: timelineType === 'statistics' ? null : (startDate?.toISOString() || null),
+        end_date: timelineType === 'statistics' ? null : (endDate?.toISOString() || null),
         hashtags: hashtags.length > 0 ? hashtags : undefined,
       });
 
@@ -598,7 +600,9 @@ const TimelineEditor = () => {
 
       // Create all events
       const eventResults = [];
-      for (const event of events) {
+      const eventsList = timelineType === 'statistics' ? statisticsEvents : events;
+      
+      for (const event of eventsList) {
         try {
           let dateStr: string;
           
@@ -633,16 +637,26 @@ const TimelineEditor = () => {
             image_prompt: event.imagePrompt || undefined, // Save the image prompt if available
           });
 
-          // Log if image is missing
-          if (!event.imageUrl) {
-            console.warn(`[Timeline Save] Event "${event.title}" created without image URL`);
+          // Log if image/chart is missing
+          const eventTitle = timelineType === 'statistics' 
+            ? (event as typeof statisticsEvents[0]).title 
+            : (event as TimelineEvent).title;
+          const eventImageUrl = timelineType === 'statistics'
+            ? (event as typeof statisticsEvents[0]).chartUrl
+            : (event as TimelineEvent).imageUrl;
+            
+          if (!eventImageUrl) {
+            console.warn(`[Timeline Save] Event "${eventTitle}" created without ${timelineType === 'statistics' ? 'chart' : 'image'} URL`);
           } else {
-            console.log(`[Timeline Save] Event "${event.title}" created with image: ${event.imageUrl.substring(0, 50)}...`);
+            console.log(`[Timeline Save] Event "${eventTitle}" created with ${timelineType === 'statistics' ? 'chart' : 'image'}: ${eventImageUrl.substring(0, 50)}...`);
           }
 
-          eventResults.push({ success: true, event: event.title });
+          eventResults.push({ success: true, event: eventTitle });
         } catch (eventError: any) {
-          console.error(`Failed to create event "${event.title}":`, eventError);
+          const eventTitle = timelineType === 'statistics' 
+            ? (event as typeof statisticsEvents[0]).title 
+            : (event as TimelineEvent).title;
+          console.error(`Failed to create event "${eventTitle}":`, eventError);
           eventResults.push({ 
             success: false, 
             event: event.title, 
@@ -719,15 +733,26 @@ const TimelineEditor = () => {
   };
 
   // Transform events for preview
-  const previewEvents = events.map(e => ({
-    id: e.id,
-    year: e.year,
-    title: e.title,
-    description: e.description || "",
-    category: undefined,
-    image: e.imageUrl || "",
-    video: "",
-  }));
+  const previewEvents = timelineType === 'statistics' 
+    ? statisticsEvents.map(e => ({
+        id: e.id,
+        year: e.date ? new Date(e.date).getFullYear() : undefined,
+        title: e.title,
+        description: e.description || "",
+        category: undefined,
+        image: e.chartUrl || "",
+        video: "",
+        data: e.data, // Include data for statistics preview
+      }))
+    : events.map(e => ({
+        id: e.id,
+        year: e.year,
+        title: e.title,
+        description: e.description || "",
+        category: undefined,
+        image: e.imageUrl || "",
+        video: "",
+      }));
 
   return (
     <EditorErrorBoundary>
@@ -793,7 +818,7 @@ const TimelineEditor = () => {
                 <div key={event.id} className="space-y-3">
                   <div>
                     <h4 className="text-lg font-semibold mb-1">
-                      {event.year} - {event.title}
+                      {event.year ? `${event.year} - ` : ''}{toTitleCase(event.title)}
                     </h4>
                     {event.description && (
                       <p className="text-muted-foreground">{event.description}</p>
@@ -801,11 +826,34 @@ const TimelineEditor = () => {
                   </div>
                   {event.image && (
                     <div className="w-full">
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-full h-auto rounded-lg object-contain max-h-[80vh]"
-                      />
+                      {timelineType === 'statistics' ? (
+                        <div className="space-y-4">
+                          <div className="w-full bg-muted/30 rounded-lg p-4">
+                            <img
+                              src={event.image}
+                              alt={`Chart for ${event.title}`}
+                              className="w-full h-auto rounded-lg object-contain max-h-[60vh] mx-auto"
+                            />
+                          </div>
+                          {/* Show data values for statistics */}
+                          {'data' in event && event.data && (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/30 rounded-lg">
+                              {statisticsMetrics.map((metric) => (
+                                <div key={metric} className="text-sm">
+                                  <span className="text-muted-foreground">{metric}:</span>{' '}
+                                  <span className="font-medium">{event.data[metric] ?? 0}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-full h-auto rounded-lg object-contain max-h-[80vh]"
+                        />
+                      )}
                     </div>
                   )}
                 </div>
