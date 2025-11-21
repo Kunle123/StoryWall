@@ -218,10 +218,15 @@ Focus on creating a complete timeline with contiguous years, noting any gaps wit
         if (!event.title || typeof event.title !== 'string') return false;
         if (!event.data || typeof event.data !== 'object') return false;
         
-        // Ensure all metrics have values
-        const hasAllMetrics = metrics.every(m => 
-          typeof event.data[m] === 'number' && !isNaN(event.data[m])
-        );
+        // For missing data events, allow 0 or null values
+        const isMissingData = event.dataUnavailable === true;
+        
+        // Ensure all metrics have values (0 is allowed for missing data events)
+        const hasAllMetrics = metrics.every(m => {
+          const value = event.data[m];
+          return (typeof value === 'number' && !isNaN(value)) || 
+                 (isMissingData && (value === 0 || value === null || value === undefined));
+        });
         
         return hasAllMetrics;
       })
