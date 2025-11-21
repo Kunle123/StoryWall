@@ -5,9 +5,14 @@ import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 export async function POST(request: NextRequest) {
   try {
     console.log('[Statistics Suggestions] Request received at:', new Date().toISOString());
+    const cookieHeader = request.headers.get('cookie');
     console.log('[Statistics Suggestions] Request headers:', {
-      cookie: request.headers.get('cookie') ? 'present' : 'missing',
+      cookie: cookieHeader ? 'present' : 'missing',
+      cookieLength: cookieHeader?.length || 0,
+      cookiePreview: cookieHeader ? cookieHeader.substring(0, 100) + '...' : 'none',
       'user-agent': request.headers.get('user-agent'),
+      origin: request.headers.get('origin'),
+      referer: request.headers.get('referer'),
     });
     
     const authResult = await auth();
