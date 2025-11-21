@@ -471,6 +471,14 @@ const TimelineEditor = () => {
     });
     setCurrentStep(1);
     
+    // Reset statistics-specific state
+    setTimelineType(undefined);
+    setStatisticsMetrics([]);
+    setStatisticsChartType('bar');
+    setStatisticsDataSource('');
+    setStatisticsDataMode('ai');
+    setStatisticsEvents([]);
+    
     // Clear localStorage
     try {
       if (typeof window !== 'undefined') {
@@ -479,6 +487,9 @@ const TimelineEditor = () => {
     } catch (e) {
       console.error('Failed to clear localStorage:', e);
     }
+    
+    // Navigate to home screen
+    router.push('/');
   };
 
   // Detect if any events contain famous people
