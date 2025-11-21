@@ -1,0 +1,27 @@
+[phases.setup]
+nixPkgs = [
+  "nodejs_18",
+  "npm-9_x",
+  "openssl",
+  "cairo",
+  "pango",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pkg-config",
+  "pixman"
+]
+
+[phases.install]
+cmds = [
+  "npm ci"
+]
+
+[phases.build]
+cmds = [
+  "npm run build"
+]
+
+[start]
+cmd = "npm start"
+
