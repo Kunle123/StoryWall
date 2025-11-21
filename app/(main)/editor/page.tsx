@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight, Eye, Save, X } from "lucide-react";
 import { TimelineInfoStep } from "@/components/timeline-editor/TimelineInfoStep";
+import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
 import { ImageStyleStep } from "@/components/timeline-editor/ImageStyleStep";
@@ -602,7 +603,7 @@ const TimelineEditor = () => {
         <Header />
         <Toaster />
         
-        <main className="flex-1 container mx-auto px-4 pt-16 pb-24 max-w-5xl">
+        <main className="flex-1 container mx-auto px-4 pt-16 pb-32 max-w-5xl">
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Create a Timeline</h1>
           <p className="text-muted-foreground">Create your AI-powered timeline in 6 simple steps</p>
@@ -638,17 +639,33 @@ const TimelineEditor = () => {
         {/* Preview Mode */}
         {showPreview && (
           <Card className="p-6 mb-6">
-            <div className="mb-4">
+            <div className="mb-6">
               <h2 className="text-2xl font-display font-semibold mb-2">{timelineName}</h2>
               <p className="text-muted-foreground">{timelineDescription}</p>
-                </div>
-            <div className="space-y-4">
+            </div>
+            <div className="space-y-8">
               {previewEvents.map((event) => (
-                <div key={event.id} className="flex justify-center">
-                  <TimelineCard event={event} side="left" />
+                <div key={event.id} className="space-y-3">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-1">
+                      {event.year} - {event.title}
+                    </h3>
+                    {event.description && (
+                      <p className="text-muted-foreground">{event.description}</p>
+                    )}
+                  </div>
+                  {event.image && (
+                    <div className="w-full">
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-auto rounded-lg object-contain max-h-[80vh]"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
-                </div>
+            </div>
           </Card>
         )}
 
@@ -791,104 +808,23 @@ const TimelineEditor = () => {
                 </div>
               )}
             </Card>
-
-            {/* Navigation Buttons */}
-            <Card className="p-6">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col sm:flex-row justify-between gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handleBack}
-                    disabled={currentStep === 1}
-                    className="w-full sm:w-auto"
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back
-                  </Button>
-                  {currentStep === 5 ? (
-                    <Button
-                      onClick={handleNext}
-                      disabled={!canProceed()}
-                      className="w-full sm:w-auto"
-                    >
-                      Next
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  ) : currentStep === 6 ? (
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                      {!showPreview ? (
-                        <>
-                          <Button 
-                            variant="outline"
-                            onClick={handlePreviewTimeline}
-                            disabled={!canProceed()}
-                            className="flex-1 sm:flex-initial"
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            Preview Timeline
-                          </Button>
-                          <Button 
-                            onClick={handleSaveTimeline}
-                            disabled={!canProceed() || isSaving}
-                            className="flex-1 sm:flex-initial"
-                          >
-                            {isSaving ? (
-                              <>Saving...</>
-                            ) : (
-                              <><Save className="mr-2 h-4 w-4" />Save Timeline</>
-                            )}
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button 
-                            variant="outline"
-                            onClick={handleBack}
-                            className="flex-1 sm:flex-initial"
-                          >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back
-                          </Button>
-                          <Button 
-                            onClick={handleSaveTimeline}
-                            disabled={!canProceed() || isSaving}
-                            className="flex-1 sm:flex-initial"
-                          >
-                            {isSaving ? (
-                              <>Saving...</>
-                            ) : (
-                              <><Save className="mr-2 h-4 w-4" />Save Timeline</>
-                            )}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={handleNext}
-                      className="w-full sm:w-auto"
-                      variant={!canProceed() ? "outline" : "default"}
-                    >
-                      Next
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                {(currentStep === 6 && showPreview) || currentStep !== 6 ? (
-                  <Button
-                    variant="ghost"
-                    onClick={handleCancel}
-                    className="w-full text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
           </>
         )}
         </main>
+        
+        {/* Fixed Bottom Tab Bar */}
+        <EditorTabBar
+          currentStep={currentStep}
+          totalSteps={6}
+          canProceed={canProceed()}
+          isSaving={isSaving}
+          showPreview={showPreview}
+          onBack={handleBack}
+          onNext={handleNext}
+          onCancel={handleCancel}
+          onPreview={handlePreviewTimeline}
+          onSave={handleSaveTimeline}
+        />
       </div>
     </EditorErrorBoundary>
   );

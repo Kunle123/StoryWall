@@ -1318,6 +1318,25 @@ function buildImagePrompt(
       // Generic person matching instruction if names can't be extracted
       prompt += `. CRITICAL PERSON MATCHING: Match the exact person's appearance from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Maintain accurate facial structure, distinctive characteristics, and physical appearance exactly as shown in reference`;
     }
+  } else if (includesPeople && event.imagePrompt) {
+    // If no reference image but person is mentioned in the prompt, check if race/ethnicity is explicitly stated
+    // Extract person names from event title/description to check if we need to add race info
+    const eventText = `${event.title} ${event.description || ''}`.toLowerCase();
+    const commonNames = ['tatum', 'art', 'wonder', 'swift', 'obama', 'trump', 'biden']; // Add more as needed
+    
+    // Check if prompt already mentions race/ethnicity
+    const promptLower = event.imagePrompt.toLowerCase();
+    const hasRaceDescriptor = /\b(black|white|asian|latino|hispanic|african|european|middle eastern|indian|native american)\b/i.test(promptLower);
+    
+    // If person name detected but no race descriptor, add explicit instruction
+    const hasPersonName = commonNames.some(name => eventText.includes(name.toLowerCase()));
+    
+    if (hasPersonName && !hasRaceDescriptor) {
+      // Add explicit race/ethnicity preservation instruction
+      // Note: We can't infer race from name alone, but we can add a strong instruction
+      prompt += `. CRITICAL: The person in this image must match their actual race/ethnicity as they exist in reality. If the person is Black, show a Black person. If White, show a White person. If Asian, show an Asian person. Preserve the exact race/ethnicity, skin tone, and physical characteristics of the person accurately. DO NOT change or misrepresent their race or ethnicity.`;
+      console.log(`[ImageGen] Added explicit race/ethnicity preservation instruction for event: ${event.title}`);
+    }
   }
   
   // Add text handling instructions - always minimize text

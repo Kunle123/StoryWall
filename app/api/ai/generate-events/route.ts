@@ -228,8 +228,12 @@ If you use web search, you MUST include a top-level "sources" array with 3-5 rep
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
 - Prefer AP, Reuters, PBS, official election sites, and major newspapers.
 
-RECENCY REQUIREMENT:
-- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results), you MUST include them via web search. Do not omit recent decisive outcomes when sources confirm them.
+CRITICAL RECENCY REQUIREMENT FOR NEWSWORTHY TOPICS:
+- For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours
+- If news sources are reporting breaking developments (e.g., defections, resignations, announcements, election results), you MUST include these recent events in the timeline
+- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results, political defections, breaking news), you MUST include them via web search
+- Do not omit recent decisive outcomes when sources confirm them - recent events are often the most newsworthy
+- When creating timelines about ongoing political situations, current events, or recent developments, prioritize including the most recent events that are being reported in news sources
 
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
@@ -265,7 +269,8 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
 - If the topic has a clear progression/story, generate events that show that progression through its stages
 - If web search finds relevant news articles, you MUST use that information to create events
-- Include the most recent 48-hour developments (e.g., election-night result and victory announcement) when relevant
+- CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
+- Include the most recent 48-hour developments (e.g., election-night result, political defections, breaking news) when relevant
 - Include primary date(s) and result(s) as well
 - Use article-level citations for these items (not just domain homepages)
 - Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available
@@ -1104,8 +1109,12 @@ If you use web search, you MUST include a top-level "sources" array with 3-5 rep
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
 - Prefer AP, Reuters, PBS, official election sites, and major newspapers.
 
-RECENCY REQUIREMENT:
-- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results), you MUST include them via web search. Do not omit recent decisive outcomes when sources confirm them.
+CRITICAL RECENCY REQUIREMENT FOR NEWSWORTHY TOPICS:
+- For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours
+- If news sources are reporting breaking developments (e.g., defections, resignations, announcements, election results), you MUST include these recent events in the timeline
+- Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results, political defections, breaking news), you MUST include them via web search
+- Do not omit recent decisive outcomes when sources confirm them - recent events are often the most newsworthy
+- When creating timelines about ongoing political situations, current events, or recent developments, prioritize including the most recent events that are being reported in news sources
 
 ACCURACY REQUIREMENTS:
 - Generate events based on your knowledge of factual, well-documented information
@@ -1151,7 +1160,8 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
     ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
-IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
+- CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results. For newsworthy topics, prioritize including the most recent events being reported in news sources.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
 
 Return as JSON with these keys:
 - "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)

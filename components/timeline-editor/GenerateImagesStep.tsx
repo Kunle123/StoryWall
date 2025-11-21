@@ -880,56 +880,76 @@ export const GenerateImagesStep = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {events.filter(e => e.imageUrl).map((event) => (
-                    <div key={event.id} className="border rounded-lg overflow-hidden">
-                      <img
-                        src={event.imageUrl}
-                        alt={event.title}
-                        className="w-full h-48 object-cover"
-                      />
-                      <div className="p-4 space-y-3">
-                        <div>
-                          <h4 className="font-medium">{event.year} - {event.title}</h4>
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingEvent(event)}
-                          >
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRegenerateImage(event.id)}
-                            disabled={regeneratingId === event.id}
-                          >
-                            {regeneratingId === event.id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Regenerating...
-                              </>
-                            ) : (
-                              <>
-                                <RotateCw className="w-4 h-4 mr-2" />
-                                Regenerate {(() => {
-                                  if (totalRegenerations < 10) {
-                                    return `(${10 - totalRegenerations} free)`;
-                                  }
-                                  return "(10 credits)";
-                                })()}
-                              </>
+                  {/* Contact Sheet: 4 images per row */}
+                  <div className="grid grid-cols-4 gap-4">
+                    {events.filter(e => e.imageUrl).map((event) => (
+                      <div key={event.id} className="border rounded-lg overflow-hidden group hover:shadow-md transition-shadow">
+                        <div className="relative aspect-square">
+                          <img
+                            src={event.imageUrl}
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Overlay with event info on hover */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                            <h4 className="font-medium text-white text-sm mb-1 line-clamp-2">
+                              {event.year} - {event.title}
+                            </h4>
+                            {event.description && (
+                              <p className="text-xs text-white/90 line-clamp-2 mb-2">{event.description}</p>
                             )}
-                          </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setEditingEvent(event)}
+                                className="flex-1 text-xs h-7"
+                              >
+                                <Pencil className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => handleRegenerateImage(event.id)}
+                                disabled={regeneratingId === event.id}
+                                className="flex-1 text-xs h-7"
+                              >
+                                {regeneratingId === event.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <RotateCw className="w-3 h-3 mr-1" />
+                                    {(() => {
+                                      if (totalRegenerations < 10) {
+                                        return `${10 - totalRegenerations} free`;
+                                      }
+                                      return "10 credits";
+                                    })()}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Always visible title below image */}
+                        <div className="p-2 bg-background">
+                          <p className="text-xs font-medium line-clamp-1">
+                            {event.year} - {event.title}
+                          </p>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                    {/* Placeholder slots for images still generating */}
+                    {isGenerating && Array.from({ length: Math.max(0, totalEvents - events.filter(e => e.imageUrl).length) }).map((_, idx) => (
+                      <div key={`placeholder-${idx}`} className="border rounded-lg overflow-hidden aspect-square bg-muted/50 flex items-center justify-center">
+                        <div className="text-center space-y-2">
+                          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
+                          <p className="text-xs text-muted-foreground">Generating...</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                   {isGenerating && events.filter(e => e.imageUrl).length > 0 && (
                     // Show progress indicator when some images are already generated
                     <div className="flex items-center justify-center py-6 border-t">

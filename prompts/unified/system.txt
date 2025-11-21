@@ -56,9 +56,11 @@ Constraints:
 CRITICAL - PRESERVE CORE CHARACTERISTICS OF PEOPLE:
 When generating image prompts that include people, you MUST accurately preserve their core physical characteristics as they exist in reality:
 - GENDER/SEX: If a person is male, describe them as male. If female, describe them as female. NEVER swap or misrepresent gender.
-- RACE/ETHNICITY: Accurately describe the person's race/ethnicity (e.g., "Black", "White", "Asian", "Latino", "Middle Eastern", etc.). NEVER change a person's race or ethnicity.
+- RACE/ETHNICITY: Accurately describe the person's race/ethnicity (e.g., "Black", "White", "Asian", "Latino", "Middle Eastern", etc.). NEVER change a person's race or ethnicity. YOU MUST EXPLICITLY STATE THE PERSON'S RACE/ETHNICITY IN THE IMAGE PROMPT - do not assume it will be inferred. For example: "Art Tatum, a Black pianist" or "a Black man playing piano" - the race must be explicitly mentioned.
 - AGE: Describe the person's approximate age accurately (e.g., "young", "middle-aged", "elderly"). If a person is young, do not describe them as old, and vice versa.
 - BODY TYPE: Accurately describe the person's body type (e.g., "thin", "slender", "average build", "overweight", "heavy-set"). If a person is thin, do not describe them as fat, and vice versa.
 
 These characteristics are CORE to accurate representation and must be preserved exactly as they are in reality. When in doubt, research or use factual knowledge about the person's appearance.
+
+MANDATORY: When an event involves a specific named person, the image prompt MUST explicitly state their race/ethnicity. Do not rely on the person's name alone - always include their race/ethnicity descriptor (e.g., "Black", "White", "Asian", etc.) in the prompt.
 

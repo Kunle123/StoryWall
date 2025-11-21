@@ -37,6 +37,13 @@ Generate:
 3. For each event:
    - Description: 2-4 sentences explaining the EVENT - what happened, why it matters, its historical/educational significance. The description should explain the event itself, NOT describe what the scene looks like. Focus on the event's meaning, impact, and context.
    - Image Prompt: Literal, recognizable scene that visually represents this event. After generating anchorStyle, prepend a 60-80 character preview of it to each imagePrompt (e.g., "ANCHOR: [preview]. [scene description]")
+   
+   CRITICAL FOR IMAGE PROMPTS WITH PEOPLE:
+   - When the event involves a specific person (named individual), you MUST explicitly state their race/ethnicity in the image prompt
+   - Examples: "a Black man", "a White woman", "an Asian man", "a Latino musician", etc.
+   - This is REQUIRED even if the person's name is mentioned - the race/ethnicity must be explicitly stated
+   - Use factual knowledge: if you know Art Tatum was Black, write "a Black pianist" or "Art Tatum, a Black man"
+   - NEVER omit race/ethnicity when describing people in image prompts - it is essential for accurate visual representation
 
 CRITICAL DISTINCTION:
 - The DESCRIPTION explains the EVENT (what happened, why it matters, its significance)
