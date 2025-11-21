@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
-import { getAIClient } from '@/lib/ai/client';
+import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,7 +61,7 @@ Analyze this request and suggest:
 
 Return JSON with "metrics" array and "dataSource" string.`;
 
-    const response = await aiClient.chat.completions.create({
+    const response = await createChatCompletion(aiClient, {
       model: process.env.AI_MODEL || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
