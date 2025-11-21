@@ -115,7 +115,7 @@ export default function TwitterSharePage() {
 
   const handleCopy = async () => {
     try {
-      await copyThreadToClipboard(threadText);
+      await copyThreadToClipboard(tweets);
       setCopied(true);
       toast({
         title: "Copied!",
