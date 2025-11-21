@@ -437,7 +437,6 @@ export async function POST(request: NextRequest) {
             }
 
             // Send completion
-            const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({
                 type: 'complete',
