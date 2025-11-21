@@ -247,9 +247,21 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
     }
   };
 
-  // Update chart when currentIndex changes
+  // Sync scroll position when currentIndex changes programmatically
   useEffect(() => {
-    // Chart.js will automatically animate when data changes
+    if (scrollContainerRef.current) {
+      const containerWidth = scrollContainerRef.current.clientWidth;
+      const targetScroll = currentIndex * containerWidth;
+      const currentScroll = scrollContainerRef.current.scrollLeft;
+      
+      // Only scroll if we're significantly off (to avoid fighting with user scroll)
+      if (Math.abs(targetScroll - currentScroll) > 10) {
+        scrollContainerRef.current.scrollTo({
+          left: targetScroll,
+          behavior: 'smooth',
+        });
+      }
+    }
   }, [currentIndex]);
 
   return (
