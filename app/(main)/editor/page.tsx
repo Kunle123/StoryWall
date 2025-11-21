@@ -875,7 +875,7 @@ const TimelineEditor = () => {
                               className="w-full h-auto rounded-lg object-contain max-h-[60vh] mx-auto"
                             />
                           </div>
-                          {timelineType === 'statistics' && 'data' in event && event.data && (
+                          {timelineType === 'statistics' && 'data' in event && event.data ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/30 rounded-lg">
                               {statisticsMetrics.map((metric) => {
                                 const eventData = event.data as Record<string, number>;
@@ -887,7 +887,7 @@ const TimelineEditor = () => {
                                 );
                               })}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       ) : (
                         <img
