@@ -12,6 +12,7 @@ import { StatisticsInfoStep } from "@/components/timeline-editor/StatisticsInfoS
 import { StatisticsDataSourceStep } from "@/components/timeline-editor/StatisticsDataSourceStep";
 import { StatisticsDataEntryStep } from "@/components/timeline-editor/StatisticsDataEntryStep";
 import { StatisticsChartStyleStep } from "@/components/timeline-editor/StatisticsChartStyleStep";
+import { StatisticsGenerateChartsStep } from "@/components/timeline-editor/StatisticsGenerateChartsStep";
 import { EditorTabBar } from "@/components/timeline-editor/EditorTabBar";
 import { WritingStyleStep, TimelineEvent } from "@/components/timeline-editor/WritingStyleStep";
 import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep";
@@ -947,20 +948,14 @@ const TimelineEditor = () => {
               )}
               {currentStep === 5 && (
                 timelineType === 'statistics' ? (
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className="text-2xl font-display font-semibold mb-2">Generate Charts</h2>
-                      <p className="text-muted-foreground">
-                        Charts will be generated for each event. This feature is coming soon.
-                      </p>
-                    </div>
-                    <div className="p-6 border rounded-lg bg-muted/30">
-                      <p className="text-sm text-muted-foreground">
-                        Chart generation will create visual representations of your statistical data for each event.
-                        The charts will use the style and colors you selected in Step 4.
-                      </p>
-                    </div>
-                  </div>
+                  <StatisticsGenerateChartsStep
+                    events={statisticsEvents}
+                    setEvents={setStatisticsEvents}
+                    metrics={statisticsMetrics}
+                    chartType={statisticsChartType}
+                    themeColor={themeColor}
+                    timelineName={timelineName}
+                  />
                 ) : (
                   <GenerateImagesStep 
                     events={events} 
