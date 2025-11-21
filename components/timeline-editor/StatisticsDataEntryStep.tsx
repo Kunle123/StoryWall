@@ -233,24 +233,35 @@ export const StatisticsDataEntryStep = ({
                 </div>
               </div>
 
-              <Button
-                onClick={handleGenerateWithAI}
-                disabled={isGenerating}
-                className="w-full"
-                size="lg"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Retrieving data and creating events... {generationProgress > 0 && `${generationProgress}%`}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Use AI to Retrieve Data
-                  </>
-                )}
-              </Button>
+              {events.length === 0 ? (
+                <Button
+                  onClick={handleGenerateWithAI}
+                  disabled={isGenerating}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Retrieving data and creating events... {generationProgress > 0 && `${generationProgress}%`}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Use AI to Retrieve Data
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-800 dark:text-green-200 font-medium">
+                    ✓ Data retrieved successfully ({events.length} events generated)
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    You can review and edit the events below, or click "Clear All" to retrieve new data.
+                  </p>
+                </div>
+              )}
 
               {isGenerating && generationProgress > 0 && (
                 <div className="space-y-2">

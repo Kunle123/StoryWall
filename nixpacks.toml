@@ -14,7 +14,8 @@ nixPkgs = [
 
 [phases.install]
 cmds = [
-  "npm ci"
+  "npm ci",
+  "npm rebuild canvas"
 ]
 
 [phases.build]
