@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Table2, BarChart3 } from "lucide-react";
 import {
-  Chart as ChartJS,
+  Chart,
   CategoryScale,
   LinearScale,
   BarElement,
@@ -18,7 +18,7 @@ import { Bar } from "react-chartjs-2";
 import { TimelineEvent } from "./Timeline";
 
 // Register Chart.js components (v3 API)
-ChartJS.register(
+Chart.register(
   CategoryScale,
   LinearScale,
   BarElement,
