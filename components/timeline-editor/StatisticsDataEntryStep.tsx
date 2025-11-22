@@ -21,6 +21,7 @@ interface StatisticsEvent {
   number?: number;
   title: string;
   description?: string;
+  narrative?: string; // Detailed explanation of trends, causes, and key contributors
   data: Record<string, number>; // Metric name -> value
   chartUrl?: string; // URL of the generated chart image
 }

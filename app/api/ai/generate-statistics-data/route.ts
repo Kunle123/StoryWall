@@ -116,6 +116,7 @@ Return ONLY valid JSON in this exact format:
       "id": "event-1",
       "title": "Event Title (e.g., '2020 - GCSEs Cancelled' or '2017 Results')",
       "description": "Brief description of what happened at this time, or explanation if data unavailable",
+      "narrative": "Detailed narrative explaining key contributors to metric changes, causes of increases/decreases, dominant trends, and contextual factors. For example: 'Electricity bills increased significantly due to the Ukraine war disrupting energy supplies and causing global price spikes. The conflict led to reduced Russian gas exports to Europe, forcing countries to source more expensive alternatives. This narrative should cite reliable sources and explain the underlying causes of the statistical changes.'",
       "date": "2020-01-15",
       "data": {
         "Metric 1": 35.5,
@@ -152,6 +153,13 @@ CRITICAL: Generate events for CONTIGUOUS YEARS. If data exists for some years bu
 Generate 5-15 events with real statistical data for these metrics. Each event should:
 - Have a clear title (e.g., "2020 Results", "2020 - GCSEs Cancelled", "2017 Results")
 - Include a brief description of what happened OR explanation if data unavailable
+- Include a detailed "narrative" field that explains:
+  * Key contributors to metric changes (what caused increases/decreases)
+  * Dominant trends and their causes
+  * Contextual factors (e.g., Ukraine war causing energy price spikes, political events affecting polling)
+  * Reliable sources that explain the changes
+  * For political polling: explain what events caused shifts (e.g., "Labour surge following Starmer's policy announcement")
+  * For economic data: explain underlying causes (e.g., "Energy bills rose due to Ukraine war disrupting gas supplies")
 - Have accurate dates (use mid-year dates like "2020-08-01" for annual data)
 - Include data values for ALL metrics: ${metrics.join(', ')} (use 0 for missing years)
 - Cite the data source
@@ -299,6 +307,7 @@ Focus on creating a complete timeline with real, verifiable data for every year 
           id: event.id || `event-${Date.now()}-${index}`,
           title: String(event.title).trim(),
           description: event.description ? String(event.description).trim() : undefined,
+          narrative: event.narrative ? String(event.narrative).trim() : undefined,
           date: eventDate,
           data: sanitizedData,
           source: event.source || dataSource,

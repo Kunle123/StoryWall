@@ -656,10 +656,14 @@ const TimelineEditor = () => {
               data: statsEvent.data,
               chartType: statisticsChartType,
             });
+            // Include narrative if available
+            const narrativeText = (statsEvent as any).narrative 
+              ? `\n\n[STATS_NARRATIVE:${JSON.stringify({ narrative: (statsEvent as any).narrative })}]`
+              : '';
             // Place STATS_DATA at the end to avoid parsing issues with description content
             eventDescription = eventDescription 
-              ? `${eventDescription}\n\n[STATS_DATA:${statsData}]`
-              : `[STATS_DATA:${statsData}]`;
+              ? `${eventDescription}${narrativeText}\n\n[STATS_DATA:${statsData}]`
+              : `${narrativeText}\n\n[STATS_DATA:${statsData}]`;
           } else {
             // Regular event handling
             const regularEvent = event as TimelineEvent;

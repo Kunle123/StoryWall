@@ -35,6 +35,7 @@ interface StatisticsData {
 
 interface StatisticsEvent extends TimelineEvent {
   statisticsData?: StatisticsData;
+  narrative?: string; // Detailed explanation of trends, causes, and key contributors
   year?: number;
 }
 
@@ -441,14 +442,28 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
                   maxWidth: 'calc(100vw - 2rem)',
                 }}
               >
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-lg">{event.title}</h4>
-                  {event.year && (
-                    <p className="text-sm text-muted-foreground">Year: {event.year}</p>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-lg mb-1">{event.title}</h4>
+                    {event.year && (
+                      <p className="text-sm text-muted-foreground">Year: {event.year}</p>
+                    )}
+                  </div>
+                  
+                  {/* Narrative explanation */}
+                  {event.narrative && (
+                    <div className="bg-background border rounded-lg p-3 space-y-2">
+                      <h5 className="text-sm font-semibold text-foreground">Key Contributors & Trends</h5>
+                      <p className="text-sm text-foreground leading-relaxed">{event.narrative}</p>
+                    </div>
                   )}
-                  {event.description && !event.description.includes('[STATS_DATA:') && (
-                    <p className="text-sm">{event.description.replace(/\[STATS_DATA:.+?\]/, '').trim()}</p>
+                  
+                  {/* Brief description if no narrative */}
+                  {!event.narrative && event.description && !event.description.includes('[STATS_DATA:') && (
+                    <p className="text-sm text-muted-foreground">{event.description.replace(/\[STATS_DATA:.+?\]/, '').trim()}</p>
                   )}
+                  
+                  {/* Metrics grid */}
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {metrics.map((metric) => (
                       <div key={metric} className="text-sm">
