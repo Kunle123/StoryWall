@@ -97,20 +97,80 @@ function getMetricColor(metric: string): string {
 function parseStatisticsData(description?: string): StatisticsData | null {
   if (!description) return null;
   
-  // Use a more robust regex that handles multi-line JSON
-  // Match [STATS_DATA:...] where ... can span multiple lines
-  const match = description.match(/\[STATS_DATA:([\s\S]+?)\]/);
-  if (!match) return null;
+  // Find the start of [STATS_DATA:
+  const startIndex = description.indexOf('[STATS_DATA:');
+  if (startIndex === -1) return null;
+  
+  // Find the matching closing bracket by counting brackets
+  // Start after '[STATS_DATA:' (12 characters)
+  let bracketCount = 1; // We already have one opening bracket
+  let jsonStart = startIndex + 12;
+  let jsonEnd = jsonStart;
+  
+  // Look for the matching closing bracket
+  for (let i = jsonStart; i < description.length; i++) {
+    if (description[i] === '[') {
+      bracketCount++;
+    } else if (description[i] === ']') {
+      bracketCount--;
+      if (bracketCount === 0) {
+        jsonEnd = i;
+        break;
+      }
+    }
+  }
+  
+  // If we didn't find a matching bracket, try to parse what we have (might be truncated)
+  if (bracketCount > 0) {
+    // JSON might be truncated - try to parse what we have and attempt to fix it
+    jsonEnd = description.length;
+  }
+  
+  const jsonString = description.substring(jsonStart, jsonEnd).trim();
+  
+  if (!jsonString) return null;
   
   try {
-    // Trim whitespace and parse JSON
-    const jsonString = match[1].trim();
-    const data = JSON.parse(jsonString);
+    // Try to parse the JSON
+    let data = JSON.parse(jsonString);
     return data;
   } catch (e) {
-    console.error('Failed to parse statistics data:', e);
-    console.error('JSON string that failed:', match[1].substring(0, 200));
-    return null;
+    // If parsing failed and JSON might be truncated, try to fix it
+    try {
+      // Try to complete the JSON if it's truncated
+      let fixedJson = jsonString;
+      
+      // If it ends with an incomplete string (no closing quote), try to close it
+      if (fixedJson.match(/"[^"]*$/)) {
+        // Incomplete string at the end - remove it and try to close the structure
+        fixedJson = fixedJson.replace(/"[^"]*$/, '');
+      }
+      
+      // Try to close incomplete arrays/objects
+      let openBraces = (fixedJson.match(/\{/g) || []).length;
+      let closeBraces = (fixedJson.match(/\}/g) || []).length;
+      let openBrackets = (fixedJson.match(/\[/g) || []).length;
+      let closeBrackets = (fixedJson.match(/\]/g) || []).length;
+      
+      // Close arrays first, then objects
+      while (closeBrackets < openBrackets) {
+        fixedJson += ']';
+        closeBrackets++;
+      }
+      while (closeBraces < openBraces) {
+        fixedJson += '}';
+        closeBraces++;
+      }
+      
+      const data = JSON.parse(fixedJson);
+      console.warn('Successfully parsed truncated JSON by fixing it');
+      return data;
+    } catch (e2) {
+      console.error('Failed to parse statistics data:', e);
+      console.error('JSON string that failed:', jsonString.substring(0, 200));
+      console.error('Full description length:', description.length);
+      return null;
+    }
   }
 }
 
