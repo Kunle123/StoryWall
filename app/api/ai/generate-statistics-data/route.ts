@@ -217,24 +217,44 @@ Focus on creating a complete timeline with real, verifiable data for every year 
       throw new Error('Invalid response format: expected events array');
     }
 
+    // Log raw events for debugging
+    console.log('[Statistics Data] Raw events received:', JSON.stringify(parsed.events, null, 2));
+    console.log('[Statistics Data] Expected metrics:', metrics);
+
     // Validate and sanitize events
     const validatedEvents = parsed.events
       .filter((event: any) => {
         // Basic validation
-        if (!event.title || typeof event.title !== 'string') return false;
-        if (!event.data || typeof event.data !== 'object') return false;
+        if (!event.title || typeof event.title !== 'string') {
+          console.log('[Statistics Data] Event filtered: missing or invalid title', event);
+          return false;
+        }
+        if (!event.data || typeof event.data !== 'object') {
+          console.log('[Statistics Data] Event filtered: missing or invalid data', event);
+          return false;
+        }
         
         // For missing data events, allow 0 or null values
         const isMissingData = event.dataUnavailable === true;
         
-        // Ensure all metrics have values (0 is allowed for missing data events)
-        const hasAllMetrics = metrics.every(m => {
+        // Check if event has at least some metric values (more lenient)
+        const hasSomeMetrics = metrics.some(m => {
           const value = event.data[m];
-          return (typeof value === 'number' && !isNaN(value)) || 
-                 (isMissingData && (value === 0 || value === null || value === undefined));
+          return typeof value === 'number' && !isNaN(value);
         });
         
-        return hasAllMetrics;
+        // For missing data events, we're more lenient - just need the data object
+        if (isMissingData) {
+          return true;
+        }
+        
+        // For regular events, need at least one metric with a valid number
+        if (!hasSomeMetrics) {
+          console.log('[Statistics Data] Event filtered: no valid metric values', event);
+          return false;
+        }
+        
+        return true;
       })
       .map((event: any, index: number) => {
         // Sanitize and validate data
@@ -251,6 +271,14 @@ Focus on creating a complete timeline with real, verifiable data for every year 
             // Try to parse if it's a string
             const parsed = parseFloat(String(value));
             sanitizedData[metric] = isNaN(parsed) ? 0 : parsed;
+          }
+        });
+        
+        // Also include any additional metrics from the event data that aren't in our list
+        // This handles cases where AI returns metrics with slightly different names
+        Object.keys(event.data).forEach(key => {
+          if (!sanitizedData.hasOwnProperty(key) && typeof event.data[key] === 'number') {
+            sanitizedData[key] = event.data[key];
           }
         });
 
