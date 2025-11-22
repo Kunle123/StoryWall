@@ -270,6 +270,7 @@ export const StatisticsGenerateChartsStep = ({
       setIsGenerating(false);
       setProgress(0);
     }
+    */
   };
 
   const eventsWithCharts = events.filter(e => e.chartUrl).length;
