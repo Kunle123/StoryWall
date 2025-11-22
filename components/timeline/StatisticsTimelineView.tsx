@@ -144,9 +144,11 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
       if (a.year && b.year) {
         return a.year - b.year;
       }
-      // Otherwise sort by date
-      if (a.date && b.date) {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      // Otherwise sort by date (using year, month, day)
+      if (a.year && b.year) {
+        const dateA = new Date(a.year, (a.month || 1) - 1, a.day || 1);
+        const dateB = new Date(b.year, (b.month || 1) - 1, b.day || 1);
+        return dateA.getTime() - dateB.getTime();
       }
       return 0;
     });
