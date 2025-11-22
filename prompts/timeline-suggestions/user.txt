@@ -1,5 +1,11 @@
 I need to produce a timeline for {{subjectName}}.
 
+IMPORTANT CONTEXT:
+- Current date: November 2025
+- Prioritize recent, current, and newsworthy information
+- For topics with recent developments (e.g., recent qualifications, elections, achievements, breaking news), suggest timelines that capture the most recent and relevant events
+- Recent events are often the most engaging - prioritize current information over older historical perspectives when both are available
+
 Give me 5 suggestions of what would be good and engaging themes for the timeline. Phrase each suggestion as a description of a timeline (ready to use as-is).
 
 The suggestions should:
@@ -8,10 +14,23 @@ The suggestions should:
 - Be engaging and interesting to explore
 - Work well as visual timelines
 - Be distinct from each other
+- PRIORITIZE recent developments and current events when relevant to the topic
+- For topics with ongoing or recent developments, emphasize the most current and newsworthy information
 
 Return your response as a JSON object with a "suggestions" key containing an array of strings, where each string is a complete timeline description.
 
-Example format:
+Example format for a recent topic (e.g., "Scotland World Cup qualifying"):
+{
+  "suggestions": [
+    "Scotland's journey to qualify for the 2026 World Cup, including their recent qualification success in 2025 and the key matches and moments that secured their place.",
+    "A comprehensive timeline of Scotland's World Cup qualifying campaigns from 2022 to 2025, highlighting their progression and recent achievement.",
+    "The key moments and matches in Scotland's 2025 World Cup qualifying campaign, from the opening matches to their successful qualification.",
+    "Scotland's World Cup history and their path to qualification, with emphasis on their recent 2025 qualification success.",
+    "An analysis of Scotland's World Cup qualifying journey, focusing on the most recent campaign and their achievement of qualifying for the 2026 tournament."
+  ]
+}
+
+Example format for historical/person topics:
 {
   "suggestions": [
     "A biographical timeline of the key moments and milestones in their life and career.",
@@ -22,5 +41,5 @@ Example format:
   ]
 }
 
-Generate 5 unique, engaging timeline descriptions for {{subjectName}}:
+Generate 5 unique, engaging timeline descriptions for {{subjectName}}, prioritizing recent and current information when relevant:
 
