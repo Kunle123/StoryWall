@@ -305,9 +305,6 @@ async function generateChartImage(
     width,
     height,
     backgroundColour: 'white',
-    plugins: {
-      globalVariableLegacy: ['chartjs-adapter-date-fns'],
-    },
     // Configure fonts - use system fonts that are available
     chartCallback: (ChartJS) => {
       ChartJS.defaults.font.family = 'Arial, sans-serif';
