@@ -118,6 +118,7 @@ export const StatisticsDataEntryStep = ({
             number: event.number,
             title: event.title,
             description: description || undefined,
+            narrative: (event as any).narrative || undefined,
             data: event.data || {},
           };
         });
