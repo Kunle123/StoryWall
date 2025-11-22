@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+// @ts-ignore - chartjs-node-canvas uses Chart.js v3 internally
 import { ChartConfiguration } from 'chart.js';
 import { toTitleCase } from '@/lib/utils/titleCase';
 

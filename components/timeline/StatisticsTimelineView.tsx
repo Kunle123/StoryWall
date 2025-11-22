@@ -17,7 +17,7 @@ import {
 import { Bar } from "react-chartjs-2";
 import { TimelineEvent } from "./Timeline";
 
-// Register Chart.js components
+// Register Chart.js components (v3 API)
 ChartJS.register(
   CategoryScale,
   LinearScale,
