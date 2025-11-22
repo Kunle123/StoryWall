@@ -646,11 +646,13 @@ const TimelineEditor = () => {
             imageUrl = statsEvent.chartUrl || undefined;
             
             // Store statistics data in description (we'll enhance this later with proper schema)
+            // Ensure JSON is properly formatted (no extra whitespace, proper escaping)
             const statsData = JSON.stringify({
               metrics: statisticsMetrics,
               data: statsEvent.data,
               chartType: statisticsChartType,
             });
+            // Place STATS_DATA at the end to avoid parsing issues with description content
             eventDescription = eventDescription 
               ? `${eventDescription}\n\n[STATS_DATA:${statsData}]`
               : `[STATS_DATA:${statsData}]`;

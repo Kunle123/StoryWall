@@ -97,14 +97,19 @@ function getMetricColor(metric: string): string {
 function parseStatisticsData(description?: string): StatisticsData | null {
   if (!description) return null;
   
-  const match = description.match(/\[STATS_DATA:(.+?)\]/);
+  // Use a more robust regex that handles multi-line JSON
+  // Match [STATS_DATA:...] where ... can span multiple lines
+  const match = description.match(/\[STATS_DATA:([\s\S]+?)\]/);
   if (!match) return null;
   
   try {
-    const data = JSON.parse(match[1]);
+    // Trim whitespace and parse JSON
+    const jsonString = match[1].trim();
+    const data = JSON.parse(jsonString);
     return data;
   } catch (e) {
     console.error('Failed to parse statistics data:', e);
+    console.error('JSON string that failed:', match[1].substring(0, 200));
     return null;
   }
 }
