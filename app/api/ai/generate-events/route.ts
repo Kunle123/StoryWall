@@ -232,6 +232,7 @@ CRITICAL RECENCY REQUIREMENT FOR NEWSWORTHY TOPICS:
 - For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours
 - If news sources are reporting breaking developments (e.g., defections, resignations, announcements, election results), you MUST include these recent events in the timeline
 - Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results, political defections, breaking news), you MUST include them via web search
+- CRITICAL: For timelines about recent political events or ongoing situations, you MUST use web search to find events from TODAY and YESTERDAY. Do not skip recent events - actively search for the latest news articles about this topic
 - Do not omit recent decisive outcomes when sources confirm them - recent events are often the most newsworthy
 - When creating timelines about ongoing political situations, current events, or recent developments, prioritize including the most recent events that are being reported in news sources
 
@@ -1114,6 +1115,7 @@ CRITICAL RECENCY REQUIREMENT FOR NEWSWORTHY TOPICS:
 - For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours
 - If news sources are reporting breaking developments (e.g., defections, resignations, announcements, election results), you MUST include these recent events in the timeline
 - Always prefer contemporaneous sources; if the topic has events in the last 48 hours (e.g., election-night results, political defections, breaking news), you MUST include them via web search
+- CRITICAL: For timelines about recent political events or ongoing situations, you MUST use web search to find events from TODAY and YESTERDAY. Do not skip recent events - actively search for the latest news articles about this topic
 - Do not omit recent decisive outcomes when sources confirm them - recent events are often the most newsworthy
 - When creating timelines about ongoing political situations, current events, or recent developments, prioritize including the most recent events that are being reported in news sources
 
@@ -1162,6 +1164,7 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
 - You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
 - If web search finds relevant news articles, you MUST use that information to create events
 - CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
+- CRITICAL FOR RECENT TIMELINES: If the timeline description mentions a time period that includes today (e.g., "since 2024", "since the election", "since [recent date]"), you MUST use web search to actively find events from TODAY, YESTERDAY, and the last 48 hours. Do not rely solely on your training data - you MUST search for the most recent news articles. For example, if creating a timeline about "MPs that defected since 2024 general election", you MUST search for defections that happened today, yesterday, and this week.
 IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results. For newsworthy topics, prioritize including the most recent events being reported in news sources.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
 
 Return as JSON with these keys:
