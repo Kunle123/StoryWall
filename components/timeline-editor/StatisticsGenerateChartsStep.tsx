@@ -68,11 +68,51 @@ export const StatisticsGenerateChartsStep = ({
       return;
     }
 
+    // For statistics timelines, we use client-side animated charts
+    // No need to generate server-side chart images - just mark as ready
     setIsGenerating(true);
     setProgress(0);
-    setGeneratingCount(0);
-    setTotalEvents(events.length);
-
+    
+    // Filter events with data (skip dataUnavailable and all-zero events)
+    const eventsWithData = events.filter(event => {
+      if ((event as any).dataUnavailable) return false;
+      const hasNonZeroData = Object.values(event.data || {}).some(val => typeof val === 'number' && val !== 0);
+      return hasNonZeroData;
+    });
+    
+    setTotalEvents(eventsWithData.length);
+    
+    // Simulate brief progress for UX (charts will be rendered client-side)
+    setTimeout(() => {
+      setProgress(50);
+      setGeneratingCount(Math.floor(eventsWithData.length / 2));
+    }, 200);
+    
+    setTimeout(() => {
+      // Mark all events with data as ready (no chartUrl needed for client-side rendering)
+      // We use 'client-side' as a marker that this event has data and is ready for rendering
+      const updatedEvents = events.map(event => {
+        const hasData = !(event as any).dataUnavailable && 
+                       Object.values(event.data || {}).some(val => typeof val === 'number' && val !== 0);
+        // For client-side rendering, we mark with 'client-side' so canProceed validation works
+        return hasData ? { ...event, chartUrl: 'client-side' } : event;
+      });
+      
+      setEvents(updatedEvents);
+      eventsRef.current = updatedEvents;
+      setGeneratingCount(eventsWithData.length);
+      setProgress(100);
+      setIsGenerating(false);
+      
+      toast({
+        title: "Charts Ready",
+        description: `Ready to display ${eventsWithData.length} animated charts. Charts will render client-side when viewing the timeline.`,
+      });
+    }, 500);
+    
+    return;
+    
+    /* OLD SERVER-SIDE CHART GENERATION - DISABLED FOR CLIENT-SIDE ANIMATED CHARTS
     try {
       const response = await fetch('/api/ai/generate-charts', {
         method: 'POST',

@@ -642,8 +642,12 @@ const TimelineEditor = () => {
               dateStr = formatDateForDB(new Date().getFullYear(), 1, 1);
             }
             
-            // Store chart URL in image_url field
-            imageUrl = statsEvent.chartUrl || undefined;
+            // For statistics timelines, we use client-side animated charts
+            // Don't store chartUrl in image_url - charts are rendered from data
+            // Only store if it's an actual URL (not 'client-side' marker)
+            imageUrl = statsEvent.chartUrl && statsEvent.chartUrl !== 'client-side' 
+              ? statsEvent.chartUrl 
+              : undefined;
             
             // Store statistics data in description (we'll enhance this later with proper schema)
             // Ensure JSON is properly formatted (no extra whitespace, proper escaping)

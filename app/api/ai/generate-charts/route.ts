@@ -389,8 +389,13 @@ export async function POST(request: NextRequest) {
           const encoder = new TextEncoder();
           
           try {
-            // Filter out events without data
-            const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
+            // Filter out events without data (dataUnavailable or all zeros)
+            const eventsWithData = events.filter((event: ChartEvent) => {
+              if (event.dataUnavailable) return false;
+              // Also skip if all values are zero
+              const hasNonZeroData = Object.values(event.data || {}).some(val => typeof val === 'number' && val !== 0);
+              return hasNonZeroData;
+            });
             
             for (let i = 0; i < eventsWithData.length; i++) {
               const event = eventsWithData[i];
@@ -463,8 +468,13 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Non-streaming: Generate all charts and return
-      // Filter out events without data
-      const eventsWithData = events.filter((event: ChartEvent) => !event.dataUnavailable);
+      // Filter out events without data (dataUnavailable or all zeros)
+      const eventsWithData = events.filter((event: ChartEvent) => {
+        if (event.dataUnavailable) return false;
+        // Also skip if all values are zero
+        const hasNonZeroData = Object.values(event.data || {}).some(val => typeof val === 'number' && val !== 0);
+        return hasNonZeroData;
+      });
       
       const chartResults = await Promise.all(
         eventsWithData.map(async (event: ChartEvent, index: number) => {
