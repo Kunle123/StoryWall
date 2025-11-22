@@ -198,9 +198,22 @@ export function StatisticsTimelineView({ events }: StatisticsTimelineViewProps) 
         }
       }
       
+      // Extract narrative if present
+      const narrativeMatch = event.description?.match(/\[STATS_NARRATIVE:([\s\S]+?)\]/);
+      let narrative: string | undefined;
+      if (narrativeMatch) {
+        try {
+          const narrativeData = JSON.parse(narrativeMatch[1].trim());
+          narrative = narrativeData.narrative;
+        } catch (e) {
+          console.warn('Failed to parse narrative:', e);
+        }
+      }
+      
       return {
         ...event,
         statisticsData: statsData,
+        narrative,
         year,
       } as StatisticsEvent;
     })
