@@ -270,6 +270,7 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
 - If the topic has a clear progression/story, generate events that show that progression through its stages
 - If web search finds relevant news articles, you MUST use that information to create events
 - CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
+- CRITICAL FOR RECENT TIMELINES: If the timeline description mentions a time period that includes today (e.g., "since 2024", "since the election", "since [recent date]"), you MUST use web search to actively find events from TODAY, YESTERDAY, and the last 48 hours. Do not rely solely on your training data - you MUST search for the most recent news articles. For example, if creating a timeline about "MPs that defected since 2024 general election", you MUST search for defections that happened today, yesterday, and this week.
 - Include the most recent 48-hour developments (e.g., election-night result, political defections, breaking news) when relevant
 - Include primary date(s) and result(s) as well
 - Use article-level citations for these items (not just domain homepages)
