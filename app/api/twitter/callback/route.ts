@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
       try {
         // returnUrl should be a path (e.g., /timeline/123 or /timeline/123?param=value)
         // If it's a full URL, extract the path
-        let pathToUse = returnUrl;
+        let pathToUse: string | null = returnUrl;
         
         // Check if it's a full URL or just a path
         if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
