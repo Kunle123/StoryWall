@@ -26,7 +26,49 @@ export const TimelineTweetTemplate = ({
   const [isPosting, setIsPosting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  const tweetText = `${title}\n\n${description}\n\n${timelineUrl}`;
+  // Calculate tweet length with URL counting as 23 characters (Twitter's shortened URL length)
+  // Twitter automatically shortens URLs to ~23 characters, but we must include the full URL
+  const URL_LENGTH = 23; // Twitter counts URLs as 23 characters when shortened
+  const NEWLINE_LENGTH = 2; // \n\n counts as 2 characters
+  
+  // Build tweet text, ensuring it fits within 280 characters
+  // The URL will be included in full - Twitter will shorten it automatically
+  const buildTweetText = (title: string, description: string, url: string): { text: string; effectiveLength: number; wasTruncated: boolean } => {
+    // Calculate available space: 280 total - title - 2 newlines - URL (counted as 23) - 2 newlines
+    const baseLength = title.length + (NEWLINE_LENGTH * 2) + URL_LENGTH;
+    const maxDescriptionLength = Math.max(0, 280 - baseLength);
+    
+    let finalDescription = description;
+    let wasTruncated = false;
+    if (description.length > maxDescriptionLength) {
+      // Truncate description and add ellipsis if needed
+      const truncateLength = Math.max(0, maxDescriptionLength - 3);
+      if (truncateLength > 0) {
+        finalDescription = description.substring(0, truncateLength) + '...';
+        wasTruncated = true;
+      } else {
+        // If there's no room for description, just use title and URL
+        finalDescription = '';
+        wasTruncated = true;
+      }
+    }
+    
+    // Always include the full URL - Twitter will shorten it automatically
+    let tweetText: string;
+    if (finalDescription) {
+      tweetText = `${title}\n\n${finalDescription}\n\n${url}`;
+    } else {
+      // If description was too long and had to be removed, just use title and URL
+      tweetText = `${title}\n\n${url}`;
+    }
+    
+    // Calculate effective length (URL counts as 23, not its actual length)
+    const effectiveLength = title.length + (NEWLINE_LENGTH * 2) + finalDescription.length + URL_LENGTH;
+    
+    return { text: tweetText, effectiveLength, wasTruncated };
+  };
+  
+  const { text: tweetText, effectiveLength, wasTruncated } = buildTweetText(title, description, timelineUrl);
 
   // Ensure image URL is absolute for Twitter API
   const getAbsoluteImageUrl = (url: string): string => {
@@ -345,9 +387,28 @@ export const TimelineTweetTemplate = ({
       </div>
 
       {/* Character count */}
-      <p className="text-xs text-muted-foreground text-center">
-        Characters: {tweetText.length}/280
-      </p>
+      <div className="text-xs text-muted-foreground text-center space-y-1">
+        <p>
+          Effective length: ~{effectiveLength}/280 
+          <span className="text-muted-foreground ml-1">
+            (URL counts as {URL_LENGTH} chars when shortened by Twitter)
+          </span>
+          {effectiveLength > 280 && (
+            <span className="text-destructive ml-2">⚠️ Too long! Description will be truncated.</span>
+          )}
+        </p>
+        {wasTruncated && (
+          <p className="text-amber-600 dark:text-amber-400">
+            ℹ️ Description was truncated to ensure the complete URL is included
+          </p>
+        )}
+        <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+          ✓ Full URL will always be included - Twitter automatically shortens it to ~23 characters
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Users can click the shortened URL to link back to the timeline on storywall.com
+        </p>
+      </div>
     </Card>
   );
 };

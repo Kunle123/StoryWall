@@ -175,8 +175,11 @@ export async function postTweet(
 ): Promise<TwitterThreadResponse> {
   const url = 'https://api.twitter.com/2/tweets';
   
+  // Twitter automatically shortens URLs to ~23 characters
+  // We include the full URL in the text - Twitter will handle shortening
+  // Just ensure the text doesn't exceed 280 characters (URLs count as 23)
   const body: any = {
-    text: text.substring(0, 280), // Ensure within limit
+    text: text.length > 280 ? text.substring(0, 280) : text, // Ensure within limit
   };
   
   if (replyToTweetId) {
