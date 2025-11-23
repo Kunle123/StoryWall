@@ -418,15 +418,22 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         
         let data;
         try {
-          // For factual events, try to use web search if available
-          // OpenAI Chat Completions supports tools, but Kimi models don't support web_search
-          // Only include tools for OpenAI (Kimi only supports 'function' and 'custom' tool types)
-          const tools = isFactual && client.provider === 'openai' ? [{ type: 'web_search' }] : undefined;
-          
           // Kimi supports JSON mode (response_format), so we can use it for both providers
           // See: https://platform.moonshot.ai/docs/guide/use-json-mode-feature-of-kimi-api
+          // Use kimi-k2-turbo-preview for web search (Moonshot recommends it for handling increased token load from search results)
+          const modelForGeneration = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
+          
+          // For factual events, try to use web search if available
+          // OpenAI Chat Completions supports web_search tool
+          // Kimi models that support web_search: kimi-k2-0905-preview, kimi-k2-turbo-preview, moonshot/kimi-k2-preview
+          // kimi-k2-thinking does NOT support web_search
+          // We're using kimi-k2-turbo-preview which supports web_search
+          const kimiModelSupportsWebSearch = client.provider === 'kimi' && modelForGeneration === 'kimi-k2-turbo-preview';
+          const tools = isFactual && (client.provider === 'openai' || kimiModelSupportsWebSearch) 
+            ? [{ type: 'web_search' }] 
+            : undefined;
           data = await createChatCompletion(client, {
-            model: 'gpt-4o-mini', // Will be auto-mapped to appropriate Kimi model if using Kimi
+            model: modelForGeneration,
         messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: userPrompt },
@@ -1194,8 +1201,8 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
   
   console.log(`[GenerateEventsBatch] Request config${batchLabel}: provider=${client.provider}, batchMaxEvents=${batchMaxEvents}, maxTokens=${maxTokens}`);
   
-  // Use Chat Completions with faster model for batches
-  // Use kimi-k2-turbo-preview explicitly for speed (60-100 tokens/s)
+  // Use Chat Completions - prioritize web search support for event generation
+  // Use kimi-k2-turbo-preview: Moonshot recommends it for web search (handles increased token load from search results)
   const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
   
   const data = await createChatCompletion(client, {

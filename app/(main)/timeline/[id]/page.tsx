@@ -376,6 +376,19 @@ const TimelinePage = () => {
           }
         })();
         const formattedDate = formatSelectedDate(centeredEvent, startDate, endDate);
+        
+        // Get timeline URL - use slug if available, otherwise use ID
+        const timelineSlug = timeline?.slug;
+        const timelineUrlId = timelineSlug || timelineId;
+        const currentUrl = typeof window !== 'undefined' 
+          ? `${window.location.origin}/timeline/${timelineUrlId}`
+          : '';
+        
+        // Get first event's image for Twitter share
+        const firstEventImage = allEvents.length > 0 && allEvents[0]?.image 
+          ? allEvents[0].image 
+          : (timeline?.events?.[0]?.image_url || undefined);
+        
         return (
           <ExperimentalBottomMenuBar
             selectedDate={formattedDate}
@@ -384,6 +397,10 @@ const TimelinePage = () => {
             endDate={endDate}
             isNumbered={timeline?.is_numbered || false}
             totalEvents={allEvents.length}
+            timelineTitle={timeline?.title}
+            timelineDescription={timeline?.description}
+            timelineImageUrl={firstEventImage}
+            timelineUrl={currentUrl}
             onShareTwitterThread={() => {
               router.push(`/timeline/${timelineId}/share/twitter`);
             }}

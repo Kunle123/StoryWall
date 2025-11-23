@@ -1,12 +1,13 @@
 "use client";
 
-import { Share2, Home, Plus, FileText, Sparkles, BarChart3, Twitter, Music } from "lucide-react";
+import { Share2, Home, Plus, FileText, Sparkles, BarChart3, Twitter, Music, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { TimelineTweetTemplate } from "@/components/timeline/TimelineTweetTemplate";
 
 type SelectedDateFormat = 
   | { type: 'numbered'; value: string }
@@ -22,6 +23,10 @@ interface ExperimentalBottomMenuBarProps {
   totalEvents?: number;
   onShareTwitterThread?: () => void;
   onShareTikTokSlideshow?: () => void;
+  timelineTitle?: string;
+  timelineDescription?: string;
+  timelineImageUrl?: string;
+  timelineUrl?: string;
 }
 
 const formatDateRange = (startDate: Date, endDate: Date): string => {
@@ -50,7 +55,11 @@ export const ExperimentalBottomMenuBar = ({
   isNumbered = false,
   totalEvents = 0,
   onShareTwitterThread,
-  onShareTikTokSlideshow
+  onShareTikTokSlideshow,
+  timelineTitle,
+  timelineDescription,
+  timelineImageUrl,
+  timelineUrl
 }: ExperimentalBottomMenuBarProps) => {
   const { toast } = useToast();
   const router = useRouter();
@@ -58,6 +67,7 @@ export const ExperimentalBottomMenuBar = ({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showTwitterDialog, setShowTwitterDialog] = useState(false);
 
   // Detect keyboard open/close on mobile and input focus
   useEffect(() => {
@@ -404,44 +414,77 @@ export const ExperimentalBottomMenuBar = ({
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-12 w-12"
-                  onClick={handleShare}
-                >
-                  <Share2 className="w-10 h-10" />
-                </Button>
-                {onShareTwitterThread && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-12 w-12"
-                    onClick={() => {
-                      const timelineId = window.location.pathname.split('/')[2];
-                      if (timelineId) {
-                        router.push(`/timeline/${timelineId}/share/twitter`);
-                      }
-                    }}
-                  >
-                    <Twitter className="w-10 h-10" />
-                  </Button>
-                )}
-                {onShareTikTokSlideshow && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-12 w-12"
-                    onClick={() => {
-                      const timelineId = window.location.pathname.split('/')[2];
-                      if (timelineId) {
-                        router.push(`/timeline/${timelineId}/share/tiktok`);
-                      }
-                    }}
-                  >
-                    <Music className="w-10 h-10" />
-                  </Button>
-                )}
+                <Popover open={showShareMenu} onOpenChange={setShowShareMenu}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-12 w-12"
+                    >
+                      <Share2 className="w-10 h-10" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="end" side="top">
+                    <div className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                          setShowShareMenu(false);
+                          handleShare();
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                        Copy Link
+                      </Button>
+                      {timelineTitle && timelineUrl && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start gap-2"
+                          onClick={() => {
+                            setShowShareMenu(false);
+                            setShowTwitterDialog(true);
+                          }}
+                        >
+                          <Twitter className="h-4 w-4" />
+                          Share on X/Twitter
+                        </Button>
+                      )}
+                      {onShareTwitterThread && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start gap-2"
+                          onClick={() => {
+                            setShowShareMenu(false);
+                            const timelineId = window.location.pathname.split('/')[2];
+                            if (timelineId) {
+                              router.push(`/timeline/${timelineId}/share/twitter`);
+                            }
+                          }}
+                        >
+                          <Twitter className="h-4 w-4" />
+                          Twitter Thread
+                        </Button>
+                      )}
+                      {onShareTikTokSlideshow && (
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start gap-2"
+                          onClick={() => {
+                            setShowShareMenu(false);
+                            const timelineId = window.location.pathname.split('/')[2];
+                            if (timelineId) {
+                              router.push(`/timeline/${timelineId}/share/tiktok`);
+                            }
+                          }}
+                        >
+                          <Music className="h-4 w-4" />
+                          TikTok Slideshow
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -590,6 +633,28 @@ export const ExperimentalBottomMenuBar = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Twitter Share Dialog */}
+      {timelineTitle && timelineUrl && (
+        <Dialog open={showTwitterDialog} onOpenChange={setShowTwitterDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share on X/Twitter</DialogTitle>
+              <DialogDescription>
+                Share this timeline on X/Twitter with description and image
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <TimelineTweetTemplate
+                title={timelineTitle}
+                description={timelineDescription || `Explore this timeline: ${timelineTitle}`}
+                imageUrl={timelineImageUrl || ''}
+                timelineUrl={timelineUrl}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

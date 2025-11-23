@@ -116,7 +116,7 @@ CRITICAL VERIFICATION RULES:
 
     try {
       const response = await createChatCompletion(client, {
-        model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
+        model: client.provider === 'kimi' ? 'kimi-k2-thinking' : 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -185,7 +185,7 @@ CRITICAL CORRECTION RULES:
 - Fix all issues identified in the issues list`;
 
               const correctionResponse = await createChatCompletion(client, {
-                model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
+                model: client.provider === 'kimi' ? 'kimi-k2-thinking' : 'gpt-4o-mini',
                 messages: [
                   {
                     role: 'system',

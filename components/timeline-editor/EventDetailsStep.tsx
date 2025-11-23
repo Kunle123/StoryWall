@@ -206,28 +206,15 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       }
       
       // Handle verification results
+      // Auto-correction happens silently in the background - no dialog needed
+      // Corrected descriptions are automatically applied to events above
       if (data.verificationSummary) {
-        const { verified, flagged, corrected, total } = data.verificationSummary;
-        let verificationMessage = `Verified ${verified}/${total} events`;
-        if (corrected > 0) {
-          verificationMessage += `, auto-corrected ${corrected} events`;
-        }
-        if (flagged > 0) {
-          verificationMessage += `, ${flagged} flagged`;
-        }
+        const { corrected, total } = data.verificationSummary;
         
-        // Show verification results in dialog if there are issues
-        if (data.verifiedEvents && (flagged > 0 || corrected > 0)) {
-          setVerificationResults({
-            verifiedEvents: data.verifiedEvents,
-            summary: data.verificationSummary,
-          });
-          setShowVerificationDialog(true);
-        }
-        
+        // Show success toast (auto-correction happens silently, no need to show details)
         toast({
           title: "Success!",
-          description: `Generated and verified descriptions for ${events.length} events. ${verificationMessage}.${data.hashtags ? ` ${data.hashtags.length} hashtags added.` : ''}`,
+          description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
         });
       } else {
         toast({
