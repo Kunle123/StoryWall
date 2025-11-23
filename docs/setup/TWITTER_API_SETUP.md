@@ -21,12 +21,19 @@ This guide explains how to set up Twitter API integration to enable automated th
 3. **Configure OAuth 2.0 Settings**
    - In your app settings, go to "User authentication settings"
    - Enable OAuth 2.0
-   - Set App permissions to "Read and write"
+   - Set App permissions to "Read and write" (this includes media upload permissions)
    - Set Type of App to "Web App"
    - Add callback URLs:
      - `https://www.storywall.com/api/twitter/callback`
      - `http://localhost:3000/api/twitter/callback` (for development)
    - Set Website URL: `https://www.storywall.com`
+   
+   **Note:** The app requests the following OAuth 2.0 scopes:
+   - `tweet.read` - Read tweets
+   - `tweet.write` - Post tweets
+   - `users.read` - Read user information
+   - `offline.access` - Refresh tokens
+   - `media.write` - Upload media (images) for tweets
 
 4. **Get Your API Keys**
    - In your app settings, go to "Keys and tokens"
@@ -103,6 +110,12 @@ The implementation includes a 1-second delay between tweets to avoid hitting rat
 - Verify your app has "Read and write" permissions
 - Check rate limits haven't been exceeded
 - Ensure access token hasn't expired (implement refresh token logic)
+
+**"Image not attaching to tweet" or 403 Forbidden on media upload:**
+- This usually means your access token doesn't have the `media.write` scope
+- **Solution:** Disconnect and reconnect your Twitter account to grant the new permissions
+- The app now requests `media.write` scope, but users who connected before this was added need to reconnect
+- Go to the timeline share dialog and click "Reconnect" or "Connect Twitter Account"
 
 **OAuth callback not working:**
 - Verify callback URL matches exactly in Twitter app settings

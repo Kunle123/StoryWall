@@ -42,7 +42,7 @@ export async function uploadMedia(
   
   // Step 1: Initialize media upload
   // Note: Twitter media upload API v1.1 requires OAuth 2.0 User Context
-  // The access token must have 'tweet.write' scope
+  // The access token must have 'tweet.write' and 'media.write' scopes
   console.log(`[Twitter Upload Media] Initializing upload...`);
   const initResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
     method: 'POST',
@@ -285,7 +285,7 @@ export function getTwitterAuthUrl(
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'tweet.read tweet.write users.read offline.access',
+    scope: 'tweet.read tweet.write users.read offline.access media.write',
     state: state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256', // Use SHA256 instead of plain

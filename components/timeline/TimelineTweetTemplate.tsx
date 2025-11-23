@@ -207,9 +207,10 @@ export const TimelineTweetTemplate = ({
           if (response.status === 403 || error.code === 'TWITTER_MEDIA_UPLOAD_FORBIDDEN') {
             toast({
               title: "Twitter Permission Error",
-              description: error.details || "Your Twitter app needs 'Read and write' permissions. Please reconnect your Twitter account or check your Twitter app settings.",
+              description: error.details || "Your Twitter account needs media upload permissions. Please disconnect and reconnect your Twitter account to grant the 'media.write' scope.",
               variant: "destructive",
             });
+            setIsConnected(false); // Mark as disconnected so user can reconnect
             return;
           }
           
