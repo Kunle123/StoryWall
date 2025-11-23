@@ -577,6 +577,18 @@ const TimelineEditor = () => {
     setIsSaving(true);
     try {
       const eventsToSave = timelineType === 'statistics' ? statisticsEvents : events;
+      
+      // Validate that we have events to save
+      if (eventsToSave.length === 0) {
+        toast({
+          title: "No Events",
+          description: "Please add at least one event before saving the timeline.",
+          variant: "destructive",
+        });
+        setIsSaving(false);
+        return;
+      }
+      
       console.log('[Timeline Save] Starting timeline creation...', { 
         title: timelineName, 
         eventCount: eventsToSave.length,
@@ -727,17 +739,19 @@ const TimelineEditor = () => {
       const failedEvents = eventResults.filter(r => !r.success);
       const successfulEvents = eventResults.filter(r => r.success);
       
-      // Count events with images
-      const eventsWithImages = events.filter(e => e.imageUrl).length;
-      const eventsWithoutImages = events.length - eventsWithImages;
+      // Count events with images/charts (use eventsList which is the actual list we saved)
+      const eventsWithImages = timelineType === 'statistics'
+        ? eventsList.filter((e: any) => e.chartUrl && e.chartUrl !== 'client-side').length
+        : eventsList.filter((e: any) => e.imageUrl).length;
+      const eventsWithoutImages = eventsList.length - eventsWithImages;
       
       console.log(`[Timeline Save] Events summary: ${successfulEvents.length} successful, ${failedEvents.length} failed`);
-      console.log(`[Timeline Save] Events with images: ${eventsWithImages} of ${events.length}`);
+      console.log(`[Timeline Save] Events with ${timelineType === 'statistics' ? 'charts' : 'images'}: ${eventsWithImages} of ${eventsList.length}`);
       
-      if (eventsWithoutImages > 0) {
+      if (eventsWithoutImages > 0 && timelineType !== 'statistics') {
         console.warn(`[Timeline Save] ⚠️  WARNING: ${eventsWithoutImages} events are missing images!`);
         console.warn(`[Timeline Save] Events without images:`, 
-          events.filter(e => !e.imageUrl).map(e => e.title)
+          eventsList.filter((e: any) => !e.imageUrl).map((e: any) => e.title)
         );
       }
       
@@ -750,15 +764,15 @@ const TimelineEditor = () => {
         });
       }
 
-      if (successfulEvents.length === events.length) {
-      toast({
-        title: "Success!",
+      if (successfulEvents.length === eventsList.length) {
+        toast({
+          title: "Success!",
           description: "Timeline saved successfully",
         });
       } else {
         toast({
           title: "Partially Saved",
-          description: `Timeline created with ${successfulEvents.length}/${events.length} events saved.`,
+          description: `Timeline created with ${successfulEvents.length}/${eventsList.length} events saved.`,
         });
       }
 

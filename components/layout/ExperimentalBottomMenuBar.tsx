@@ -461,14 +461,8 @@ export const ExperimentalBottomMenuBar = ({
             zIndex: 50
           }}
           onClick={() => {
-            // If already on editor page, show create menu instead of navigating
-            if (pathname === "/editor") {
-              setShowCreateMenu(true);
-            } else if (hasTimeline) {
-              router.push("/editor");
-            } else {
-              setShowCreateMenu(true);
-            }
+            // Navigate directly to standard create flow
+            router.push("/editor");
           }}
         >
               <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${dialSize} ${dialSize}`}>
