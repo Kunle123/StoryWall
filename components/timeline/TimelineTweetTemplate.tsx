@@ -34,9 +34,14 @@ export const TimelineTweetTemplate = ({
   // Build tweet text, ensuring it fits within 280 characters
   // The URL will be included in full - Twitter will shorten it automatically
   const buildTweetText = (title: string, description: string, url: string): { text: string; effectiveLength: number; wasTruncated: boolean } => {
-    // Calculate available space: 280 total - title - 2 newlines - URL (counted as 23) - 2 newlines
-    const baseLength = title.length + (NEWLINE_LENGTH * 2) + URL_LENGTH;
-    const maxDescriptionLength = Math.max(0, 280 - baseLength);
+    // Calculate available space: 280 total - title - newlines - URL (counted as 23)
+    // Format: title + \n\n + description + \n\n + url
+    const titleLength = title.length;
+    const urlLength = URL_LENGTH; // Twitter counts URLs as 23 chars
+    const newlinesLength = NEWLINE_LENGTH * 2; // Two \n\n separators
+    
+    // Calculate max description length
+    const maxDescriptionLength = Math.max(0, 280 - titleLength - newlinesLength - urlLength);
     
     let finalDescription = description;
     let wasTruncated = false;
@@ -54,6 +59,7 @@ export const TimelineTweetTemplate = ({
     }
     
     // Always include the full URL - Twitter will shorten it automatically
+    // NEVER truncate the URL - it's essential for linking back
     let tweetText: string;
     if (finalDescription) {
       tweetText = `${title}\n\n${finalDescription}\n\n${url}`;
@@ -62,8 +68,16 @@ export const TimelineTweetTemplate = ({
       tweetText = `${title}\n\n${url}`;
     }
     
-    // Calculate effective length (URL counts as 23, not its actual length)
-    const effectiveLength = title.length + (NEWLINE_LENGTH * 2) + finalDescription.length + URL_LENGTH;
+    // Verify the tweet text length
+    // The actual text will be longer than 280 because the URL is full length
+    // But Twitter counts URLs as 23, so the effective length should be <= 280
+    const actualTextLength = tweetText.length;
+    const effectiveLength = titleLength + (finalDescription ? finalDescription.length : 0) + newlinesLength + urlLength;
+    
+    // Log if there's an issue
+    if (effectiveLength > 280) {
+      console.warn(`[TimelineTweetTemplate] Effective tweet length (${effectiveLength}) exceeds 280. Title: ${titleLength}, Desc: ${finalDescription.length}, URL: ${urlLength}`);
+    }
     
     return { text: tweetText, effectiveLength, wasTruncated };
   };

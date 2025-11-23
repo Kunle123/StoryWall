@@ -177,9 +177,15 @@ export async function postTweet(
   
   // Twitter automatically shortens URLs to ~23 characters
   // We include the full URL in the text - Twitter will handle shortening
-  // Just ensure the text doesn't exceed 280 characters (URLs count as 23)
+  // IMPORTANT: Never truncate the text here - it should already be properly formatted
+  // If text exceeds 280, it means the URL or content wasn't properly truncated earlier
+  // We'll let Twitter handle it, but log a warning
+  if (text.length > 280) {
+    console.warn(`[Twitter Post Tweet] Tweet text is ${text.length} characters (exceeds 280). Twitter may truncate it.`);
+    // Don't truncate here - let Twitter handle it, but this shouldn't happen if buildTweetText worked correctly
+  }
   const body: any = {
-    text: text.length > 280 ? text.substring(0, 280) : text, // Ensure within limit
+    text: text, // Send full text - Twitter will handle URL shortening
   };
   
   if (replyToTweetId) {
