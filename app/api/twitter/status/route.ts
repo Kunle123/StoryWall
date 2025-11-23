@@ -13,15 +13,23 @@ export async function GET(request: NextRequest) {
 
     const user = await getOrCreateUser(userId);
     
-    // Check if user has Twitter access token
-    // Note: You'll need to add twitter_access_token field to User model
+    // Check if user has Twitter access tokens (both OAuth 2.0 and OAuth 1.0a)
     const userWithToken = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { twitterAccessToken: true },
+      select: { 
+        twitterAccessToken: true,
+        twitterOAuth1Token: true,
+        twitterOAuth1TokenSecret: true,
+      },
     });
     
+    const hasOAuth2 = !!userWithToken?.twitterAccessToken;
+    const hasOAuth1 = !!userWithToken?.twitterOAuth1Token && !!userWithToken?.twitterOAuth1TokenSecret;
+    
     return NextResponse.json({
-      connected: !!userWithToken?.twitterAccessToken,
+      connected: hasOAuth2, // OAuth 2.0 is required for posting tweets
+      hasOAuth1: hasOAuth1, // OAuth 1.0a is required for image uploads
+      canUploadImages: hasOAuth1, // Can upload images if OAuth 1.0a tokens are present
     });
   } catch (error: any) {
     console.error('[Twitter Status] Error:', error);
