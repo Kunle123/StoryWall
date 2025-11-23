@@ -137,6 +137,17 @@ export const TimelineTweetTemplate = ({
             });
             return;
           }
+          
+          // Handle 403 Forbidden specifically
+          if (response.status === 403 || error.code === 'TWITTER_MEDIA_UPLOAD_FORBIDDEN') {
+            toast({
+              title: "Twitter Permission Error",
+              description: error.details || "Your Twitter app needs 'Read and write' permissions. Please reconnect your Twitter account or check your Twitter app settings.",
+              variant: "destructive",
+            });
+            return;
+          }
+          
           // Show detailed error message if available
           const errorMessage = error.details 
             ? `${error.error}: ${error.details}`

@@ -41,11 +41,14 @@ export async function uploadMedia(
   }
   
   // Step 1: Initialize media upload
+  // Note: Twitter media upload API v1.1 requires OAuth 2.0 User Context
+  // The access token must have 'tweet.write' scope
   console.log(`[Twitter Upload Media] Initializing upload...`);
   const initResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
       command: 'INIT',
@@ -57,14 +60,20 @@ export async function uploadMedia(
   if (!initResponse.ok) {
     const errorText = await initResponse.text();
     let errorMessage = 'Failed to initialize media upload';
+    let errorDetails: any = {};
     try {
       const error = JSON.parse(errorText);
-      errorMessage = error.error || errorMessage;
+      errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
+      errorDetails = error;
     } catch {
       errorMessage = `${errorMessage}: ${initResponse.status} ${initResponse.statusText}`;
     }
     console.error(`[Twitter Upload Media] Init failed:`, errorMessage);
-    throw new Error(errorMessage);
+    console.error(`[Twitter Upload Media] Response status: ${initResponse.status}`);
+    console.error(`[Twitter Upload Media] Response headers:`, Object.fromEntries(initResponse.headers.entries()));
+    console.error(`[Twitter Upload Media] Error details:`, errorDetails);
+    console.error(`[Twitter Upload Media] Full error text:`, errorText);
+    throw new Error(`${errorMessage} (Status: ${initResponse.status})`);
   }
   
   const initData = await initResponse.json();
@@ -87,6 +96,7 @@ export async function uploadMedia(
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
+        // Don't set Content-Type for FormData - browser will set it with boundary
       },
       body: formData,
     });
@@ -105,6 +115,7 @@ export async function uploadMedia(
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
       command: 'FINALIZE',

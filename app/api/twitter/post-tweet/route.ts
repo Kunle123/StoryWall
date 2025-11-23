@@ -64,6 +64,19 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         console.error('[Twitter Post Tweet] Failed to upload image:', error);
         console.error('[Twitter Post Tweet] Error details:', error.message);
+        
+        // Check if it's a 403 error - likely authentication/permission issue
+        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+          return NextResponse.json(
+            { 
+              error: 'Failed to upload image for tweet',
+              details: 'Twitter API returned 403 Forbidden. This usually means:\n1. Your Twitter app needs "Read and write" permissions enabled\n2. The access token may not have the required scopes\n3. Please reconnect your Twitter account to refresh permissions',
+              code: 'TWITTER_MEDIA_UPLOAD_FORBIDDEN',
+            },
+            { status: 403 }
+          );
+        }
+        
         // Return error - user should know image failed
         return NextResponse.json(
           { 
