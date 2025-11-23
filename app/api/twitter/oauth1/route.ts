@@ -24,7 +24,29 @@ export async function GET(request: NextRequest) {
     
     const consumerKey = process.env.TWITTER_API_KEY;
     const consumerSecret = process.env.TWITTER_API_SECRET;
-    const redirectUri = process.env.TWITTER_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/twitter/oauth1/callback`;
+    
+    // In production, require TWITTER_REDIRECT_URI to be set explicitly
+    // In development, allow fallback to localhost
+    let redirectUri = process.env.TWITTER_REDIRECT_URI;
+    if (!redirectUri) {
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { error: 'Twitter OAuth 1.0a not configured. Please add TWITTER_REDIRECT_URI to environment variables.' },
+          { status: 500 }
+        );
+      }
+      // Development fallback - use OAuth 1.0a callback endpoint
+      redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/twitter/oauth1/callback`;
+    } else {
+      // If TWITTER_REDIRECT_URI is set, use it but ensure it points to the OAuth 1.0a callback
+      // If it's the OAuth 2.0 callback, convert it to OAuth 1.0a callback
+      if (redirectUri.includes('/api/twitter/callback') && !redirectUri.includes('/oauth1/callback')) {
+        redirectUri = redirectUri.replace('/api/twitter/callback', '/api/twitter/oauth1/callback');
+      } else if (!redirectUri.includes('/oauth1/callback')) {
+        // If it's a base URL, append the OAuth 1.0a callback path
+        redirectUri = `${redirectUri.replace(/\/$/, '')}/api/twitter/oauth1/callback`;
+      }
+    }
     
     if (!consumerKey || !consumerSecret) {
       return NextResponse.json(
