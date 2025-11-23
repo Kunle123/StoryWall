@@ -14,8 +14,85 @@ interface TwitterThreadResponse {
 }
 
 /**
- * Upload media (image) to Twitter
- * Returns media_id that can be attached to a tweet
+ * Generate OAuth 1.0a signature for Twitter API requests
+ * Required for v1.1 media upload endpoint
+ */
+function generateOAuth1Signature(
+  method: string,
+  url: string,
+  params: Record<string, string>,
+  consumerKey: string,
+  consumerSecret: string,
+  token: string,
+  tokenSecret: string
+): { signature: string; timestamp: string; nonce: string } {
+  // Step 1: Collect OAuth parameters
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const nonce = randomBytes(16).toString('hex');
+  
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: consumerKey,
+    oauth_token: token,
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: timestamp,
+    oauth_nonce: nonce,
+    oauth_version: '1.0',
+  };
+
+  // Step 2: Merge all parameters
+  const allParams = { ...oauthParams, ...params };
+  
+  // Step 3: Normalize parameters (sort and encode)
+  const normalizedParams = Object.keys(allParams)
+    .sort()
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(allParams[key])}`)
+    .join('&');
+
+  // Step 4: Create signature base string
+  const signatureBaseString = [
+    method.toUpperCase(),
+    encodeURIComponent(url),
+    encodeURIComponent(normalizedParams)
+  ].join('&');
+
+  // Step 5: Create signing key
+  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+
+  // Step 6: Generate signature
+  const signature = createHmac('sha1', signingKey)
+    .update(signatureBaseString)
+    .digest('base64');
+
+  return { signature, timestamp, nonce };
+}
+
+/**
+ * Create OAuth 1.0a Authorization header
+ */
+function createOAuth1Header(
+  consumerKey: string,
+  token: string,
+  signature: string,
+  timestamp: string,
+  nonce: string
+): string {
+  const params = [
+    `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
+    `oauth_token="${encodeURIComponent(token)}"`,
+    `oauth_signature_method="HMAC-SHA1"`,
+    `oauth_timestamp="${timestamp}"`,
+    `oauth_nonce="${nonce}"`,
+    `oauth_version="1.0"`,
+    `oauth_signature="${encodeURIComponent(signature)}"`,
+  ].join(', ');
+
+  return `OAuth ${params}`;
+}
+
+/**
+ * Upload media (image) to Twitter using OAuth 2.0 (DEPRECATED - doesn't work)
+ * This function is kept for backward compatibility but will always fail with 403
+ * Use uploadMediaOAuth1 instead
  */
 export async function uploadMedia(
   accessToken: string,
@@ -168,6 +245,222 @@ export async function uploadMedia(
 }
 
 /**
+ * Upload media (image) to Twitter using OAuth 1.0a
+ * Returns media_id that can be attached to a tweet
+ * 
+ * @param consumerKey - OAuth 1.0a Consumer Key (API Key)
+ * @param consumerSecret - OAuth 1.0a Consumer Secret (API Secret)
+ * @param token - OAuth 1.0a Access Token
+ * @param tokenSecret - OAuth 1.0a Access Token Secret
+ * @param imageUrl - URL of the image to upload
+ */
+export async function uploadMediaOAuth1(
+  consumerKey: string,
+  consumerSecret: string,
+  token: string,
+  tokenSecret: string,
+  imageUrl: string
+): Promise<string> {
+  console.log(`[Twitter Upload Media OAuth1] Starting upload for: ${imageUrl}`);
+  
+  // First, download the image
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
+  }
+  
+  const imageBuffer = await imageResponse.arrayBuffer();
+  const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+  
+  console.log(`[Twitter Upload Media OAuth1] Downloaded image. Size: ${imageBuffer.byteLength} bytes, Type: ${contentType}`);
+  
+  // Validate image size (Twitter limit is 5MB for images)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (imageBuffer.byteLength > maxSize) {
+    throw new Error(`Image too large: ${imageBuffer.byteLength} bytes (max: ${maxSize} bytes)`);
+  }
+  
+  const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
+  
+  // Step 1: Initialize media upload with OAuth 1.0a
+  console.log(`[Twitter Upload Media OAuth1] Initializing upload...`);
+  const initParams = {
+    command: 'INIT',
+    total_bytes: imageBuffer.byteLength.toString(),
+    media_type: contentType,
+  };
+  
+  const { signature: initSignature, timestamp: initTimestamp, nonce: initNonce } = generateOAuth1Signature(
+    'POST',
+    uploadUrl,
+    initParams,
+    consumerKey,
+    consumerSecret,
+    token,
+    tokenSecret
+  );
+  
+  const initResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(initParams),
+  });
+  
+  if (!initResponse.ok) {
+    const errorText = await initResponse.text();
+    let errorMessage = 'Failed to initialize media upload';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${initResponse.status} ${initResponse.statusText}`;
+    }
+    console.error(`[Twitter Upload Media OAuth1] Init failed:`, errorMessage);
+    throw new Error(`${errorMessage} (Status: ${initResponse.status})`);
+  }
+  
+  const initData = await initResponse.json();
+  const mediaId = initData.media_id_string;
+  console.log(`[Twitter Upload Media OAuth1] Initialized. Media ID: ${mediaId}`);
+  
+  // Step 2: Append media data (in chunks if needed)
+  const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+  let segmentIndex = 0;
+  
+  for (let offset = 0; offset < imageBuffer.byteLength; offset += chunkSize) {
+    const chunk = imageBuffer.slice(offset, Math.min(offset + chunkSize, imageBuffer.byteLength));
+    
+    // For FormData with OAuth 1.0a, we need to handle multipart differently
+    // Twitter's API expects the OAuth signature in the Authorization header
+    const formData = new FormData();
+    formData.append('command', 'APPEND');
+    formData.append('media_id', mediaId);
+    formData.append('segment_index', segmentIndex.toString());
+    formData.append('media', new Blob([chunk], { type: contentType }));
+    
+    // For multipart/form-data, OAuth 1.0a signature is calculated without the body
+    // The parameters are in the form data, but we sign with empty body for multipart
+    const appendParams = {
+      command: 'APPEND',
+      media_id: mediaId,
+      segment_index: segmentIndex.toString(),
+    };
+    
+    const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
+      'POST',
+      uploadUrl,
+      appendParams,
+      consumerKey,
+      consumerSecret,
+      token,
+      tokenSecret
+    );
+    
+    const appendResponse = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
+        // Don't set Content-Type for FormData - browser will set it with boundary
+      },
+      body: formData,
+    });
+    
+    if (!appendResponse.ok) {
+      const error = await appendResponse.json().catch(() => ({ error: 'Failed to append media chunk' }));
+      throw new Error(error.error || 'Failed to append media chunk');
+    }
+    
+    segmentIndex++;
+  }
+  
+  // Step 3: Finalize media upload
+  console.log(`[Twitter Upload Media OAuth1] Finalizing upload...`);
+  const finalizeParams = {
+    command: 'FINALIZE',
+    media_id: mediaId,
+  };
+  
+  const { signature: finalizeSignature, timestamp: finalizeTimestamp, nonce: finalizeNonce } = generateOAuth1Signature(
+    'POST',
+    uploadUrl,
+    finalizeParams,
+    consumerKey,
+    consumerSecret,
+    token,
+    tokenSecret
+  );
+  
+  const finalizeResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      'Authorization': createOAuth1Header(consumerKey, token, finalizeSignature, finalizeTimestamp, finalizeNonce),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(finalizeParams),
+  });
+  
+  if (!finalizeResponse.ok) {
+    const errorText = await finalizeResponse.text();
+    let errorMessage = 'Failed to finalize media upload';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${finalizeResponse.status} ${finalizeResponse.statusText}`;
+    }
+    console.error(`[Twitter Upload Media OAuth1] Finalize failed:`, errorMessage);
+    throw new Error(errorMessage);
+  }
+  
+  // Wait for processing to complete
+  let processingInfo = await finalizeResponse.json();
+  let attempts = 0;
+  const maxAttempts = 15;
+  console.log(`[Twitter Upload Media OAuth1] Processing state: ${processingInfo.processing_info?.state || 'none'}`);
+  
+  while (processingInfo.processing_info && processingInfo.processing_info.state === 'in_progress' && attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const statusParams = {
+      command: 'STATUS',
+      media_id: mediaId,
+    };
+    
+    const statusUrl = `${uploadUrl}?command=STATUS&media_id=${mediaId}`;
+    const { signature: statusSignature, timestamp: statusTimestamp, nonce: statusNonce } = generateOAuth1Signature(
+      'GET',
+      uploadUrl,
+      statusParams,
+      consumerKey,
+      consumerSecret,
+      token,
+      tokenSecret
+    );
+    
+    const statusResponse = await fetch(statusUrl, {
+      headers: {
+        'Authorization': createOAuth1Header(consumerKey, token, statusSignature, statusTimestamp, statusNonce),
+      },
+    });
+    processingInfo = await statusResponse.json();
+    attempts++;
+    console.log(`[Twitter Upload Media OAuth1] Processing attempt ${attempts}/${maxAttempts}, state: ${processingInfo.processing_info?.state}`);
+  }
+  
+  if (processingInfo.processing_info?.state === 'failed') {
+    const errorMessage = processingInfo.processing_info.error?.message || 'Media processing failed';
+    console.error(`[Twitter Upload Media OAuth1] Processing failed:`, errorMessage);
+    throw new Error(`Media processing failed: ${errorMessage}`);
+  }
+  
+  console.log(`[Twitter Upload Media OAuth1] Upload complete. Media ID: ${mediaId}`);
+  return mediaId;
+}
+
+/**
  * Post a single tweet using Twitter API v2
  */
 export async function postTweet(
@@ -281,7 +574,7 @@ export async function postTwitterThread(
   return results;
 }
 
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, createHmac } from 'crypto';
 
 /**
  * Generate a random string for PKCE code_verifier

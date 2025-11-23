@@ -40,16 +40,24 @@ This guide explains how to set up Twitter API integration to enable automated th
    - Copy:
      - **Client ID** (OAuth 2.0 Client ID)
      - **Client Secret** (OAuth 2.0 Client Secret)
+     - **API Key** (OAuth 1.0a Consumer Key) - Required for media uploads
+     - **API Secret** (OAuth 1.0a Consumer Secret) - Required for media uploads
+   
+   **Note:** OAuth 1.0a credentials are required for image uploads. Twitter's v1.1 media upload endpoint requires OAuth 1.0a authentication, not OAuth 2.0.
 
 ## Environment Variables
 
 Add these to your `.env.local` (development) and Railway (production):
 
 ```bash
-# Twitter API OAuth 2.0
+# Twitter API OAuth 2.0 (for posting tweets)
 TWITTER_CLIENT_ID=your_client_id_here
 TWITTER_CLIENT_SECRET=your_client_secret_here
 TWITTER_REDIRECT_URI=https://www.storywall.com/api/twitter/callback
+
+# Twitter API OAuth 1.0a (required for media uploads)
+TWITTER_API_KEY=your_api_key_here
+TWITTER_API_SECRET=your_api_secret_here
 ```
 
 For local development:

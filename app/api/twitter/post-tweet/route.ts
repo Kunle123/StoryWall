@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
-import { postTweet, uploadMedia } from '@/lib/twitter/api';
+import { postTweet, uploadMedia, uploadMediaOAuth1 } from '@/lib/twitter/api';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,10 +14,14 @@ export async function POST(request: NextRequest) {
 
     const user = await getOrCreateUser(userId);
     
-    // Get user's Twitter access token from database
+    // Get user's Twitter access tokens from database (both OAuth 2.0 and OAuth 1.0a)
     const userWithToken = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { twitterAccessToken: true },
+      select: { 
+        twitterAccessToken: true,
+        twitterOAuth1Token: true,
+        twitterOAuth1TokenSecret: true,
+      },
     });
     
     if (!userWithToken?.twitterAccessToken) {
@@ -55,7 +59,30 @@ export async function POST(request: NextRequest) {
         
         console.log(`[Twitter Post Tweet] Image URL validated. Content-Type: ${contentType}`);
         console.log(`[Twitter Post Tweet] Attempting to upload image: ${imageUrl}`);
-        mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
+        
+        // Try OAuth 1.0a first (required for v1.1 media upload)
+        const consumerKey = process.env.TWITTER_API_KEY;
+        const consumerSecret = process.env.TWITTER_API_SECRET;
+        
+        if (consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret) {
+          console.log(`[Twitter Post Tweet] Using OAuth 1.0a for media upload`);
+          mediaId = await uploadMediaOAuth1(
+            consumerKey,
+            consumerSecret,
+            userWithToken.twitterOAuth1Token,
+            userWithToken.twitterOAuth1TokenSecret,
+            imageUrl
+          );
+        } else {
+          // Fall back to OAuth 2.0 (will fail with 403, but we try anyway for backward compatibility)
+          console.warn(`[Twitter Post Tweet] OAuth 1.0a credentials not available, attempting OAuth 2.0 (will likely fail)`);
+          if (userWithToken.twitterAccessToken) {
+            mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
+          } else {
+            throw new Error('No Twitter access token available');
+          }
+        }
+        
         console.log(`[Twitter Post Tweet] Successfully uploaded image, media_id: ${mediaId}`);
         
         if (!mediaId) {

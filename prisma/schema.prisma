@@ -19,6 +19,9 @@ model User {
   credits   Int      @default(100) @map("credits")
   twitterAccessToken String? @map("twitter_access_token") @db.Text
   twitterRefreshToken String? @map("twitter_refresh_token") @db.Text
+  // OAuth 1.0a credentials for media uploads (v1.1 endpoint requires OAuth 1.0a)
+  twitterOAuth1Token String? @map("twitter_oauth1_token") @db.Text
+  twitterOAuth1TokenSecret String? @map("twitter_oauth1_token_secret") @db.Text
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
