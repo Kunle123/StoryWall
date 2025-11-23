@@ -24,7 +24,9 @@ function generateOAuth1Signature(
   consumerKey: string,
   consumerSecret: string,
   token: string,
-  tokenSecret: string
+  tokenSecret: string,
+  includeCallback?: boolean,
+  callbackUrl?: string
 ): { signature: string; timestamp: string; nonce: string } {
   // Step 1: Collect OAuth parameters
   const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -32,12 +34,21 @@ function generateOAuth1Signature(
   
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: consumerKey,
-    oauth_token: token,
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: timestamp,
     oauth_nonce: nonce,
     oauth_version: '1.0',
   };
+  
+  // Only include oauth_token if we have one (not for request token step)
+  if (token) {
+    oauthParams.oauth_token = token;
+  }
+  
+  // Include callback in signature if provided
+  if (includeCallback && callbackUrl) {
+    oauthParams.oauth_callback = callbackUrl;
+  }
 
   // Step 2: Merge all parameters
   const allParams = { ...oauthParams, ...params };
@@ -74,19 +85,30 @@ function createOAuth1Header(
   token: string,
   signature: string,
   timestamp: string,
-  nonce: string
+  nonce: string,
+  includeCallback?: boolean,
+  callbackUrl?: string
 ): string {
-  const params = [
+  const params: string[] = [
     `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
-    `oauth_token="${encodeURIComponent(token)}"`,
     `oauth_signature_method="HMAC-SHA1"`,
     `oauth_timestamp="${timestamp}"`,
     `oauth_nonce="${nonce}"`,
     `oauth_version="1.0"`,
     `oauth_signature="${encodeURIComponent(signature)}"`,
-  ].join(', ');
+  ];
+  
+  // Only include oauth_token if we have one
+  if (token) {
+    params.splice(1, 0, `oauth_token="${encodeURIComponent(token)}"`);
+  }
+  
+  // Include callback if provided
+  if (includeCallback && callbackUrl) {
+    params.push(`oauth_callback="${encodeURIComponent(callbackUrl)}"`);
+  }
 
-  return `OAuth ${params}`;
+  return `OAuth ${params.join(', ')}`;
 }
 
 /**
@@ -575,6 +597,7 @@ export async function postTwitterThread(
 }
 
 import { createHash, randomBytes, createHmac } from 'crypto';
+import { URLSearchParams as NodeURLSearchParams } from 'url';
 
 /**
  * Generate a random string for PKCE code_verifier
@@ -645,5 +668,161 @@ export async function exchangeCodeForToken(
   }
   
   return await response.json();
+}
+
+/**
+ * OAuth 1.0a 3-legged flow functions
+ */
+
+/**
+ * Step 1: Get OAuth 1.0a request token
+ * Returns request token and request token secret
+ */
+export async function getOAuth1RequestToken(
+  consumerKey: string,
+  consumerSecret: string,
+  callbackUrl: string
+): Promise<{ oauth_token: string; oauth_token_secret: string; oauth_callback_confirmed: string }> {
+  const url = 'https://api.twitter.com/oauth/request_token';
+  
+  // OAuth 1.0a parameters for request token
+  const params: Record<string, string> = {
+    oauth_callback: callbackUrl,
+  };
+  
+  // OAuth 1.0a parameters for request token (callback is included in signature)
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const nonce = randomBytes(16).toString('hex');
+  
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: consumerKey,
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: timestamp,
+    oauth_nonce: nonce,
+    oauth_version: '1.0',
+    oauth_callback: callbackUrl,
+  };
+  
+  // Normalize parameters
+  const normalizedParams = Object.keys(oauthParams)
+    .sort()
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
+    .join('&');
+  
+  // Create signature base string
+  const signatureBaseString = [
+    'POST',
+    encodeURIComponent(url),
+    encodeURIComponent(normalizedParams)
+  ].join('&');
+  
+  // Create signing key (no token secret yet)
+  const signingKey = `${encodeURIComponent(consumerSecret)}&`;
+  
+  // Generate signature
+  const signature = createHmac('sha1', signingKey)
+    .update(signatureBaseString)
+    .digest('base64');
+  
+  // Create Authorization header
+  const authParams = [
+    `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
+    `oauth_signature_method="HMAC-SHA1"`,
+    `oauth_timestamp="${timestamp}"`,
+    `oauth_nonce="${nonce}"`,
+    `oauth_version="1.0"`,
+    `oauth_callback="${encodeURIComponent(callbackUrl)}"`,
+    `oauth_signature="${encodeURIComponent(signature)}"`,
+  ].join(', ');
+  
+  const authHeader = `OAuth ${authParams}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+    },
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to get request token: ${response.status} ${errorText}`);
+  }
+  
+  const responseText = await response.text();
+  const tokenData: Record<string, string> = {};
+  responseText.split('&').forEach(pair => {
+    const [key, value] = pair.split('=');
+    tokenData[decodeURIComponent(key)] = decodeURIComponent(value);
+  });
+  
+  return {
+    oauth_token: tokenData.oauth_token,
+    oauth_token_secret: tokenData.oauth_token_secret,
+    oauth_callback_confirmed: tokenData.oauth_callback_confirmed,
+  };
+}
+
+/**
+ * Step 2: Get OAuth 1.0a authorization URL
+ */
+export function getOAuth1AuthUrl(requestToken: string): string {
+  return `https://api.twitter.com/oauth/authorize?oauth_token=${encodeURIComponent(requestToken)}`;
+}
+
+/**
+ * Step 3: Exchange request token for access token
+ */
+export async function exchangeOAuth1RequestTokenForAccessToken(
+  consumerKey: string,
+  consumerSecret: string,
+  requestToken: string,
+  requestTokenSecret: string,
+  oauthVerifier: string
+): Promise<{ oauth_token: string; oauth_token_secret: string; user_id: string; screen_name: string }> {
+  const url = 'https://api.twitter.com/oauth/access_token';
+  
+  const params: Record<string, string> = {
+    oauth_verifier: oauthVerifier,
+  };
+  
+  const { signature, timestamp, nonce } = generateOAuth1Signature(
+    'POST',
+    url,
+    params,
+    consumerKey,
+    consumerSecret,
+    requestToken,
+    requestTokenSecret
+  );
+  
+  const authHeader = createOAuth1Header(consumerKey, requestToken, signature, timestamp, nonce);
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+    },
+    body: new URLSearchParams({ oauth_verifier: oauthVerifier }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to exchange request token: ${response.status} ${errorText}`);
+  }
+  
+  const responseText = await response.text();
+  const tokenData: Record<string, string> = {};
+  responseText.split('&').forEach(pair => {
+    const [key, value] = pair.split('=');
+    tokenData[decodeURIComponent(key)] = decodeURIComponent(value);
+  });
+  
+  return {
+    oauth_token: tokenData.oauth_token,
+    oauth_token_secret: tokenData.oauth_token_secret,
+    user_id: tokenData.user_id,
+    screen_name: tokenData.screen_name,
+  };
 }
 

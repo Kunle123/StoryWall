@@ -1,0 +1,86 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { getOrCreateUser } from '@/lib/db/users';
+import { getOAuth1RequestToken, getOAuth1AuthUrl } from '@/lib/twitter/api';
+import { cookies } from 'next/headers';
+
+/**
+ * GET /api/twitter/oauth1
+ * Initiate OAuth 1.0a flow for media upload permissions
+ * This is a 3-legged OAuth flow:
+ * 1. Get request token
+ * 2. Redirect user to Twitter to authorize
+ * 3. Exchange request token for access token (in callback)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await getOrCreateUser(userId);
+    
+    const consumerKey = process.env.TWITTER_API_KEY;
+    const consumerSecret = process.env.TWITTER_API_SECRET;
+    const redirectUri = process.env.TWITTER_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/twitter/oauth1/callback`;
+    
+    if (!consumerKey || !consumerSecret) {
+      return NextResponse.json(
+        { error: 'Twitter OAuth 1.0a not configured. Please add TWITTER_API_KEY and TWITTER_API_SECRET to environment variables.' },
+        { status: 500 }
+      );
+    }
+    
+    // Get return URL from query param
+    const returnUrl = request.nextUrl.searchParams.get('returnUrl') || null;
+    
+    // Generate state for CSRF protection (include returnUrl in state)
+    const state = Buffer.from(JSON.stringify({ 
+      userId: user.id, 
+      timestamp: Date.now(),
+      returnUrl: returnUrl 
+    })).toString('base64');
+    
+    // Step 1: Get request token
+    const requestTokenData = await getOAuth1RequestToken(
+      consumerKey,
+      consumerSecret,
+      redirectUri
+    );
+    
+    // Store request token secret and state in secure httpOnly cookies
+    const cookieStore = await cookies();
+    cookieStore.set('twitter_oauth1_request_token_secret', requestTokenData.oauth_token_secret, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+      path: '/',
+    });
+    
+    cookieStore.set('twitter_oauth1_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+      path: '/',
+    });
+    
+    // Step 2: Generate authorization URL
+    const authUrl = getOAuth1AuthUrl(requestTokenData.oauth_token);
+    
+    // Add state to the auth URL as a query parameter (Twitter will pass it back)
+    const authUrlWithState = `${authUrl}&state=${encodeURIComponent(state)}`;
+    
+    return NextResponse.json({ authUrl: authUrlWithState });
+  } catch (error: any) {
+    console.error('[Twitter OAuth1] Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to initiate Twitter OAuth 1.0a' },
+      { status: 500 }
+    );
+  }
+}
+

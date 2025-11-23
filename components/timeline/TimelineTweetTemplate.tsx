@@ -211,6 +211,45 @@ export const TimelineTweetTemplate = ({
     }
   };
 
+  const handleEnableImageUpload = async () => {
+    try {
+      console.log('[TimelineTweetTemplate] Initiating OAuth 1.0a flow for image upload...');
+      
+      // Store the current page path to redirect back after OAuth
+      const returnPath = typeof window !== 'undefined' 
+        ? `${window.location.pathname}${window.location.search}`
+        : '/';
+      
+      console.log('[TimelineTweetTemplate] Return path:', returnPath);
+      
+      const oauth1Url = `/api/twitter/oauth1?returnUrl=${encodeURIComponent(returnPath)}`;
+      const response = await fetch(oauth1Url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[TimelineTweetTemplate] OAuth 1.0a initiation failed:', errorData);
+        throw new Error(errorData.error || 'Failed to initiate OAuth 1.0a flow');
+      }
+      
+      const data = await response.json();
+      console.log('[TimelineTweetTemplate] Got OAuth 1.0a auth URL, redirecting...', data);
+      
+      if (!data.authUrl) {
+        throw new Error('No auth URL received from server');
+      }
+      
+      // Redirect to Twitter OAuth 1.0a
+      window.location.href = data.authUrl;
+    } catch (error: any) {
+      console.error('[TimelineTweetTemplate] Error initiating OAuth 1.0a:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to enable image upload. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSaveOAuth1Tokens = async () => {
     if (!oauth1Token || !oauth1TokenSecret) {
       toast({
@@ -466,10 +505,19 @@ export const TimelineTweetTemplate = ({
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => setShowOAuth1Input(!showOAuth1Input)}
+                          onClick={handleEnableImageUpload}
                           className="h-auto p-0 text-xs font-semibold"
                         >
-                          {showOAuth1Input ? 'Cancel' : 'Enable Image Upload'}
+                          Enable Image Upload
+                        </Button>
+                        <span className="text-xs text-muted-foreground">or</span>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={() => setShowOAuth1Input(!showOAuth1Input)}
+                          className="h-auto p-0 text-xs"
+                        >
+                          {showOAuth1Input ? 'Cancel' : 'Enter Manually'}
                         </Button>
                       </div>
                     )}
