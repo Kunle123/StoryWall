@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
-import { getTwitterAuthUrl } from '@/lib/twitter/api';
+import { getTwitterAuthUrl, generateCodeVerifier } from '@/lib/twitter/api';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,12 +25,33 @@ export async function GET(request: NextRequest) {
     }
     
     // Generate state for CSRF protection
-    const state = Buffer.from(JSON.stringify({ userId: user.id })).toString('base64');
+    const state = Buffer.from(JSON.stringify({ userId: user.id, timestamp: Date.now() })).toString('base64');
     
-    // Store state in session/cookie for verification
-    const authUrl = getTwitterAuthUrl(clientId, redirectUri, state);
+    // Generate PKCE code_verifier
+    const codeVerifier = generateCodeVerifier();
     
-    return NextResponse.json({ authUrl, state });
+    // Store state and code_verifier in secure httpOnly cookies
+    const cookieStore = await cookies();
+    cookieStore.set('twitter_oauth_state', state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+      path: '/',
+    });
+    
+    cookieStore.set('twitter_oauth_code_verifier', codeVerifier, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+      path: '/',
+    });
+    
+    // Generate auth URL with proper PKCE
+    const authUrl = getTwitterAuthUrl(clientId, redirectUri, state, codeVerifier);
+    
+    return NextResponse.json({ authUrl });
   } catch (error: any) {
     console.error('[Twitter OAuth] Error:', error);
     return NextResponse.json(

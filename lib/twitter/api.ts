@@ -240,22 +240,41 @@ export async function postTwitterThread(
   return results;
 }
 
+import { createHash, randomBytes } from 'crypto';
+
 /**
- * Get Twitter OAuth authorization URL
+ * Generate a random string for PKCE code_verifier
+ */
+export function generateCodeVerifier(): string {
+  return randomBytes(32).toString('base64url');
+}
+
+/**
+ * Generate code_challenge from code_verifier using SHA256
+ */
+export function generateCodeChallenge(verifier: string): string {
+  return createHash('sha256').update(verifier).digest('base64url');
+}
+
+/**
+ * Get Twitter OAuth authorization URL with proper PKCE
  */
 export function getTwitterAuthUrl(
   clientId: string,
   redirectUri: string,
-  state?: string
+  state: string,
+  codeVerifier: string
 ): string {
+  const codeChallenge = generateCodeChallenge(codeVerifier);
+  
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: 'tweet.read tweet.write users.read offline.access',
-    state: state || Math.random().toString(36).substring(7),
-    code_challenge: 'challenge', // For PKCE
-    code_challenge_method: 'plain',
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256', // Use SHA256 instead of plain
   });
   
   return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
