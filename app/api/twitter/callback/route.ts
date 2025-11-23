@@ -111,30 +111,50 @@ export async function GET(request: NextRequest) {
     });
     
     // Determine redirect URL - use returnUrl from state if available and valid
-    let redirectUrl = '/?twitter_connected=true';
+    let redirectPath = '/?twitter_connected=true';
     if (returnUrl) {
       try {
-        // Validate returnUrl is from the same origin for security
-        const returnUrlObj = new URL(returnUrl);
-        const currentUrlObj = new URL(request.url);
-        if (returnUrlObj.origin === currentUrlObj.origin) {
-          // Add success parameter to return URL
-          const separator = returnUrl.includes('?') ? '&' : '?';
-          redirectUrl = `${returnUrl}${separator}twitter_connected=true`;
-          console.log('[Twitter Callback] Redirecting to original page:', redirectUrl);
-        } else {
-          console.warn('[Twitter Callback] Return URL origin mismatch, using default');
+        // returnUrl should be a path (e.g., /timeline/123 or /timeline/123?param=value)
+        // If it's a full URL, extract the path
+        let pathToUse = returnUrl;
+        
+        // Check if it's a full URL or just a path
+        if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
+          const returnUrlObj = new URL(returnUrl);
+          const currentUrlObj = new URL(request.url);
+          // Validate same origin for security
+          if (returnUrlObj.origin !== currentUrlObj.origin) {
+            console.warn('[Twitter Callback] Return URL origin mismatch, using default. Return origin:', returnUrlObj.origin, 'Current origin:', currentUrlObj.origin);
+            pathToUse = null;
+          } else {
+            pathToUse = returnUrlObj.pathname + returnUrlObj.search;
+          }
+        }
+        
+        if (pathToUse) {
+          // Ensure path starts with /
+          if (!pathToUse.startsWith('/')) {
+            pathToUse = '/' + pathToUse;
+          }
+          
+          // Add success parameter
+          const separator = pathToUse.includes('?') ? '&' : '?';
+          redirectPath = `${pathToUse}${separator}twitter_connected=true`;
+          console.log('[Twitter Callback] Redirecting to original page:', redirectPath);
         }
       } catch (e) {
-        console.warn('[Twitter Callback] Invalid returnUrl format, using default:', e);
+        console.warn('[Twitter Callback] Invalid returnUrl format, using default:', e, 'ReturnUrl:', returnUrl);
       }
+    } else {
+      console.log('[Twitter Callback] No returnUrl in state, using default redirect');
     }
     
     // Clear OAuth cookies
     cookieStore.delete('twitter_oauth_state');
     cookieStore.delete('twitter_oauth_code_verifier');
     
-    return NextResponse.redirect(new URL(redirectUrl, request.url));
+    // Use relative path for redirect (Next.js will handle the full URL)
+    return NextResponse.redirect(new URL(redirectPath, request.url));
   } catch (error: any) {
     console.error('[Twitter Callback] Error:', error);
     return NextResponse.redirect(

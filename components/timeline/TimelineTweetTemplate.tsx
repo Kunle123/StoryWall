@@ -95,11 +95,15 @@ export const TimelineTweetTemplate = ({
     try {
       console.log('[TimelineTweetTemplate] Initiating Twitter connection...');
       
-      // Store the current page URL to redirect back after OAuth
-      const returnUrl = typeof window !== 'undefined' ? window.location.href : '';
-      const oauthUrl = returnUrl 
-        ? `/api/twitter/oauth?returnUrl=${encodeURIComponent(returnUrl)}`
-        : '/api/twitter/oauth';
+      // Store the current page path (not full URL) to redirect back after OAuth
+      // Use pathname + search to preserve any query params, but not the origin
+      const returnPath = typeof window !== 'undefined' 
+        ? `${window.location.pathname}${window.location.search}`
+        : '/';
+      
+      console.log('[TimelineTweetTemplate] Return path:', returnPath);
+      
+      const oauthUrl = `/api/twitter/oauth?returnUrl=${encodeURIComponent(returnPath)}`;
       const response = await fetch(oauthUrl);
       
       if (!response.ok) {
@@ -113,11 +117,6 @@ export const TimelineTweetTemplate = ({
       
       if (!data.authUrl) {
         throw new Error('No auth URL received from server');
-      }
-      
-      // Store return URL in sessionStorage before redirecting
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('twitter_oauth_return_url', returnUrl);
       }
       
       // Redirect to Twitter OAuth
