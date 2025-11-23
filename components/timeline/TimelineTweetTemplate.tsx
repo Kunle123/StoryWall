@@ -28,9 +28,50 @@ export const TimelineTweetTemplate = ({
 
   const tweetText = `${title}\n\n${description}\n\n${timelineUrl}`;
 
+  // Ensure image URL is absolute for Twitter API
+  const getAbsoluteImageUrl = (url: string): string => {
+    if (!url) {
+      console.log('[TimelineTweetTemplate] No image URL provided');
+      return '';
+    }
+    // If already absolute (starts with http:// or https://), return as-is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('[TimelineTweetTemplate] Image URL is already absolute:', url);
+      return url;
+    }
+    // If relative, convert to absolute using current origin
+    if (typeof window !== 'undefined') {
+      // If starts with /, it's a root-relative URL
+      if (url.startsWith('/')) {
+        const absoluteUrl = `${window.location.origin}${url}`;
+        console.log('[TimelineTweetTemplate] Converted root-relative URL to absolute:', absoluteUrl);
+        return absoluteUrl;
+      }
+      // Otherwise, it's a relative URL - prepend origin
+      const absoluteUrl = `${window.location.origin}/${url}`;
+      console.log('[TimelineTweetTemplate] Converted relative URL to absolute:', absoluteUrl);
+      return absoluteUrl;
+    }
+    // Fallback for server-side (shouldn't happen in this component)
+    console.warn('[TimelineTweetTemplate] Window not available, returning original URL:', url);
+    return url;
+  };
+
+  const absoluteImageUrl = imageUrl ? getAbsoluteImageUrl(imageUrl) : '';
+  
+  // Debug log
+  useEffect(() => {
+    if (imageUrl) {
+      console.log('[TimelineTweetTemplate] Image URL received:', imageUrl);
+      console.log('[TimelineTweetTemplate] Absolute image URL:', absoluteImageUrl);
+    } else {
+      console.warn('[TimelineTweetTemplate] No image URL provided to component');
+    }
+  }, [imageUrl, absoluteImageUrl]);
+
   // Check Twitter connection status
   useEffect(() => {
-    if (isSignedIn && imageUrl) {
+    if (isSignedIn && absoluteImageUrl) {
       setIsChecking(true);
       fetch('/api/twitter/status')
         .then(res => res.json())
@@ -40,7 +81,7 @@ export const TimelineTweetTemplate = ({
         .catch(() => setIsConnected(false))
         .finally(() => setIsChecking(false));
     }
-  }, [isSignedIn, imageUrl]);
+  }, [isSignedIn, absoluteImageUrl]);
 
   const handleCopyTweet = () => {
     navigator.clipboard.writeText(tweetText);
@@ -69,9 +110,10 @@ export const TimelineTweetTemplate = ({
 
   const handleShareOnTwitter = async () => {
     // If image is present and user is connected, use API to post with image
-    if (imageUrl && isSignedIn && isConnected) {
+    if (absoluteImageUrl && isSignedIn && isConnected) {
       setIsPosting(true);
       try {
+        console.log('[TimelineTweetTemplate] Posting tweet with image:', absoluteImageUrl);
         const response = await fetch('/api/twitter/post-tweet', {
           method: 'POST',
           headers: {
@@ -79,12 +121,13 @@ export const TimelineTweetTemplate = ({
           },
           body: JSON.stringify({
             text: tweetText,
-            imageUrl: imageUrl,
+            imageUrl: absoluteImageUrl,
           }),
         });
 
         if (!response.ok) {
           const error = await response.json();
+          console.error('[TimelineTweetTemplate] Tweet post failed:', error);
           if (error.error?.includes('not connected')) {
             setIsConnected(false);
             toast({
@@ -94,19 +137,27 @@ export const TimelineTweetTemplate = ({
             });
             return;
           }
-          throw new Error(error.error || 'Failed to post tweet');
+          // Show detailed error message if available
+          const errorMessage = error.details 
+            ? `${error.error}: ${error.details}`
+            : error.error || 'Failed to post tweet';
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
+        console.log('[TimelineTweetTemplate] Tweet posted successfully:', result);
         toast({
           title: "Success!",
-          description: "Tweet posted with image attached",
+          description: result.imageAttached 
+            ? "Tweet posted with image attached" 
+            : "Tweet posted (image may not have attached)",
         });
 
         if (result.tweetUrl) {
           window.open(result.tweetUrl, '_blank');
         }
       } catch (error: any) {
+        console.error('[TimelineTweetTemplate] Error posting tweet:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to post tweet",
@@ -117,6 +168,11 @@ export const TimelineTweetTemplate = ({
       }
     } else {
       // Fallback to intent URL (no image support)
+      console.log('[TimelineTweetTemplate] Using fallback (no image or not connected):', {
+        hasImage: !!absoluteImageUrl,
+        isSignedIn,
+        isConnected
+      });
       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
       window.open(twitterUrl, "_blank");
     }
@@ -132,10 +188,10 @@ export const TimelineTweetTemplate = ({
       </div>
 
       {/* Image with StoryWall branding */}
-      {imageUrl && (
+      {absoluteImageUrl && (
         <div className="relative aspect-square w-full max-w-md mx-auto overflow-hidden rounded-lg border border-border">
         <img
-          src={imageUrl}
+          src={absoluteImageUrl}
           alt={title}
           className="w-full h-full object-cover"
         />
@@ -198,7 +254,7 @@ export const TimelineTweetTemplate = ({
         </div>
         
         {/* Twitter connection status */}
-        {imageUrl && isSignedIn && (
+        {absoluteImageUrl && isSignedIn && (
           <div className="text-xs text-muted-foreground">
             {isChecking ? (
               "Checking Twitter connection..."
