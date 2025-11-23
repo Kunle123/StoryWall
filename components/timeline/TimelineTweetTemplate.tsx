@@ -74,9 +74,22 @@ export const TimelineTweetTemplate = ({
     const actualTextLength = tweetText.length;
     const effectiveLength = titleLength + (finalDescription ? finalDescription.length : 0) + newlinesLength + urlLength;
     
-    // Log if there's an issue
+    // CRITICAL FIX: If effective length exceeds 280, we MUST truncate more aggressively
+    // Twitter will truncate the actual text, which could cut off the URL
     if (effectiveLength > 280) {
-      console.warn(`[TimelineTweetTemplate] Effective tweet length (${effectiveLength}) exceeds 280. Title: ${titleLength}, Desc: ${finalDescription.length}, URL: ${urlLength}`);
+      console.warn(`[TimelineTweetTemplate] Effective tweet length (${effectiveLength}) exceeds 280. Truncating description more aggressively.`);
+      // Recalculate with even less room for description
+      const newMaxDescLength = Math.max(0, 280 - titleLength - newlinesLength - urlLength - 10); // Extra buffer
+      if (newMaxDescLength > 0 && finalDescription.length > newMaxDescLength) {
+        finalDescription = finalDescription.substring(0, Math.max(0, newMaxDescLength - 3)) + '...';
+        wasTruncated = true;
+        // Rebuild tweet text
+        if (finalDescription) {
+          tweetText = `${title}\n\n${finalDescription}\n\n${url}`;
+        } else {
+          tweetText = `${title}\n\n${url}`;
+        }
+      }
     }
     
     return { text: tweetText, effectiveLength, wasTruncated };

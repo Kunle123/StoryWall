@@ -41,13 +41,16 @@ export async function uploadMedia(
   }
   
   // Step 1: Initialize media upload
-  // Note: Twitter media upload API v1.1 requires OAuth 2.0 User Context
-  // The access token must have 'tweet.write' and 'media.write' scopes
+  // CRITICAL: Twitter v1.1 media upload endpoint REQUIRES OAuth 1.0a, NOT OAuth 2.0 Bearer tokens
+  // OAuth 2.0 Bearer tokens will always return 403 Forbidden for this endpoint
+  // We need to implement OAuth 1.0a signature generation for media uploads
+  // For now, this will fail until OAuth 1.0a is implemented
   console.log(`[Twitter Upload Media] Initializing upload...`);
+  console.warn(`[Twitter Upload Media] WARNING: Using OAuth 2.0 Bearer token - v1.1 media upload requires OAuth 1.0a. This will fail with 403.`);
   const initResponse = await fetch('https://upload.twitter.com/1.1/media/upload.json', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`, // This won't work - needs OAuth 1.0a
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams({
@@ -176,16 +179,34 @@ export async function postTweet(
   const url = 'https://api.twitter.com/2/tweets';
   
   // Twitter automatically shortens URLs to ~23 characters
-  // We include the full URL in the text - Twitter will handle shortening
-  // IMPORTANT: Never truncate the text here - it should already be properly formatted
-  // If text exceeds 280, it means the URL or content wasn't properly truncated earlier
-  // We'll let Twitter handle it, but log a warning
-  if (text.length > 280) {
-    console.warn(`[Twitter Post Tweet] Tweet text is ${text.length} characters (exceeds 280). Twitter may truncate it.`);
-    // Don't truncate here - let Twitter handle it, but this shouldn't happen if buildTweetText worked correctly
+  // However, if the actual text exceeds 280 chars, Twitter will truncate it, potentially cutting off the URL
+  // We need to ensure the text fits within 280 characters BEFORE sending
+  // Calculate effective length: actual text length minus (URL length - 23)
+  const urlMatch = text.match(/https?:\/\/[^\s]+/);
+  let effectiveLength = text.length;
+  if (urlMatch) {
+    const fullUrl = urlMatch[0];
+    const urlLength = fullUrl.length;
+    effectiveLength = text.length - urlLength + 23; // Replace full URL with shortened length
   }
+  
+  // If effective length exceeds 280, we need to truncate to preserve the URL
+  if (effectiveLength > 280) {
+    console.warn(`[Twitter Post Tweet] Effective tweet length (${effectiveLength}) exceeds 280. Actual text: ${text.length} chars. Truncating...`);
+    // Find the URL and preserve it
+    const urlMatch2 = text.match(/https?:\/\/[^\s]+/);
+    const url = urlMatch2 ? urlMatch2[0] : '';
+    const textWithoutUrl = urlMatch2 ? text.replace(urlMatch2[0], '').trim() : text;
+    
+    // Calculate how much text we can fit (280 - 23 for URL - some buffer)
+    const maxTextLength = 280 - 23 - 5; // 5 char buffer
+    const truncatedText = textWithoutUrl.substring(0, maxTextLength).trim();
+    text = url ? `${truncatedText} ${url}` : truncatedText;
+    console.warn(`[Twitter Post Tweet] Truncated to: ${text.length} chars (effective: ~${text.length - (url.length - 23)})`);
+  }
+  
   const body: any = {
-    text: text, // Send full text - Twitter will handle URL shortening
+    text: text.substring(0, 280), // Hard limit to prevent API errors
   };
   
   if (replyToTweetId) {

@@ -65,11 +65,12 @@ export async function POST(request: NextRequest) {
         console.error('[Twitter Post Tweet] Failed to upload image:', error);
         console.error('[Twitter Post Tweet] Error details:', error.message);
         
-        // Check if it's a 403 error - Twitter media upload requires proper scopes
+        // Check if it's a 403 error - Twitter v1.1 media upload requires OAuth 1.0a
         if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          // Twitter's media upload API v1.1 requires OAuth 2.0 User Context with 'media.write' scope
-          // If user connected before we added this scope, they need to reconnect
-          console.warn('[Twitter Post Tweet] Media upload failed with 403 - Access token may be missing "media.write" scope. User may need to reconnect their Twitter account.');
+          // CRITICAL: Twitter's v1.1 media upload endpoint REQUIRES OAuth 1.0a authentication
+          // OAuth 2.0 Bearer tokens will ALWAYS return 403 Forbidden for this endpoint
+          // This is a Twitter API limitation, not a scope issue
+          console.error('[Twitter Post Tweet] Media upload failed with 403 - Twitter v1.1 media upload requires OAuth 1.0a, not OAuth 2.0. OAuth 1.0a implementation needed.');
           
           // Continue without image - post tweet text only
           mediaId = undefined;
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       tweetId: result.tweetId,
       tweetUrl: `https://twitter.com/i/web/status/${result.tweetId}`,
       imageAttached: !!mediaId,
-      warning: imageUrl && !mediaId ? 'Tweet posted successfully, but image could not be attached. Please reconnect your Twitter account to grant media upload permissions.' : undefined,
+      warning: imageUrl && !mediaId ? 'Tweet posted successfully, but image could not be attached. Twitter\'s media upload API requires OAuth 1.0a authentication (currently using OAuth 2.0). Image uploads are not currently supported.' : undefined,
     });
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);
