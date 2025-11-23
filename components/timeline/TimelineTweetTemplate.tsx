@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Share2, Loader2 } from "lucide-react";
+import { Copy, Share2, Loader2, Twitter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
@@ -93,16 +93,29 @@ export const TimelineTweetTemplate = ({
 
   const handleConnectTwitter = async () => {
     try {
+      console.log('[TimelineTweetTemplate] Initiating Twitter connection...');
       const response = await fetch('/api/twitter/oauth');
+      
       if (!response.ok) {
-        throw new Error('Failed to initiate Twitter connection');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[TimelineTweetTemplate] OAuth initiation failed:', errorData);
+        throw new Error(errorData.error || 'Failed to initiate Twitter connection');
       }
-      const { authUrl } = await response.json();
-      window.location.href = authUrl;
+      
+      const data = await response.json();
+      console.log('[TimelineTweetTemplate] Got auth URL, redirecting...', data);
+      
+      if (!data.authUrl) {
+        throw new Error('No auth URL received from server');
+      }
+      
+      // Redirect to Twitter OAuth
+      window.location.href = data.authUrl;
     } catch (error: any) {
+      console.error('[TimelineTweetTemplate] Error connecting Twitter:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to connect Twitter",
+        description: error.message || "Failed to connect Twitter. Please try again.",
         variant: "destructive",
       });
     }
@@ -236,6 +249,18 @@ export const TimelineTweetTemplate = ({
 
       {/* Action buttons */}
       <div className="flex flex-col gap-2">
+        {/* Show connect button prominently if not connected */}
+        {isSignedIn && !isConnected && !isChecking && (
+          <Button
+            onClick={handleConnectTwitter}
+            className="w-full gap-2"
+            variant="default"
+          >
+            <Twitter className="h-4 w-4" />
+            Connect Twitter Account
+          </Button>
+        )}
+        
         <div className="flex gap-2">
           <Button
             onClick={handleCopyTweet}
@@ -258,27 +283,39 @@ export const TimelineTweetTemplate = ({
             ) : (
               <>
                 <Share2 className="h-4 w-4" />
-                {imageUrl && isSignedIn && isConnected ? "Post on X" : "Share on X"}
+                {absoluteImageUrl && isSignedIn && isConnected ? "Post on X" : "Share on X"}
               </>
             )}
           </Button>
         </div>
         
         {/* Twitter connection status */}
-        {absoluteImageUrl && isSignedIn && (
+        {isSignedIn && (
           <div className="text-xs text-muted-foreground">
             {isChecking ? (
               "Checking Twitter connection..."
             ) : isConnected ? (
-              "✓ Connected - Image will be attached when posting"
-            ) : (
               <div className="flex items-center gap-2">
-                <span>⚠️ Not connected - Image won't be attached</span>
+                <span>✓ Connected</span>
+                {absoluteImageUrl && <span>- Image will be attached when posting</span>}
                 <Button
                   variant="link"
                   size="sm"
                   onClick={handleConnectTwitter}
                   className="h-auto p-0 text-xs"
+                >
+                  Reconnect
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>⚠️ Not connected</span>
+                {absoluteImageUrl && <span>- Image won't be attached</span>}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={handleConnectTwitter}
+                  className="h-auto p-0 text-xs font-semibold"
                 >
                   Connect Twitter
                 </Button>
