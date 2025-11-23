@@ -65,31 +65,25 @@ export async function POST(request: NextRequest) {
         console.error('[Twitter Post Tweet] Failed to upload image:', error);
         console.error('[Twitter Post Tweet] Error details:', error.message);
         
-        // Check if it's a 403 error - likely authentication/permission issue
+        // Check if it's a 403 error - Twitter media upload requires OAuth 1.0a, not OAuth 2.0
         if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          return NextResponse.json(
-            { 
-              error: 'Failed to upload image for tweet',
-              details: 'Twitter API returned 403 Forbidden. This usually means:\n1. Your Twitter app needs "Read and write" permissions enabled\n2. The access token may not have the required scopes\n3. Please reconnect your Twitter account to refresh permissions',
-              code: 'TWITTER_MEDIA_UPLOAD_FORBIDDEN',
-            },
-            { status: 403 }
-          );
+          // Twitter's media upload API v1.1 requires OAuth 1.0a authentication
+          // OAuth 2.0 Bearer tokens don't work for media uploads
+          // For now, we'll post the tweet without the image
+          console.warn('[Twitter Post Tweet] Media upload failed with 403 - Twitter requires OAuth 1.0a for media uploads. Posting tweet without image.');
+          
+          // Continue without image - post tweet text only
+          mediaId = undefined;
+        } else {
+          // For other errors, also continue without image
+          console.warn('[Twitter Post Tweet] Media upload failed, posting tweet without image');
+          mediaId = undefined;
         }
-        
-        // Return error - user should know image failed
-        return NextResponse.json(
-          { 
-            error: 'Failed to upload image for tweet',
-            details: error.message || 'Image upload failed. Please check the image URL is accessible.',
-          },
-          { status: 400 }
-        );
       }
     }
     
-    // Post the tweet with image attached
-    console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${mediaId ? ' with image' : ''}`);
+    // Post the tweet with or without image
+    console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${mediaId ? ' with image' : ' without image (media upload failed or not provided)'}`);
     const result = await postTweet(
       userWithToken.twitterAccessToken,
       text,
@@ -104,6 +98,7 @@ export async function POST(request: NextRequest) {
       tweetId: result.tweetId,
       tweetUrl: `https://twitter.com/i/web/status/${result.tweetId}`,
       imageAttached: !!mediaId,
+      warning: imageUrl && !mediaId ? 'Tweet posted successfully, but image could not be attached. Twitter media upload requires OAuth 1.0a authentication (currently using OAuth 2.0).' : undefined,
     });
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);

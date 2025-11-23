@@ -94,7 +94,13 @@ export const TimelineTweetTemplate = ({
   const handleConnectTwitter = async () => {
     try {
       console.log('[TimelineTweetTemplate] Initiating Twitter connection...');
-      const response = await fetch('/api/twitter/oauth');
+      
+      // Store the current page URL to redirect back after OAuth
+      const returnUrl = typeof window !== 'undefined' ? window.location.href : '';
+      const oauthUrl = returnUrl 
+        ? `/api/twitter/oauth?returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/api/twitter/oauth';
+      const response = await fetch(oauthUrl);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -107,6 +113,11 @@ export const TimelineTweetTemplate = ({
       
       if (!data.authUrl) {
         throw new Error('No auth URL received from server');
+      }
+      
+      // Store return URL in sessionStorage before redirecting
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('twitter_oauth_return_url', returnUrl);
       }
       
       // Redirect to Twitter OAuth
@@ -170,12 +181,21 @@ export const TimelineTweetTemplate = ({
 
         const result = await response.json();
         console.log('[TimelineTweetTemplate] Tweet posted successfully:', result);
-        toast({
-          title: "Success!",
-          description: result.imageAttached 
-            ? "Tweet posted with image attached" 
-            : "Tweet posted (image may not have attached)",
-        });
+        
+        if (result.warning) {
+          toast({
+            title: "Tweet posted (without image)",
+            description: result.warning,
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "Success!",
+            description: result.imageAttached 
+              ? "Tweet posted with image attached" 
+              : "Tweet posted successfully",
+          });
+        }
 
         if (result.tweetUrl) {
           window.open(result.tweetUrl, '_blank');

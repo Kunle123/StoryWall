@@ -24,8 +24,15 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Generate state for CSRF protection
-    const state = Buffer.from(JSON.stringify({ userId: user.id, timestamp: Date.now() })).toString('base64');
+    // Get return URL from header or query param
+    const returnUrl = request.headers.get('X-Return-Url') || request.nextUrl.searchParams.get('returnUrl') || null;
+    
+    // Generate state for CSRF protection (include returnUrl in state)
+    const state = Buffer.from(JSON.stringify({ 
+      userId: user.id, 
+      timestamp: Date.now(),
+      returnUrl: returnUrl 
+    })).toString('base64');
     
     // Generate PKCE code_verifier
     const codeVerifier = generateCodeVerifier();

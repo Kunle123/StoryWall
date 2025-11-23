@@ -51,9 +51,11 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Verify state contains correct userId
+    // Verify state contains correct userId and extract returnUrl
+    let returnUrl: string | null = null;
+    let stateData: any;
     try {
-      const stateData = JSON.parse(Buffer.from(storedState, 'base64').toString());
+      stateData = JSON.parse(Buffer.from(storedState, 'base64').toString());
       if (stateData.userId !== user.id) {
         console.error('[Twitter Callback] State userId mismatch');
         return NextResponse.redirect(
@@ -69,6 +71,9 @@ export async function GET(request: NextRequest) {
           new URL('/?error=twitter_auth_expired', request.url)
         );
       }
+      
+      // Extract returnUrl from state
+      returnUrl = stateData.returnUrl || null;
     } catch (e) {
       console.error('[Twitter Callback] Invalid state format');
       return NextResponse.redirect(
@@ -105,11 +110,31 @@ export async function GET(request: NextRequest) {
       },
     });
     
+    // Determine redirect URL - use returnUrl from state if available and valid
+    let redirectUrl = '/?twitter_connected=true';
+    if (returnUrl) {
+      try {
+        // Validate returnUrl is from the same origin for security
+        const returnUrlObj = new URL(returnUrl);
+        const currentUrlObj = new URL(request.url);
+        if (returnUrlObj.origin === currentUrlObj.origin) {
+          // Add success parameter to return URL
+          const separator = returnUrl.includes('?') ? '&' : '?';
+          redirectUrl = `${returnUrl}${separator}twitter_connected=true`;
+          console.log('[Twitter Callback] Redirecting to original page:', redirectUrl);
+        } else {
+          console.warn('[Twitter Callback] Return URL origin mismatch, using default');
+        }
+      } catch (e) {
+        console.warn('[Twitter Callback] Invalid returnUrl format, using default:', e);
+      }
+    }
+    
     // Clear OAuth cookies
     cookieStore.delete('twitter_oauth_state');
     cookieStore.delete('twitter_oauth_code_verifier');
     
-    return NextResponse.redirect(new URL('/?twitter_connected=true', request.url));
+    return NextResponse.redirect(new URL(redirectUrl, request.url));
   } catch (error: any) {
     console.error('[Twitter Callback] Error:', error);
     return NextResponse.redirect(
