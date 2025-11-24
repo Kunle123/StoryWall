@@ -3,6 +3,8 @@
  * Requires OAuth 2.0 authentication
  */
 
+import FormData from 'form-data';
+
 interface TwitterTweet {
   text: string;
   mediaId?: string; // Media ID from Twitter upload (for images)
@@ -356,19 +358,19 @@ export async function uploadMediaOAuth1(
     const chunkEnd = Math.min(offset + chunkSize, imageBuffer.byteLength);
     const chunk = imageBuffer.slice(offset, chunkEnd);
     
-    // Convert ArrayBuffer chunk to Buffer for Node.js FormData compatibility
+    // Convert ArrayBuffer chunk to Buffer for Node.js
     const chunkBuffer = Buffer.from(chunk);
     
-    // For FormData with OAuth 1.0a, we need to handle multipart differently
-    // Twitter's API expects the OAuth signature in the Authorization header
+    // Use form-data package for proper multipart/form-data handling with OAuth 1.0a
     const formData = new FormData();
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // In Node.js, FormData can accept a Buffer or Blob
-    // Create a Blob from the Buffer chunk
-    const blob = new Blob([chunkBuffer], { type: contentType });
-    formData.append('media', blob, 'chunk.jpg');
+    // Append the buffer directly - form-data handles this correctly
+    formData.append('media', chunkBuffer, {
+      filename: 'chunk.jpg',
+      contentType: contentType,
+    });
     
     // For multipart/form-data, OAuth 1.0a signature is calculated without the body
     // The parameters are in the form data, but we sign with empty body for multipart
