@@ -229,6 +229,22 @@ export const TimelineTweetTemplate = ({
         if (!response.ok) {
           const error = await response.json();
           console.error('[TimelineTweetTemplate] Tweet post failed:', error);
+          
+          // Check if it's a token permissions error that requires automatic reconnection
+          if (error.requiresReconnection || error.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR') {
+            toast({
+              title: "Reconnection Required",
+              description: "Your Twitter tokens need to be refreshed. Redirecting to reconnect...",
+              variant: "default",
+            });
+            
+            // Automatically trigger full re-authentication (both OAuth 2.0 and 1.0a)
+            setTimeout(() => {
+              handleConnectTwitter();
+            }, 1500);
+            return;
+          }
+          
           if (error.error?.includes('not connected')) {
             setIsConnected(false);
             toast({
@@ -281,16 +297,22 @@ export const TimelineTweetTemplate = ({
       } catch (error: any) {
         console.error('[TimelineTweetTemplate] Error posting tweet:', error);
         
-        // Check if it's an OAuth 1.0a token mismatch error
+        // Check if it's a token permissions error that requires reconnection (fallback for network errors)
         const errorMessage = error.message || '';
-        if (errorMessage.includes('Bad Authentication') || errorMessage.includes('OAuth 1.0a authentication failed')) {
+        const requiresReconnection = errorMessage.includes('Bad Authentication') || 
+                                     errorMessage.includes('OAuth 1.0a authentication failed') ||
+                                     errorMessage.includes('lack write permissions') ||
+                                     errorMessage.includes('don\'t have write permissions');
+        
+        if (requiresReconnection) {
           toast({
-            title: "Authentication Required",
-            description: "Your Twitter connection needs to be refreshed. Redirecting to reconnect...",
+            title: "Reconnection Required",
+            description: "Your Twitter tokens need to be refreshed. Redirecting to reconnect...",
             variant: "default",
           });
           
           // Automatically trigger full re-authentication (both OAuth 2.0 and 1.0a)
+          // This will get fresh tokens with correct permissions
           setTimeout(() => {
             handleConnectTwitter();
           }, 1500);

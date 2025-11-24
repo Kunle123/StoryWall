@@ -5,8 +5,10 @@ import { prisma } from '@/lib/db/prisma';
 import { postTweet, uploadMedia, uploadMediaOAuth1 } from '@/lib/twitter/api';
 
 export async function POST(request: NextRequest) {
+  let userId: string | null = null; // Store userId for use in catch block
   try {
-    const { userId } = await auth();
+    const authResult = await auth();
+    userId = authResult.userId;
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -116,8 +118,44 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);
     
+    // Check if it's a token permissions error (Bad Authentication data - code 215)
+    const errorMessage = error.message || '';
+    const isTokenPermissionError = errorMessage.includes('Bad Authentication data') || 
+                                   errorMessage.includes('code 215') ||
+                                   errorMessage.includes('lack write permissions') ||
+                                   errorMessage.includes('don\'t have write permissions');
+    
+    // If it's a token permissions error, automatically clear OAuth 1.0a tokens
+    // This will force the user to reconnect and get fresh tokens with correct permissions
+    if (isTokenPermissionError && userId) {
+      try {
+        const user = await getOrCreateUser(userId);
+        console.log('[Twitter Post Tweet] Token permissions error detected - clearing OAuth 1.0a tokens to force reconnection');
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            twitterOAuth1Token: null,
+            twitterOAuth1TokenSecret: null,
+          },
+        });
+        console.log('[Twitter Post Tweet] OAuth 1.0a tokens cleared - user will need to reconnect');
+      } catch (clearError) {
+        console.error('[Twitter Post Tweet] Failed to clear tokens:', clearError);
+      }
+      
+      // Return a special error code that the client can detect to trigger automatic reconnection
+      return NextResponse.json(
+        { 
+          error: 'Token permissions error - tokens cleared. Please reconnect your Twitter account.',
+          code: 'OAUTH1_TOKEN_PERMISSIONS_ERROR',
+          requiresReconnection: true,
+        },
+        { status: 401 }
+      );
+    }
+    
     // Check if it's a rate limit error
-    const isRateLimit = error.message?.includes('rate limit') || error.message?.includes('Too Many Requests');
+    const isRateLimit = errorMessage.includes('rate limit') || errorMessage.includes('Too Many Requests');
     const statusCode = isRateLimit ? 429 : 500;
     
     return NextResponse.json(
