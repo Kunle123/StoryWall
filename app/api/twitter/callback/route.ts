@@ -164,20 +164,24 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Check if OAuth 1.0a is also connected - if not, automatically initiate OAuth 1.0a flow
-    const userWithOAuth1 = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { twitterOAuth1Token: true, twitterOAuth1TokenSecret: true },
-    });
-    
-    const hasOAuth1 = !!(userWithOAuth1?.twitterOAuth1Token && userWithOAuth1?.twitterOAuth1TokenSecret);
+    // Always complete OAuth 1.0a flow after OAuth 2.0 to ensure tokens match consumer key/secret
+    // This ensures fresh tokens that are guaranteed to work with the current app credentials
     const consumerKey = process.env.TWITTER_API_KEY;
     const consumerSecret = process.env.TWITTER_API_SECRET;
     const oauth1Configured = !!(consumerKey && consumerSecret);
     
-    // If OAuth 1.0a is not connected but is configured, automatically redirect to OAuth 1.0a flow
-    if (!hasOAuth1 && oauth1Configured && returnUrl) {
+    // If OAuth 1.0a is configured, always redirect to OAuth 1.0a flow to get fresh tokens
+    // This ensures tokens always match the consumer key/secret (prevents token mismatch errors)
+    if (oauth1Configured && returnUrl) {
       console.log('[Twitter Callback] OAuth 2.0 connected, automatically initiating OAuth 1.0a flow for image uploads');
+      // Clear any existing OAuth 1.0a tokens to force fresh authentication
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          twitterOAuth1Token: null,
+          twitterOAuth1TokenSecret: null,
+        },
+      });
       // Redirect to OAuth 1.0a flow with the same returnUrl
       const oauth1Url = new URL('/api/twitter/oauth1', baseUrl);
       oauth1Url.searchParams.set('returnUrl', returnUrl);
