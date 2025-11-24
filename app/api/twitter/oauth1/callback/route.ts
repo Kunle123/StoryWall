@@ -6,15 +6,42 @@ import { exchangeOAuth1RequestTokenForAccessToken } from '@/lib/twitter/api';
 import { cookies } from 'next/headers';
 
 /**
+ * Get the correct base URL for redirects
+ * Prevents redirects to localhost:8080 or incorrect origins
+ */
+function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  
+  if (process.env.NODE_ENV === 'production') {
+    // Extract base URL from TWITTER_REDIRECT_URI
+    const redirectUri = process.env.TWITTER_REDIRECT_URI;
+    if (redirectUri) {
+      try {
+        const url = new URL(redirectUri);
+        return `${url.protocol}//${url.host}`;
+      } catch {
+        // Fallback if URL parsing fails
+      }
+    }
+    return 'https://www.storywall.com';
+  }
+  
+  return 'http://localhost:3000';
+}
+
+/**
  * GET /api/twitter/oauth1/callback
  * Handle OAuth 1.0a callback and exchange request token for access token
  */
 export async function GET(request: NextRequest) {
+  const baseUrl = getBaseUrl();
   try {
     const { userId } = await auth();
     
     if (!userId) {
-      return NextResponse.redirect(new URL('/sign-in?redirect=/api/twitter/oauth1/callback', request.url));
+      return NextResponse.redirect(new URL('/sign-in?redirect=/api/twitter/oauth1/callback', baseUrl));
     }
 
     const user = await getOrCreateUser(userId);
@@ -27,13 +54,13 @@ export async function GET(request: NextRequest) {
     
     if (denied) {
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_denied', request.url)
+        new URL('/?error=twitter_oauth1_denied', baseUrl)
       );
     }
     
     if (!oauthToken || !oauthVerifier) {
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_missing_params', request.url)
+        new URL('/?error=twitter_oauth1_missing_params', baseUrl)
       );
     }
     
@@ -45,14 +72,14 @@ export async function GET(request: NextRequest) {
     if (!storedState || !state || storedState !== state) {
       console.error('[Twitter OAuth1 Callback] State mismatch - possible CSRF attack');
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_state_mismatch', request.url)
+        new URL('/?error=twitter_oauth1_state_mismatch', baseUrl)
       );
     }
     
     if (!requestTokenSecret) {
       console.error('[Twitter OAuth1 Callback] Missing request token secret');
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_missing_token_secret', request.url)
+        new URL('/?error=twitter_oauth1_missing_token_secret', baseUrl)
       );
     }
     
@@ -64,7 +91,7 @@ export async function GET(request: NextRequest) {
       if (stateData.userId !== user.id) {
         console.error('[Twitter OAuth1 Callback] State userId mismatch');
         return NextResponse.redirect(
-          new URL('/?error=twitter_oauth1_user_mismatch', request.url)
+          new URL('/?error=twitter_oauth1_user_mismatch', baseUrl)
         );
       }
       
@@ -73,7 +100,7 @@ export async function GET(request: NextRequest) {
       if (stateAge > 10 * 60 * 1000) {
         console.error('[Twitter OAuth1 Callback] State expired');
         return NextResponse.redirect(
-          new URL('/?error=twitter_oauth1_expired', request.url)
+          new URL('/?error=twitter_oauth1_expired', baseUrl)
         );
       }
       
@@ -82,7 +109,7 @@ export async function GET(request: NextRequest) {
     } catch (e) {
       console.error('[Twitter OAuth1 Callback] Invalid state format');
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_invalid_state', request.url)
+        new URL('/?error=twitter_oauth1_invalid_state', baseUrl)
       );
     }
     
@@ -91,7 +118,7 @@ export async function GET(request: NextRequest) {
     
     if (!consumerKey || !consumerSecret) {
       return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_not_configured', request.url)
+        new URL('/?error=twitter_oauth1_not_configured', baseUrl)
       );
     }
     
@@ -119,12 +146,6 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('twitter_oauth1_request_token_secret');
     cookieStore.delete('twitter_oauth1_state');
     
-    // Get the correct base URL from environment or construct from request
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                    (process.env.NODE_ENV === 'production' 
-                      ? (process.env.TWITTER_REDIRECT_URI?.replace('/api/twitter/oauth1/callback', '').replace('/api/twitter/callback', '') || 'https://www.storywall.com')
-                      : 'http://localhost:3000');
-    
     // Determine redirect URL
     let redirectPath = '/?twitter_oauth1_connected=true';
     if (returnUrl) {
@@ -151,8 +172,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
     console.error('[Twitter OAuth1 Callback] Error:', error);
+    const baseUrl = getBaseUrl();
     return NextResponse.redirect(
-      new URL(`/?error=twitter_oauth1_failed&message=${encodeURIComponent(error.message || 'Unknown error')}`, request.url)
+      new URL(`/?error=twitter_oauth1_failed&message=${encodeURIComponent(error.message || 'Unknown error')}`, baseUrl)
     );
   }
 }
