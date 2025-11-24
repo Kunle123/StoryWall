@@ -92,12 +92,13 @@ function generateOAuth1Signature(
     .update(signatureBaseString)
     .digest('base64');
 
-  // Log signature details for debugging (only for APPEND step to avoid spam)
-  if (params.command === 'APPEND') {
-    console.log(`[APPEND Debug] All params for signature:`, JSON.stringify(allParams, null, 2));
-    console.log(`[APPEND Debug] Signature base string (FULL):`, signatureBaseString);
-    console.log(`[APPEND Debug] Signing key (masked):`, `${signingKey.substring(0, 10)}...&...${signingKey.substring(signingKey.length - 10)}`);
-    console.log(`[APPEND Debug] Generated signature (FULL):`, signature);
+  // Log signature details for debugging (INIT and APPEND steps)
+  if (params.command === 'INIT' || params.command === 'APPEND') {
+    console.log(`[${params.command} Debug] All params for signature:`, JSON.stringify(allParams, null, 2));
+    console.log(`[${params.command} Debug] Normalized params string:`, normalizedParams);
+    console.log(`[${params.command} Debug] Signature base string (FULL):`, signatureBaseString);
+    console.log(`[${params.command} Debug] Signing key (masked):`, `${signingKey.substring(0, 10)}...&...${signingKey.substring(signingKey.length - 10)}`);
+    console.log(`[${params.command} Debug] Generated signature (FULL):`, signature);
   }
 
   return { signature, timestamp, nonce };
