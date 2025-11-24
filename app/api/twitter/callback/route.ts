@@ -8,27 +8,37 @@ import { cookies } from 'next/headers';
 /**
  * Get the correct base URL for redirects
  * Prevents redirects to localhost:8080 or incorrect origins
+ * This function is safe to call during build time - it never throws
  */
 function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+  // First, try NEXT_PUBLIC_APP_URL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl && appUrl.trim()) {
+    // Validate it's a proper URL
+    try {
+      new URL(appUrl);
+      return appUrl;
+    } catch {
+      // Invalid URL, continue to next option
+    }
   }
   
+  // In production, try to extract from TWITTER_REDIRECT_URI
   if (process.env.NODE_ENV === 'production') {
-    // Extract base URL from TWITTER_REDIRECT_URI
     const redirectUri = process.env.TWITTER_REDIRECT_URI;
-    if (redirectUri) {
+    if (redirectUri && redirectUri.trim()) {
       try {
         const url = new URL(redirectUri);
         return `${url.protocol}//${url.host}`;
-      } catch (e) {
-        // Fallback if URL parsing fails - use default production URL
-        console.warn('[getBaseUrl] Failed to parse TWITTER_REDIRECT_URI:', e);
+      } catch {
+        // Invalid URL, use default
       }
     }
+    // Default production URL
     return 'https://www.storywall.com';
   }
   
+  // Development fallback
   return 'http://localhost:3000';
 }
 
@@ -199,7 +209,19 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('twitter_oauth_code_verifier');
     
     // Construct full URL using the correct base URL, not request.url
-    const redirectUrl = new URL(redirectPath, baseUrl);
+    // Validate baseUrl is a proper URL before using it
+    let finalBaseUrl = baseUrl;
+    try {
+      new URL(baseUrl); // Validate it's a proper URL
+    } catch {
+      // If baseUrl is invalid, use default
+      finalBaseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://www.storywall.com' 
+        : 'http://localhost:3000';
+      console.warn('[Twitter Callback] Invalid baseUrl, using default:', finalBaseUrl);
+    }
+    
+    const redirectUrl = new URL(redirectPath, finalBaseUrl);
     console.log('[Twitter Callback] Final redirect URL:', redirectUrl.toString());
     return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
