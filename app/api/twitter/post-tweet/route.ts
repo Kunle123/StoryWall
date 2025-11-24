@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
           // Fall back to OAuth 2.0 (will fail with 403, but we try anyway for backward compatibility)
           console.warn(`[Twitter Post Tweet] OAuth 1.0a credentials not available, attempting OAuth 2.0 (will likely fail)`);
           if (userWithToken.twitterAccessToken) {
-            mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
+        mediaId = await uploadMedia(userWithToken.twitterAccessToken, imageUrl);
           } else {
             throw new Error('No Twitter access token available');
           }

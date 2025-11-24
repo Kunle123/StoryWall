@@ -765,8 +765,8 @@ const TimelineEditor = () => {
       }
 
       if (successfulEvents.length === eventsList.length) {
-        toast({
-          title: "Success!",
+      toast({
+        title: "Success!",
           description: "Timeline saved successfully",
         });
       } else {
