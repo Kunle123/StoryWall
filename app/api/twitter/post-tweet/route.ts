@@ -152,9 +152,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);
+    
+    // Check if it's a rate limit error
+    const isRateLimit = error.message?.includes('rate limit') || error.message?.includes('Too Many Requests');
+    const statusCode = isRateLimit ? 429 : 500;
+    
     return NextResponse.json(
       { error: error.message || 'Failed to post tweet' },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

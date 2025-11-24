@@ -654,10 +654,18 @@ export async function postTweet(
     try {
       const error = JSON.parse(errorText);
       errorMessage = error.detail || error.errors?.[0]?.message || errorMessage;
+      
+      // Check for rate limit errors
+      if (response.status === 429 || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
+        errorMessage = 'Twitter API rate limit exceeded. Please wait a few minutes and try again.';
+      }
     } catch {
       // Use default error message
+      if (response.status === 429) {
+        errorMessage = 'Twitter API rate limit exceeded. Please wait a few minutes and try again.';
+      }
     }
-    console.error(`[Twitter Post Tweet] Failed:`, errorMessage);
+    console.error(`[Twitter Post Tweet] Failed (${response.status}):`, errorMessage);
     throw new Error(errorMessage);
   }
   
