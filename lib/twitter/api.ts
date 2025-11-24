@@ -3,6 +3,8 @@
  * Requires OAuth 2.0 authentication
  */
 
+import OAuth from 'oauth-1.0a';
+
 interface TwitterTweet {
   text: string;
   mediaId?: string; // Media ID from Twitter upload (for images)
