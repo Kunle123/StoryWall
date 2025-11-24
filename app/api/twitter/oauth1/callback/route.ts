@@ -169,24 +169,43 @@ export async function GET(request: NextRequest) {
     }
     
     // Step 3: Exchange request token for access token
-    const accessTokenData = await exchangeOAuth1RequestTokenForAccessToken(
-      consumerKey,
-      consumerSecret,
-      oauthToken,
-      requestTokenSecret,
-      oauthVerifier
-    );
+    console.log('[Twitter OAuth1 Callback] Exchanging request token for access token...');
+    let accessTokenData;
+    try {
+      accessTokenData = await exchangeOAuth1RequestTokenForAccessToken(
+        consumerKey,
+        consumerSecret,
+        oauthToken,
+        requestTokenSecret,
+        oauthVerifier
+      );
+      console.log('[Twitter OAuth1 Callback] Successfully exchanged request token for access token');
+    } catch (error: any) {
+      console.error('[Twitter OAuth1 Callback] Failed to exchange request token:', error);
+      console.error('[Twitter OAuth1 Callback] Error details:', error.message);
+      return NextResponse.redirect(
+        new URL('/?error=twitter_oauth1_exchange_failed', baseUrl)
+      );
+    }
     
     // Store OAuth 1.0a access tokens in database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        twitterOAuth1Token: accessTokenData.oauth_token,
-        twitterOAuth1TokenSecret: accessTokenData.oauth_token_secret,
-      },
-    });
-    
-    console.log(`[Twitter OAuth1 Callback] Stored OAuth 1.0a tokens for user ${user.id}`);
+    console.log('[Twitter OAuth1 Callback] Storing OAuth 1.0a tokens in database...');
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          twitterOAuth1Token: accessTokenData.oauth_token,
+          twitterOAuth1TokenSecret: accessTokenData.oauth_token_secret,
+        },
+      });
+      console.log(`[Twitter OAuth1 Callback] ✅ Stored OAuth 1.0a tokens for user ${user.id}`);
+      console.log(`[Twitter OAuth1 Callback] Token preview: ${accessTokenData.oauth_token.substring(0, 20)}...`);
+    } catch (error: any) {
+      console.error('[Twitter OAuth1 Callback] Failed to store tokens in database:', error);
+      return NextResponse.redirect(
+        new URL('/?error=twitter_oauth1_storage_failed', baseUrl)
+      );
+    }
     
     // Clear OAuth 1.0a cookies
     cookieStore.delete('twitter_oauth1_request_token_secret');
