@@ -391,9 +391,20 @@ export async function uploadMediaOAuth1(
     });
     
     if (!appendResponse.ok) {
-      const error = await appendResponse.json().catch(() => ({ error: 'Failed to append media chunk' }));
-      throw new Error(error.error || 'Failed to append media chunk');
+      const errorText = await appendResponse.text();
+      let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
+      try {
+        const error = JSON.parse(errorText);
+        errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
+        console.error(`[Twitter Upload Media OAuth1] Append failed:`, error);
+      } catch {
+        console.error(`[Twitter Upload Media OAuth1] Append failed (non-JSON):`, errorText);
+        errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
+      }
+      throw new Error(errorMessage);
     }
+    
+    console.log(`[Twitter Upload Media OAuth1] Appended segment ${segmentIndex} (${chunk.byteLength} bytes)`);
     
     segmentIndex++;
   }
