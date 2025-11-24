@@ -3,8 +3,6 @@
  * Requires OAuth 2.0 authentication
  */
 
-import FormData from 'form-data';
-
 interface TwitterTweet {
   text: string;
   mediaId?: string; // Media ID from Twitter upload (for images)
