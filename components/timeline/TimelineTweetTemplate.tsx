@@ -207,44 +207,6 @@ export const TimelineTweetTemplate = ({
     }
   };
 
-  const handleEnableImageUpload = async () => {
-    try {
-      console.log('[TimelineTweetTemplate] Initiating OAuth 1.0a flow for image upload...');
-      
-      // Store the current page path to redirect back after OAuth
-      const returnPath = typeof window !== 'undefined' 
-        ? `${window.location.pathname}${window.location.search}`
-        : '/';
-      
-      console.log('[TimelineTweetTemplate] Return path:', returnPath);
-      
-      const oauth1Url = `/api/twitter/oauth1?returnUrl=${encodeURIComponent(returnPath)}`;
-      const response = await fetch(oauth1Url);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('[TimelineTweetTemplate] OAuth 1.0a initiation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to initiate OAuth 1.0a flow');
-      }
-      
-      const data = await response.json();
-      console.log('[TimelineTweetTemplate] Got OAuth 1.0a auth URL, redirecting...', data);
-      
-      if (!data.authUrl) {
-        throw new Error('No auth URL received from server');
-      }
-      
-      // Redirect to Twitter OAuth 1.0a
-      window.location.href = data.authUrl;
-    } catch (error: any) {
-      console.error('[TimelineTweetTemplate] Error initiating OAuth 1.0a:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to enable image upload. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
 
   const handleShareOnTwitter = async () => {
@@ -324,13 +286,13 @@ export const TimelineTweetTemplate = ({
         if (errorMessage.includes('Bad Authentication') || errorMessage.includes('OAuth 1.0a authentication failed')) {
           toast({
             title: "Authentication Required",
-            description: "Your OAuth 1.0a tokens need to be refreshed. Redirecting to reconnect...",
+            description: "Your Twitter connection needs to be refreshed. Redirecting to reconnect...",
             variant: "default",
           });
           
-          // Automatically trigger OAuth 1.0a re-authentication
+          // Automatically trigger full re-authentication (both OAuth 2.0 and 1.0a)
           setTimeout(() => {
-            handleEnableImageUpload();
+            handleConnectTwitter();
           }, 1500);
           return;
         }
@@ -463,19 +425,9 @@ export const TimelineTweetTemplate = ({
                 {absoluteImageUrl && (
                   <div className="flex items-center gap-2">
                     {hasOAuth1 ? (
-                      <span className="text-green-600 dark:text-green-400">✓ Image upload enabled (OAuth 1.0a)</span>
+                      <span className="text-green-600 dark:text-green-400">✓ Image upload enabled</span>
                     ) : (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-amber-600 dark:text-amber-400">⚠️ Image upload disabled</span>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={handleEnableImageUpload}
-                          className="h-auto p-0 text-xs font-semibold"
-                        >
-                          Enable Image Upload
-                        </Button>
-                      </div>
+                      <span className="text-amber-600 dark:text-amber-400">⚠️ Image upload not configured - reconnect to enable</span>
                     )}
                   </div>
                 )}
@@ -483,7 +435,6 @@ export const TimelineTweetTemplate = ({
             ) : (
               <div className="flex items-center gap-2 flex-wrap">
                 <span>⚠️ Not connected</span>
-                {absoluteImageUrl && <span>- Image won't be attached</span>}
                 <Button
                   variant="link"
                   size="sm"
