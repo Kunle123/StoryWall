@@ -199,7 +199,9 @@ export async function GET(request: NextRequest) {
         },
       });
       console.log(`[Twitter OAuth1 Callback] ✅ Stored OAuth 1.0a tokens for user ${user.id}`);
-      console.log(`[Twitter OAuth1 Callback] Token preview: ${accessTokenData.oauth_token.substring(0, 20)}...`);
+      console.log('[Twitter OAuth1 Callback] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
+      console.log('[Twitter OAuth1 Callback] Token (first 20 chars):', accessTokenData.oauth_token.substring(0, 20));
+      console.log('[Twitter OAuth1 Callback] Token Secret (first 20 chars):', accessTokenData.oauth_token_secret.substring(0, 20));
     } catch (error: any) {
       console.error('[Twitter OAuth1 Callback] Failed to store tokens in database:', error);
       return NextResponse.redirect(
