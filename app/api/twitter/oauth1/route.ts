@@ -61,6 +61,10 @@ export async function GET(request: NextRequest) {
     // Get return URL from query param
     const returnUrl = request.nextUrl.searchParams.get('returnUrl') || null;
     
+    console.log('[Twitter OAuth1] Initiating OAuth 1.0a flow for user:', user.id);
+    console.log('[Twitter OAuth1] Return URL:', returnUrl);
+    console.log('[Twitter OAuth1] Callback URL:', redirectUri);
+    
     // Generate state for CSRF protection (include returnUrl in state)
     const state = Buffer.from(JSON.stringify({ 
       userId: user.id, 
@@ -69,11 +73,13 @@ export async function GET(request: NextRequest) {
     })).toString('base64');
     
     // Step 1: Get request token
+    console.log('[Twitter OAuth1] Getting request token...');
     const requestTokenData = await getOAuth1RequestToken(
       consumerKey,
       consumerSecret,
       redirectUri
     );
+    console.log('[Twitter OAuth1] Got request token:', requestTokenData.oauth_token.substring(0, 20) + '...');
     
     // Store request token secret and state in secure httpOnly cookies
     const cookieStore = await cookies();
@@ -98,6 +104,9 @@ export async function GET(request: NextRequest) {
     
     // Add state to the auth URL as a query parameter (Twitter will pass it back)
     const authUrlWithState = `${authUrl}&state=${encodeURIComponent(state)}`;
+    
+    console.log('[Twitter OAuth1] Generated auth URL, redirecting user to Twitter');
+    console.log('[Twitter OAuth1] Auth URL:', authUrlWithState);
     
     return NextResponse.json({ authUrl: authUrlWithState });
   } catch (error: any) {
