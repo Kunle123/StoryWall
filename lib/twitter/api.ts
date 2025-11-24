@@ -381,6 +381,12 @@ export async function uploadMediaOAuth1(
   console.log(`[INIT Debug] Auth header:`, initAuthHeader);
   console.log(`[INIT Debug] Form params:`, JSON.stringify(initParams));
   
+  // Log the full request details for debugging
+  console.log(`[INIT Debug] Request URL:`, uploadUrl);
+  console.log(`[INIT Debug] Request method: POST`);
+  console.log(`[INIT Debug] Content-Type: application/x-www-form-urlencoded`);
+  console.log(`[INIT Debug] Body (URLSearchParams):`, new URLSearchParams(initParams).toString());
+  
   const initResponse = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
@@ -389,6 +395,10 @@ export async function uploadMediaOAuth1(
     },
     body: new URLSearchParams(initParams),
   });
+  
+  // Log response details for debugging
+  console.log(`[INIT Debug] Response status:`, initResponse.status);
+  console.log(`[INIT Debug] Response headers:`, Object.fromEntries(initResponse.headers.entries()));
   
   if (!initResponse.ok) {
     const errorText = await initResponse.text();
