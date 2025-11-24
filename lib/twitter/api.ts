@@ -418,10 +418,27 @@ export async function uploadMediaOAuth1(
     
     // Provide more specific error message for "Bad Authentication data"
     if (errorMessage.includes('Bad Authentication') || (initResponse.status === 400 && errorDetails?.errors?.[0]?.code === 215)) {
+      // Log detailed diagnostic information
+      console.error(`[Twitter Upload Media OAuth1] Bad Authentication data (215) - Diagnostic Info:`);
+      console.error(`  - Consumer Key: ${consumerKey.substring(0, 10)}... (length: ${consumerKey.length})`);
+      console.error(`  - Consumer Secret: ${consumerSecret.substring(0, 10)}... (length: ${consumerSecret.length})`);
+      console.error(`  - Token: ${token.substring(0, 20)}... (length: ${token.length})`);
+      console.error(`  - Token Secret: ${tokenSecret.substring(0, 20)}... (length: ${tokenSecret.length})`);
+      console.error(`  - Request URL: ${uploadUrl}`);
+      console.error(`  - This error (215) typically means:`);
+      console.error(`    1. Tokens don't have "Read and Write" permissions (most common)`);
+      console.error(`    2. Tokens were generated before app was set to "Read and Write"`);
+      console.error(`    3. Mismatch between consumer key/secret and token/secret`);
+      console.error(`    4. App permissions changed but tokens weren't regenerated`);
+      
       throw new Error(
         `OAuth 1.0a authentication failed (400): Bad Authentication data (code 215). This usually means the access token/secret don't have "Read and Write" permissions. ` +
-        `Even if your app has "Read and Write" permissions, if the tokens were generated before the app was set to "Read and Write", they won't have write access. ` +
-        `SOLUTION: In the Twitter Developer Portal, go to "Keys and tokens" → "Authentication Tokens" and regenerate the "Access Token and Secret" for your user, then reconnect in StoryWall. ` +
+        `Even if your app has "Read and Write" permissions, tokens obtained through the OAuth flow may not have write access if they were generated before the app permissions were changed. ` +
+        `SOLUTION: ` +
+        `1. In Twitter Developer Portal, ensure "App permissions" is set to "Read and Write"` +
+        `2. Go to "Keys and tokens" → "Authentication Tokens"` +
+        `3. Regenerate the "Access Token and Secret" for your user (@Kunletweets)` +
+        `4. Reconnect your Twitter account in StoryWall to get new tokens with write permissions. ` +
         `(Status: ${initResponse.status})`
       );
     }
