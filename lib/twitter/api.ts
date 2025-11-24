@@ -83,9 +83,9 @@ function generateOAuth1Signature(
   ].join('&');
 
   // Step 5: Create signing key
-  // CRITICAL: OAuth 1.0a signing key uses RAW secrets, NOT percent-encoded
-  // The secrets are joined with & but NOT percent-encoded themselves
-  const signingKey = `${consumerSecret}&${tokenSecret}`;
+  // CRITICAL: OAuth 1.0a signing key uses percent-encoded secrets per RFC 5849
+  // Format: encoded_consumer_secret&encoded_token_secret
+  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
 
   // Step 6: Generate signature
   const signature = createHmac('sha1', signingKey)
