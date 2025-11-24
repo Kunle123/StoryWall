@@ -424,15 +424,19 @@ export async function uploadMediaOAuth1(
       .join(', ');
     
     // Use native FormData (Node.js 18+) - compatible with fetch
-    // CRITICAL: Use Buffer directly, not Blob
+    // CRITICAL: Try using Buffer directly - Node.js 18+ FormData should accept it
     const formData = new FormData();
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // Append Buffer directly with explicit options
-    formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), {
-      filename: 'blob',
-    });
+    // Try appending Buffer directly (Node.js 18+ supports this)
+    // If this doesn't work, we'll need to use form-data package
+    try {
+      formData.append('media', chunk, 'blob');
+    } catch (e) {
+      // Fallback to Blob if Buffer doesn't work
+      formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), 'blob');
+    }
     
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
