@@ -356,22 +356,19 @@ export async function uploadMediaOAuth1(
     const chunkEnd = Math.min(offset + chunkSize, imageBuffer.byteLength);
     const chunk = imageBuffer.slice(offset, chunkEnd);
     
-    // Convert ArrayBuffer chunk to Buffer for Node.js
+    // Convert ArrayBuffer chunk to Buffer, then to Blob for native FormData
     const chunkBuffer = Buffer.from(chunk);
+    const blob = new Blob([chunkBuffer], { type: contentType });
     
-    // Use form-data package for proper multipart/form-data handling with OAuth 1.0a
+    // Use native FormData (Node.js 18+) - compatible with fetch
     const formData = new FormData();
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // Append the buffer directly - form-data handles this correctly
-    formData.append('media', chunkBuffer, {
-      filename: 'chunk.jpg',
-      contentType: contentType,
-    });
+    formData.append('media', blob, 'chunk.jpg');
     
-    // For multipart/form-data, OAuth 1.0a signature is calculated without the body
-    // The parameters are in the form data, but we sign with empty body for multipart
+    // For multipart/form-data, OAuth 1.0a signature is calculated using form field parameters
+    // The signature includes command, media_id, and segment_index (but not the binary media data)
     const appendParams = {
       command: 'APPEND',
       media_id: mediaId,
@@ -388,16 +385,15 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
-    // Get the Content-Type header with boundary from form-data
-    const formHeaders = formData.getHeaders();
-    
+    // Native FormData will automatically set Content-Type with boundary
+    // We don't manually set it - fetch will handle it
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
-        ...formHeaders, // Include Content-Type with boundary from form-data
+        // Don't set Content-Type - fetch will set it automatically with boundary for FormData
       },
-      body: formData as any, // form-data is compatible with fetch body
+      body: formData,
     });
     
     if (!appendResponse.ok) {
