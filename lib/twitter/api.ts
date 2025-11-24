@@ -60,9 +60,12 @@ function generateOAuth1Signature(
     .join('&');
 
   // Step 4: Create signature base string
+  // CRITICAL: URL must be normalized (no query params, no trailing slash)
+  // For OAuth 1.0a, we use the base URL only
+  const normalizedUrl = url.split('?')[0]; // Remove any query parameters
   const signatureBaseString = [
     method.toUpperCase(),
-    encodeURIComponent(url),
+    encodeURIComponent(normalizedUrl),
     encodeURIComponent(normalizedParams)
   ].join('&');
 
@@ -376,6 +379,8 @@ export async function uploadMediaOAuth1(
       segment_index: segmentIndex.toString(),
     };
     
+    // Generate OAuth 1.0a signature for APPEND step
+    // CRITICAL: For multipart/form-data, signature includes form field params but NOT binary data
     const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
       'POST',
       uploadUrl,
@@ -386,9 +391,10 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
-    // Log signature details for debugging (remove in production)
-    console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, appendParams);
+    // Log signature details for debugging
+    console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
     console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
+    console.log(`[Twitter Upload Media OAuth1] APPEND timestamp: ${appendTimestamp}, nonce: ${appendNonce.substring(0, 8)}...`);
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
