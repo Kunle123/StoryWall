@@ -191,6 +191,22 @@ export async function GET(request: NextRequest) {
     // Store OAuth 1.0a access tokens in database
     console.log('[Twitter OAuth1 Callback] Storing OAuth 1.0a tokens in database...');
     try {
+      // Check if we're getting the same tokens (which might indicate they don't have write permissions)
+      const existingUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          twitterOAuth1Token: true,
+          twitterOAuth1TokenSecret: true,
+        },
+      });
+      
+      const isSameToken = existingUser?.twitterOAuth1Token === accessTokenData.oauth_token;
+      if (isSameToken) {
+        console.warn('[Twitter OAuth1 Callback] ⚠️  WARNING: Twitter returned the same token after reconnection!');
+        console.warn('[Twitter OAuth1 Callback] ⚠️  This usually means the token still lacks write permissions.');
+        console.warn('[Twitter OAuth1 Callback] ⚠️  SOLUTION: Revoke app access in Twitter Settings → Security → Apps and sessions, then reconnect.');
+      }
+      
       await prisma.user.update({
         where: { id: user.id },
         data: {
