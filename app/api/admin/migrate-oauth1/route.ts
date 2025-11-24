@@ -7,14 +7,22 @@ import { prisma } from '@/lib/db/prisma';
  * This should be deleted after the migration is complete
  * 
  * Usage: POST /api/admin/migrate-oauth1
+ * Optional: Add ?token=YOUR_SECRET_TOKEN for basic security
  */
 export async function POST(request: NextRequest) {
   try {
-    // Only allow authenticated users (you can restrict this further if needed)
-    const { userId } = await auth();
+    // Optional: Check for a simple token in query params for basic security
+    // You can set MIGRATION_TOKEN in Railway environment variables
+    const searchParams = request.nextUrl.searchParams;
+    const providedToken = searchParams.get('token');
+    const expectedToken = process.env.MIGRATION_TOKEN;
     
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // If MIGRATION_TOKEN is set, require it. Otherwise, allow without token (for one-time migration)
+    if (expectedToken && providedToken !== expectedToken) {
+      return NextResponse.json({ 
+        error: 'Unauthorized - Invalid or missing token',
+        hint: 'Add ?token=YOUR_TOKEN to the URL if MIGRATION_TOKEN is set in environment variables'
+      }, { status: 401 });
     }
 
     console.log('🔄 Running migration: Add Twitter OAuth 1.0a columns to users table...');
