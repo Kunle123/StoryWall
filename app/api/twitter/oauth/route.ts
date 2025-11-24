@@ -4,6 +4,9 @@ import { getOrCreateUser } from '@/lib/db/users';
 import { getTwitterAuthUrl, generateCodeVerifier } from '@/lib/twitter/api';
 import { cookies } from 'next/headers';
 
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();

@@ -21,8 +21,9 @@ function getBaseUrl(): string {
       try {
         const url = new URL(redirectUri);
         return `${url.protocol}//${url.host}`;
-      } catch {
-        // Fallback if URL parsing fails
+      } catch (e) {
+        // Fallback if URL parsing fails - use default production URL
+        console.warn('[getBaseUrl] Failed to parse TWITTER_REDIRECT_URI:', e);
       }
     }
     return 'https://www.storywall.com';
@@ -30,6 +31,9 @@ function getBaseUrl(): string {
   
   return 'http://localhost:3000';
 }
+
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const baseUrl = getBaseUrl();

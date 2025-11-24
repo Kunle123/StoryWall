@@ -4,6 +4,9 @@ import { getOrCreateUser } from '@/lib/db/users';
 import { getOAuth1RequestToken, getOAuth1AuthUrl } from '@/lib/twitter/api';
 import { cookies } from 'next/headers';
 
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/twitter/oauth1
  * Initiate OAuth 1.0a flow for media upload permissions
