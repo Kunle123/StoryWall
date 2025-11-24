@@ -225,9 +225,9 @@ export async function uploadMedia(
         // Don't set Content-Type for FormData - browser will set it with boundary
       },
       body: formData,
-      });
-      
-      if (!appendResponse.ok) {
+    });
+    
+    if (!appendResponse.ok) {
       const error = await appendResponse.json();
       throw new Error(error.error || 'Failed to append media chunk');
     }
@@ -424,19 +424,14 @@ export async function uploadMediaOAuth1(
       .join(', ');
     
     // Use native FormData (Node.js 18+) - compatible with fetch
-    // CRITICAL: Try using Buffer directly - Node.js 18+ FormData should accept it
+    // CRITICAL: Node.js FormData.append() for files takes: (name, value, filename)
+    // filename is a string, not an options object
     const formData = new FormData();
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // Try appending Buffer directly (Node.js 18+ supports this)
-    // If this doesn't work, we'll need to use form-data package
-    try {
-      formData.append('media', chunk, 'blob');
-    } catch (e) {
-      // Fallback to Blob if Buffer doesn't work
-      formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), 'blob');
-    }
+    // Append Buffer as Blob with filename (Node.js FormData requires Blob/File for file uploads)
+    formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), 'blob');
     
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
