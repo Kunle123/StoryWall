@@ -92,10 +92,10 @@ function generateOAuth1Signature(
 
   // Log signature details for debugging (only for APPEND step to avoid spam)
   if (params.command === 'APPEND') {
-    console.log(`[Twitter OAuth1 Signature] All params for signature:`, JSON.stringify(allParams));
-    console.log(`[Twitter OAuth1 Signature] Base string: ${signatureBaseString.substring(0, 200)}...`);
-    console.log(`[Twitter OAuth1 Signature] Signing key length: ${signingKey.length}`);
-    console.log(`[Twitter OAuth1 Signature] Signature (first 20 chars): ${signature.substring(0, 20)}...`);
+    console.log(`[APPEND Debug] All params for signature:`, JSON.stringify(allParams, null, 2));
+    console.log(`[APPEND Debug] Signature base string (FULL):`, signatureBaseString);
+    console.log(`[APPEND Debug] Signing key (masked):`, `${signingKey.substring(0, 10)}...&...${signingKey.substring(signingKey.length - 10)}`);
+    console.log(`[APPEND Debug] Generated signature (FULL):`, signature);
   }
 
   return { signature, timestamp, nonce };
@@ -432,13 +432,13 @@ export async function uploadMediaOAuth1(
       .join(', ');
     
     // Log signature details for debugging
-    console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
-    console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND OAuth params keys (sorted):`, sortedKeys);
-    console.log(`[Twitter Upload Media OAuth1] APPEND signature:`, appendSignature.substring(0, 20) + '...');
-    console.log(`[Twitter Upload Media OAuth1] APPEND timestamp: ${appendTimestamp}, nonce: ${appendNonce.substring(0, 10)}...`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND consumer key: ${consumerKey.substring(0, 10)}..., token: ${token.substring(0, 10)}...`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 200 chars):`, authHeader.substring(0, 200) + '...');
+    console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
+    console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
+    console.log(`[APPEND Debug] OAuth params keys (sorted):`, sortedKeys);
+    console.log(`[APPEND Debug] Full auth header:`, authHeader);
+    console.log(`[APPEND Debug] Consumer key: ${consumerKey.substring(0, 15)}...`);
+    console.log(`[APPEND Debug] Token: ${token.substring(0, 15)}...`);
+    console.log(`[APPEND Debug] Timestamp: ${appendTimestamp}, Nonce: ${appendNonce}`);
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
