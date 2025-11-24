@@ -21,7 +21,8 @@ This guide explains how to set up Twitter API integration to enable automated th
 3. **Configure OAuth 2.0 Settings**
    - In your app settings, go to "User authentication settings"
    - Enable OAuth 2.0
-   - Set App permissions to "Read and write" (this includes media upload permissions)
+   - **CRITICAL:** Set App permissions to **"Read and write"** (this includes media upload permissions)
+     - ⚠️ **Important:** If you change permissions after users have already authorized, they must revoke and re-authorize to get tokens with the new permissions. See [X Developer docs](https://docs.x.com/fundamentals/developer-apps#app-permissions)
    - Set Type of App to "Web App"
    - Add callback URLs:
      - `https://www.storywall.com/api/twitter/callback`
@@ -35,7 +36,17 @@ This guide explains how to set up Twitter API integration to enable automated th
    - `offline.access` - Refresh tokens
    - `media.write` - Upload media (images) for tweets
 
-4. **Get Your API Keys**
+4. **Configure OAuth 1.0a Settings (Required for Image Uploads)**
+   - In your app settings, go to "User authentication settings"
+   - Enable OAuth 1.0a (you can have both OAuth 2.0 and OAuth 1.0a enabled)
+   - **CRITICAL:** Set App permissions to **"Read and write"** (same as OAuth 2.0)
+   - Add callback URLs:
+     - `https://www.storywall.com/api/twitter/oauth1/callback`
+     - `http://localhost:3000/api/twitter/oauth1/callback` (for development)
+   
+   **Why OAuth 1.0a is required:** Twitter's v1.1 media upload endpoint (`upload.twitter.com/1.1/media/upload.json`) requires OAuth 1.0a authentication. OAuth 2.0 cannot be used for media uploads.
+
+5. **Get Your API Keys**
    - In your app settings, go to "Keys and tokens"
    - Copy:
      - **Client ID** (OAuth 2.0 Client ID)
@@ -119,11 +130,30 @@ The implementation includes a 1-second delay between tweets to avoid hitting rat
 - Check rate limits haven't been exceeded
 - Ensure access token hasn't expired (implement refresh token logic)
 
-**"Image not attaching to tweet" or 403 Forbidden on media upload:**
-- This usually means your access token doesn't have the `media.write` scope
-- **Solution:** Disconnect and reconnect your Twitter account to grant the new permissions
-- The app now requests `media.write` scope, but users who connected before this was added need to reconnect
-- Go to the timeline share dialog and click "Reconnect" or "Connect Twitter Account"
+**"Image not attaching to tweet" or "Bad Authentication data" (code 215) on media upload:**
+- This indicates your OAuth 1.0a tokens don't have "Read and write" permissions
+- **Root Cause:** According to [X Developer documentation](https://docs.x.com/fundamentals/developer-apps#app-permissions), if app permissions are changed, existing user tokens must be discarded and users must re-authorize to inherit the updated permissions
+- **Solution (Step-by-Step):**
+  1. **Verify App Permissions:**
+     - Go to [Twitter Developer Portal](https://developer.x.com/en/portal/projects-and-apps)
+     - Open your app settings
+     - Go to "User authentication settings"
+     - Ensure "App permissions" is set to **"Read and write"** (not "Read only")
+     - Save changes if you modified permissions
+  
+  2. **Revoke App Access (Required):**
+     - Go to [Twitter Settings → Apps and sessions](https://twitter.com/settings/apps)
+     - Find "StoryWall" (or your app name)
+     - Click **"Revoke access"** or **"Remove app"**
+     - This discards the old tokens with incorrect permissions
+  
+  3. **Reconnect in StoryWall:**
+     - Go to the timeline share dialog
+     - Click **"Connect Twitter Account"**
+     - Authorize the app again
+     - This will issue new tokens with "Read and write" permissions
+  
+  **Why this works:** Regenerating tokens in the Developer Portal only updates app-level tokens, not user-specific OAuth tokens. Revoking app access forces Twitter to issue completely new user tokens with the current app permissions.
 
 **OAuth callback not working:**
 - Verify callback URL matches exactly in Twitter app settings

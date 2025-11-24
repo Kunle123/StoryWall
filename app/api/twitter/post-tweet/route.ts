@@ -144,14 +144,16 @@ export async function POST(request: NextRequest) {
       }
       
       // Return a special error code that the client can detect to trigger automatic reconnection
-      // Note: If Twitter returns the same tokens after reconnection, the user must manually
-      // regenerate tokens in the Developer Portal to get tokens with write permissions
+      // According to X Developer docs: "If a permission level is changed, any user tokens already
+      // issued to that X app must be discarded and users must re-authorize the App in order for
+      // the token to inherit the updated permissions." (https://docs.x.com/fundamentals/developer-apps#app-permissions)
       return NextResponse.json(
         { 
-          error: 'Token permissions error - tokens cleared. Reconnecting will attempt to get fresh tokens. If the same tokens are returned, you must manually regenerate them in the Twitter Developer Portal.',
+          error: 'Token permissions error - tokens cleared. Your tokens were issued before app permissions were set to "Read and write".',
           code: 'OAUTH1_TOKEN_PERMISSIONS_ERROR',
           requiresReconnection: true,
-          note: 'If reconnection returns the same tokens, regenerate them in Twitter Developer Portal: Keys and tokens → Authentication Tokens → Regenerate for your user',
+          note: 'According to X Developer docs, if app permissions changed, you must revoke app access in Twitter Settings → Security → Apps and sessions, then reconnect. See: https://docs.x.com/fundamentals/developer-apps#app-permissions',
+          solution: '1. Verify app permissions are "Read and write" in Developer Portal\n2. Revoke app access: https://twitter.com/settings/apps\n3. Reconnect in StoryWall to get new tokens with correct permissions',
         },
         { status: 401 }
       );
