@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       undefined, // mediaId is now handled internally by postTweet
       consumerKey,
       consumerSecret,
-      userWithToken.twitterOAuth1Token,
-      userWithToken.twitterOAuth1TokenSecret,
+      userWithToken.twitterOAuth1Token || undefined,
+      userWithToken.twitterOAuth1TokenSecret || undefined,
       imageUrl
     );
     
