@@ -403,15 +403,18 @@ export async function uploadMediaOAuth1(
     };
     
     // Build Authorization header: OAuth + sorted, encoded parameters
-    const authHeader = 'OAuth ' + Object.keys(oauthParams)
-      .sort()
+    // CRITICAL: Parameters must be sorted alphabetically and properly encoded
+    const sortedKeys = Object.keys(oauthParams).sort();
+    const authHeader = 'OAuth ' + sortedKeys
       .map(key => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
       .join(', ');
     
     // Log signature details for debugging
     console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
     console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 100 chars):`, authHeader.substring(0, 100) + '...');
+    console.log(`[Twitter Upload Media OAuth1] APPEND OAuth params keys (sorted):`, sortedKeys);
+    console.log(`[Twitter Upload Media OAuth1] APPEND signature:`, appendSignature.substring(0, 20) + '...');
+    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 150 chars):`, authHeader.substring(0, 150) + '...');
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
@@ -439,6 +442,8 @@ export async function uploadMediaOAuth1(
         console.error(`[Twitter Upload Media OAuth1] Append failed (non-JSON):`, errorText);
         errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
       }
+      console.error(`[Twitter Upload Media OAuth1] Response status: ${appendResponse.status}`);
+      console.error(`[Twitter Upload Media OAuth1] Response headers:`, Object.fromEntries(appendResponse.headers.entries()));
       throw new Error(errorMessage);
     }
     

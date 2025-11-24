@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
         // Try OAuth 1.0a first (required for v1.1 media upload)
         if (oauth1Available) {
           console.log(`[Twitter Post Tweet] Using OAuth 1.0a for media upload`);
+          console.log(`[Twitter Post Tweet] OAuth 1.0a token present: ${!!userWithToken.twitterOAuth1Token}`);
+          console.log(`[Twitter Post Tweet] OAuth 1.0a token secret present: ${!!userWithToken.twitterOAuth1TokenSecret}`);
+          console.log(`[Twitter Post Tweet] Consumer key present: ${!!consumerKey}`);
+          console.log(`[Twitter Post Tweet] Consumer secret present: ${!!consumerSecret}`);
           mediaId = await uploadMediaOAuth1(
             consumerKey!,
             consumerSecret!,
