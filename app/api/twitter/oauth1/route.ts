@@ -108,7 +108,19 @@ export async function GET(request: NextRequest) {
     console.log('[Twitter OAuth1] Generated auth URL, redirecting user to Twitter');
     console.log('[Twitter OAuth1] Auth URL:', authUrlWithState);
     
-    return NextResponse.json({ authUrl: authUrlWithState });
+    // Check if this is a server-side redirect (from OAuth 2.0 callback) or client-side fetch
+    // Server-side redirects don't have Accept: application/json header
+    const acceptHeader = request.headers.get('accept') || '';
+    const isJsonRequest = acceptHeader.includes('application/json');
+    
+    // If it's a JSON request (client-side fetch), return JSON
+    // Otherwise, redirect directly (server-side redirect from OAuth 2.0 callback)
+    if (isJsonRequest) {
+      return NextResponse.json({ authUrl: authUrlWithState });
+    } else {
+      // Server-side redirect - redirect directly to Twitter
+      return NextResponse.redirect(authUrlWithState);
+    }
   } catch (error: any) {
     console.error('[Twitter OAuth1] Error:', error);
     return NextResponse.json(
