@@ -379,8 +379,7 @@ export async function uploadMediaOAuth1(
       segment_index: segmentIndex.toString(),
     };
     
-    // Use manual signature calculation (same as INIT and FINALIZE) for consistency
-    // The oauth-1.0a library may not correctly handle multipart/form-data signatures
+    // Generate signature - this combines OAuth params + form field params internally
     const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
       'POST',
       uploadUrl,
@@ -391,10 +390,28 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
+    // Build Authorization header manually (more explicit approach)
+    // All OAuth parameters must be included and sorted alphabetically
+    const oauthParams: Record<string, string> = {
+      oauth_consumer_key: consumerKey,
+      oauth_token: token,
+      oauth_signature_method: 'HMAC-SHA1',
+      oauth_timestamp: appendTimestamp,
+      oauth_nonce: appendNonce,
+      oauth_version: '1.0',
+      oauth_signature: appendSignature,
+    };
+    
+    // Build Authorization header: OAuth + sorted, encoded parameters
+    const authHeader = 'OAuth ' + Object.keys(oauthParams)
+      .sort()
+      .map(key => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
+      .join(', ');
+    
     // Log signature details for debugging
     console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
     console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND signature calculated with manual function`);
+    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 100 chars):`, authHeader.substring(0, 100) + '...');
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
@@ -403,7 +420,7 @@ export async function uploadMediaOAuth1(
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
+        'Authorization': authHeader,
         // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
         // Setting it manually would break the OAuth signature
       },
