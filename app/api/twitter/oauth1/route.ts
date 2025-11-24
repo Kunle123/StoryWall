@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
     
     // Step 1: Get request token
     console.log('[Twitter OAuth1] Getting request token...');
+    console.log('[Twitter OAuth1] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
     const requestTokenData = await getOAuth1RequestToken(
       consumerKey,
       consumerSecret,
