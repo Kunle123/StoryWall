@@ -123,21 +123,28 @@ export async function GET(request: NextRequest) {
     });
     
     // Determine redirect URL - use returnUrl from state if available and valid
+    // Get the correct base URL from environment or construct from request
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                    (process.env.NODE_ENV === 'production' 
+                      ? (process.env.TWITTER_REDIRECT_URI?.replace('/api/twitter/callback', '') || 'https://www.storywall.com')
+                      : 'http://localhost:3000');
+    
     let redirectPath = '/?twitter_connected=true';
     if (returnUrl) {
       try {
         // returnUrl should be a path (e.g., /timeline/123 or /timeline/123?param=value)
-        // If it's a full URL, extract the path
+        // If it's a full URL, extract the path and validate origin
         let pathToUse: string | null = returnUrl;
         
         // Check if it's a full URL or just a path
         if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
           const returnUrlObj = new URL(returnUrl);
-          const currentUrlObj = new URL(request.url);
-          // Validate same origin for security
-          if (returnUrlObj.origin !== currentUrlObj.origin) {
-            console.warn('[Twitter Callback] Return URL origin mismatch, using default. Return origin:', returnUrlObj.origin, 'Current origin:', currentUrlObj.origin);
-            pathToUse = null;
+          const baseUrlObj = new URL(baseUrl);
+          
+          // If the returnUrl has localhost:8080 or wrong origin, extract just the path
+          if (returnUrlObj.origin !== baseUrlObj.origin) {
+            console.warn('[Twitter Callback] Return URL origin mismatch, extracting path only. Return origin:', returnUrlObj.origin, 'Expected origin:', baseUrlObj.origin);
+            pathToUse = returnUrlObj.pathname + returnUrlObj.search;
           } else {
             pathToUse = returnUrlObj.pathname + returnUrlObj.search;
           }
@@ -165,8 +172,10 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('twitter_oauth_state');
     cookieStore.delete('twitter_oauth_code_verifier');
     
-    // Use relative path for redirect (Next.js will handle the full URL)
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+    // Construct full URL using the correct base URL, not request.url
+    const redirectUrl = new URL(redirectPath, baseUrl);
+    console.log('[Twitter Callback] Final redirect URL:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
     console.error('[Twitter Callback] Error:', error);
     return NextResponse.redirect(

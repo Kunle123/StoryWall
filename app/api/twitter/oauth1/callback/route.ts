@@ -119,10 +119,22 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('twitter_oauth1_request_token_secret');
     cookieStore.delete('twitter_oauth1_state');
     
+    // Get the correct base URL from environment or construct from request
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                    (process.env.NODE_ENV === 'production' 
+                      ? (process.env.TWITTER_REDIRECT_URI?.replace('/api/twitter/oauth1/callback', '').replace('/api/twitter/callback', '') || 'https://www.storywall.com')
+                      : 'http://localhost:3000');
+    
     // Determine redirect URL
     let redirectPath = '/?twitter_oauth1_connected=true';
     if (returnUrl) {
       try {
+        // If returnUrl is a full URL, extract just the path
+        if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
+          const returnUrlObj = new URL(returnUrl);
+          returnUrl = returnUrlObj.pathname + returnUrlObj.search;
+        }
+        
         if (returnUrl.startsWith('/')) {
           const separator = returnUrl.includes('?') ? '&' : '?';
           redirectPath = `${returnUrl}${separator}twitter_oauth1_connected=true`;
@@ -133,7 +145,10 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    return NextResponse.redirect(new URL(redirectPath, request.url));
+    // Construct full URL using the correct base URL, not request.url
+    const redirectUrl = new URL(redirectPath, baseUrl);
+    console.log('[Twitter OAuth1 Callback] Final redirect URL:', redirectUrl.toString());
+    return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
     console.error('[Twitter OAuth1 Callback] Error:', error);
     return NextResponse.redirect(
