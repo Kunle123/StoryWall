@@ -92,14 +92,24 @@ export async function POST(request: NextRequest) {
         console.error('[Twitter Post Tweet] Failed to upload image:', error);
         console.error('[Twitter Post Tweet] Error details:', error.message);
         
+        // Determine if OAuth 1.0a was attempted
+        const oauth1Attempted = consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret;
+        
         // Check if it's a 403 error - Twitter v1.1 media upload requires OAuth 1.0a
         if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          // CRITICAL: Twitter's v1.1 media upload endpoint REQUIRES OAuth 1.0a authentication
-          // OAuth 2.0 Bearer tokens will ALWAYS return 403 Forbidden for this endpoint
-          // This is a Twitter API limitation, not a scope issue
-          console.error('[Twitter Post Tweet] Media upload failed with 403 - Twitter v1.1 media upload requires OAuth 1.0a, not OAuth 2.0. OAuth 1.0a implementation needed.');
+          if (oauth1Attempted) {
+            console.error('[Twitter Post Tweet] Media upload failed with 403 - OAuth 1.0a authentication error. Check signature calculation.');
+          } else {
+            // CRITICAL: Twitter's v1.1 media upload endpoint REQUIRES OAuth 1.0a authentication
+            // OAuth 2.0 Bearer tokens will ALWAYS return 403 Forbidden for this endpoint
+            console.error('[Twitter Post Tweet] Media upload failed with 403 - Twitter v1.1 media upload requires OAuth 1.0a, not OAuth 2.0. OAuth 1.0a credentials not configured.');
+          }
           
           // Continue without image - post tweet text only
+          mediaId = undefined;
+        } else if (error.message?.includes('Could not authenticate') || error.message?.includes('code: 32')) {
+          // OAuth 1.0a signature error
+          console.error('[Twitter Post Tweet] Media upload failed - OAuth 1.0a signature authentication error (code 32). Check OAuth credentials and signature calculation.');
           mediaId = undefined;
         } else {
           // For other errors, also continue without image
@@ -120,12 +130,26 @@ export async function POST(request: NextRequest) {
     
     console.log(`[Twitter Post Tweet] Successfully posted. Tweet ID: ${result.tweetId}`);
     
+    // Determine warning message based on what actually happened
+    let warning: string | undefined;
+    if (imageUrl && !mediaId) {
+      const consumerKey = process.env.TWITTER_API_KEY;
+      const consumerSecret = process.env.TWITTER_API_SECRET;
+      const hasOAuth1 = consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret;
+      
+      if (hasOAuth1) {
+        warning = 'Tweet posted successfully, but image could not be attached. OAuth 1.0a authentication failed - please check your OAuth 1.0a credentials and try reconnecting your Twitter account.';
+      } else {
+        warning = 'Tweet posted successfully, but image could not be attached. Twitter\'s media upload API requires OAuth 1.0a authentication. Please connect your Twitter account with OAuth 1.0a to enable image uploads.';
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       tweetId: result.tweetId,
       tweetUrl: `https://twitter.com/i/web/status/${result.tweetId}`,
       imageAttached: !!mediaId,
-      warning: imageUrl && !mediaId ? 'Tweet posted successfully, but image could not be attached. Twitter\'s media upload API requires OAuth 1.0a authentication (currently using OAuth 2.0). Image uploads are not currently supported.' : undefined,
+      warning,
     });
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);
