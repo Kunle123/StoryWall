@@ -361,10 +361,18 @@ export async function uploadMediaOAuth1(
     tokenSecret
   );
   
+  const initAuthHeader = createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce);
+  
+  // Debug logging for INIT step
+  console.log(`[INIT Debug] OAuth params:`, JSON.stringify({ consumerKey: consumerKey.substring(0, 10) + '...', token: token ? token.substring(0, 10) + '...' : 'empty', timestamp: initTimestamp, nonce: initNonce.substring(0, 10) + '...' }));
+  console.log(`[INIT Debug] Signature (first 20 chars):`, initSignature.substring(0, 20));
+  console.log(`[INIT Debug] Auth header:`, initAuthHeader);
+  console.log(`[INIT Debug] Form params:`, JSON.stringify(initParams));
+  
   const initResponse = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
-      'Authorization': createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce),
+      'Authorization': initAuthHeader,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams(initParams),
