@@ -83,15 +83,25 @@ export async function GET(request: NextRequest) {
     const storedState = cookieStore.get('twitter_oauth1_state')?.value;
     const requestTokenSecret = cookieStore.get('twitter_oauth1_request_token_secret')?.value;
     
+    console.log('[Twitter OAuth1 Callback] Received params:', {
+      oauthToken: oauthToken ? 'present' : 'missing',
+      oauthVerifier: oauthVerifier ? 'present' : 'missing',
+      state: state ? 'present' : 'missing',
+      storedState: storedState ? 'present' : 'missing',
+      requestTokenSecret: requestTokenSecret ? 'present' : 'missing',
+    });
+    
     if (!storedState || !state || storedState !== state) {
-      console.error('[Twitter OAuth1 Callback] State mismatch - possible CSRF attack');
+      console.error('[Twitter OAuth1 Callback] State mismatch - possible CSRF attack or cookie lost');
+      console.error('[Twitter OAuth1 Callback] Stored state:', storedState?.substring(0, 50));
+      console.error('[Twitter OAuth1 Callback] Received state:', state?.substring(0, 50));
       return NextResponse.redirect(
         new URL('/?error=twitter_oauth1_state_mismatch', baseUrl)
       );
     }
     
     if (!requestTokenSecret) {
-      console.error('[Twitter OAuth1 Callback] Missing request token secret');
+      console.error('[Twitter OAuth1 Callback] Missing request token secret - cookie may have expired or been lost');
       return NextResponse.redirect(
         new URL('/?error=twitter_oauth1_missing_token_secret', baseUrl)
       );
