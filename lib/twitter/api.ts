@@ -357,6 +357,23 @@ export async function uploadMediaOAuth1(
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
   let segmentIndex = 0;
   
+  // Create OAuth instance once outside the loop (more efficient)
+  const oauth = new OAuth({
+    consumer: {
+      key: consumerKey,
+      secret: consumerSecret,
+    },
+    signature_method: 'HMAC-SHA1',
+    hash_function(baseString, key) {
+      return createHmac('sha1', key).update(baseString).digest('base64');
+    },
+  });
+  
+  const tokenData = {
+    key: token,
+    secret: tokenSecret,
+  };
+  
   for (let offset = 0; offset < imageBuffer.byteLength; offset += chunkSize) {
     const chunkEnd = Math.min(offset + chunkSize, imageBuffer.byteLength);
     const chunk = imageBuffer.slice(offset, chunkEnd);
@@ -374,7 +391,6 @@ export async function uploadMediaOAuth1(
     
     // For multipart/form-data, OAuth 1.0a signature is calculated using form field parameters
     // The signature includes command, media_id, and segment_index (but not the binary media data)
-    // CRITICAL: For multipart, we must ensure the signature matches exactly what Twitter expects
     const appendParams = {
       command: 'APPEND',
       media_id: mediaId,
@@ -383,21 +399,6 @@ export async function uploadMediaOAuth1(
     
     // Use oauth-1.0a library for proper signature calculation with multipart/form-data
     // This library handles the complexities of OAuth 1.0a signature generation correctly
-    const oauth = new OAuth({
-      consumer: {
-        key: consumerKey,
-        secret: consumerSecret,
-      },
-      signature_method: 'HMAC-SHA1',
-      hash_function(baseString, key) {
-        return createHmac('sha1', key).update(baseString).digest('base64');
-      },
-    });
-    
-    const tokenData = {
-      key: token,
-      secret: tokenSecret,
-    };
     
     // For multipart/form-data, OAuth signature includes form field params but NOT binary data
     // The oauth-1.0a library will handle this correctly
