@@ -206,9 +206,9 @@ export async function uploadMedia(
         // Don't set Content-Type for FormData - browser will set it with boundary
       },
       body: formData,
-    });
-    
-    if (!appendResponse.ok) {
+      });
+      
+      if (!appendResponse.ok) {
       const error = await appendResponse.json();
       throw new Error(error.error || 'Failed to append media chunk');
     }
@@ -407,43 +407,49 @@ export async function uploadMediaOAuth1(
       data: appendParams, // Only form field parameters, not binary data
     };
     
-    const authHeader = oauth.toHeader(oauth.authorize(requestData, tokenData));
-    
-    // Log signature details for debugging
-    console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
-    console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND auth header:`, authHeader.Authorization?.substring(0, 100) + '...');
-    
-    // Native FormData will automatically set Content-Type with boundary
-    // We don't manually set it - fetch will handle it
-    // IMPORTANT: Do NOT include Content-Type in headers - fetch will set it with the correct boundary
-    const appendResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        ...authHeader, // Use the Authorization header from oauth-1.0a library
-        // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
-        // Setting it manually would break the OAuth signature
-      },
+    try {
+      const authHeader = oauth.toHeader(oauth.authorize(requestData, tokenData));
+      
+      // Log signature details for debugging
+      console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
+      console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
+      console.log(`[Twitter Upload Media OAuth1] APPEND auth header:`, authHeader.Authorization?.substring(0, 100) + '...');
+      
+      // Native FormData will automatically set Content-Type with boundary
+      // We don't manually set it - fetch will handle it
+      // IMPORTANT: Do NOT include Content-Type in headers - fetch will set it with the correct boundary
+      const appendResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader.Authorization, // Use the Authorization header from oauth-1.0a library
+          // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
+          // Setting it manually would break the OAuth signature
+        },
       body: formData,
-    });
-    
-    if (!appendResponse.ok) {
-      const errorText = await appendResponse.text();
-      let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
-      try {
-        const error = JSON.parse(errorText);
-        errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
-        console.error(`[Twitter Upload Media OAuth1] Append failed:`, error);
-      } catch {
-        console.error(`[Twitter Upload Media OAuth1] Append failed (non-JSON):`, errorText);
-        errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
+      });
+      
+      if (!appendResponse.ok) {
+        const errorText = await appendResponse.text();
+        let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
+        try {
+          const error = JSON.parse(errorText);
+          errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
+          console.error(`[Twitter Upload Media OAuth1] Append failed:`, error);
+        } catch {
+          console.error(`[Twitter Upload Media OAuth1] Append failed (non-JSON):`, errorText);
+          errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
+      
+      console.log(`[Twitter Upload Media OAuth1] Appended segment ${segmentIndex} (${chunk.byteLength} bytes)`);
+      
+      segmentIndex++;
+    } catch (error: any) {
+      // If oauth-1.0a library throws an error, log it and rethrow
+      console.error(`[Twitter Upload Media OAuth1] OAuth library error:`, error);
+      throw error;
     }
-    
-    console.log(`[Twitter Upload Media OAuth1] Appended segment ${segmentIndex} (${chunk.byteLength} bytes)`);
-    
-    segmentIndex++;
   }
   
   // Step 3: Finalize media upload
