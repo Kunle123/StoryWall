@@ -583,7 +583,8 @@ export async function uploadMediaOAuth1(
       console.error(`    3. Mismatch between consumer key/secret and token/secret`);
       console.error(`    4. App permissions changed but tokens weren't regenerated`);
       
-      throw new Error(
+      // Throw error with special code to trigger automatic token clearing and reconnection
+      const error = new Error(
         `OAuth 1.0a authentication failed (400): Bad Authentication data (code 215). This usually means the access token/secret don't have "Read and Write" permissions. ` +
         `Even if your app has "Read and Write" permissions, tokens obtained through the OAuth flow may not have write access if they were generated before the app permissions were changed. ` +
         `SOLUTION: ` +
@@ -593,6 +594,8 @@ export async function uploadMediaOAuth1(
         `4. Reconnect your Twitter account in StoryWall to get new tokens with write permissions. ` +
         `(Status: ${initResponse.status})`
       );
+      (error as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
+      throw error;
     }
     
     throw new Error(`${errorMessage} (Status: ${initResponse.status})`);
