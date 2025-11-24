@@ -390,13 +390,16 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
+    // Get the Content-Type header with boundary from form-data
+    const formHeaders = formData.getHeaders();
+    
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
-        // Don't set Content-Type for FormData - browser will set it with boundary
+        ...formHeaders, // Include Content-Type with boundary from form-data
       },
-      body: formData,
+      body: formData as any, // form-data is compatible with fetch body
     });
     
     if (!appendResponse.ok) {
