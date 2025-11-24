@@ -11,6 +11,7 @@ interface TwitterTweet {
 interface TwitterThreadResponse {
   tweetId: string;
   text: string;
+  mediaIds?: string[]; // Media IDs attached to the tweet
 }
 
 /**
@@ -626,7 +627,12 @@ export async function postTweet(
   accessToken: string,
   text: string,
   replyToTweetId?: string,
-  mediaId?: string
+  mediaId?: string,
+  consumerKey?: string,
+  consumerSecret?: string,
+  token?: string,
+  tokenSecret?: string,
+  imageUrl?: string
 ): Promise<TwitterThreadResponse> {
   const url = 'https://api.twitter.com/2/tweets';
   
@@ -667,14 +673,31 @@ export async function postTweet(
     };
   }
   
-  if (mediaId) {
+  // Handle image upload using OAuth 1.0a if imageUrl is provided
+  if (imageUrl && consumerKey && consumerSecret && token && tokenSecret) {
+    try {
+      console.log(`[Twitter Post Tweet] Uploading image using OAuth 1.0a: ${imageUrl}`);
+      const uploadedMediaId = await uploadMediaOAuth1(consumerKey, consumerSecret, token, tokenSecret, imageUrl);
+      if (uploadedMediaId) {
+        body.media = {
+          media_ids: [uploadedMediaId],
+        };
+        console.log(`[Twitter Post Tweet] Attaching media_id: ${uploadedMediaId} to tweet`);
+      }
+    } catch (error: any) {
+      console.error('[Twitter Post Tweet] Image upload failed, posting tweet without image.', error);
+      // Continue without image - don't throw, just post the tweet text
+    }
+  } else if (mediaId) {
+    // Fallback: use provided mediaId if no imageUrl/OAuth 1.0a credentials
     body.media = {
       media_ids: [mediaId],
     };
     console.log(`[Twitter Post Tweet] Attaching media_id: ${mediaId} to tweet`);
   }
   
-  console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${mediaId ? ' with image' : ''}`);
+  const hasMedia = !!(body.media?.media_ids?.length);
+  console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${hasMedia ? ' with image' : ''}`);
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -711,6 +734,7 @@ export async function postTweet(
   return {
     tweetId: data.data.id,
     text: data.data.text,
+    mediaIds: body.media?.media_ids || undefined,
   };
 }
 
