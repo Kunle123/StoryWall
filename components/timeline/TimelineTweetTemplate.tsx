@@ -297,31 +297,54 @@ export const TimelineTweetTemplate = ({
       } catch (error: any) {
         console.error('[TimelineTweetTemplate] Error posting tweet:', error);
         
-        // Check if it's a token permissions error that requires reconnection (fallback for network errors)
-        const errorMessage = error.message || '';
-        const requiresReconnection = errorMessage.includes('Bad Authentication') || 
+        // Check if it's a token permissions error that requires reconnection
+        let errorData: any = {};
+        try {
+          if (error.response) {
+            errorData = await error.response.json();
+          }
+        } catch {}
+        
+        const errorMessage = error.message || errorData.error || '';
+        const requiresReconnection = errorData.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR' ||
+                                     errorData.requiresReconnection ||
+                                     errorMessage.includes('Bad Authentication') || 
                                      errorMessage.includes('OAuth 1.0a authentication failed') ||
                                      errorMessage.includes('lack write permissions') ||
                                      errorMessage.includes('don\'t have write permissions');
         
         if (requiresReconnection) {
+          // Show detailed error message with solution steps
+          const solution = errorData.solution || 
+            '1. Verify app permissions are "Read and write" in Developer Portal\n' +
+            '2. Revoke app access: https://twitter.com/settings/apps\n' +
+            '3. Reconnect in StoryWall to get new tokens with correct permissions';
+          
           toast({
-            title: "Reconnection Required",
-            description: "Your Twitter tokens need to be refreshed. Redirecting to reconnect...",
-            variant: "default",
+            title: "Token Permissions Error",
+            description: errorData.error || "Your tokens don't have write permissions. See console for solution steps.",
+            variant: "destructive",
+            duration: 10000, // Show longer for important error
           });
           
+          // Log detailed solution to console
+          console.error('[TimelineTweetTemplate] Token permissions error detected');
+          console.error('[TimelineTweetTemplate] According to X Developer docs: https://docs.x.com/fundamentals/developer-apps#app-permissions');
+          console.error('[TimelineTweetTemplate] If app permissions changed, you must revoke and re-authorize');
+          console.error('[TimelineTweetTemplate] Solution steps:');
+          console.error(solution);
+          
           // Automatically trigger full re-authentication (both OAuth 2.0 and 1.0a)
-          // This will get fresh tokens with correct permissions
+          // This will attempt to get fresh tokens with correct permissions
           setTimeout(() => {
             handleConnectTwitter();
-          }, 1500);
+          }, 2000); // Give user time to read the error message
           return;
         }
         
         toast({
           title: "Error",
-          description: error.message || "Failed to post tweet",
+          description: error.message || errorData.error || "Failed to post tweet",
           variant: "destructive",
         });
       } finally {
