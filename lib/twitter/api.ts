@@ -425,15 +425,18 @@ export async function uploadMediaOAuth1(
       .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
       .join(', ');
     
-    // Use native FormData (Node.js 18+) - compatible with fetch
-    // CRITICAL: Node.js FormData.append() for files takes: (name, value, filename)
-    // filename is a string, not an options object
-    const formData = new FormData();
+    // Use form-data package for Node.js multipart/form-data (more reliable than native FormData)
+    // This ensures proper multipart encoding that Twitter expects
+    const FormDataNode = require('form-data');
+    const formData = new FormDataNode();
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // Append Buffer as Blob with filename (Node.js FormData requires Blob/File for file uploads)
-    formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), 'blob');
+    // Append Buffer directly with explicit options
+    formData.append('media', chunk, {
+      filename: 'blob',
+      contentType: 'application/octet-stream',
+    });
     
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
@@ -444,18 +447,17 @@ export async function uploadMediaOAuth1(
     console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
     console.log(`[APPEND Debug] FormData keys:`, Array.from(formData.keys()));
     
-    // Native FormData will automatically set Content-Type with boundary
-    // We don't manually set it - fetch will handle it
-    // IMPORTANT: Do NOT include Content-Type in headers - fetch will set it with the correct boundary
+    // form-data package sets Content-Type with boundary automatically
+    // IMPORTANT: Do NOT manually set Content-Type - form-data will set it with the correct boundary
     // The OAuth signature is calculated WITHOUT the Content-Type header
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
-        // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
-        // Setting it manually would break the OAuth signature
+        // form-data will set Content-Type with boundary - don't set it manually
+        ...formData.getHeaders(), // This sets Content-Type with boundary
       },
-      body: formData,
+      body: formData as any, // form-data is compatible with fetch body
     });
     
     if (!appendResponse.ok) {
