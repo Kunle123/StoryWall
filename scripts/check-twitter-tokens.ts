@@ -10,7 +10,7 @@
  */
 
 import 'dotenv/config';
-import { prisma } from '@/lib/db/prisma';
+import { prisma } from '../lib/db/prisma';
 
 async function checkTwitterTokens() {
   try {
