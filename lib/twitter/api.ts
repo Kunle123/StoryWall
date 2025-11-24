@@ -877,8 +877,16 @@ export async function postTweet(
         };
         console.log(`[Twitter Post Tweet] Attaching media_id: ${uploadedMediaId} to tweet`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Twitter Post Tweet] Image upload failed, posting tweet without image.', error);
+      
+      // If it's a token permissions error, re-throw it so the API route can handle automatic reconnection
+      if (error?.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR') {
+        console.error('[Twitter Post Tweet] Token permissions error detected - re-throwing to trigger automatic reconnection');
+        throw error; // Re-throw to trigger automatic token clearing and reconnection
+      }
+      
+      // For other errors, continue without image
       // Fallback to original mediaId if it was provided, otherwise it remains undefined
       uploadedMediaId = mediaId;
     }
