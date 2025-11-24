@@ -369,6 +369,7 @@ export async function uploadMediaOAuth1(
     
     // For multipart/form-data, OAuth 1.0a signature is calculated using form field parameters
     // The signature includes command, media_id, and segment_index (but not the binary media data)
+    // CRITICAL: For multipart, we must ensure the signature matches exactly what Twitter expects
     const appendParams = {
       command: 'APPEND',
       media_id: mediaId,
@@ -385,13 +386,19 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
+    // Log signature details for debugging (remove in production)
+    console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, appendParams);
+    console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
+    
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
+    // IMPORTANT: Do NOT include Content-Type in headers - fetch will set it with the correct boundary
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
-        // Don't set Content-Type - fetch will set it automatically with boundary for FormData
+        // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
+        // Setting it manually would break the OAuth signature
       },
       body: formData,
     });
