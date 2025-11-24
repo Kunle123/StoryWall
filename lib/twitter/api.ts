@@ -77,6 +77,13 @@ function generateOAuth1Signature(
     .update(signatureBaseString)
     .digest('base64');
 
+  // Log signature details for debugging (only for APPEND step to avoid spam)
+  if (params.command === 'APPEND') {
+    console.log(`[Twitter OAuth1 Signature] Base string: ${signatureBaseString.substring(0, 200)}...`);
+    console.log(`[Twitter OAuth1 Signature] Signing key length: ${signingKey.length}`);
+    console.log(`[Twitter OAuth1 Signature] Signature (first 20 chars): ${signature.substring(0, 20)}...`);
+  }
+
   return { signature, timestamp, nonce };
 }
 
@@ -414,7 +421,9 @@ export async function uploadMediaOAuth1(
     console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
     console.log(`[Twitter Upload Media OAuth1] APPEND OAuth params keys (sorted):`, sortedKeys);
     console.log(`[Twitter Upload Media OAuth1] APPEND signature:`, appendSignature.substring(0, 20) + '...');
-    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 150 chars):`, authHeader.substring(0, 150) + '...');
+    console.log(`[Twitter Upload Media OAuth1] APPEND timestamp: ${appendTimestamp}, nonce: ${appendNonce.substring(0, 10)}...`);
+    console.log(`[Twitter Upload Media OAuth1] APPEND consumer key: ${consumerKey.substring(0, 10)}..., token: ${token.substring(0, 10)}...`);
+    console.log(`[Twitter Upload Media OAuth1] APPEND auth header (first 200 chars):`, authHeader.substring(0, 200) + '...');
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
