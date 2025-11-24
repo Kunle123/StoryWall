@@ -481,29 +481,21 @@ export async function uploadMediaOAuth1(
   const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
   
   // TODO: Remove this verification step once token permissions issue is resolved
-  // Verify token permissions before attempting upload
-  const verification = await verifyOAuth1TokenPermissions(consumerKey, consumerSecret, token, tokenSecret);
-  if (!verification.authenticated) {
-    // Throw error that will trigger automatic token clearing and reconnection
-    const error = new Error(
-      `OAuth 1.0a token verification failed: ${verification.error || 'Authentication failed'}. ` +
-      `Please reconnect your Twitter account to obtain valid tokens.`
-    );
-    (error as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
-    throw error;
+  // Verify token permissions before attempting upload (non-blocking - just for logging)
+  // We'll let the actual upload attempt proceed and catch errors there
+  try {
+    const verification = await verifyOAuth1TokenPermissions(consumerKey, consumerSecret, token, tokenSecret);
+    if (verification.authenticated && verification.hasWritePermissions) {
+      console.log(`[Twitter Upload Media OAuth1] ✅ Token permissions verified - proceeding with upload`);
+    } else {
+      console.warn(`[Twitter Upload Media OAuth1] ⚠️  Verification warning: ${verification.error || 'Permissions check failed'}`);
+      console.warn(`[Twitter Upload Media OAuth1] ⚠️  Proceeding with upload attempt anyway - will catch errors if permissions are missing`);
+    }
+  } catch (verifyError) {
+    // Verification step failed, but continue with actual upload attempt
+    // The actual upload will fail with the same error and trigger reconnection
+    console.warn(`[Twitter Upload Media OAuth1] ⚠️  Verification step failed, but proceeding with upload:`, verifyError);
   }
-  if (!verification.hasWritePermissions) {
-    // Throw error that will trigger automatic token clearing and reconnection
-    const error = new Error(
-      `OAuth 1.0a tokens don't have write permissions: ${verification.error || 'Write access denied'}. ` +
-      `SOLUTION: In Twitter Developer Portal, ensure "App permissions" is set to "Read and Write", ` +
-      `then go to "Keys and tokens" → "Authentication Tokens" and regenerate the "Access Token and Secret" for your user, ` +
-      `then reconnect in StoryWall.`
-    );
-    (error as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
-    throw error;
-  }
-  console.log(`[Twitter Upload Media OAuth1] ✅ Token permissions verified - proceeding with upload`);
   
   // Step 1: Initialize media upload with OAuth 1.0a
   console.log(`[Twitter Upload Media OAuth1] Initializing upload...`);
