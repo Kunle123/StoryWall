@@ -28,10 +28,6 @@ export const TimelineTweetTemplate = ({
   const [hasOAuth1, setHasOAuth1] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
-  const [showOAuth1Input, setShowOAuth1Input] = useState(false);
-  const [oauth1Token, setOAuth1Token] = useState('');
-  const [oauth1TokenSecret, setOAuth1TokenSecret] = useState('');
-  const [isSavingOAuth1, setIsSavingOAuth1] = useState(false);
 
   // Calculate tweet length with URL counting as 23 characters (Twitter's shortened URL length)
   // Twitter automatically shortens URLs to ~23 characters, but we must include the full URL
@@ -250,54 +246,6 @@ export const TimelineTweetTemplate = ({
     }
   };
 
-  const handleSaveOAuth1Tokens = async () => {
-    if (!oauth1Token || !oauth1TokenSecret) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both Access Token and Access Token Secret",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSavingOAuth1(true);
-    try {
-      const response = await fetch('/api/twitter/oauth1-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          oauth1Token,
-          oauth1TokenSecret,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save OAuth 1.0a tokens');
-      }
-
-      toast({
-        title: "Success!",
-        description: "OAuth 1.0a tokens saved. You can now upload images with tweets.",
-      });
-      
-      setHasOAuth1(true);
-      setShowOAuth1Input(false);
-      setOAuth1Token('');
-      setOAuth1TokenSecret('');
-    } catch (error: any) {
-      console.error('[TimelineTweetTemplate] Error saving OAuth 1.0a tokens:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save OAuth 1.0a tokens",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSavingOAuth1(false);
-    }
-  };
 
   const handleShareOnTwitter = async () => {
     // If image is present and user is connected, use API to post with image
@@ -370,6 +318,23 @@ export const TimelineTweetTemplate = ({
         }
       } catch (error: any) {
         console.error('[TimelineTweetTemplate] Error posting tweet:', error);
+        
+        // Check if it's an OAuth 1.0a token mismatch error
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('Bad Authentication') || errorMessage.includes('OAuth 1.0a authentication failed')) {
+          toast({
+            title: "Authentication Required",
+            description: "Your OAuth 1.0a tokens need to be refreshed. Redirecting to reconnect...",
+            variant: "default",
+          });
+          
+          // Automatically trigger OAuth 1.0a re-authentication
+          setTimeout(() => {
+            handleEnableImageUpload();
+          }, 1500);
+          return;
+        }
+        
         toast({
           title: "Error",
           description: error.message || "Failed to post tweet",
@@ -510,15 +475,6 @@ export const TimelineTweetTemplate = ({
                         >
                           Enable Image Upload
                         </Button>
-                        <span className="text-xs text-muted-foreground">or</span>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={() => setShowOAuth1Input(!showOAuth1Input)}
-                          className="h-auto p-0 text-xs"
-                        >
-                          {showOAuth1Input ? 'Cancel' : 'Enter Manually'}
-                        </Button>
                       </div>
                     )}
                   </div>
@@ -537,63 +493,6 @@ export const TimelineTweetTemplate = ({
                   Connect Twitter
                 </Button>
               </div>
-            )}
-            
-            {/* OAuth 1.0a token input form */}
-            {showOAuth1Input && isConnected && (
-              <Card className="p-4 space-y-3 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <Label className="text-sm font-medium">Enable Image Upload</Label>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    To upload images with tweets, you need to provide OAuth 1.0a credentials from your Twitter Developer Portal.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Go to: <strong>Keys and tokens</strong> → <strong>Authentication Tokens</strong> → <strong>Access Token and Secret</strong> → Click <strong>Generate</strong>
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <Label htmlFor="oauth1-token" className="text-xs">Access Token</Label>
-                    <Input
-                      id="oauth1-token"
-                      type="text"
-                      placeholder="Enter OAuth 1.0a Access Token"
-                      value={oauth1Token}
-                      onChange={(e) => setOAuth1Token(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="oauth1-secret" className="text-xs">Access Token Secret</Label>
-                    <Input
-                      id="oauth1-secret"
-                      type="password"
-                      placeholder="Enter OAuth 1.0a Access Token Secret"
-                      value={oauth1TokenSecret}
-                      onChange={(e) => setOAuth1TokenSecret(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSaveOAuth1Tokens}
-                    disabled={isSavingOAuth1 || !oauth1Token || !oauth1TokenSecret}
-                    size="sm"
-                    className="w-full"
-                  >
-                    {isSavingOAuth1 ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save OAuth 1.0a Tokens'
-                    )}
-                  </Button>
-                </div>
-              </Card>
             )}
           </div>
         )}
