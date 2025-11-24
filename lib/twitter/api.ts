@@ -14,6 +14,19 @@ interface TwitterThreadResponse {
 }
 
 /**
+ * Percent encode according to RFC 3986 (OAuth 1.0a spec)
+ * This is more strict than encodeURIComponent
+ */
+function percentEncode(str: string): string {
+  return encodeURIComponent(str)
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A');
+}
+
+/**
  * Generate OAuth 1.0a signature for Twitter API requests
  * Required for v1.1 media upload endpoint
  */
@@ -50,13 +63,13 @@ function generateOAuth1Signature(
     oauthParams.oauth_callback = callbackUrl;
   }
 
-  // Step 2: Merge all parameters
+  // Step 2: Merge all parameters (OAuth params + form field params)
   const allParams = { ...oauthParams, ...params };
   
-  // Step 3: Normalize parameters (sort and encode)
+  // Step 3: Normalize parameters (sort and percent-encode)
   const normalizedParams = Object.keys(allParams)
     .sort()
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(allParams[key])}`)
+    .map(key => `${percentEncode(key)}=${percentEncode(allParams[key])}`)
     .join('&');
 
   // Step 4: Create signature base string
@@ -65,12 +78,12 @@ function generateOAuth1Signature(
   const normalizedUrl = url.split('?')[0]; // Remove any query parameters
   const signatureBaseString = [
     method.toUpperCase(),
-    encodeURIComponent(normalizedUrl),
-    encodeURIComponent(normalizedParams)
+    percentEncode(normalizedUrl),
+    percentEncode(normalizedParams)
   ].join('&');
 
-  // Step 5: Create signing key
-  const signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(tokenSecret)}`;
+  // Step 5: Create signing key (percent-encode secrets)
+  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
 
   // Step 6: Generate signature
   const signature = createHmac('sha1', signingKey)
@@ -79,6 +92,7 @@ function generateOAuth1Signature(
 
   // Log signature details for debugging (only for APPEND step to avoid spam)
   if (params.command === 'APPEND') {
+    console.log(`[Twitter OAuth1 Signature] All params for signature:`, JSON.stringify(allParams));
     console.log(`[Twitter OAuth1 Signature] Base string: ${signatureBaseString.substring(0, 200)}...`);
     console.log(`[Twitter OAuth1 Signature] Signing key length: ${signingKey.length}`);
     console.log(`[Twitter OAuth1 Signature] Signature (first 20 chars): ${signature.substring(0, 20)}...`);
@@ -100,22 +114,22 @@ function createOAuth1Header(
   callbackUrl?: string
 ): string {
   const params: string[] = [
-    `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
+    `oauth_consumer_key="${percentEncode(consumerKey)}"`,
     `oauth_signature_method="HMAC-SHA1"`,
     `oauth_timestamp="${timestamp}"`,
     `oauth_nonce="${nonce}"`,
     `oauth_version="1.0"`,
-    `oauth_signature="${encodeURIComponent(signature)}"`,
+    `oauth_signature="${percentEncode(signature)}"`,
   ];
   
   // Only include oauth_token if we have one
   if (token) {
-    params.splice(1, 0, `oauth_token="${encodeURIComponent(token)}"`);
+    params.splice(1, 0, `oauth_token="${percentEncode(token)}"`);
   }
   
   // Include callback if provided
   if (includeCallback && callbackUrl) {
-    params.push(`oauth_callback="${encodeURIComponent(callbackUrl)}"`);
+    params.push(`oauth_callback="${percentEncode(callbackUrl)}"`);
   }
 
   return `OAuth ${params.join(', ')}`;
@@ -409,11 +423,12 @@ export async function uploadMediaOAuth1(
       oauth_signature: appendSignature,
     };
     
-    // Build Authorization header: OAuth + sorted, encoded parameters
-    // CRITICAL: Parameters must be sorted alphabetically and properly encoded
+    // Build Authorization header: OAuth + sorted, percent-encoded parameters
+    // CRITICAL: Authorization header contains ONLY OAuth parameters (not form fields)
+    // CRITICAL: Must use percentEncode (RFC 3986) for consistency with signature calculation
     const sortedKeys = Object.keys(oauthParams).sort();
     const authHeader = 'OAuth ' + sortedKeys
-      .map(key => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
+      .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
       .join(', ');
     
     // Log signature details for debugging
