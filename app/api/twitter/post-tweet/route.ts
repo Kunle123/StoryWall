@@ -144,11 +144,14 @@ export async function POST(request: NextRequest) {
       }
       
       // Return a special error code that the client can detect to trigger automatic reconnection
+      // Note: If Twitter returns the same tokens after reconnection, the user must manually
+      // regenerate tokens in the Developer Portal to get tokens with write permissions
       return NextResponse.json(
         { 
-          error: 'Token permissions error - tokens cleared. Please reconnect your Twitter account.',
+          error: 'Token permissions error - tokens cleared. Reconnecting will attempt to get fresh tokens. If the same tokens are returned, you must manually regenerate them in the Twitter Developer Portal.',
           code: 'OAUTH1_TOKEN_PERMISSIONS_ERROR',
           requiresReconnection: true,
+          note: 'If reconnection returns the same tokens, regenerate them in Twitter Developer Portal: Keys and tokens → Authentication Tokens → Regenerate for your user',
         },
         { status: 401 }
       );
