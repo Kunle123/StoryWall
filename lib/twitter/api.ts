@@ -121,7 +121,8 @@ function createOAuth1Header(
     `oauth_timestamp="${timestamp}"`,
     `oauth_nonce="${nonce}"`,
     `oauth_version="1.0"`,
-    `oauth_signature="${percentEncode(signature)}"`,
+    // CRITICAL: Signature is already base64 encoded - don't percent-encode it again
+    `oauth_signature="${signature}"`,
   ];
   
   // Only include oauth_token if we have one
@@ -419,10 +420,18 @@ export async function uploadMediaOAuth1(
     
     // Build Authorization header: OAuth + sorted, percent-encoded parameters
     // CRITICAL: Authorization header contains ONLY OAuth parameters (not form fields)
-    // CRITICAL: Must use percentEncode (RFC 3986) for consistency with signature calculation
+    // CRITICAL: Signature value should NOT be percent-encoded (it's already base64)
+    // CRITICAL: All other values should be percent-encoded
     const sortedKeys = Object.keys(oauthParams).sort();
     const authHeader = 'OAuth ' + sortedKeys
-      .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
+      .map(key => {
+        const encodedKey = percentEncode(key);
+        // Signature is already base64 encoded - don't percent-encode it again
+        const encodedValue = key === 'oauth_signature' 
+          ? oauthParams[key] 
+          : percentEncode(oauthParams[key]);
+        return `${encodedKey}="${encodedValue}"`;
+      })
       .join(', ');
     
     // Use form-data package for Node.js multipart/form-data (more reliable than native FormData)
