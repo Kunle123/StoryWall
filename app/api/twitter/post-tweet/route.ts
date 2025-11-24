@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
     
     // Upload image if provided
     let mediaId: string | undefined;
+    // Get OAuth 1.0a credentials outside try block so they're available in catch
+    const consumerKey = process.env.TWITTER_API_KEY;
+    const consumerSecret = process.env.TWITTER_API_SECRET;
+    const oauth1Available = !!(consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret);
+    
     if (imageUrl) {
       try {
         // Validate image URL is accessible before attempting upload
@@ -61,16 +66,13 @@ export async function POST(request: NextRequest) {
         console.log(`[Twitter Post Tweet] Attempting to upload image: ${imageUrl}`);
         
         // Try OAuth 1.0a first (required for v1.1 media upload)
-        const consumerKey = process.env.TWITTER_API_KEY;
-        const consumerSecret = process.env.TWITTER_API_SECRET;
-        
-        if (consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret) {
+        if (oauth1Available) {
           console.log(`[Twitter Post Tweet] Using OAuth 1.0a for media upload`);
           mediaId = await uploadMediaOAuth1(
-            consumerKey,
-            consumerSecret,
-            userWithToken.twitterOAuth1Token,
-            userWithToken.twitterOAuth1TokenSecret,
+            consumerKey!,
+            consumerSecret!,
+            userWithToken.twitterOAuth1Token!,
+            userWithToken.twitterOAuth1TokenSecret!,
             imageUrl
           );
         } else {
@@ -92,12 +94,9 @@ export async function POST(request: NextRequest) {
         console.error('[Twitter Post Tweet] Failed to upload image:', error);
         console.error('[Twitter Post Tweet] Error details:', error.message);
         
-        // Determine if OAuth 1.0a was attempted
-        const oauth1Attempted = consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret;
-        
         // Check if it's a 403 error - Twitter v1.1 media upload requires OAuth 1.0a
         if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          if (oauth1Attempted) {
+          if (oauth1Available) {
             console.error('[Twitter Post Tweet] Media upload failed with 403 - OAuth 1.0a authentication error. Check signature calculation.');
           } else {
             // CRITICAL: Twitter's v1.1 media upload endpoint REQUIRES OAuth 1.0a authentication
@@ -133,11 +132,7 @@ export async function POST(request: NextRequest) {
     // Determine warning message based on what actually happened
     let warning: string | undefined;
     if (imageUrl && !mediaId) {
-      const consumerKey = process.env.TWITTER_API_KEY;
-      const consumerSecret = process.env.TWITTER_API_SECRET;
-      const hasOAuth1 = consumerKey && consumerSecret && userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret;
-      
-      if (hasOAuth1) {
+      if (oauth1Available) {
         warning = 'Tweet posted successfully, but image could not be attached. OAuth 1.0a authentication failed - please check your OAuth 1.0a credentials and try reconnecting your Twitter account.';
       } else {
         warning = 'Tweet posted successfully, but image could not be attached. Twitter\'s media upload API requires OAuth 1.0a authentication. Please connect your Twitter account with OAuth 1.0a to enable image uploads.';
