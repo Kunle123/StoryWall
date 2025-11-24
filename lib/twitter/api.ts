@@ -115,27 +115,39 @@ function createOAuth1Header(
   includeCallback?: boolean,
   callbackUrl?: string
 ): string {
-  const params: string[] = [
-    `oauth_consumer_key="${percentEncode(consumerKey)}"`,
-    `oauth_signature_method="HMAC-SHA1"`,
-    `oauth_timestamp="${timestamp}"`,
-    `oauth_nonce="${nonce}"`,
-    `oauth_version="1.0"`,
-    // CRITICAL: Signature is already base64 encoded - don't percent-encode it again
-    `oauth_signature="${signature}"`,
-  ];
+  // Build OAuth params object (same structure as APPEND step for consistency)
+  const oauthParams: Record<string, string> = {
+    oauth_consumer_key: consumerKey,
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: timestamp,
+    oauth_nonce: nonce,
+    oauth_version: '1.0',
+    oauth_signature: signature, // Already base64 encoded - don't percent-encode
+  };
   
   // Only include oauth_token if we have one
   if (token) {
-    params.splice(1, 0, `oauth_token="${percentEncode(token)}"`);
+    oauthParams.oauth_token = token;
   }
   
   // Include callback if provided
   if (includeCallback && callbackUrl) {
-    params.push(`oauth_callback="${percentEncode(callbackUrl)}"`);
+    oauthParams.oauth_callback = callbackUrl;
   }
 
-  return `OAuth ${params.join(', ')}`;
+  // CRITICAL: Sort parameters alphabetically (OAuth 1.0a requirement)
+  // CRITICAL: Signature value should NOT be percent-encoded (it's already base64)
+  const sortedKeys = Object.keys(oauthParams).sort();
+  return 'OAuth ' + sortedKeys
+    .map(key => {
+      const encodedKey = percentEncode(key);
+      // Signature is already base64 encoded - don't percent-encode it again
+      const encodedValue = key === 'oauth_signature' 
+        ? oauthParams[key] 
+        : percentEncode(oauthParams[key]);
+      return `${encodedKey}="${encodedValue}"`;
+    })
+    .join(', ');
 }
 
 /**
