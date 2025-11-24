@@ -376,24 +376,16 @@ export async function uploadMediaOAuth1(
   const chunkSize = 5 * 1024 * 1024; // 5MB chunks
   let segmentIndex = 0;
   
-  for (let offset = 0; offset < imageBuffer.byteLength; offset += chunkSize) {
-    const chunkEnd = Math.min(offset + chunkSize, imageBuffer.byteLength);
-    const chunk = imageBuffer.slice(offset, chunkEnd);
+  // Convert ArrayBuffer to Buffer once
+  const imageBufferNode = Buffer.from(imageBuffer);
+  console.log(`[Twitter Upload Media OAuth1] Image buffer size: ${imageBufferNode.length} bytes`);
+  console.log(`[Twitter Upload Media OAuth1] First 10 bytes:`, imageBufferNode.slice(0, 10));
+  
+  for (let offset = 0; offset < imageBufferNode.length; offset += chunkSize) {
+    const chunkEnd = Math.min(offset + chunkSize, imageBufferNode.length);
+    const chunk = imageBufferNode.slice(offset, chunkEnd);
     
-    // Convert ArrayBuffer chunk to Buffer, then to Blob for native FormData
-    const chunkBuffer = Buffer.from(chunk);
-    const blob = new Blob([chunkBuffer], { type: contentType });
-    
-    // Use native FormData (Node.js 18+) - compatible with fetch
-    const formData = new FormData();
-    formData.append('command', 'APPEND');
-    formData.append('media_id', mediaId);
-    formData.append('segment_index', segmentIndex.toString());
-    formData.append('media', blob, 'chunk.jpg');
-    
-    // For multipart/form-data, OAuth 1.0a signature is calculated using ONLY form field parameters
-    // The signature includes command, media_id, and segment_index (but NOT the binary media data)
-    // This is critical - Twitter's OAuth 1.0a spec requires only form fields in the signature base string
+    // Form field parameters (included in signature)
     const appendParams = {
       command: 'APPEND',
       media_id: mediaId,
@@ -431,14 +423,25 @@ export async function uploadMediaOAuth1(
       .map(key => `${percentEncode(key)}="${percentEncode(oauthParams[key])}"`)
       .join(', ');
     
+    // Use native FormData (Node.js 18+) - compatible with fetch
+    // CRITICAL: Use Buffer directly, not Blob
+    const formData = new FormData();
+    formData.append('command', 'APPEND');
+    formData.append('media_id', mediaId);
+    formData.append('segment_index', segmentIndex.toString());
+    // Append Buffer directly with explicit options
+    formData.append('media', new Blob([chunk], { type: 'application/octet-stream' }), {
+      filename: 'blob',
+    });
+    
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
+    console.log(`[APPEND Debug] All params for signature:`, JSON.stringify({ ...oauthParams, ...appendParams }, null, 2));
+    console.log(`[APPEND Debug] Signature:`, appendSignature);
+    console.log(`[APPEND Debug] Auth header:`, authHeader);
     console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[APPEND Debug] OAuth params keys (sorted):`, sortedKeys);
-    console.log(`[APPEND Debug] Full auth header:`, authHeader);
-    console.log(`[APPEND Debug] Consumer key: ${consumerKey.substring(0, 15)}...`);
-    console.log(`[APPEND Debug] Token: ${token.substring(0, 15)}...`);
-    console.log(`[APPEND Debug] Timestamp: ${appendTimestamp}, Nonce: ${appendNonce}`);
+    console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
+    console.log(`[APPEND Debug] FormData keys:`, Array.from(formData.keys()));
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
@@ -457,21 +460,29 @@ export async function uploadMediaOAuth1(
     if (!appendResponse.ok) {
       const errorText = await appendResponse.text();
       let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
+      let errorDetails: any = {};
       try {
-        const error = JSON.parse(errorText);
-        errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
-        console.error(`[Twitter Upload Media OAuth1] Append failed:`, error);
-        console.error(`[Twitter Upload Media OAuth1] Append error code:`, error.errors?.[0]?.code);
+        errorDetails = JSON.parse(errorText);
+        errorMessage = errorDetails.error || errorDetails.errors?.[0]?.message || errorMessage;
+        console.error(`[APPEND Error]`, errorDetails);
+        console.error(`[APPEND Error] Error code:`, errorDetails.errors?.[0]?.code);
       } catch {
-        console.error(`[Twitter Upload Media OAuth1] Append failed (non-JSON):`, errorText);
+        console.error(`[APPEND Error] Non-JSON response:`, errorText);
         errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
       }
-      console.error(`[Twitter Upload Media OAuth1] Response status: ${appendResponse.status}`);
-      console.error(`[Twitter Upload Media OAuth1] Response headers:`, Object.fromEntries(appendResponse.headers.entries()));
-      throw new Error(errorMessage);
+      console.error(`[APPEND Error] Response status: ${appendResponse.status}`);
+      console.error(`[APPEND Error] Response headers:`, Object.fromEntries(appendResponse.headers.entries()));
+      throw new Error(`APPEND failed: ${JSON.stringify(errorDetails)}`);
     }
     
-    console.log(`[Twitter Upload Media OAuth1] Appended segment ${segmentIndex} (${chunk.byteLength} bytes)`);
+    // Check for errors in successful response (Twitter sometimes returns 200 with errors)
+    const appendResult = await appendResponse.json().catch(() => ({}));
+    if (appendResult.errors) {
+      console.error(`[APPEND Error] Response contains errors:`, appendResult);
+      throw new Error(`APPEND failed: ${JSON.stringify(appendResult)}`);
+    }
+    
+    console.log(`[APPEND] Segment ${segmentIndex} uploaded successfully (${chunk.length} bytes)`);
     
     segmentIndex++;
   }
