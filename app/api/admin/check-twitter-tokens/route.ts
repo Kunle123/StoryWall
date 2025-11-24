@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         oauth2: {
           connected: hasOAuth2,
           hasToken: hasOAuth2,
-          tokenPreview: hasOAuth2 ? `${user.twitterAccessToken.substring(0, 20)}...` : null,
+          tokenPreview: user.twitterAccessToken ? `${user.twitterAccessToken.substring(0, 20)}...` : null,
         },
         oauth1: {
           configured: hasOAuth1,
