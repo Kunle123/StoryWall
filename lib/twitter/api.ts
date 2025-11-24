@@ -382,13 +382,28 @@ export async function uploadMediaOAuth1(
   if (!initResponse.ok) {
     const errorText = await initResponse.text();
     let errorMessage = 'Failed to initialize media upload';
+    let errorDetails: any = {};
     try {
       const error = JSON.parse(errorText);
       errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
+      errorDetails = error;
     } catch {
       errorMessage = `${errorMessage}: ${initResponse.status} ${initResponse.statusText}`;
     }
     console.error(`[Twitter Upload Media OAuth1] Init failed:`, errorMessage);
+    console.error(`[Twitter Upload Media OAuth1] Response status: ${initResponse.status}`);
+    console.error(`[Twitter Upload Media OAuth1] Error details:`, errorDetails);
+    console.error(`[Twitter Upload Media OAuth1] Full error text:`, errorText);
+    
+    // Provide more specific error message for "Bad Authentication data"
+    if (errorMessage.includes('Bad Authentication') || initResponse.status === 400) {
+      throw new Error(
+        `OAuth 1.0a authentication failed (400): The access token/secret may not match the consumer key/secret, or the tokens may be invalid. ` +
+        `Please reconnect your Twitter account via the OAuth 1.0a flow to obtain new tokens that match your app's consumer credentials. ` +
+        `(Status: ${initResponse.status})`
+      );
+    }
+    
     throw new Error(`${errorMessage} (Status: ${initResponse.status})`);
   }
   
