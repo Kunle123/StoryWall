@@ -153,6 +153,141 @@ function createOAuth1Header(
 }
 
 /**
+ * Verify OAuth 1.0a token permissions by making a test API call
+ * This helps diagnose if tokens have write permissions
+ * TODO: Remove this verification step once token permissions issue is resolved
+ */
+async function verifyOAuth1TokenPermissions(
+  consumerKey: string,
+  consumerSecret: string,
+  token: string,
+  tokenSecret: string
+): Promise<{ authenticated: boolean; hasWritePermissions: boolean; error?: string }> {
+  console.log(`[Twitter OAuth1 Verification] Testing token permissions...`);
+  
+  try {
+    // Test 1: Verify credentials endpoint (requires authentication, not write permissions)
+    const verifyUrl = 'https://api.twitter.com/1.1/account/verify_credentials.json';
+    const verifyParams = {};
+    
+    const { signature: verifySignature, timestamp: verifyTimestamp, nonce: verifyNonce } = generateOAuth1Signature(
+      'GET',
+      verifyUrl,
+      verifyParams,
+      consumerKey,
+      consumerSecret,
+      token,
+      tokenSecret
+    );
+    
+    const verifyAuthHeader = createOAuth1Header(consumerKey, token, verifySignature, verifyTimestamp, verifyNonce);
+    
+    const verifyResponse = await fetch(verifyUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': verifyAuthHeader,
+      },
+    });
+    
+    if (!verifyResponse.ok) {
+      const errorText = await verifyResponse.text();
+      let errorDetails: any = {};
+      try {
+        errorDetails = JSON.parse(errorText);
+      } catch {}
+      
+      console.error(`[Twitter OAuth1 Verification] Credentials verification failed:`, verifyResponse.status, errorDetails);
+      
+      if (verifyResponse.status === 401 || (errorDetails?.errors?.[0]?.code === 32 || errorDetails?.errors?.[0]?.code === 215)) {
+        return {
+          authenticated: false,
+          hasWritePermissions: false,
+          error: `Authentication failed (${verifyResponse.status}): ${errorDetails?.errors?.[0]?.message || 'Invalid credentials'}`,
+        };
+      }
+      
+      return {
+        authenticated: false,
+        hasWritePermissions: false,
+        error: `Unexpected error (${verifyResponse.status}): ${errorText}`,
+      };
+    }
+    
+    const userData = await verifyResponse.json();
+    console.log(`[Twitter OAuth1 Verification] ✅ Authentication successful. User: @${userData.screen_name}`);
+    
+    // Test 2: Try a minimal media upload INIT to test write permissions
+    // We'll use a very small test to see if we get a permissions error
+    const testUploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
+    const testInitParams = {
+      command: 'INIT',
+      total_bytes: '1', // Minimal test
+      media_type: 'image/jpeg',
+    };
+    
+    const { signature: testSignature, timestamp: testTimestamp, nonce: testNonce } = generateOAuth1Signature(
+      'POST',
+      testUploadUrl,
+      testInitParams,
+      consumerKey,
+      consumerSecret,
+      token,
+      tokenSecret
+    );
+    
+    const testAuthHeader = createOAuth1Header(consumerKey, token, testSignature, testTimestamp, testNonce);
+    
+    const testResponse = await fetch(testUploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': testAuthHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(testInitParams),
+    });
+    
+    if (!testResponse.ok) {
+      const testErrorText = await testResponse.text();
+      let testErrorDetails: any = {};
+      try {
+        testErrorDetails = JSON.parse(testErrorText);
+      } catch {}
+      
+      if (testResponse.status === 400 && testErrorDetails?.errors?.[0]?.code === 215) {
+        console.error(`[Twitter OAuth1 Verification] ❌ Write permissions test failed: Bad Authentication data (215)`);
+        console.error(`[Twitter OAuth1 Verification] This indicates tokens don't have write permissions or are invalid`);
+        return {
+          authenticated: true, // Auth works, but write doesn't
+          hasWritePermissions: false,
+          error: `Tokens authenticated but lack write permissions (code 215). Regenerate tokens in Twitter Developer Portal.`,
+        };
+      }
+      
+      // Other errors might be expected (like invalid media), but 215 is the key one
+      console.warn(`[Twitter OAuth1 Verification] Write test returned ${testResponse.status}, but may be expected:`, testErrorDetails);
+      
+      return {
+        authenticated: true,
+        hasWritePermissions: testResponse.status !== 400 || testErrorDetails?.errors?.[0]?.code !== 215,
+      };
+    } else {
+      console.log(`[Twitter OAuth1 Verification] ✅ Write permissions test passed (media upload INIT succeeded)`);
+      return {
+        authenticated: true,
+        hasWritePermissions: true,
+      };
+    }
+  } catch (error: any) {
+    console.error(`[Twitter OAuth1 Verification] Verification error:`, error);
+    return {
+      authenticated: false,
+      hasWritePermissions: false,
+      error: error.message || 'Verification failed',
+    };
+  }
+}
+
+/**
  * Upload media (image) to Twitter using OAuth 2.0 (DEPRECATED - doesn't work)
  * This function is kept for backward compatibility but will always fail with 403
  * Use uploadMediaOAuth1 instead
@@ -344,6 +479,25 @@ export async function uploadMediaOAuth1(
   }
   
   const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
+  
+  // TODO: Remove this verification step once token permissions issue is resolved
+  // Verify token permissions before attempting upload
+  const verification = await verifyOAuth1TokenPermissions(consumerKey, consumerSecret, token, tokenSecret);
+  if (!verification.authenticated) {
+    throw new Error(
+      `OAuth 1.0a token verification failed: ${verification.error || 'Authentication failed'}. ` +
+      `Please reconnect your Twitter account to obtain valid tokens.`
+    );
+  }
+  if (!verification.hasWritePermissions) {
+    throw new Error(
+      `OAuth 1.0a tokens don't have write permissions: ${verification.error || 'Write access denied'}. ` +
+      `SOLUTION: In Twitter Developer Portal, ensure "App permissions" is set to "Read and Write", ` +
+      `then go to "Keys and tokens" → "Authentication Tokens" and regenerate the "Access Token and Secret" for your user, ` +
+      `then reconnect in StoryWall.`
+    );
+  }
+  console.log(`[Twitter Upload Media OAuth1] ✅ Token permissions verified - proceeding with upload`);
   
   // Step 1: Initialize media upload with OAuth 1.0a
   console.log(`[Twitter Upload Media OAuth1] Initializing upload...`);
