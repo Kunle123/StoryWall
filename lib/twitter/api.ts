@@ -355,8 +355,13 @@ export async function uploadMediaOAuth1(
   
   // Debug: Log consumer key and token to verify they match what was used during OAuth
   console.log(`[INIT Debug] Consumer Key (first 20 chars):`, consumerKey.substring(0, 20));
+  console.log(`[INIT Debug] Consumer Key (full length):`, consumerKey.length);
   console.log(`[INIT Debug] Token (first 20 chars):`, token.substring(0, 20));
+  console.log(`[INIT Debug] Token (full length):`, token.length);
   console.log(`[INIT Debug] Token Secret (first 20 chars):`, tokenSecret.substring(0, 20));
+  console.log(`[INIT Debug] Token Secret (full length):`, tokenSecret.length);
+  console.log(`[INIT Debug] Consumer Secret (first 10 chars):`, consumerSecret.substring(0, 10));
+  console.log(`[INIT Debug] Consumer Secret (full length):`, consumerSecret.length);
   
   const { signature: initSignature, timestamp: initTimestamp, nonce: initNonce } = generateOAuth1Signature(
     'POST',
