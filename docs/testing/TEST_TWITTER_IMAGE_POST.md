@@ -1,5 +1,22 @@
 # Testing Twitter Image Post with curl
 
+## Quick Test for kunle2000@gmail.com Account
+
+If you're testing with the `kunle2000@gmail.com` account:
+
+1. **Sign in to StoryWall** as `kunle2000@gmail.com`
+2. **Get your session token**:
+   - Open DevTools (F12) → Application → Cookies
+   - Copy the value of `__session` cookie
+3. **Run the test script**:
+   ```bash
+   ./scripts/test-twitter-post-curl.sh YOUR_SESSION_TOKEN
+   ```
+
+Or use the **browser console method** (see below) - it's even easier!
+
+---
+
 ## Method 1: Using Browser Console (Easiest)
 
 1. **Sign in to StoryWall** and make sure you've:
@@ -33,7 +50,23 @@ fetch('/api/twitter/post-tweet', {
   .catch(console.error);
 ```
 
-## Method 2: Using curl with Session Cookie
+## Method 2: Using the Test Script (Recommended)
+
+The easiest way to test with curl is using the provided script:
+
+```bash
+# Get session token from browser DevTools → Application → Cookies → __session
+./scripts/test-twitter-post-curl.sh YOUR_SESSION_TOKEN
+```
+
+The script will:
+- Show you the tweet text and image URL being used
+- Make the API call
+- Display formatted results
+- Show whether the image was attached
+- Provide the tweet URL if successful
+
+## Method 3: Using curl with Session Cookie (Manual)
 
 1. **Get your Clerk session cookie**:
    - Open DevTools → Application → Cookies
@@ -51,12 +84,25 @@ curl -X POST https://www.storywall.com/api/twitter/post-tweet \
   }'
 ```
 
-## Method 3: Using the Test Script
+## Method 4: Using TypeScript Test Script
 
 ```bash
 # Get your session token from browser DevTools → Application → Cookies → __session
 CLERK_SESSION="your_session_token_here" npx tsx scripts/test-twitter-image-post.ts
 ```
+
+## Checking Token Status
+
+To check if an account has the required Twitter tokens configured:
+
+```bash
+npx tsx scripts/check-twitter-tokens.ts
+```
+
+This will show:
+- ✅ OAuth 2.0 status (for posting tweets)
+- ✅ OAuth 1.0a status (for image uploads)
+- ⚠️  What needs to be configured
 
 ## Expected Response
 
