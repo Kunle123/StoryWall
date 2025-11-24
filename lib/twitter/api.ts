@@ -673,31 +673,30 @@ export async function postTweet(
     };
   }
   
-  // Handle image upload using OAuth 1.0a if imageUrl is provided
+  // NEW LOGIC: Use OAuth 1.0a for image upload if credentials and URL are provided
+  let uploadedMediaId = mediaId;
   if (imageUrl && consumerKey && consumerSecret && token && tokenSecret) {
     try {
-      console.log(`[Twitter Post Tweet] Uploading image using OAuth 1.0a: ${imageUrl}`);
-      const uploadedMediaId = await uploadMediaOAuth1(consumerKey, consumerSecret, token, tokenSecret, imageUrl);
+      uploadedMediaId = await uploadMediaOAuth1(consumerKey, consumerSecret, token, tokenSecret, imageUrl);
       if (uploadedMediaId) {
         body.media = {
           media_ids: [uploadedMediaId],
         };
         console.log(`[Twitter Post Tweet] Attaching media_id: ${uploadedMediaId} to tweet`);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[Twitter Post Tweet] Image upload failed, posting tweet without image.', error);
-      // Continue without image - don't throw, just post the tweet text
+      // Fallback to original mediaId if it was provided, otherwise it remains undefined
+      uploadedMediaId = mediaId;
     }
-  } else if (mediaId) {
-    // Fallback: use provided mediaId if no imageUrl/OAuth 1.0a credentials
+  } else if (uploadedMediaId) {
     body.media = {
-      media_ids: [mediaId],
+      media_ids: [uploadedMediaId],
     };
-    console.log(`[Twitter Post Tweet] Attaching media_id: ${mediaId} to tweet`);
+    console.log(`[Twitter Post Tweet] Attaching media_id: ${uploadedMediaId} to tweet`);
   }
   
-  const hasMedia = !!(body.media?.media_ids?.length);
-  console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${hasMedia ? ' with image' : ''}`);
+  console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${uploadedMediaId ? ' with image' : ''}`);
   const response = await fetch(url, {
     method: 'POST',
     headers: {
