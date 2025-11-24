@@ -381,22 +381,38 @@ export async function uploadMediaOAuth1(
       segment_index: segmentIndex.toString(),
     };
     
-    // Generate OAuth 1.0a signature for APPEND step
-    // CRITICAL: For multipart/form-data, signature includes form field params but NOT binary data
-    const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
-      'POST',
-      uploadUrl,
-      appendParams,
-      consumerKey,
-      consumerSecret,
-      token,
-      tokenSecret
-    );
+    // Use oauth-1.0a library for proper signature calculation with multipart/form-data
+    // This library handles the complexities of OAuth 1.0a signature generation correctly
+    const oauth = new OAuth({
+      consumer: {
+        key: consumerKey,
+        secret: consumerSecret,
+      },
+      signature_method: 'HMAC-SHA1',
+      hash_function(baseString, key) {
+        return createHmac('sha1', key).update(baseString).digest('base64');
+      },
+    });
+    
+    const tokenData = {
+      key: token,
+      secret: tokenSecret,
+    };
+    
+    // For multipart/form-data, OAuth signature includes form field params but NOT binary data
+    // The oauth-1.0a library will handle this correctly
+    const requestData = {
+      url: uploadUrl,
+      method: 'POST',
+      data: appendParams, // Only form field parameters, not binary data
+    };
+    
+    const authHeader = oauth.toHeader(oauth.authorize(requestData, tokenData));
     
     // Log signature details for debugging
     console.log(`[Twitter Upload Media OAuth1] APPEND signature params:`, JSON.stringify(appendParams));
     console.log(`[Twitter Upload Media OAuth1] APPEND segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[Twitter Upload Media OAuth1] APPEND timestamp: ${appendTimestamp}, nonce: ${appendNonce.substring(0, 8)}...`);
+    console.log(`[Twitter Upload Media OAuth1] APPEND auth header:`, authHeader.Authorization?.substring(0, 100) + '...');
     
     // Native FormData will automatically set Content-Type with boundary
     // We don't manually set it - fetch will handle it
@@ -404,7 +420,7 @@ export async function uploadMediaOAuth1(
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
-        'Authorization': createOAuth1Header(consumerKey, token, appendSignature, appendTimestamp, appendNonce),
+        ...authHeader, // Use the Authorization header from oauth-1.0a library
         // Explicitly DO NOT set Content-Type - fetch will set it automatically with boundary for FormData
         // Setting it manually would break the OAuth signature
       },
