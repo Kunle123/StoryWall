@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { text, imageUrl } = body;
+    const { text, imageUrl: imageUrlFromBody } = body;
     
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate image URL if provided (fail fast if invalid)
+    let imageUrl: string | undefined = imageUrlFromBody;
     if (imageUrl) {
       try {
         console.log(`[Twitter Post Tweet] Validating image URL: ${imageUrl}`);
