@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const oauthToken = searchParams.get('oauth_token');
     const oauthVerifier = searchParams.get('oauth_verifier');
-    const state = searchParams.get('state');
+    const state = searchParams.get('state'); // Twitter may not send this in OAuth 1.0a
     const denied = searchParams.get('denied');
     
     if (denied) {
@@ -73,12 +73,16 @@ export async function GET(request: NextRequest) {
     }
     
     if (!oauthToken || !oauthVerifier) {
+      console.error('[Twitter OAuth1 Callback] Missing required params:', {
+        oauthToken: !!oauthToken,
+        oauthVerifier: !!oauthVerifier,
+      });
       return NextResponse.redirect(
         new URL('/?error=twitter_oauth1_missing_params', baseUrl)
       );
     }
     
-    // Verify state parameter
+    // Verify state parameter from cookie (Twitter OAuth 1.0a may not send state in URL)
     const cookieStore = await cookies();
     const storedState = cookieStore.get('twitter_oauth1_state')?.value;
     const requestTokenSecret = cookieStore.get('twitter_oauth1_request_token_secret')?.value;
@@ -86,13 +90,23 @@ export async function GET(request: NextRequest) {
     console.log('[Twitter OAuth1 Callback] Received params:', {
       oauthToken: oauthToken ? 'present' : 'missing',
       oauthVerifier: oauthVerifier ? 'present' : 'missing',
-      state: state ? 'present' : 'missing',
+      state: state ? 'present' : 'missing (Twitter may not send this)',
       storedState: storedState ? 'present' : 'missing',
       requestTokenSecret: requestTokenSecret ? 'present' : 'missing',
     });
     
-    if (!storedState || !state || storedState !== state) {
-      console.error('[Twitter OAuth1 Callback] State mismatch - possible CSRF attack or cookie lost');
+    // For OAuth 1.0a, we rely on the cookie for state verification
+    // Twitter may not send the state parameter back in the callback URL
+    if (!storedState) {
+      console.error('[Twitter OAuth1 Callback] Missing stored state in cookie - cookie may have expired or been lost');
+      return NextResponse.redirect(
+        new URL('/?error=twitter_oauth1_missing_state_cookie', baseUrl)
+      );
+    }
+    
+    // If state is provided in URL, verify it matches (optional check for OAuth 1.0a)
+    if (state && storedState !== state) {
+      console.error('[Twitter OAuth1 Callback] State mismatch - possible CSRF attack');
       console.error('[Twitter OAuth1 Callback] Stored state:', storedState?.substring(0, 50));
       console.error('[Twitter OAuth1 Callback] Received state:', state?.substring(0, 50));
       return NextResponse.redirect(
