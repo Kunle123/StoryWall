@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/Header";
 import { SubMenuBar } from "@/components/layout/SubMenuBar";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 
@@ -17,6 +18,7 @@ const TimelinePage = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isSignedIn } = useUser();
+  const { toast } = useToast();
   const timelineId = params.id as string;
   const isEditMode = searchParams?.get('edit') === 'true';
   
@@ -24,13 +26,10 @@ const TimelinePage = () => {
   useEffect(() => {
     if (searchParams?.get('same_token_detected') === 'true') {
       // Show error message that manual revocation is required
-      import('@/hooks/use-toast').then(({ useToast }) => {
-        const { toast } = useToast();
-        toast({
-          title: "Manual Revocation Required",
-          description: "Twitter returned the same tokens. You must manually revoke app access at https://twitter.com/settings/apps, then reconnect.",
-          variant: "destructive",
-        });
+      toast({
+        title: "Manual Revocation Required",
+        description: "Twitter returned the same tokens. You must manually revoke app access at https://twitter.com/settings/apps, then reconnect.",
+        variant: "destructive",
       });
       // Remove the query parameter to prevent showing the message again
       const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -38,7 +37,7 @@ const TimelinePage = () => {
       const newUrl = `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
       router.replace(newUrl);
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, toast]);
 
   const [timeline, setTimeline] = useState<any>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
