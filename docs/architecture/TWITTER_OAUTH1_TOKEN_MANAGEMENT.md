@@ -8,6 +8,35 @@ OAuth 1.0a tokens are required for Twitter's v1.1 media upload endpoint (`upload
 
 ## Token Lifecycle
 
+### ⚠️ **Critical: Are We Requesting New Tokens or Reusing Existing Ones?**
+
+**Answer: We're REQUESTING new tokens, but Twitter may RETURN existing tokens.**
+
+**How it works:**
+1. **We request:** Each OAuth 1.0a flow requests a NEW access token from Twitter
+2. **Twitter decides:** If the user has already authorized the app and hasn't revoked access, Twitter may return the **SAME existing token** instead of creating a new one
+3. **Why this matters:** If the existing token lacks write permissions, we'll get the same read-only token back
+
+**Twitter OAuth 1.0a Limitations:**
+- ❌ **No "force" parameter:** Unlike OAuth 2.0, OAuth 1.0a doesn't support forcing token regeneration
+- ❌ **No automatic regeneration:** Twitter doesn't automatically issue new tokens if permissions changed
+- ✅ **Solution:** User must **manually revoke app access** in Twitter Settings first, then reconnect
+
+**Our Detection:**
+We detect when Twitter returns the same token:
+```typescript
+// app/api/twitter/oauth1/callback/route.ts (lines 220-227)
+isSameToken = existingUser?.twitterOAuth1Token === accessTokenData.oauth_token;
+if (isSameToken) {
+  // Twitter returned the same token - likely still read-only
+  // User must revoke app access first
+}
+```
+
+**What we use:**
+- `oauth/authorize` (not `oauth/authenticate`) - always shows authorization screen
+- But Twitter may still return existing token if user hasn't revoked access
+
 ### 1. **Token Storage (Database Schema)**
 
 Tokens are stored in the `users` table:
