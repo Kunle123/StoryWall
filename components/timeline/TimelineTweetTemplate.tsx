@@ -142,22 +142,53 @@ export const TimelineTweetTemplate = ({
   }, [imageUrl, absoluteImageUrl]);
 
   // Check Twitter connection status
-  useEffect(() => {
+  const checkTwitterConnection = async () => {
     if (isSignedIn && absoluteImageUrl) {
       setIsChecking(true);
-      fetch('/api/twitter/status')
-        .then(res => res.json())
-        .then(data => {
-          setIsConnected(data.connected || false);
-          setHasOAuth1(data.hasOAuth1 || false);
-        })
-        .catch(() => {
-          setIsConnected(false);
-          setHasOAuth1(false);
-        })
-        .finally(() => setIsChecking(false));
+      try {
+        const res = await fetch('/api/twitter/status');
+        const data = await res.json();
+        setIsConnected(data.connected || false);
+        setHasOAuth1(data.hasOAuth1 || false);
+      } catch {
+        setIsConnected(false);
+        setHasOAuth1(false);
+      } finally {
+        setIsChecking(false);
+      }
     }
+  };
+
+  useEffect(() => {
+    checkTwitterConnection();
   }, [isSignedIn, absoluteImageUrl]);
+  
+  // Check connection status when OAuth flow completes
+  useEffect(() => {
+    if (isSignedIn) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('twitter_connected') === 'true' || urlParams.get('twitter_oauth1_connected') === 'true') {
+        // OAuth flow completed, recheck connection status
+        checkTwitterConnection();
+        
+        // Clean up URL params
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('twitter_connected');
+        newUrl.searchParams.delete('twitter_oauth1_connected');
+        newUrl.searchParams.delete('same_token_detected');
+        window.history.replaceState({}, '', newUrl.toString());
+        
+        // Show success message
+        if (urlParams.get('twitter_oauth1_connected') === 'true') {
+          toast({
+            title: "Twitter Connected!",
+            description: "OAuth 2.0 and OAuth 1.0a connected. You can now post tweets with images.",
+            duration: 5000,
+          });
+        }
+      }
+    }
+  }, [isSignedIn]);
 
   const handleCopyTweet = () => {
     navigator.clipboard.writeText(tweetText);
