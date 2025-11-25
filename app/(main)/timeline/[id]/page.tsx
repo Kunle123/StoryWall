@@ -24,12 +24,12 @@ const TimelinePage = () => {
   useEffect(() => {
     if (searchParams?.get('same_token_detected') === 'true') {
       // Show error message that manual revocation is required
-      import('@/components/ui/toast').then(({ toast }) => {
+      import('@/hooks/use-toast').then(({ useToast }) => {
+        const { toast } = useToast();
         toast({
           title: "Manual Revocation Required",
           description: "Twitter returned the same tokens. You must manually revoke app access at https://twitter.com/settings/apps, then reconnect.",
           variant: "destructive",
-          duration: 15000,
         });
       });
       // Remove the query parameter to prevent showing the message again
