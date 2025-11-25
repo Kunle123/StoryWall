@@ -459,6 +459,12 @@ export async function uploadMediaOAuth1(
   tokenSecret: string,
   imageUrl: string
 ): Promise<string> {
+  // CUSTODY CHAIN VERIFICATION: Log tokens received in uploadMediaOAuth1
+  console.log('[Twitter Upload Media OAuth1] 🔐 CUSTODY CHAIN: Tokens received in uploadMediaOAuth1():');
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (first 20):', token.substring(0, 20));
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (full length):', token.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (first 20):', tokenSecret.substring(0, 20));
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (full length):', tokenSecret.length);
   console.log(`[Twitter Upload Media OAuth1] Starting upload for: ${imageUrl}`);
   
   // First, download the image
@@ -869,6 +875,13 @@ export async function postTweet(
   // NEW LOGIC: Use OAuth 1.0a for image upload if credentials and URL are provided
   let uploadedMediaId = mediaId;
   if (imageUrl && consumerKey && consumerSecret && token && tokenSecret) {
+    // CUSTODY CHAIN VERIFICATION: Log tokens received in postTweet function
+    console.log('[Twitter Post Tweet] 🔐 CUSTODY CHAIN: Tokens received in postTweet() function:');
+    console.log('[Twitter Post Tweet] 🔐 Token (first 20):', token.substring(0, 20));
+    console.log('[Twitter Post Tweet] 🔐 Token (full length):', token.length);
+    console.log('[Twitter Post Tweet] 🔐 Token Secret (first 20):', tokenSecret.substring(0, 20));
+    console.log('[Twitter Post Tweet] 🔐 Token Secret (full length):', tokenSecret.length);
+    
     try {
       uploadedMediaId = await uploadMediaOAuth1(consumerKey, consumerSecret, token, tokenSecret, imageUrl);
       if (uploadedMediaId) {

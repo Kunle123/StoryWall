@@ -26,6 +26,15 @@ export async function POST(request: NextRequest) {
       },
     });
     
+    // CUSTODY CHAIN VERIFICATION: Log tokens retrieved from database
+    if (userWithToken?.twitterOAuth1Token) {
+      console.log('[Twitter Post Tweet] 🔐 CUSTODY CHAIN: Tokens retrieved from database:');
+      console.log('[Twitter Post Tweet] 🔐 Token (first 20):', userWithToken.twitterOAuth1Token.substring(0, 20));
+      console.log('[Twitter Post Tweet] 🔐 Token (full length):', userWithToken.twitterOAuth1Token.length);
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (first 20):', userWithToken.twitterOAuth1TokenSecret?.substring(0, 20) || 'NULL');
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (full length):', userWithToken.twitterOAuth1TokenSecret?.length || 0);
+    }
+    
     if (!userWithToken?.twitterAccessToken) {
       return NextResponse.json(
         { error: 'Twitter not connected. Please connect your Twitter account first.' },
@@ -102,6 +111,18 @@ export async function POST(request: NextRequest) {
     
     // Post the tweet with or without image
     console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${imageUrl ? ' with image' : ' without image'}`);
+    
+    // CUSTODY CHAIN VERIFICATION: Log tokens being passed to postTweet
+    const tokenToPass = userWithToken.twitterOAuth1Token || undefined;
+    const tokenSecretToPass = userWithToken.twitterOAuth1TokenSecret || undefined;
+    if (tokenToPass) {
+      console.log('[Twitter Post Tweet] 🔐 CUSTODY CHAIN: Tokens being passed to postTweet():');
+      console.log('[Twitter Post Tweet] 🔐 Token (first 20):', tokenToPass.substring(0, 20));
+      console.log('[Twitter Post Tweet] 🔐 Token (full length):', tokenToPass.length);
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (first 20):', tokenSecretToPass?.substring(0, 20) || 'NULL');
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (full length):', tokenSecretToPass?.length || 0);
+    }
+    
     const result = await postTweet(
       userWithToken.twitterAccessToken,
       text,
@@ -109,8 +130,8 @@ export async function POST(request: NextRequest) {
       undefined, // mediaId is now handled internally by postTweet
       consumerKey,
       consumerSecret,
-      userWithToken.twitterOAuth1Token || undefined,
-      userWithToken.twitterOAuth1TokenSecret || undefined,
+      tokenToPass,
+      tokenSecretToPass,
       imageUrl
     );
     

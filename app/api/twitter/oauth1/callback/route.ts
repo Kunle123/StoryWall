@@ -226,6 +226,15 @@ export async function GET(request: NextRequest) {
         // The client will check for this and show a manual revocation message instead
       }
       
+      // CUSTODY CHAIN VERIFICATION: Log tokens BEFORE storing
+      const tokenBeforeStore = accessTokenData.oauth_token;
+      const tokenSecretBeforeStore = accessTokenData.oauth_token_secret;
+      console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN: Tokens received from Twitter (BEFORE database storage):');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (first 20):', tokenBeforeStore.substring(0, 20));
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (full length):', tokenBeforeStore.length);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (first 20):', tokenSecretBeforeStore.substring(0, 20));
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (full length):', tokenSecretBeforeStore.length);
+      
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -233,6 +242,26 @@ export async function GET(request: NextRequest) {
           twitterOAuth1TokenSecret: accessTokenData.oauth_token_secret,
         },
       });
+      
+      // CUSTODY CHAIN VERIFICATION: Verify tokens were stored correctly
+      const verification = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          twitterOAuth1Token: true,
+          twitterOAuth1TokenSecret: true,
+        },
+      });
+      
+      console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN: Tokens retrieved from database (AFTER storage):');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (first 20):', verification?.twitterOAuth1Token?.substring(0, 20) || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (full length):', verification?.twitterOAuth1Token?.length || 0);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (first 20):', verification?.twitterOAuth1TokenSecret?.substring(0, 20) || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (full length):', verification?.twitterOAuth1TokenSecret?.length || 0);
+      console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN VERIFICATION:', {
+        tokenMatches: verification?.twitterOAuth1Token === tokenBeforeStore,
+        tokenSecretMatches: verification?.twitterOAuth1TokenSecret === tokenSecretBeforeStore,
+      });
+      
       console.log(`[Twitter OAuth1 Callback] ✅ Stored OAuth 1.0a tokens for user ${user.id}`);
       console.log('[Twitter OAuth1 Callback] ⚠️  CRITICAL: These tokens are tied to the consumer key/secret below');
       console.log('[Twitter OAuth1 Callback] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
