@@ -290,6 +290,7 @@ export async function GET(request: NextRequest) {
       // If token lacks write permissions, clear it and flag for user to revoke access
       try {
         const { verifyOAuth1TokenPermissions } = await import('@/lib/twitter/api');
+        console.log('[Twitter OAuth1 Callback] 🔍 Verifying token permissions with consumer key:', consumerKey.substring(0, 20) + '...');
         const verification = await verifyOAuth1TokenPermissions(
           consumerKey,
           consumerSecret,
@@ -297,7 +298,22 @@ export async function GET(request: NextRequest) {
           accessTokenData.oauth_token_secret
         );
         
+        console.log('[Twitter OAuth1 Callback] 🔍 Permission verification result:', {
+          authenticated: verification.authenticated,
+          hasWritePermissions: verification.hasWritePermissions,
+          error: verification.error,
+        });
+        
         if (!verification.hasWritePermissions) {
+          console.error('[Twitter OAuth1 Callback] ❌❌❌ TOKEN PERMISSIONS ISSUE DETECTED ❌❌❌');
+          console.error('[Twitter OAuth1 Callback] ❌ Token obtained but lacks write permissions');
+          console.error('[Twitter OAuth1 Callback] ❌ This usually means:');
+          console.error('[Twitter OAuth1 Callback] ❌ 1. App permissions in Developer Portal are NOT actually "Read and write"');
+          console.error('[Twitter OAuth1 Callback] ❌ 2. OR API keys were regenerated but environment variables not updated');
+          console.error('[Twitter OAuth1 Callback] ❌ 3. OR App permissions were changed AFTER tokens were first issued');
+          console.error('[Twitter OAuth1 Callback] ❌ SOLUTION: Regenerate API Key and API Secret in Developer Portal');
+          console.error('[Twitter OAuth1 Callback] ❌ Then update environment variables and redeploy');
+          console.error('[Twitter OAuth1 Callback] ❌ Then revoke app access and reconnect');
           console.warn('[Twitter OAuth1 Callback] ⚠️  Token lacks write permissions - clearing tokens');
           console.warn('[Twitter OAuth1 Callback] ⚠️  User must revoke app access in Twitter Settings first');
           // Clear the tokens we just stored
@@ -311,12 +327,13 @@ export async function GET(request: NextRequest) {
           // Set flag to indicate user needs to revoke access
           isSameToken = true; // Use this flag to show the revocation message
         } else {
-          console.log('[Twitter OAuth1 Callback] ✅ Token has write permissions');
+          console.log('[Twitter OAuth1 Callback] ✅✅✅ Token has write permissions ✅✅✅');
         }
       } catch (verifyError) {
         // Verification failed, but don't block the flow
         // The actual upload will fail if permissions are missing
-        console.warn('[Twitter OAuth1 Callback] ⚠️  Could not verify token permissions:', verifyError);
+        console.error('[Twitter OAuth1 Callback] ⚠️  Could not verify token permissions:', verifyError);
+        console.error('[Twitter OAuth1 Callback] ⚠️  This might indicate a consumer key/secret mismatch');
       }
     } catch (error: any) {
       console.error('[Twitter OAuth1 Callback] Failed to store tokens in database:', error);

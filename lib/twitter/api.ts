@@ -1157,8 +1157,21 @@ export async function getOAuth1RequestToken(
 /**
  * Step 2: Get OAuth 1.0a authorization URL
  */
-export function getOAuth1AuthUrl(requestToken: string): string {
-  return `https://api.twitter.com/oauth/authorize?oauth_token=${encodeURIComponent(requestToken)}`;
+/**
+ * Generate OAuth 1.0a authorization URL
+ * Uses /oauth/authorize which shows the authorization screen
+ * Note: OAuth 1.0a permissions are determined by app settings in Developer Portal, not by URL parameters
+ */
+export function getOAuth1AuthUrl(requestToken: string, forceReauth: boolean = true): string {
+  // Use /oauth/authorize (standard) - permissions come from app settings
+  // If forceReauth is true, we could add a parameter, but Twitter OAuth 1.0a doesn't support force parameter
+  // The only way to force new tokens is to revoke app access first
+  const baseUrl = `https://api.twitter.com/oauth/authorize?oauth_token=${encodeURIComponent(requestToken)}`;
+  
+  // Note: Twitter OAuth 1.0a doesn't have a "force" parameter like OAuth 2.0
+  // Permissions are determined by the app's settings in Developer Portal
+  // If tokens don't have write permissions, the app settings need to be checked/regenerated
+  return baseUrl;
 }
 
 /**

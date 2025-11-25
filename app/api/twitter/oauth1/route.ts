@@ -75,6 +75,13 @@ export async function GET(request: NextRequest) {
     // Step 1: Get request token
     console.log('[Twitter OAuth1] Getting request token...');
     console.log('[Twitter OAuth1] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: OAuth 1.0a permissions are determined by app settings in Developer Portal');
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: If app shows "Read and write" but tokens lack write permissions:');
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: 1. Regenerate API Key and API Secret in Developer Portal');
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: 2. Update TWITTER_API_KEY and TWITTER_API_SECRET environment variables');
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: 3. Redeploy application');
+    console.log('[Twitter OAuth1] ⚠️  CRITICAL: 4. Revoke app access and reconnect');
+    
     const requestTokenData = await getOAuth1RequestToken(
       consumerKey,
       consumerSecret,
