@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       if (hasOAuth1Tokens && hasConsumerKeys) {
         console.log('[Twitter Post Tweet] OAuth 1.0a credentials for upload:');
         console.log('[Twitter Post Tweet] Consumer Key (first 20 chars):', consumerKey?.substring(0, 20) || 'MISSING');
-        console.log('[Twitter Post Tweet] Token (first 20 chars):', userWithToken.twitterOAuth1Token.substring(0, 20));
+        console.log('[Twitter Post Tweet] Token (first 20 chars):', userWithToken.twitterOAuth1Token?.substring(0, 20) || 'MISSING');
         console.log('[Twitter Post Tweet] Token Secret (first 20 chars):', userWithToken.twitterOAuth1TokenSecret?.substring(0, 20) || 'MISSING');
       } else {
         if (!hasConsumerKeys) {
