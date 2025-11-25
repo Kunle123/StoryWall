@@ -19,6 +19,26 @@ const TimelinePage = () => {
   const { user, isSignedIn } = useUser();
   const timelineId = params.id as string;
   const isEditMode = searchParams?.get('edit') === 'true';
+  
+  // Check for same token detection flag (prevents infinite reconnection loop)
+  useEffect(() => {
+    if (searchParams?.get('same_token_detected') === 'true') {
+      // Show error message that manual revocation is required
+      import('@/components/ui/toast').then(({ toast }) => {
+        toast({
+          title: "Manual Revocation Required",
+          description: "Twitter returned the same tokens. You must manually revoke app access at https://twitter.com/settings/apps, then reconnect.",
+          variant: "destructive",
+          duration: 15000,
+        });
+      });
+      // Remove the query parameter to prevent showing the message again
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.delete('same_token_detected');
+      const newUrl = `${window.location.pathname}${newSearchParams.toString() ? '?' + newSearchParams.toString() : ''}`;
+      router.replace(newUrl);
+    }
+  }, [searchParams, router]);
 
   const [timeline, setTimeline] = useState<any>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);

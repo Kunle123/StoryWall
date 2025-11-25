@@ -205,6 +205,8 @@ export async function GET(request: NextRequest) {
         console.warn('[Twitter OAuth1 Callback] ⚠️  WARNING: Twitter returned the same token after reconnection!');
         console.warn('[Twitter OAuth1 Callback] ⚠️  This usually means the token still lacks write permissions.');
         console.warn('[Twitter OAuth1 Callback] ⚠️  SOLUTION: Revoke app access in Twitter Settings → Security → Apps and sessions, then reconnect.');
+        // Store a flag in the redirect URL to prevent infinite reconnection loops
+        // The client will check for this and show a manual revocation message instead
       }
       
       await prisma.user.update({
@@ -246,7 +248,9 @@ export async function GET(request: NextRequest) {
         
         if (returnUrl.startsWith('/')) {
           const separator = returnUrl.includes('?') ? '&' : '?';
-          redirectPath = `${returnUrl}${separator}twitter_oauth1_connected=true`;
+          // Add flag if same tokens were returned (prevents infinite reconnection loop)
+          const sameTokenFlag = isSameToken ? '&same_token_detected=true' : '';
+          redirectPath = `${returnUrl}${separator}twitter_oauth1_connected=true${sameTokenFlag}`;
           console.log('[Twitter OAuth1 Callback] Redirecting to original path:', redirectPath);
         }
       } catch (e) {
