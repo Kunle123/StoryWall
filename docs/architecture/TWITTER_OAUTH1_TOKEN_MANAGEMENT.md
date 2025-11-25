@@ -131,7 +131,7 @@ await prisma.user.update({
 **Endpoint:** `POST /api/twitter/post-tweet`
 
 ```typescript
-// app/api/twitter/post-tweet/route.ts (lines 30-40)
+// app/api/twitter/post-tweet/route.ts (lines 20-27)
 const userWithToken = await prisma.user.findUnique({
   where: { id: user.id },
   select: {
@@ -144,9 +144,19 @@ const userWithToken = await prisma.user.findUnique({
 
 **What happens:**
 1. User requests to post a tweet with an image
-2. API route queries database for user's OAuth 1.0a tokens
-3. Tokens are passed to `uploadMediaOAuth1()` function
-4. Tokens are used to sign OAuth 1.0a requests to Twitter
+2. API route queries database for user's OAuth 1.0a tokens (reuses stored tokens)
+3. **Same tokens are reused** - we don't request new tokens each time
+4. Tokens are passed to `uploadMediaOAuth1()` function
+5. Tokens are used to sign OAuth 1.0a requests to Twitter
+
+**⚠️ Important: Token Reuse**
+- **OAuth 1.0a tokens don't expire** - they remain valid until revoked
+- **We reuse the same tokens** stored in the database for every post
+- **No new token request** is made each time we post
+- **Tokens are only refreshed when:**
+  - User completes OAuth flow (first time or reconnection)
+  - Token becomes invalid (permissions error, consumer key mismatch)
+  - User manually disconnects and reconnects
 
 ### 4. **Token Usage (Media Upload)**
 
@@ -471,9 +481,29 @@ console.log('[Twitter OAuth1 Callback] ⚠️  IMPORTANT: If consumer key/secret
 1. **Tokens are user-specific:** Each user has their own OAuth 1.0a tokens
 2. **Tokens are tied to consumer key/secret:** Changing API keys invalidates all tokens
 3. **Tokens stored in database:** Persisted in PostgreSQL for reuse
-4. **Tokens never exposed to client:** Only used server-side
-5. **Automatic cleanup:** Tokens cleared if permissions are wrong
-6. **Custody chain verification:** Logging tracks tokens from Twitter → Database → Usage
+4. **Tokens are reused:** We don't request new tokens each time we post - same tokens are reused
+5. **OAuth 1.0a tokens don't expire:** Unlike OAuth 2.0, they remain valid until revoked
+6. **Tokens never exposed to client:** Only used server-side
+7. **Automatic cleanup:** Tokens cleared if permissions are wrong
+8. **Custody chain verification:** Logging tracks tokens from Twitter → Database → Usage
+
+## Token Reuse vs. Token Refresh
+
+### When Tokens Are Reused (Normal Operation)
+- ✅ **Every tweet post:** Same tokens from database are reused
+- ✅ **Multiple image uploads:** Same tokens used for all uploads
+- ✅ **No OAuth flow needed:** Tokens remain valid indefinitely
+
+### When New Tokens Are Requested
+- 🔄 **First connection:** User completes OAuth 1.0a flow
+- 🔄 **Token invalid:** Consumer key/secret changed, token cleared
+- 🔄 **Permission error:** Token lacks write permissions, user reconnects
+- 🔄 **Manual reconnection:** User disconnects and reconnects
+- 🔄 **OAuth 2.0 callback:** Automatically triggers OAuth 1.0a flow
+
+### Token Expiration
+- **OAuth 1.0a tokens:** ❌ Don't expire (valid until revoked)
+- **OAuth 2.0 tokens:** ✅ Can expire (we handle refresh, but currently don't implement it)
 
 ## Troubleshooting
 
