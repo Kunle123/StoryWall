@@ -143,33 +143,51 @@ export const TimelineTweetTemplate = ({
 
   // Check Twitter connection status
   const checkTwitterConnection = async () => {
-    if (isSignedIn && absoluteImageUrl) {
+    if (isSignedIn) {
       setIsChecking(true);
       try {
         const res = await fetch('/api/twitter/status');
         const data = await res.json();
         setIsConnected(data.connected || false);
         setHasOAuth1(data.hasOAuth1 || false);
-      } catch {
+        console.log('[TimelineTweetTemplate] Twitter status:', {
+          connected: data.connected,
+          hasOAuth1: data.hasOAuth1,
+          canUploadImages: data.canUploadImages,
+        });
+      } catch (error) {
+        console.error('[TimelineTweetTemplate] Error checking Twitter status:', error);
         setIsConnected(false);
         setHasOAuth1(false);
       } finally {
         setIsChecking(false);
       }
+    } else {
+      // Reset status when not signed in
+      setIsConnected(false);
+      setHasOAuth1(false);
     }
   };
 
+  // Check connection status on mount and when sign-in status changes
   useEffect(() => {
     checkTwitterConnection();
-  }, [isSignedIn, absoluteImageUrl]);
+  }, [isSignedIn]);
   
   // Check connection status when OAuth flow completes
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('twitter_connected') === 'true' || urlParams.get('twitter_oauth1_connected') === 'true') {
-        // OAuth flow completed, recheck connection status
-        checkTwitterConnection();
+      const twitterConnected = urlParams.get('twitter_connected') === 'true';
+      const twitterOAuth1Connected = urlParams.get('twitter_oauth1_connected') === 'true';
+      
+      if (twitterConnected || twitterOAuth1Connected) {
+        console.log('[TimelineTweetTemplate] OAuth flow completed, refreshing connection status...');
+        
+        // Recheck connection status after a short delay to ensure tokens are saved
+        setTimeout(() => {
+          checkTwitterConnection();
+        }, 500);
         
         // Clean up URL params
         const newUrl = new URL(window.location.href);
@@ -179,10 +197,16 @@ export const TimelineTweetTemplate = ({
         window.history.replaceState({}, '', newUrl.toString());
         
         // Show success message
-        if (urlParams.get('twitter_oauth1_connected') === 'true') {
+        if (twitterOAuth1Connected) {
           toast({
             title: "Twitter Connected!",
             description: "OAuth 2.0 and OAuth 1.0a connected. You can now post tweets with images.",
+            duration: 5000,
+          });
+        } else if (twitterConnected) {
+          toast({
+            title: "Twitter Connected!",
+            description: "OAuth 2.0 connected. Complete OAuth 1.0a to enable image uploads.",
             duration: 5000,
           });
         }
