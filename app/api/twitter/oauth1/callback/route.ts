@@ -262,6 +262,18 @@ export async function GET(request: NextRequest) {
         tokenSecretMatches: verification?.twitterOAuth1TokenSecret === tokenSecretBeforeStore,
       });
       
+      // CUSTODY CHAIN SUMMARY: Always log this for verification
+      console.log('[Twitter OAuth1 Callback] ========== CUSTODY CHAIN VERIFICATION ==========');
+      console.log('[Twitter OAuth1 Callback] ✅ Token obtained from Twitter:', accessTokenData.oauth_token.substring(0, 20) + '...');
+      console.log('[Twitter OAuth1 Callback] ✅ Token Secret obtained from Twitter:', accessTokenData.oauth_token_secret.substring(0, 20) + '...');
+      console.log('[Twitter OAuth1 Callback] ✅ Tokens stored in database for user:', user.id);
+      console.log('[Twitter OAuth1 Callback] ✅ Database verification:', {
+        tokenMatches: verification?.twitterOAuth1Token === tokenBeforeStore,
+        tokenSecretMatches: verification?.twitterOAuth1TokenSecret === tokenSecretBeforeStore,
+        tokenInDB: verification?.twitterOAuth1Token?.substring(0, 20) || 'NULL',
+      });
+      console.log('[Twitter OAuth1 Callback] ================================================');
+      
       console.log(`[Twitter OAuth1 Callback] ✅ Stored OAuth 1.0a tokens for user ${user.id}`);
       console.log('[Twitter OAuth1 Callback] ⚠️  CRITICAL: These tokens are tied to the consumer key/secret below');
       console.log('[Twitter OAuth1 Callback] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
