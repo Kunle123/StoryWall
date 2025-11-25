@@ -184,6 +184,8 @@ export const TimelineTweetTemplate = ({
       if (twitterConnected || twitterOAuth1Connected) {
         console.log('[TimelineTweetTemplate] OAuth flow completed, refreshing connection status...');
         
+        const sameTokenDetected = urlParams.get('same_token_detected') === 'true';
+        
         // Recheck connection status after a short delay to ensure tokens are saved
         setTimeout(() => {
           checkTwitterConnection();
@@ -196,8 +198,33 @@ export const TimelineTweetTemplate = ({
         newUrl.searchParams.delete('same_token_detected');
         window.history.replaceState({}, '', newUrl.toString());
         
-        // Show success message
-        if (twitterOAuth1Connected) {
+        // Show message based on OAuth completion status
+        if (sameTokenDetected) {
+          // Token permissions issue - user needs to revoke app access manually
+          toast({
+            title: "Permission Issue Detected",
+            description: (
+              <div className="space-y-2">
+                <p>Your Twitter tokens don't have write permissions. Please:</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>
+                    <a
+                      href="https://twitter.com/settings/apps"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline hover:no-underline"
+                    >
+                      Revoke app access in Twitter Settings
+                    </a>
+                  </li>
+                  <li>Click "Reconnect" below to get new tokens with correct permissions</li>
+                </ol>
+              </div>
+            ),
+            variant: "destructive",
+            duration: 15000,
+          });
+        } else if (twitterOAuth1Connected) {
           toast({
             title: "Twitter Connected!",
             description: "OAuth 2.0 and OAuth 1.0a connected. You can now post tweets with images.",
