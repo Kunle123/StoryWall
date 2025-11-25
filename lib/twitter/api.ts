@@ -157,7 +157,7 @@ function createOAuth1Header(
  * This helps diagnose if tokens have write permissions
  * TODO: Remove this verification step once token permissions issue is resolved
  */
-async function verifyOAuth1TokenPermissions(
+export async function verifyOAuth1TokenPermissions(
   consumerKey: string,
   consumerSecret: string,
   token: string,
