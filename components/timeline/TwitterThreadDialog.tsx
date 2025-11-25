@@ -154,12 +154,24 @@ export function TwitterThreadDialog({
       }
       
       const result = await response.json();
+      
+      // Show success message
       toast({
         title: "Success!",
         description: result.imageAttached 
           ? `Posted ${result.tweetsPosted} tweets to Twitter with image attached`
           : `Posted ${result.tweetsPosted} tweets to Twitter`,
       });
+      
+      // Show warning if image was requested but not attached
+      if (result.warning) {
+        toast({
+          title: "⚠️ Image Not Attached",
+          description: result.warning,
+          variant: "destructive",
+          duration: 10000, // Show for 10 seconds
+        });
+      }
       
       if (result.threadUrl) {
         window.open(result.threadUrl, '_blank');

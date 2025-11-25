@@ -70,12 +70,28 @@ export async function POST(request: NextRequest) {
     const consumerKey = process.env.TWITTER_API_KEY;
     const consumerSecret = process.env.TWITTER_API_SECRET;
     
-    // Log consumer key and tokens for debugging
-    if (imageUrl && userWithToken.twitterOAuth1Token) {
-      console.log('[Twitter Post Tweet] OAuth 1.0a credentials for upload:');
-      console.log('[Twitter Post Tweet] Consumer Key (first 20 chars):', consumerKey?.substring(0, 20) || 'MISSING');
-      console.log('[Twitter Post Tweet] Token (first 20 chars):', userWithToken.twitterOAuth1Token.substring(0, 20));
-      console.log('[Twitter Post Tweet] Token Secret (first 20 chars):', userWithToken.twitterOAuth1TokenSecret?.substring(0, 20) || 'MISSING');
+    // Log OAuth 1.0a status for debugging
+    if (imageUrl) {
+      const hasOAuth1Tokens = !!(userWithToken.twitterOAuth1Token && userWithToken.twitterOAuth1TokenSecret);
+      const hasConsumerKeys = !!(consumerKey && consumerSecret);
+      
+      console.log('[Twitter Post Tweet] OAuth 1.0a status for image upload:');
+      console.log('[Twitter Post Tweet] Consumer Key present:', hasConsumerKeys);
+      console.log('[Twitter Post Tweet] OAuth 1.0a tokens present:', hasOAuth1Tokens);
+      
+      if (hasOAuth1Tokens && hasConsumerKeys) {
+        console.log('[Twitter Post Tweet] OAuth 1.0a credentials for upload:');
+        console.log('[Twitter Post Tweet] Consumer Key (first 20 chars):', consumerKey?.substring(0, 20) || 'MISSING');
+        console.log('[Twitter Post Tweet] Token (first 20 chars):', userWithToken.twitterOAuth1Token.substring(0, 20));
+        console.log('[Twitter Post Tweet] Token Secret (first 20 chars):', userWithToken.twitterOAuth1TokenSecret?.substring(0, 20) || 'MISSING');
+      } else {
+        if (!hasConsumerKeys) {
+          console.warn('[Twitter Post Tweet] ⚠️  OAuth 1.0a Consumer Key/Secret missing from environment variables');
+        }
+        if (!hasOAuth1Tokens) {
+          console.warn('[Twitter Post Tweet] ⚠️  OAuth 1.0a tokens missing - user needs to complete OAuth 1.0a flow');
+        }
+      }
     }
     
     // Post the tweet with or without image
