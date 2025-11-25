@@ -234,6 +234,7 @@ export async function GET(request: NextRequest) {
         },
       });
       console.log(`[Twitter OAuth1 Callback] ✅ Stored OAuth 1.0a tokens for user ${user.id}`);
+      console.log('[Twitter OAuth1 Callback] ⚠️  CRITICAL: These tokens are tied to the consumer key/secret below');
       console.log('[Twitter OAuth1 Callback] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
       console.log('[Twitter OAuth1 Callback] Consumer Key (full length):', consumerKey.length);
       console.log('[Twitter OAuth1 Callback] Consumer Secret (first 10 chars):', consumerSecret.substring(0, 10));
@@ -242,6 +243,7 @@ export async function GET(request: NextRequest) {
       console.log('[Twitter OAuth1 Callback] Token (full length):', accessTokenData.oauth_token.length);
       console.log('[Twitter OAuth1 Callback] Token Secret (first 20 chars):', accessTokenData.oauth_token_secret.substring(0, 20));
       console.log('[Twitter OAuth1 Callback] Token Secret (full length):', accessTokenData.oauth_token_secret.length);
+      console.log('[Twitter OAuth1 Callback] ⚠️  IMPORTANT: If consumer key/secret changes, these tokens will become invalid');
       
       // Verify token permissions immediately after storing
       // If token lacks write permissions, clear it and flag for user to revoke access

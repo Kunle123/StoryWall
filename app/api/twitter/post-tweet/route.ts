@@ -82,8 +82,14 @@ export async function POST(request: NextRequest) {
       if (hasOAuth1Tokens && hasConsumerKeys) {
         console.log('[Twitter Post Tweet] OAuth 1.0a credentials for upload:');
         console.log('[Twitter Post Tweet] Consumer Key (first 20 chars):', consumerKey?.substring(0, 20) || 'MISSING');
+        console.log('[Twitter Post Tweet] Consumer Key (full length):', consumerKey?.length || 0);
+        console.log('[Twitter Post Tweet] Consumer Secret (first 10 chars):', consumerSecret?.substring(0, 10) || 'MISSING');
+        console.log('[Twitter Post Tweet] Consumer Secret (full length):', consumerSecret?.length || 0);
         console.log('[Twitter Post Tweet] Token (first 20 chars):', userWithToken.twitterOAuth1Token?.substring(0, 20) || 'MISSING');
+        console.log('[Twitter Post Tweet] Token (full length):', userWithToken.twitterOAuth1Token?.length || 0);
         console.log('[Twitter Post Tweet] Token Secret (first 20 chars):', userWithToken.twitterOAuth1TokenSecret?.substring(0, 20) || 'MISSING');
+        console.log('[Twitter Post Tweet] Token Secret (full length):', userWithToken.twitterOAuth1TokenSecret?.length || 0);
+        console.log('[Twitter Post Tweet] ⚠️  CRITICAL: These tokens MUST match the consumer key/secret used during OAuth 1.0a flow');
       } else {
         if (!hasConsumerKeys) {
           console.warn('[Twitter Post Tweet] ⚠️  OAuth 1.0a Consumer Key/Secret missing from environment variables');
