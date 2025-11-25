@@ -26,6 +26,14 @@ export async function GET(request: NextRequest) {
     const hasOAuth2 = !!userWithToken?.twitterAccessToken;
     const hasOAuth1 = !!userWithToken?.twitterOAuth1Token && !!userWithToken?.twitterOAuth1TokenSecret;
     
+    console.log('[Twitter Status] User token status:', {
+      userId: user.id,
+      hasOAuth2,
+      hasOAuth1,
+      hasOAuth1Token: !!userWithToken?.twitterOAuth1Token,
+      hasOAuth1TokenSecret: !!userWithToken?.twitterOAuth1TokenSecret,
+    });
+    
     return NextResponse.json({
       connected: hasOAuth2, // OAuth 2.0 is required for posting tweets
       hasOAuth1: hasOAuth1, // OAuth 1.0a is required for image uploads
