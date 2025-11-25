@@ -317,24 +317,6 @@ export const TimelineTweetTemplate = ({
                                      errorMessage.includes('don\'t have write permissions');
         
         if (requiresReconnection) {
-          // Check if we've already tried reconnecting and got the same tokens
-          // This prevents infinite reconnection loops
-          const urlParams = new URLSearchParams(window.location.search);
-          const sameTokenDetected = urlParams.get('same_token_detected') === 'true';
-          
-          if (sameTokenDetected) {
-            // Same tokens detected - don't auto-reconnect, show manual revocation message
-            toast({
-              title: "Manual Revocation Required",
-              description: "Twitter returned the same tokens after reconnection. You must manually revoke app access at https://twitter.com/settings/apps, then reconnect.",
-              variant: "destructive",
-              duration: 15000,
-            });
-            console.error('[TimelineTweetTemplate] Same tokens detected - preventing auto-reconnection');
-            console.error('[TimelineTweetTemplate] SOLUTION: Manually revoke app access at https://twitter.com/settings/apps');
-            return;
-          }
-          
           // Show detailed error message with solution steps
           const solution = errorData.solution || 
             '1. Verify app permissions are "Read and write" in Developer Portal\n' +
@@ -357,7 +339,6 @@ export const TimelineTweetTemplate = ({
           
           // Automatically trigger full re-authentication (both OAuth 2.0 and 1.0a)
           // This will attempt to get fresh tokens with correct permissions
-          // Only if we haven't already detected same tokens
           setTimeout(() => {
             handleConnectTwitter();
           }, 2000); // Give user time to read the error message

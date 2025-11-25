@@ -28,7 +28,7 @@ This guide explains how to set up Twitter API integration to enable automated th
      - `https://www.storywall.com/api/twitter/callback`
      - `http://localhost:3000/api/twitter/callback` (for development)
    - Set Website URL: `https://www.storywall.com`
-   
+
    **Note:** The app requests the following OAuth 2.0 scopes:
    - `tweet.read` - Read tweets
    - `tweet.write` - Post tweets

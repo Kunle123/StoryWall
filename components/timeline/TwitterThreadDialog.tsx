@@ -188,9 +188,21 @@ export function TwitterThreadDialog({
   useEffect(() => {
     if (isSignedIn) {
       const urlParams = new URLSearchParams(window.location.search);
+      const sameTokenDetected = urlParams.get('same_token_detected') === 'true';
+      
       if (urlParams.get('twitter_connected') === 'true' || urlParams.get('twitter_oauth1_connected') === 'true') {
         // OAuth flow completed, recheck connection status
         checkTwitterConnection();
+        
+        // If same token was detected, show warning about revoking access
+        if (sameTokenDetected) {
+          toast({
+            title: "⚠️ Twitter Token Permissions Issue",
+            description: "Your Twitter tokens don't have write permissions. Please: 1) Go to twitter.com/settings/apps 2) Revoke StoryWall access 3) Reconnect here. This is required for image uploads.",
+            variant: "destructive",
+            duration: 15000, // Show for 15 seconds
+          });
+        }
         
         // Clean up URL params
         const newUrl = new URL(window.location.href);

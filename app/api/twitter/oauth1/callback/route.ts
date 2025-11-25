@@ -228,6 +228,39 @@ export async function GET(request: NextRequest) {
       console.log('[Twitter OAuth1 Callback] Token (full length):', accessTokenData.oauth_token.length);
       console.log('[Twitter OAuth1 Callback] Token Secret (first 20 chars):', accessTokenData.oauth_token_secret.substring(0, 20));
       console.log('[Twitter OAuth1 Callback] Token Secret (full length):', accessTokenData.oauth_token_secret.length);
+      
+      // Verify token permissions immediately after storing
+      // If token lacks write permissions, clear it and flag for user to revoke access
+      try {
+        const { verifyOAuth1TokenPermissions } = await import('@/lib/twitter/api');
+        const verification = await verifyOAuth1TokenPermissions(
+          consumerKey,
+          consumerSecret,
+          accessTokenData.oauth_token,
+          accessTokenData.oauth_token_secret
+        );
+        
+        if (!verification.hasWritePermissions) {
+          console.warn('[Twitter OAuth1 Callback] ⚠️  Token lacks write permissions - clearing tokens');
+          console.warn('[Twitter OAuth1 Callback] ⚠️  User must revoke app access in Twitter Settings first');
+          // Clear the tokens we just stored
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              twitterOAuth1Token: null,
+              twitterOAuth1TokenSecret: null,
+            },
+          });
+          // Set flag to indicate user needs to revoke access
+          isSameToken = true; // Use this flag to show the revocation message
+        } else {
+          console.log('[Twitter OAuth1 Callback] ✅ Token has write permissions');
+        }
+      } catch (verifyError) {
+        // Verification failed, but don't block the flow
+        // The actual upload will fail if permissions are missing
+        console.warn('[Twitter OAuth1 Callback] ⚠️  Could not verify token permissions:', verifyError);
+      }
     } catch (error: any) {
       console.error('[Twitter OAuth1 Callback] Failed to store tokens in database:', error);
       return NextResponse.redirect(
