@@ -66,10 +66,33 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state'); // Twitter may not send this in OAuth 1.0a
     const denied = searchParams.get('denied');
     
+    // Get returnUrl from state cookie (preserved from OAuth 1.0a initiation)
+    const cookieStore = await cookies();
+    const storedState = cookieStore.get('twitter_oauth1_state')?.value;
+    let returnUrl: string | null = null;
+    
+    if (storedState) {
+      try {
+        const stateData = JSON.parse(Buffer.from(storedState, 'base64').toString());
+        returnUrl = stateData.returnUrl || null;
+      } catch (e) {
+        console.warn('[Twitter OAuth1 Callback] Could not parse state for returnUrl:', e);
+      }
+    }
+    
+    // Helper to redirect with error while preserving returnUrl
+    const redirectWithError = (error: string) => {
+      let redirectPath = `/?error=${error}`;
+      if (returnUrl && returnUrl.startsWith('/')) {
+        const separator = returnUrl.includes('?') ? '&' : '?';
+        redirectPath = `${returnUrl}${separator}error=${error}`;
+      }
+      return NextResponse.redirect(new URL(redirectPath, baseUrl));
+    };
+    
     if (denied) {
-      return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_denied', baseUrl)
-      );
+      console.warn('[Twitter OAuth1 Callback] User denied OAuth 1.0a authorization');
+      return redirectWithError('twitter_oauth1_denied');
     }
     
     if (!oauthToken || !oauthVerifier) {
@@ -77,14 +100,10 @@ export async function GET(request: NextRequest) {
         oauthToken: !!oauthToken,
         oauthVerifier: !!oauthVerifier,
       });
-      return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_missing_params', baseUrl)
-      );
+      return redirectWithError('twitter_oauth1_missing_params');
     }
     
-    // Verify state parameter from cookie (Twitter OAuth 1.0a may not send state in URL)
-    const cookieStore = await cookies();
-    const storedState = cookieStore.get('twitter_oauth1_state')?.value;
+    // Get request token secret from cookie (already have cookieStore and storedState from above)
     const requestTokenSecret = cookieStore.get('twitter_oauth1_request_token_secret')?.value;
     
     console.log('[Twitter OAuth1 Callback] Received params:', {
@@ -100,9 +119,7 @@ export async function GET(request: NextRequest) {
     // We'll verify the state from the cookie, but be lenient if Twitter sends a different one
     if (!storedState) {
       console.error('[Twitter OAuth1 Callback] Missing stored state in cookie - cookie may have expired or been lost');
-      return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_missing_state_cookie', baseUrl)
-      );
+      return redirectWithError('twitter_oauth1_missing_state_cookie');
     }
     
     // For OAuth 1.0a, Twitter may modify or not send the state parameter correctly
@@ -117,9 +134,7 @@ export async function GET(request: NextRequest) {
     
     if (!requestTokenSecret) {
       console.error('[Twitter OAuth1 Callback] Missing request token secret - cookie may have expired or been lost');
-      return NextResponse.redirect(
-        new URL('/?error=twitter_oauth1_missing_token_secret', baseUrl)
-      );
+      return redirectWithError('twitter_oauth1_missing_token_secret');
     }
     
     // Verify state contains correct userId and extract returnUrl
