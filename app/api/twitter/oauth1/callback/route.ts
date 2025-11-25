@@ -190,8 +190,11 @@ export async function GET(request: NextRequest) {
     
     // Store OAuth 1.0a access tokens in database
     console.log('[Twitter OAuth1 Callback] Storing OAuth 1.0a tokens in database...');
+    
+    // Check if we're getting the same tokens (which might indicate they don't have write permissions)
+    // This needs to be outside the try block so it's accessible when constructing the redirect URL
+    let isSameToken = false;
     try {
-      // Check if we're getting the same tokens (which might indicate they don't have write permissions)
       const existingUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: {
@@ -200,7 +203,7 @@ export async function GET(request: NextRequest) {
         },
       });
       
-      const isSameToken = existingUser?.twitterOAuth1Token === accessTokenData.oauth_token;
+      isSameToken = existingUser?.twitterOAuth1Token === accessTokenData.oauth_token;
       if (isSameToken) {
         console.warn('[Twitter OAuth1 Callback] ⚠️  WARNING: Twitter returned the same token after reconnection!');
         console.warn('[Twitter OAuth1 Callback] ⚠️  This usually means the token still lacks write permissions.');
