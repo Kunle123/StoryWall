@@ -80,53 +80,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Verify token permissions
+    // Verify token permissions using the exported verification function
     console.log('[Verify OAuth1 Tokens] Testing tokens...');
     console.log('[Verify OAuth1 Tokens] Consumer Key (first 20 chars):', consumerKey.substring(0, 20));
     console.log('[Verify OAuth1 Tokens] Token (first 20 chars):', tokenToTest.substring(0, 20));
     console.log('[Verify OAuth1 Tokens] Token Secret (first 20 chars):', tokenSecretToTest.substring(0, 20));
     
-    // Import the verification function - we need to make it exported
-    // For now, let's use a direct test
-    const testUrl = 'https://upload.twitter.com/1.1/media/upload.json';
-    const testParams = {
-      command: 'INIT',
-      total_bytes: '1',
-      media_type: 'image/jpeg',
-    };
-    
-    const { generateOAuth1Signature, createOAuth1Header } = await import('@/lib/twitter/api');
-    const { signature, timestamp, nonce } = generateOAuth1Signature(
-      'POST',
-      testUrl,
-      testParams,
+    const verification = await verifyOAuth1TokenPermissions(
       consumerKey,
       consumerSecret,
       tokenToTest,
       tokenSecretToTest
     );
     
-    const authHeader = createOAuth1Header(consumerKey, tokenToTest, signature, timestamp, nonce);
-    
-    const response = await fetch(testUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(testParams),
-    });
-    
-    const responseText = await response.text();
-    let responseData: any = {};
-    try {
-      responseData = JSON.parse(responseText);
-    } catch {}
-    
-    const isSuccess = response.ok;
-    const hasWritePermissions = isSuccess || (response.status === 400 && responseData?.errors?.[0]?.code !== 215);
-    const errorCode = responseData?.errors?.[0]?.code;
-    const errorMessage = responseData?.errors?.[0]?.message;
+    const errorCode = verification.error?.includes('code 215') ? 215 : undefined;
+    const errorMessage = verification.error;
     
     return NextResponse.json({
       success: true,
