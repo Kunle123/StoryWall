@@ -90,10 +90,13 @@ When you regenerate the API keys:
 
 Before regenerating keys, verify:
 1. Go to Developer Portal → Your App → "User authentication settings"
-2. Check **BOTH** OAuth 2.0 and OAuth 1.0a sections
-3. Ensure **"App permissions"** is set to **"Read and write"** (not "Read only")
-4. **Save changes** if you modified anything
-5. **Then** regenerate API keys
+2. Check **BOTH** OAuth 2.0 and OAuth 1.0a sections (they are separate!)
+3. Ensure **"App permissions"** is set to **"Read and write"** (not "Read only") in BOTH sections
+4. **Click "Save"** after setting each section (each requires its own save)
+5. **Verify permissions persist** after refreshing the page
+6. **Then** regenerate API keys
+
+**⚠️ IMPORTANT:** If permissions revert to "Read only" after refreshing, see [TWITTER_PERMISSIONS_NOT_SAVING.md](./TWITTER_PERMISSIONS_NOT_SAVING.md) for detailed troubleshooting.
 
 ## If Issue Persists
 

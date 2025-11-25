@@ -23,11 +23,13 @@ This guide explains how to set up Twitter API integration to enable automated th
    - Enable OAuth 2.0
    - **CRITICAL:** Set App permissions to **"Read and write"** (this includes media upload permissions)
      - ⚠️ **Important:** If you change permissions after users have already authorized, they must revoke and re-authorize to get tokens with the new permissions. See [X Developer docs](https://docs.x.com/fundamentals/developer-apps#app-permissions)
+   - **IMPORTANT:** Scroll down and click **"Save"** button
    - Set Type of App to "Web App"
    - Add callback URLs:
      - `https://www.storywall.com/api/twitter/callback`
      - `http://localhost:3000/api/twitter/callback` (for development)
    - Set Website URL: `https://www.storywall.com`
+   - **Click "Save" again** after adding callback URLs
 
    **Note:** The app requests the following OAuth 2.0 scopes:
    - `tweet.read` - Read tweets
@@ -38,11 +40,18 @@ This guide explains how to set up Twitter API integration to enable automated th
 
 4. **Configure OAuth 1.0a Settings (Required for Image Uploads)**
    - In your app settings, go to "User authentication settings"
+   - **Scroll down to find the OAuth 1.0a section** (separate from OAuth 2.0)
    - Enable OAuth 1.0a (you can have both OAuth 2.0 and OAuth 1.0a enabled)
-   - **CRITICAL:** Set App permissions to **"Read and write"** (same as OAuth 2.0)
+   - **CRITICAL:** Set App permissions to **"Read and write"** in the OAuth 1.0a section
+     - ⚠️ **IMPORTANT:** OAuth 2.0 and OAuth 1.0a have SEPARATE permission settings
+     - ⚠️ **IMPORTANT:** You must set "Read and write" in BOTH sections
+   - **IMPORTANT:** Scroll down and click **"Save"** button (separate from OAuth 2.0 save)
    - Add callback URLs:
      - `https://www.storywall.com/api/twitter/oauth1/callback`
      - `http://localhost:3000/api/twitter/oauth1/callback` (for development)
+   - **Click "Save" again** after adding callback URLs
+   
+   **⚠️ CRITICAL:** If permissions revert to "Read only" after refreshing, see [TWITTER_PERMISSIONS_NOT_SAVING.md](../debugging/TWITTER_PERMISSIONS_NOT_SAVING.md)
    
    **Why OAuth 1.0a is required:** Twitter's v1.1 media upload endpoint (`upload.twitter.com/1.1/media/upload.json`) requires OAuth 1.0a authentication. OAuth 2.0 cannot be used for media uploads.
 
