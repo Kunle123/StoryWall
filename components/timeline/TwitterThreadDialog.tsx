@@ -86,7 +86,9 @@ export function TwitterThreadDialog({
   
   const handleConnectTwitter = async () => {
     try {
-      const response = await fetch('/api/twitter/oauth');
+      // Pass current URL as returnUrl so OAuth flow can return here after completion
+      const returnUrl = window.location.pathname + window.location.search;
+      const response = await fetch(`/api/twitter/oauth?returnUrl=${encodeURIComponent(returnUrl)}`);
       if (!response.ok) {
         throw new Error('Failed to initiate Twitter connection');
       }
@@ -126,6 +128,18 @@ export function TwitterThreadDialog({
       
       if (!response.ok) {
         const error = await response.json();
+        
+        // Handle cases that require reconnection
+        if (error.requiresReconnection || error.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR' || error.code === 'OAUTH2_TOKEN_INVALID' || error.code === 'OAUTH1_TOKENS_MISSING') {
+          setIsConnected(false);
+          toast({
+            title: "Twitter reconnection required",
+            description: error.solution || error.details || "Please reconnect your Twitter account",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         if (error.error?.includes('not connected')) {
           setIsConnected(false);
           toast({
@@ -134,7 +148,7 @@ export function TwitterThreadDialog({
             variant: "destructive",
           });
         } else {
-          throw new Error(error.error || 'Failed to post thread');
+          throw new Error(error.error || error.details || 'Failed to post thread');
         }
         return;
       }
@@ -169,6 +183,24 @@ export function TwitterThreadDialog({
       checkTwitterConnection();
     }
   }, [open, isSignedIn]);
+  
+  // Check connection status when OAuth flow completes
+  useEffect(() => {
+    if (isSignedIn) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('twitter_connected') === 'true' || urlParams.get('twitter_oauth1_connected') === 'true') {
+        // OAuth flow completed, recheck connection status
+        checkTwitterConnection();
+        
+        // Clean up URL params
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('twitter_connected');
+        newUrl.searchParams.delete('twitter_oauth1_connected');
+        newUrl.searchParams.delete('same_token_detected');
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    }
+  }, [isSignedIn]);
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

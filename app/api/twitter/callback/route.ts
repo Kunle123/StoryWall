@@ -170,9 +170,10 @@ export async function GET(request: NextRequest) {
     const consumerSecret = process.env.TWITTER_API_SECRET;
     const oauth1Configured = !!(consumerKey && consumerSecret);
     
-    // If OAuth 1.0a is configured, always redirect to OAuth 1.0a flow to get fresh tokens
+    // If OAuth 1.0a is configured, ALWAYS redirect to OAuth 1.0a flow to get fresh tokens
     // This ensures tokens always match the consumer key/secret (prevents token mismatch errors)
-    if (oauth1Configured && returnUrl) {
+    // Note: We always redirect even if returnUrl is missing to ensure OAuth 1.0a completes
+    if (oauth1Configured) {
       console.log('[Twitter Callback] OAuth 2.0 connected, automatically initiating OAuth 1.0a flow for image uploads');
       // Clear any existing OAuth 1.0a tokens to force fresh authentication
       await prisma.user.update({
@@ -182,9 +183,11 @@ export async function GET(request: NextRequest) {
           twitterOAuth1TokenSecret: null,
         },
       });
-      // Redirect to OAuth 1.0a flow with the same returnUrl
+      // Redirect to OAuth 1.0a flow with the returnUrl (if available)
       const oauth1Url = new URL('/api/twitter/oauth1', baseUrl);
-      oauth1Url.searchParams.set('returnUrl', returnUrl);
+      if (returnUrl) {
+        oauth1Url.searchParams.set('returnUrl', returnUrl);
+      }
       return NextResponse.redirect(oauth1Url);
     }
     
