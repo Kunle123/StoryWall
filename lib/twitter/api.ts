@@ -925,6 +925,15 @@ export async function postTweet(
       }
     }
     console.error(`[Twitter Post Tweet] Failed (${response.status}):`, errorMessage);
+    
+    // Check for 401 Unauthorized - indicates OAuth 2.0 token is invalid or expired
+    if (response.status === 401) {
+      const authError = new Error('OAuth 2.0 authentication failed (401): Unauthorized. Your Twitter access token is invalid or expired. Please reconnect your Twitter account.');
+      (authError as any).code = 'OAUTH2_TOKEN_INVALID';
+      (authError as any).status = 401;
+      throw authError;
+    }
+    
     throw new Error(errorMessage);
   }
   

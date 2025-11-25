@@ -118,6 +118,39 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Twitter Post Tweet] Error:', error);
     
+    // Check if it's an OAuth 2.0 token invalid/expired error (401 Unauthorized)
+    const isOAuth2Invalid = error.code === 'OAUTH2_TOKEN_INVALID' || 
+                            error.status === 401 ||
+                            (error.message && error.message.includes('OAuth 2.0 authentication failed'));
+    
+    if (isOAuth2Invalid && userId) {
+      try {
+        const user = await getOrCreateUser(userId);
+        console.log('[Twitter Post Tweet] OAuth 2.0 token invalid - clearing all Twitter tokens to force reconnection');
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            twitterAccessToken: null,
+            twitterOAuth1Token: null,
+            twitterOAuth1TokenSecret: null,
+          },
+        });
+        console.log('[Twitter Post Tweet] All Twitter tokens cleared - user will need to reconnect');
+      } catch (clearError) {
+        console.error('[Twitter Post Tweet] Failed to clear tokens:', clearError);
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Your Twitter access token is invalid or expired. Please reconnect your Twitter account.',
+          code: 'OAUTH2_TOKEN_INVALID',
+          requiresReconnection: true,
+          solution: '1. Click "Connect Twitter Account" to reconnect\n2. Authorize the app again to get fresh tokens',
+        },
+        { status: 401 }
+      );
+    }
+    
     // Check if it's a token permissions error (Bad Authentication data - code 215)
     const errorMessage = error.message || '';
     const isTokenPermissionError = errorMessage.includes('Bad Authentication data') || 
