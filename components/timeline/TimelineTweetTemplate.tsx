@@ -307,9 +307,12 @@ export const TimelineTweetTemplate = ({
         
         const errorMessage = error.message || errorData.error || '';
         const requiresReconnection = errorData.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR' ||
+                                     errorData.code === 'OAUTH2_TOKEN_INVALID' ||
                                      errorData.requiresReconnection ||
                                      errorMessage.includes('Bad Authentication') || 
                                      errorMessage.includes('OAuth 1.0a authentication failed') ||
+                                     errorMessage.includes('OAuth 2.0 authentication failed') ||
+                                     errorMessage.includes('access token is invalid or expired') ||
                                      errorMessage.includes('lack write permissions') ||
                                      errorMessage.includes('don\'t have write permissions');
         
