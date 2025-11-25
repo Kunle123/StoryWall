@@ -137,9 +137,8 @@ export async function GET(request: NextRequest) {
       return redirectWithError('twitter_oauth1_missing_token_secret');
     }
     
-    // Verify state contains correct userId and extract returnUrl
+    // Verify state contains correct userId (returnUrl already extracted above)
     // Use storedState from cookie (not the state from URL, as Twitter may modify it)
-    let returnUrl: string | null = null;
     let stateData: any;
     try {
       stateData = JSON.parse(Buffer.from(storedState, 'base64').toString());
