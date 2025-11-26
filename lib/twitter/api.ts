@@ -93,13 +93,17 @@ function generateOAuth1Signature(
     .update(signatureBaseString)
     .digest('base64');
 
-  // Log signature details for debugging (INIT and APPEND steps)
-  if (params.command === 'INIT' || params.command === 'APPEND') {
-    console.log(`[${params.command} Debug] All params for signature:`, JSON.stringify(allParams, null, 2));
-    console.log(`[${params.command} Debug] Normalized params string:`, normalizedParams);
-    console.log(`[${params.command} Debug] Signature base string (FULL):`, signatureBaseString);
-    console.log(`[${params.command} Debug] Signing key (masked):`, `${signingKey.substring(0, 10)}...&...${signingKey.substring(signingKey.length - 10)}`);
-    console.log(`[${params.command} Debug] Generated signature (FULL):`, signature);
+  // Log signature details for debugging (INIT, APPEND, and REQUEST TOKEN steps)
+  const isRequestToken = url.includes('/oauth/request_token');
+  if (params.command === 'INIT' || params.command === 'APPEND' || isRequestToken) {
+    const debugPrefix = isRequestToken ? '[Twitter OAuth1 Request Token] 🔐' : `[${params.command} Debug]`;
+    console.log(`${debugPrefix} Signature Debug:`);
+    console.log(`${debugPrefix} Normalized URL:`, normalizedUrl);
+    console.log(`${debugPrefix} All params for signature:`, JSON.stringify(allParams, null, 2));
+    console.log(`${debugPrefix} Normalized params string:`, normalizedParams);
+    console.log(`${debugPrefix} Signature base string (FULL):`, signatureBaseString);
+    console.log(`${debugPrefix} Signing key (masked):`, `${signingKey.substring(0, 10)}...&...${signingKey.substring(signingKey.length - 10)}`);
+    console.log(`${debugPrefix} Generated signature (FULL):`, signature);
   }
 
   return { signature, timestamp, nonce };
@@ -1104,6 +1108,7 @@ export async function getOAuth1RequestToken(
   console.log('[Twitter OAuth1 Request Token] 🔐 Callback URL being sent to Twitter:', callbackUrl);
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: This URL MUST match exactly what is in Twitter Developer Portal');
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: Check: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
+  console.log('[Twitter OAuth1 Request Token] 🔐 Authorization Header:', authHeader);
   
   const response = await fetch(url, {
     method: 'POST',
