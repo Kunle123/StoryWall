@@ -1128,6 +1128,10 @@ export async function getOAuth1RequestToken(
   
   const authHeader = `OAuth ${authParams}`;
   
+  console.log('[Twitter OAuth1 Request Token] 🔐 Callback URL being sent to Twitter:', callbackUrl);
+  console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: This URL MUST match exactly what is in Twitter Developer Portal');
+  console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: Check: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -1137,6 +1141,9 @@ export async function getOAuth1RequestToken(
   
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[Twitter OAuth1 Request Token] ❌ Error response:', response.status, errorText);
+    console.error('[Twitter OAuth1 Request Token] ❌ Callback URL that was sent:', callbackUrl);
+    console.error('[Twitter OAuth1 Request Token] ❌ Verify this URL is in Developer Portal: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
     throw new Error(`Failed to get request token: ${response.status} ${errorText}`);
   }
   
@@ -1146,6 +1153,15 @@ export async function getOAuth1RequestToken(
     const [key, value] = pair.split('=');
     tokenData[decodeURIComponent(key)] = decodeURIComponent(value);
   });
+  
+  console.log('[Twitter OAuth1 Request Token] ✅ Request token obtained successfully');
+  console.log('[Twitter OAuth1 Request Token] ✅ Callback confirmed:', tokenData.oauth_callback_confirmed);
+  console.log('[Twitter OAuth1 Request Token] ✅ Token (first 20 chars):', tokenData.oauth_token?.substring(0, 20) || 'NULL');
+  
+  // Verify callback was confirmed
+  if (tokenData.oauth_callback_confirmed !== 'true') {
+    console.warn('[Twitter OAuth1 Request Token] ⚠️  WARNING: Callback not confirmed by Twitter. This may indicate a callback URL mismatch.');
+  }
   
   return {
     oauth_token: tokenData.oauth_token,

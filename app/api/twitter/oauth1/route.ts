@@ -114,6 +114,11 @@ export async function GET(request: NextRequest) {
     
     console.log('[Twitter OAuth1] Generated auth URL, redirecting user to Twitter');
     console.log('[Twitter OAuth1] Auth URL:', authUrl);
+    console.log('[Twitter OAuth1] ⚠️  If authorization page fails to load:');
+    console.log('[Twitter OAuth1] ⚠️  1. Check server logs above for "Callback URL being sent to Twitter"');
+    console.log('[Twitter OAuth1] ⚠️  2. Verify that EXACT URL is in Developer Portal: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
+    console.log('[Twitter OAuth1] ⚠️  3. Try opening the auth URL directly in a new browser tab');
+    console.log('[Twitter OAuth1] ⚠️  4. Check browser console/network tab for errors');
     
     // Check if this is a server-side redirect (from OAuth 2.0 callback) or client-side fetch
     // Server-side redirects don't have Accept: application/json header
