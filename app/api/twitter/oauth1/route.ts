@@ -122,15 +122,17 @@ export async function GET(request: NextRequest) {
     
     // Check if this is a server-side redirect (from OAuth 2.0 callback) or client-side fetch
     // Server-side redirects don't have Accept: application/json header
+    // Browser navigation sends text/html in Accept header, fetch sends application/json
     const acceptHeader = request.headers.get('accept') || '';
-    const isJsonRequest = acceptHeader.includes('application/json');
+    const isJsonRequest = acceptHeader.includes('application/json') && !acceptHeader.includes('text/html');
     
     // If it's a JSON request (client-side fetch), return JSON
-    // Otherwise, redirect directly (server-side redirect from OAuth 2.0 callback)
+    // Otherwise, redirect directly (server-side redirect from OAuth 2.0 callback or browser navigation)
     if (isJsonRequest) {
       return NextResponse.json({ authUrl });
     } else {
       // Server-side redirect - redirect directly to Twitter
+      // This is more reliable than client-side redirect, especially in Safari
       return NextResponse.redirect(authUrl);
     }
   } catch (error: any) {

@@ -8,6 +8,7 @@ export default function TestOAuth1Page() {
   const [status, setStatus] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
 
   const testOAuth1 = async () => {
     setLoading(true);
@@ -20,11 +21,15 @@ export default function TestOAuth1Page() {
       const data = await response.json();
 
       if (data.authUrl) {
+        setAuthUrl(data.authUrl);
         setStatus('✅ OAuth 1.0a initiated! Redirecting to Twitter...');
         console.log('✅ OAuth 1.0a initiated!');
         console.log('Auth URL:', data.authUrl);
-        // Redirect to Twitter
-        window.location.href = data.authUrl;
+        // Use replace instead of href to avoid Safari issues
+        // Also add a small delay to ensure status message is visible
+        setTimeout(() => {
+          window.location.replace(data.authUrl);
+        }, 100);
       } else {
         const errorMsg = data.error || 'Unknown error';
         setError(`❌ Error: ${errorMsg}`);
@@ -76,18 +81,51 @@ export default function TestOAuth1Page() {
             </div>
           )}
 
-          <Button 
-            onClick={testOAuth1} 
-            disabled={loading}
-            className="w-full"
-          >
-            {loading ? 'Initiating...' : 'Test OAuth 1.0a Connection'}
-          </Button>
+          <div className="space-y-2">
+            <Button 
+              onClick={testOAuth1} 
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? 'Initiating...' : 'Test OAuth 1.0a Connection (JavaScript)'}
+            </Button>
+            
+            <Button 
+              onClick={() => {
+                const returnPath = window.location.pathname + window.location.search;
+                window.location.href = `/api/twitter/oauth1?returnUrl=${encodeURIComponent(returnPath)}`;
+              }}
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+            >
+              Test OAuth 1.0a Connection (Direct Redirect)
+            </Button>
+          </div>
+
+          {authUrl && (
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-900 dark:text-yellow-100 mb-2">
+                <strong>If automatic redirect failed:</strong>
+              </p>
+              <a 
+                href={authUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+              >
+                Click here to open Twitter authorization page
+              </a>
+            </div>
+          )}
 
           <div className="text-xs text-muted-foreground space-y-1">
             <p><strong>Note:</strong> You must be signed in to use this test.</p>
             <p>After clicking, you'll be redirected to Twitter to authorize the app.</p>
             <p>After authorization, you'll be redirected back here with tokens stored.</p>
+            <p className="text-yellow-600 dark:text-yellow-400 mt-2">
+              <strong>Tip:</strong> If the redirect fails, use the direct link above or try a different browser.
+            </p>
           </div>
         </CardContent>
       </Card>
