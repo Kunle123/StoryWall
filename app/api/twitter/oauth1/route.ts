@@ -108,13 +108,12 @@ export async function GET(request: NextRequest) {
     });
     
     // Step 2: Generate authorization URL
+    // NOTE: OAuth 1.0a does NOT support the 'state' parameter (that's OAuth 2.0 only)
+    // State is stored in a cookie and verified in the callback
     const authUrl = getOAuth1AuthUrl(requestTokenData.oauth_token);
     
-    // Add state to the auth URL as a query parameter (Twitter will pass it back)
-    const authUrlWithState = `${authUrl}&state=${encodeURIComponent(state)}`;
-    
     console.log('[Twitter OAuth1] Generated auth URL, redirecting user to Twitter');
-    console.log('[Twitter OAuth1] Auth URL:', authUrlWithState);
+    console.log('[Twitter OAuth1] Auth URL:', authUrl);
     
     // Check if this is a server-side redirect (from OAuth 2.0 callback) or client-side fetch
     // Server-side redirects don't have Accept: application/json header
@@ -124,10 +123,10 @@ export async function GET(request: NextRequest) {
     // If it's a JSON request (client-side fetch), return JSON
     // Otherwise, redirect directly (server-side redirect from OAuth 2.0 callback)
     if (isJsonRequest) {
-      return NextResponse.json({ authUrl: authUrlWithState });
+      return NextResponse.json({ authUrl });
     } else {
       // Server-side redirect - redirect directly to Twitter
-      return NextResponse.redirect(authUrlWithState);
+      return NextResponse.redirect(authUrl);
     }
   } catch (error: any) {
     console.error('[Twitter OAuth1] Error:', error);
