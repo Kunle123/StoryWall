@@ -1118,21 +1118,44 @@ export async function getOAuth1RequestToken(
     .update(signatureBaseString)
     .digest('base64');
   
+  // Debug logging for signature calculation
+  console.log('[Twitter OAuth1 Request Token] 🔐 Signature Debug:');
+  console.log('[Twitter OAuth1 Request Token] 🔐 Normalized URL:', normalizedUrl);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Normalized Params:', normalizedParams);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Signature Base String:', signatureBaseString);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Signing Key (masked):', `${signingKey.substring(0, 10)}...&`);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Generated Signature:', signature);
+  
   // Create Authorization header
   // CRITICAL: oauth_signature is already base64-encoded, do NOT percent-encode it
   // CRITICAL: Use percentEncode (not encodeURIComponent) for OAuth 1.0a compliance
-  const authParams = [
-    `oauth_consumer_key="${percentEncode(consumerKey)}"`,
-    `oauth_signature_method="HMAC-SHA1"`,
-    `oauth_timestamp="${timestamp}"`,
-    `oauth_nonce="${nonce}"`,
-    `oauth_version="1.0"`,
-    `oauth_callback="${percentEncode(callbackUrl)}"`,
-    `oauth_signature="${signature}"`, // Already base64-encoded - do NOT percent-encode
-  ].join(', ');
+  // CRITICAL: Parameters must be sorted alphabetically per OAuth 1.0a spec
+  const authParamsObj: Record<string, string> = {
+    oauth_callback: callbackUrl,
+    oauth_consumer_key: consumerKey,
+    oauth_nonce: nonce,
+    oauth_signature: signature, // Already base64-encoded - do NOT percent-encode
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: timestamp,
+    oauth_version: '1.0',
+  };
+  
+  // Sort parameters alphabetically and build header
+  const sortedKeys = Object.keys(authParamsObj).sort();
+  const authParams = sortedKeys
+    .map(key => {
+      const encodedKey = percentEncode(key);
+      // Signature is already base64 encoded - don't percent-encode it again
+      const encodedValue = key === 'oauth_signature' 
+        ? authParamsObj[key] 
+        : percentEncode(authParamsObj[key]);
+      return `${encodedKey}="${encodedValue}"`;
+    })
+    .join(', ');
   
   const authHeader = `OAuth ${authParams}`;
   
+  console.log('[Twitter OAuth1 Request Token] 🔐 Authorization Header:', authHeader);
   console.log('[Twitter OAuth1 Request Token] 🔐 Callback URL being sent to Twitter:', callbackUrl);
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: This URL MUST match exactly what is in Twitter Developer Portal');
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: Check: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
