@@ -1101,12 +1101,13 @@ export async function getOAuth1RequestToken(
     .join('&');
   
   // Create signature base string
-  // CRITICAL: Use percentEncode, not encodeURIComponent, for OAuth 1.0a
+  // CRITICAL: normalizedParams is already percent-encoded, do NOT encode it again
+  // CRITICAL: Only encode the URL, not the already-encoded parameter string
   const normalizedUrl = url.split('?')[0]; // Remove any query parameters
   const signatureBaseString = [
     'POST',
     percentEncode(normalizedUrl),
-    percentEncode(normalizedParams)
+    normalizedParams // Already percent-encoded, don't encode again!
   ].join('&');
   
   // Create signing key (no token secret yet)
