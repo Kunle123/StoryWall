@@ -1094,21 +1094,24 @@ export async function getOAuth1RequestToken(
     oauth_callback: callbackUrl,
   };
   
-  // Normalize parameters
+  // Normalize parameters (use percentEncode for OAuth 1.0a compliance)
   const normalizedParams = Object.keys(oauthParams)
     .sort()
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
+    .map(key => `${percentEncode(key)}=${percentEncode(oauthParams[key])}`)
     .join('&');
   
   // Create signature base string
+  // CRITICAL: Use percentEncode, not encodeURIComponent, for OAuth 1.0a
+  const normalizedUrl = url.split('?')[0]; // Remove any query parameters
   const signatureBaseString = [
     'POST',
-    encodeURIComponent(url),
-    encodeURIComponent(normalizedParams)
+    percentEncode(normalizedUrl),
+    percentEncode(normalizedParams)
   ].join('&');
   
   // Create signing key (no token secret yet)
-  const signingKey = `${encodeURIComponent(consumerSecret)}&`;
+  // CRITICAL: Use percentEncode for OAuth 1.0a compliance
+  const signingKey = `${percentEncode(consumerSecret)}&`;
   
   // Generate signature
   const signature = createHmac('sha1', signingKey)
@@ -1117,13 +1120,14 @@ export async function getOAuth1RequestToken(
   
   // Create Authorization header
   // CRITICAL: oauth_signature is already base64-encoded, do NOT percent-encode it
+  // CRITICAL: Use percentEncode (not encodeURIComponent) for OAuth 1.0a compliance
   const authParams = [
-    `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
+    `oauth_consumer_key="${percentEncode(consumerKey)}"`,
     `oauth_signature_method="HMAC-SHA1"`,
     `oauth_timestamp="${timestamp}"`,
     `oauth_nonce="${nonce}"`,
     `oauth_version="1.0"`,
-    `oauth_callback="${encodeURIComponent(callbackUrl)}"`,
+    `oauth_callback="${percentEncode(callbackUrl)}"`,
     `oauth_signature="${signature}"`, // Already base64-encoded - do NOT percent-encode
   ].join(', ');
   
