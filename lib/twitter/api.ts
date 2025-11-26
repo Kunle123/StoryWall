@@ -1116,6 +1116,7 @@ export async function getOAuth1RequestToken(
     .digest('base64');
   
   // Create Authorization header
+  // CRITICAL: oauth_signature is already base64-encoded, do NOT percent-encode it
   const authParams = [
     `oauth_consumer_key="${encodeURIComponent(consumerKey)}"`,
     `oauth_signature_method="HMAC-SHA1"`,
@@ -1123,7 +1124,7 @@ export async function getOAuth1RequestToken(
     `oauth_nonce="${nonce}"`,
     `oauth_version="1.0"`,
     `oauth_callback="${encodeURIComponent(callbackUrl)}"`,
-    `oauth_signature="${encodeURIComponent(signature)}"`,
+    `oauth_signature="${signature}"`, // Already base64-encoded - do NOT percent-encode
   ].join(', ');
   
   const authHeader = `OAuth ${authParams}`;
