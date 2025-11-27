@@ -1108,7 +1108,18 @@ export async function getOAuth1RequestToken(
   console.log('[Twitter OAuth1 Request Token] 🔐 Callback URL being sent to Twitter:', callbackUrl);
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: This URL MUST match exactly what is in Twitter Developer Portal');
   console.log('[Twitter OAuth1 Request Token] ⚠️  CRITICAL: Check: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
+  console.log('[Twitter OAuth1 Request Token] 🔐 Consumer Key (FULL):', consumerKey);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Consumer Key length:', consumerKey.length);
+  console.log('[Twitter OAuth1 Request Token] 🔐 Consumer Secret length:', consumerSecret.length);
   console.log('[Twitter OAuth1 Request Token] 🔐 Authorization Header:', authHeader);
+  
+  // CRITICAL: Verify Consumer Key matches what's in Developer Portal
+  // If this fails, check:
+  // 1. TWITTER_API_KEY environment variable matches "API Key" in Developer Portal → Keys and tokens
+  // 2. TWITTER_API_SECRET environment variable matches "API Secret" in Developer Portal → Keys and tokens
+  // 3. No extra spaces or quotes in environment variables
+  // 4. Environment variables were updated after regenerating keys
+  // 5. Application was redeployed after updating environment variables
   
   const response = await fetch(url, {
     method: 'POST',
