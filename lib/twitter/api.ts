@@ -1129,10 +1129,13 @@ export async function getOAuth1RequestToken(
   // - Callback URL doesn't match exactly (second most common)
   // - App permissions not set correctly for OAuth 1.0a
   
+  // Try with Content-Type header (some OAuth 1.0a implementations require this)
+  // Even though request_token has no body, Twitter might expect this header
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': authHeader,
+      'Content-Type': 'application/x-www-form-urlencoded',
     },
   });
   
