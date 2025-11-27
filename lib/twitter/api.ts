@@ -1113,13 +1113,21 @@ export async function getOAuth1RequestToken(
   console.log('[Twitter OAuth1 Request Token] 🔐 Consumer Secret length:', consumerSecret.length);
   console.log('[Twitter OAuth1 Request Token] 🔐 Authorization Header:', authHeader);
   
-  // CRITICAL: Verify Consumer Key matches what's in Developer Portal
-  // If this fails, check:
-  // 1. TWITTER_API_KEY environment variable matches "API Key" in Developer Portal → Keys and tokens
-  // 2. TWITTER_API_SECRET environment variable matches "API Secret" in Developer Portal → Keys and tokens
-  // 3. No extra spaces or quotes in environment variables
-  // 4. Environment variables were updated after regenerating keys
-  // 5. Application was redeployed after updating environment variables
+  // CRITICAL VERIFICATION CHECKLIST:
+  // If code 215 persists, verify ALL of these:
+  // 1. Consumer Key in logs above matches EXACTLY "API Key" in Developer Portal → Keys and tokens
+  // 2. Consumer Secret length should be ~50 characters (check Developer Portal → Keys and tokens → API Secret)
+  // 3. Callback URL matches EXACTLY: Settings → User authentication settings → OAuth 1.0a → Callback URLs
+  //    - Must match character-for-character (case-sensitive, no trailing slash, exact protocol)
+  // 4. Environment variables have NO quotes, NO extra spaces, NO newlines
+  // 5. Application was redeployed AFTER updating environment variables
+  // 6. OAuth 1.0a is ENABLED in Developer Portal → Settings → User authentication settings
+  // 7. App permissions are set to "Read and write" for OAuth 1.0a (separate from OAuth 2.0)
+  
+  // If ALL above are correct but still getting 215, the issue is likely:
+  // - Consumer Key/Secret don't match what's registered (most common)
+  // - Callback URL doesn't match exactly (second most common)
+  // - App permissions not set correctly for OAuth 1.0a
   
   const response = await fetch(url, {
     method: 'POST',
@@ -1132,7 +1140,18 @@ export async function getOAuth1RequestToken(
     const errorText = await response.text();
     console.error('[Twitter OAuth1 Request Token] ❌ Error response:', response.status, errorText);
     console.error('[Twitter OAuth1 Request Token] ❌ Callback URL that was sent:', callbackUrl);
+    console.error('[Twitter OAuth1 Request Token] ❌ Consumer Key used:', consumerKey);
+    console.error('[Twitter OAuth1 Request Token] ❌ Consumer Key length:', consumerKey.length);
+    console.error('[Twitter OAuth1 Request Token] ❌ Consumer Secret length:', consumerSecret.length);
     console.error('[Twitter OAuth1 Request Token] ❌ Verify this URL is in Developer Portal: Settings → User authentication settings → OAuth 1.0a → Callback URLs');
+    console.error('[Twitter OAuth1 Request Token] ========== DIAGNOSTIC CHECKLIST ==========');
+    console.error('[Twitter OAuth1 Request Token] Code 215 "Bad Authentication data" means:');
+    console.error('[Twitter OAuth1 Request Token] 1. Consumer Key/Secret mismatch - Verify Consumer Key above matches Developer Portal');
+    console.error('[Twitter OAuth1 Request Token] 2. Callback URL mismatch - Verify callback URL above matches Developer Portal EXACTLY');
+    console.error('[Twitter OAuth1 Request Token] 3. OAuth 1.0a not enabled - Check Developer Portal → Settings → User authentication settings');
+    console.error('[Twitter OAuth1 Request Token] 4. Environment variables not updated - Check TWITTER_API_KEY and TWITTER_API_SECRET');
+    console.error('[Twitter OAuth1 Request Token] 5. App not redeployed - Redeploy after updating environment variables');
+    console.error('[Twitter OAuth1 Request Token] ==========================================');
     throw new Error(`Failed to get request token: ${response.status} ${errorText}`);
   }
   
