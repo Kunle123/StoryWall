@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
-import { postTweet, uploadMedia, uploadMediaOAuth1 } from '@/lib/twitter/api';
+import { postTweet, uploadMediaOAuth1 } from '@/lib/twitter/api';
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null; // Store userId for use in catch block

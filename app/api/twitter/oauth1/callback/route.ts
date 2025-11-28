@@ -347,27 +347,27 @@ export async function GET(request: NextRequest) {
             console.log('[Twitter OAuth1 Callback] ✅ Tokens stored - will verify permissions during first image upload');
           } else {
             // Other errors (like 403) indicate actual permissions issues
-            console.error('[Twitter OAuth1 Callback] ❌❌❌ TOKEN PERMISSIONS ISSUE DETECTED ❌❌❌');
-            console.error('[Twitter OAuth1 Callback] ❌ Token obtained but lacks write permissions');
-            console.error('[Twitter OAuth1 Callback] ❌ This usually means:');
-            console.error('[Twitter OAuth1 Callback] ❌ 1. App permissions in Developer Portal are NOT actually "Read and write"');
-            console.error('[Twitter OAuth1 Callback] ❌ 2. OR API keys were regenerated but environment variables not updated');
-            console.error('[Twitter OAuth1 Callback] ❌ 3. OR App permissions were changed AFTER tokens were first issued');
-            console.error('[Twitter OAuth1 Callback] ❌ SOLUTION: Regenerate API Key and API Secret in Developer Portal');
-            console.error('[Twitter OAuth1 Callback] ❌ Then update environment variables and redeploy');
-            console.error('[Twitter OAuth1 Callback] ❌ Then revoke app access and reconnect');
-            console.warn('[Twitter OAuth1 Callback] ⚠️  Token lacks write permissions - clearing tokens');
-            console.warn('[Twitter OAuth1 Callback] ⚠️  User must revoke app access in Twitter Settings first');
-            // Clear the tokens we just stored
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                twitterOAuth1Token: null,
-                twitterOAuth1TokenSecret: null,
-              },
-            });
-            // Set flag to indicate user needs to revoke access
-            isSameToken = true; // Use this flag to show the revocation message
+          console.error('[Twitter OAuth1 Callback] ❌❌❌ TOKEN PERMISSIONS ISSUE DETECTED ❌❌❌');
+          console.error('[Twitter OAuth1 Callback] ❌ Token obtained but lacks write permissions');
+          console.error('[Twitter OAuth1 Callback] ❌ This usually means:');
+          console.error('[Twitter OAuth1 Callback] ❌ 1. App permissions in Developer Portal are NOT actually "Read and write"');
+          console.error('[Twitter OAuth1 Callback] ❌ 2. OR API keys were regenerated but environment variables not updated');
+          console.error('[Twitter OAuth1 Callback] ❌ 3. OR App permissions were changed AFTER tokens were first issued');
+          console.error('[Twitter OAuth1 Callback] ❌ SOLUTION: Regenerate API Key and API Secret in Developer Portal');
+          console.error('[Twitter OAuth1 Callback] ❌ Then update environment variables and redeploy');
+          console.error('[Twitter OAuth1 Callback] ❌ Then revoke app access and reconnect');
+          console.warn('[Twitter OAuth1 Callback] ⚠️  Token lacks write permissions - clearing tokens');
+          console.warn('[Twitter OAuth1 Callback] ⚠️  User must revoke app access in Twitter Settings first');
+          // Clear the tokens we just stored
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              twitterOAuth1Token: null,
+              twitterOAuth1TokenSecret: null,
+            },
+          });
+          // Set flag to indicate user needs to revoke access
+          isSameToken = true; // Use this flag to show the revocation message
           }
         } else {
           console.log('[Twitter OAuth1 Callback] ✅✅✅ Token has write permissions ✅✅✅');
@@ -436,9 +436,9 @@ export async function GET(request: NextRequest) {
         // If getBaseUrl fails or URL is invalid, use production default
         errorBaseUrl = 'https://www.storywall.com';
       }
-      return NextResponse.redirect(
+        return NextResponse.redirect(
         new URL(`/?error=twitter_oauth1_failed&message=${encodeURIComponent(error.message || 'Unknown error')}`, errorBaseUrl)
-      );
+        );
     } catch (urlError) {
       // Final fallback
       console.error('[Twitter OAuth1 Callback] Error handling failed:', urlError);

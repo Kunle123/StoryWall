@@ -3,6 +3,8 @@
  * Requires OAuth 2.0 authentication
  */
 
+import { TwitterApi } from 'twitter-api-v2';
+
 interface TwitterTweet {
   text: string;
   mediaId?: string; // Media ID from Twitter upload (for images)
@@ -495,7 +497,8 @@ export async function uploadMedia(
 }
 
 /**
- * Upload media (image) to Twitter using OAuth 1.0a
+ * Upload media using OAuth 1.0a (Twitter API v1.1)
+ * Uses twitter-api-v2 library which handles the multipart OAuth 1.0a quirk correctly
  * Returns media_id that can be attached to a tweet
  * 
  * @param consumerKey - OAuth 1.0a Consumer Key (API Key)
@@ -511,44 +514,15 @@ export async function uploadMediaOAuth1(
   tokenSecret: string,
   imageUrl: string
 ): Promise<string> {
-  // TOKEN VERIFICATION: Store original tokens for comparison
-  const originalTokenReceived = token;
-  const originalTokenSecretReceived = tokenSecret;
-  
-  // TOKEN VERIFICATION: Log FULL tokens to verify no corruption
+  // TOKEN VERIFICATION: Log tokens for debugging
   console.log('[Twitter Upload Media OAuth1] 🔐 TOKEN VERIFICATION: Full tokens received');
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (FULL):', originalTokenReceived);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (length):', originalTokenReceived.length);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (FULL):', originalTokenSecretReceived);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (length):', originalTokenSecretReceived.length);
-  
-  // Verify token format (Twitter OAuth 1.0a tokens are typically 50 chars for token, 45 for secret)
-  if (originalTokenReceived.length !== 50) {
-    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token length is not 50! Length:', originalTokenReceived.length);
-    console.error('[Twitter Upload Media OAuth1] ⚠️ Token value:', originalTokenReceived);
-  }
-  if (originalTokenSecretReceived.length !== 45) {
-    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token Secret length is not 45! Length:', originalTokenSecretReceived.length);
-    console.error('[Twitter Upload Media OAuth1] ⚠️ Token Secret value:', originalTokenSecretReceived);
-  }
-  
-  // Check for any unexpected characters or truncation
-  if (originalTokenReceived.includes('\n') || originalTokenReceived.includes('\r') || originalTokenReceived.includes('\0')) {
-    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token contains unexpected characters (newlines/null bytes)!');
-  }
-  if (originalTokenSecretReceived.includes('\n') || originalTokenSecretReceived.includes('\r') || originalTokenSecretReceived.includes('\0')) {
-    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token Secret contains unexpected characters (newlines/null bytes)!');
-  }
-  
-  // CUSTODY CHAIN VERIFICATION: Log tokens received in uploadMediaOAuth1
-  console.log('[Twitter Upload Media OAuth1] 🔐 CUSTODY CHAIN: Tokens received in uploadMediaOAuth1():');
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (FULL):', originalTokenReceived);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (length):', originalTokenReceived.length);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (FULL):', originalTokenSecretReceived);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (length):', originalTokenSecretReceived.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (FULL):', token);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (length):', token.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (FULL):', tokenSecret);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (length):', tokenSecret.length);
   console.log(`[Twitter Upload Media OAuth1] Starting upload for: ${imageUrl}`);
   
-  // First, download the image
+  // Download image
   const imageResponse = await fetch(imageUrl);
   if (!imageResponse.ok) {
     throw new Error(`Failed to download image: ${imageResponse.status} ${imageResponse.statusText}`);
@@ -556,485 +530,64 @@ export async function uploadMediaOAuth1(
   
   const imageBuffer = await imageResponse.arrayBuffer();
   const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+  const imageBufferNode = Buffer.from(imageBuffer);
   
-  console.log(`[Twitter Upload Media OAuth1] Downloaded image. Size: ${imageBuffer.byteLength} bytes, Type: ${contentType}`);
+  console.log(`[Twitter Upload Media OAuth1] Downloaded image. Size: ${imageBufferNode.length} bytes, Type: ${contentType}`);
   
   // Validate image size (Twitter limit is 5MB for images)
   const maxSize = 5 * 1024 * 1024; // 5MB
-  if (imageBuffer.byteLength > maxSize) {
-    throw new Error(`Image too large: ${imageBuffer.byteLength} bytes (max: ${maxSize} bytes)`);
+  if (imageBufferNode.length > maxSize) {
+    throw new Error(`Image too large: ${imageBufferNode.length} bytes (max: ${maxSize} bytes)`);
   }
   
-  const uploadUrl = 'https://upload.twitter.com/1.1/media/upload.json';
-  
-  // TODO: Remove this verification step once token permissions issue is resolved
-  // Verify token permissions before attempting upload (non-blocking - just for logging)
-  // We'll let the actual upload attempt proceed and catch errors there
-  try {
-    const verification = await verifyOAuth1TokenPermissions(consumerKey, consumerSecret, token, tokenSecret);
-    if (verification.authenticated && verification.hasWritePermissions) {
-      console.log(`[Twitter Upload Media OAuth1] ✅ Token permissions verified - proceeding with upload`);
-    } else {
-      console.warn(`[Twitter Upload Media OAuth1] ⚠️  Verification warning: ${verification.error || 'Permissions check failed'}`);
-      console.warn(`[Twitter Upload Media OAuth1] ⚠️  Proceeding with upload attempt anyway - will catch errors if permissions are missing`);
-    }
-  } catch (verifyError) {
-    // Verification step failed, but continue with actual upload attempt
-    // The actual upload will fail with the same error and trigger reconnection
-    console.warn(`[Twitter Upload Media OAuth1] ⚠️  Verification step failed, but proceeding with upload:`, verifyError);
-  }
-  
-  // Step 1: Initialize media upload with OAuth 1.0a
-  console.log(`[Twitter Upload Media OAuth1] Initializing upload...`);
-  const initParams = {
-    command: 'INIT',
-    total_bytes: imageBuffer.byteLength.toString(),
-    media_type: contentType,
-  };
-  
-  // Debug: Log consumer key and token to verify they match what was used during OAuth
-  console.log(`[INIT Debug] Consumer Key (first 20 chars):`, consumerKey.substring(0, 20));
-  console.log(`[INIT Debug] Consumer Key (full length):`, consumerKey.length);
-  console.log(`[INIT Debug] Token (first 20 chars):`, token.substring(0, 20));
-  console.log(`[INIT Debug] Token (full length):`, token.length);
-  console.log(`[INIT Debug] Token Secret (first 20 chars):`, tokenSecret.substring(0, 20));
-  console.log(`[INIT Debug] Token Secret (full length):`, tokenSecret.length);
-  console.log(`[INIT Debug] Consumer Secret (first 10 chars):`, consumerSecret.substring(0, 10));
-  console.log(`[INIT Debug] Consumer Secret (full length):`, consumerSecret.length);
-  
-  const { signature: initSignature, timestamp: initTimestamp, nonce: initNonce } = generateOAuth1Signature(
-    'POST',
-    uploadUrl,
-    initParams,
-    consumerKey,
-    consumerSecret,
-    token,
-    tokenSecret
-  );
-  
-  const initAuthHeader = createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce, false, undefined, uploadUrl);
-  
-  // Debug logging for INIT step
-  console.log(`[INIT Debug] OAuth params:`, JSON.stringify({ consumerKey: consumerKey.substring(0, 10) + '...', token: token ? token.substring(0, 10) + '...' : 'empty', timestamp: initTimestamp, nonce: initNonce.substring(0, 10) + '...' }));
-  console.log(`[INIT Debug] Signature (first 20 chars):`, initSignature.substring(0, 20));
-  console.log(`[INIT Debug] Auth header:`, initAuthHeader);
-  console.log(`[INIT Debug] Form params:`, JSON.stringify(initParams));
-  
-  // Log the full request details for debugging
-  console.log(`[INIT Debug] Request URL:`, uploadUrl);
-  console.log(`[INIT Debug] Request method: POST`);
-  console.log(`[INIT Debug] Content-Type: application/x-www-form-urlencoded`);
-  console.log(`[INIT Debug] Body (URLSearchParams):`, new URLSearchParams(initParams).toString());
-  
-  const initResponse = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': initAuthHeader,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams(initParams),
+  // Create TwitterApi client with OAuth 1.0a credentials
+  // The library handles INIT, APPEND, FINALIZE automatically and correctly
+  console.log(`[Twitter Upload Media OAuth1] Creating TwitterApi client with OAuth 1.0a credentials...`);
+  const client = new TwitterApi({
+    appKey: consumerKey,
+    appSecret: consumerSecret,
+    accessToken: token,
+    accessSecret: tokenSecret,
   });
   
-  // Log response details for debugging
-  console.log(`[INIT Debug] Response status:`, initResponse.status);
-  console.log(`[INIT Debug] Response headers:`, Object.fromEntries(initResponse.headers.entries()));
-  
-  if (!initResponse.ok) {
-    const errorText = await initResponse.text();
-    let errorMessage = 'Failed to initialize media upload';
-    let errorDetails: any = {};
-    try {
-      const error = JSON.parse(errorText);
-      errorMessage = error.error || error.errors?.[0]?.message || errorMessage;
-      errorDetails = error;
-    } catch {
-      errorMessage = `${errorMessage}: ${initResponse.status} ${initResponse.statusText}`;
-    }
-    console.error(`[Twitter Upload Media OAuth1] Init failed:`, errorMessage);
-    console.error(`[Twitter Upload Media OAuth1] Response status: ${initResponse.status}`);
-    console.error(`[Twitter Upload Media OAuth1] Error details:`, errorDetails);
-    console.error(`[Twitter Upload Media OAuth1] Full error text:`, errorText);
+  // Use the library's built-in media upload (handles INIT, APPEND, FINALIZE automatically)
+  // This solves the OAuth 1.0a multipart/form-data authentication issue
+  try {
+    console.log(`[Twitter Upload Media OAuth1] Uploading media using twitter-api-v2 library...`);
+    const mediaId = await client.v1.uploadMedia(imageBufferNode, {
+      mimeType: contentType,
+    });
     
-    // Provide more specific error message for "Bad Authentication data"
-    if (errorMessage.includes('Bad Authentication') || (initResponse.status === 400 && errorDetails?.errors?.[0]?.code === 215)) {
-      // Log detailed diagnostic information
-      console.error(`[Twitter Upload Media OAuth1] Bad Authentication data (215) - Diagnostic Info:`);
-      console.error(`  - Consumer Key: ${consumerKey.substring(0, 10)}... (length: ${consumerKey.length})`);
-      console.error(`  - Consumer Secret: ${consumerSecret.substring(0, 10)}... (length: ${consumerSecret.length})`);
-      console.error(`  - Token: ${token.substring(0, 20)}... (length: ${token.length})`);
-      console.error(`  - Token Secret: ${tokenSecret.substring(0, 20)}... (length: ${tokenSecret.length})`);
-      console.error(`  - Request URL: ${uploadUrl}`);
-      console.error(`  - This error (215) typically means:`);
-      console.error(`    1. Tokens don't have "Read and Write" permissions (most common)`);
-      console.error(`    2. Tokens were generated before app was set to "Read and Write"`);
-      console.error(`    3. Mismatch between consumer key/secret and token/secret`);
-      console.error(`    4. App permissions changed but tokens weren't regenerated`);
-      
-      // Throw error with special code to trigger automatic token clearing and reconnection
-      const error = new Error(
-        `OAuth 1.0a authentication failed (400): Bad Authentication data (code 215). This usually means the access token/secret don't have "Read and Write" permissions. ` +
-        `Even if your app has "Read and Write" permissions, tokens obtained through the OAuth flow may not have write access if they were generated before the app permissions were changed. ` +
+    console.log(`[Twitter Upload Media OAuth1] ✅ Media uploaded successfully. Media ID: ${mediaId}`);
+    return mediaId;
+  } catch (error: any) {
+    console.error(`[Twitter Upload Media OAuth1] ❌ Upload failed:`, error);
+    
+    // Provide helpful error messages for common issues
+    if (error.code === 32 || error.message?.includes('Could not authenticate you')) {
+      const authError = new Error(
+        `OAuth 1.0a authentication failed (code 32): Could not authenticate you. ` +
+        `This usually means the access token/secret don't have "Read and Write" permissions. ` +
         `SOLUTION: ` +
         `1. In Twitter Developer Portal, ensure "App permissions" is set to "Read and Write"` +
-        `2. Go to "Keys and tokens" → "Authentication Tokens"` +
-        `3. Regenerate the "Access Token and Secret" for your user (@Kunletweets)` +
-        `4. Reconnect your Twitter account in StoryWall to get new tokens with write permissions. ` +
-        `(Status: ${initResponse.status})`
+        `2. Reconnect your Twitter account in StoryWall to get new tokens with write permissions.`
       );
-      (error as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
-      throw error;
+      (authError as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
+      throw authError;
     }
     
-    throw new Error(`${errorMessage} (Status: ${initResponse.status})`);
+    if (error.code === 215 || error.message?.includes('Bad Authentication data')) {
+      const authError = new Error(
+        `OAuth 1.0a authentication failed (code 215): Bad Authentication data. ` +
+        `This usually means tokens don't have write permissions or there's a mismatch between consumer keys and tokens. ` +
+        `SOLUTION: Reconnect your Twitter account in StoryWall to get new tokens.`
+      );
+      (authError as any).code = 'OAUTH1_TOKEN_PERMISSIONS_ERROR';
+      throw authError;
+    }
+    
+    throw new Error(`Failed to upload media: ${error.message || 'Unknown error'}`);
   }
-  
-  const initData = await initResponse.json();
-  const mediaId = initData.media_id_string;
-  console.log(`[Twitter Upload Media OAuth1] Initialized. Media ID: ${mediaId}`);
-  
-  // Step 2: Append media data (in chunks if needed)
-  const chunkSize = 5 * 1024 * 1024; // 5MB chunks
-  let segmentIndex = 0;
-  
-  // Convert ArrayBuffer to Buffer once
-  const imageBufferNode = Buffer.from(imageBuffer);
-  console.log(`[Twitter Upload Media OAuth1] Image buffer size: ${imageBufferNode.length} bytes`);
-  console.log(`[Twitter Upload Media OAuth1] First 10 bytes:`, imageBufferNode.slice(0, 10));
-  
-  for (let offset = 0; offset < imageBufferNode.length; offset += chunkSize) {
-    const chunkEnd = Math.min(offset + chunkSize, imageBufferNode.length);
-    const chunk = imageBufferNode.slice(offset, chunkEnd);
-    
-    // Form field parameters (included in signature)
-    const appendParams = {
-      command: 'APPEND',
-      media_id: mediaId,
-      segment_index: segmentIndex.toString(),
-    };
-    
-    // TOKEN VERIFICATION: Compare token with original received token
-    console.log(`[APPEND Debug] Token verification before signature generation:`);
-    console.log(`[APPEND Debug] Token (FULL):`, token);
-    console.log(`[APPEND Debug] Token (length):`, token.length);
-    console.log(`[APPEND Debug] Token Secret (FULL):`, tokenSecret);
-    console.log(`[APPEND Debug] Token Secret (length):`, tokenSecret.length);
-    
-    // Verify token matches original (hasn't been modified)
-    if (token !== originalTokenReceived) {
-      console.error(`[APPEND Debug] ⚠️ ERROR: Token was modified!`);
-      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenReceived);
-      console.error(`[APPEND Debug] ⚠️ Current:`, token);
-    } else {
-      console.log(`[APPEND Debug] ✅ Token matches original (no modification detected)`);
-    }
-    
-    if (tokenSecret !== originalTokenSecretReceived) {
-      console.error(`[APPEND Debug] ⚠️ ERROR: Token Secret was modified!`);
-      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenSecretReceived);
-      console.error(`[APPEND Debug] ⚠️ Current:`, tokenSecret);
-    } else {
-      console.log(`[APPEND Debug] ✅ Token Secret matches original (no modification detected)`);
-    }
-    
-    // Generate signature - this combines OAuth params + form field params internally
-    const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
-      'POST',
-      uploadUrl,
-      appendParams,
-      consumerKey,
-      consumerSecret,
-      token,
-      tokenSecret
-    );
-    
-    // TOKEN VERIFICATION: Verify token hasn't changed after signature generation
-    console.log(`[APPEND Debug] Token verification after signature generation:`);
-    console.log(`[APPEND Debug] Token (FULL):`, token);
-    console.log(`[APPEND Debug] Token (length):`, token.length);
-    console.log(`[APPEND Debug] Token Secret (FULL):`, tokenSecret);
-    console.log(`[APPEND Debug] Token Secret (length):`, tokenSecret.length);
-    
-    // Final verification: token should still match original
-    if (token !== originalTokenReceived) {
-      console.error(`[APPEND Debug] ⚠️ ERROR: Token was modified during signature generation!`);
-      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenReceived);
-      console.error(`[APPEND Debug] ⚠️ After signature:`, token);
-    }
-    if (tokenSecret !== originalTokenSecretReceived) {
-      console.error(`[APPEND Debug] ⚠️ ERROR: Token Secret was modified during signature generation!`);
-      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenSecretReceived);
-      console.error(`[APPEND Debug] ⚠️ After signature:`, tokenSecret);
-    }
-    
-    // Use createOAuth1Header to ensure signature is percent-encoded for media upload endpoints
-    // This is a Twitter quirk - signature must be percent-encoded for /media/upload endpoints
-    const authHeader = createOAuth1Header(
-      consumerKey,
-      token,
-      appendSignature,
-      appendTimestamp,
-      appendNonce,
-      false, // No callback for APPEND
-      undefined, // No callback URL
-      uploadUrl // Pass URL to detect media upload endpoint
-    );
-    
-    // Use form-data package for Node.js multipart/form-data (more reliable than native FormData)
-    // This ensures proper multipart encoding that Twitter expects
-    const FormDataNode = require('form-data');
-    const formData = new FormDataNode();
-    formData.append('command', 'APPEND');
-    formData.append('media_id', mediaId);
-    formData.append('segment_index', segmentIndex.toString());
-    // Append Buffer directly - form-data will handle content-type automatically
-    // Match twurl behavior: just append the file data, let form-data handle the rest
-    formData.append('media', chunk);
-    
-    // Log signature details for debugging
-    console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
-    console.log(`[APPEND Debug] Signature:`, appendSignature);
-    console.log(`[APPEND Debug] Auth header:`, authHeader);
-    console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
-    console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
-    
-    // CRITICAL: Get Content-Type and Content-Length from form-data BEFORE creating request
-    // This ensures headers are set correctly before the request is sent
-    // form-data.getLength() calculates the exact size including boundaries
-    const uploadUrlObj = new URL(uploadUrl);
-    
-    // Get Content-Type from form-data (includes boundary)
-    const formHeaders = formData.getHeaders();
-    const contentType = formHeaders['content-type'] as string;
-    
-    // Get Content-Length from form-data (calculated including all boundaries)
-    // This is the exact length that form-data will send
-    const contentLength = await new Promise<number>((resolve, reject) => {
-      formData.getLength((err: Error | null, length?: number) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(length || 0);
-        }
-      });
-    });
-    
-    // VALIDATION: Ensure Content-Length is a valid integer with no extra characters
-    if (!Number.isInteger(contentLength) || contentLength <= 0) {
-      throw new Error(`Invalid Content-Length calculated: ${contentLength} (must be positive integer)`);
-    }
-    
-    // VALIDATION: Check against Twitter's limits
-    // Twitter's max chunk size is typically 5MB, but with multipart boundaries it can be slightly larger
-    // Maximum Content-Length for APPEND is approximately 5MB + overhead (boundaries, headers)
-    const maxContentLength = 5.5 * 1024 * 1024; // 5.5MB to account for multipart overhead
-    if (contentLength > maxContentLength) {
-      throw new Error(`Content-Length (${contentLength} bytes) exceeds Twitter's maximum (${maxContentLength} bytes). Chunk size: ${chunk.length} bytes`);
-    }
-    
-    // VALIDATION: Convert to string and ensure no extra characters/spaces
-    const contentLengthString = String(contentLength).trim();
-    if (contentLengthString !== String(contentLength) || !/^\d+$/.test(contentLengthString)) {
-      throw new Error(`Content-Length string contains invalid characters: "${contentLengthString}" (original: ${contentLength})`);
-    }
-    
-    // VALIDATION: Verify no leading/trailing spaces or non-digit characters
-    const cleanContentLength = contentLengthString.replace(/\s/g, '');
-    if (cleanContentLength !== contentLengthString) {
-      throw new Error(`Content-Length contains spaces: "${contentLengthString}" (cleaned: "${cleanContentLength}")`);
-    }
-    
-    console.log(`[APPEND Debug] Form headers:`, formHeaders);
-    console.log(`[APPEND Debug] Content-Type:`, contentType);
-    console.log(`[APPEND Debug] Content-Length (calculated by form-data):`, contentLength);
-    console.log(`[APPEND Debug] Content-Length (as string):`, contentLengthString);
-    console.log(`[APPEND Debug] Content-Length validation:`, {
-      isInteger: Number.isInteger(contentLength),
-      isPositive: contentLength > 0,
-      withinLimit: contentLength <= maxContentLength,
-      stringLength: contentLengthString.length,
-      stringValue: contentLengthString,
-      hasSpaces: contentLengthString.includes(' '),
-      hasNonDigits: !/^\d+$/.test(contentLengthString),
-      maxAllowed: maxContentLength,
-    });
-    console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
-    console.log(`[APPEND Debug] Content-Length vs Chunk size:`, {
-      contentLength,
-      chunkSize: chunk.length,
-      difference: contentLength - chunk.length,
-      note: 'Content-Length includes multipart boundaries and headers, so it should be larger than chunk size',
-    });
-    
-    const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
-      // Set all headers manually using values from form-data
-      // This ensures headers are correct before request is sent
-      const requestOptions = {
-        hostname: uploadUrlObj.hostname,
-        port: uploadUrlObj.port || 443,
-        path: uploadUrlObj.pathname + uploadUrlObj.search,
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': contentType, // From form-data (includes boundary)
-          'Content-Length': contentLengthString, // Validated string (no spaces, no extra chars)
-        },
-      };
-      
-      console.log(`[APPEND Debug] Request options:`, {
-        hostname: requestOptions.hostname,
-        path: requestOptions.path,
-        method: requestOptions.method,
-        hasAuthHeader: !!requestOptions.headers.Authorization,
-        contentType: requestOptions.headers['Content-Type'],
-        contentLength: requestOptions.headers['Content-Length'],
-        note: 'All headers set from form-data values',
-      });
-      
-      const req = https.request(requestOptions, (res) => {
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk) => chunks.push(chunk));
-        res.on('end', () => {
-          const responseText = Buffer.concat(chunks).toString();
-          resolve({
-            status: res.statusCode || 500,
-            statusText: res.statusMessage || 'Unknown',
-            headers: res.headers,
-            text: async () => responseText,
-            json: async () => {
-              try {
-                return JSON.parse(responseText);
-              } catch {
-                return {};
-              }
-            },
-          });
-        });
-      });
-      
-      req.on('error', reject);
-      formData.on('error', reject);
-      
-      console.log(`[APPEND Debug] About to pipe form-data to request`);
-      
-      // Pipe form-data to request
-      // Headers are already set correctly, so form-data will just stream the data
-      formData.pipe(req);
-      
-      console.log(`[APPEND Debug] Form-data piped to request`);
-    });
-    
-    if (appendResponse.status < 200 || appendResponse.status >= 300) {
-      const errorText = await appendResponse.text();
-      let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
-      let errorDetails: any = {};
-      try {
-        errorDetails = JSON.parse(errorText);
-        errorMessage = errorDetails.error || errorDetails.errors?.[0]?.message || errorMessage;
-        console.error(`[APPEND Error]`, errorDetails);
-        console.error(`[APPEND Error] Error code:`, errorDetails.errors?.[0]?.code);
-      } catch {
-        console.error(`[APPEND Error] Non-JSON response:`, errorText);
-        errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
-      }
-      console.error(`[APPEND Error] Response status: ${appendResponse.status}`);
-      console.error(`[APPEND Error] Response headers:`, appendResponse.headers);
-      throw new Error(`APPEND failed: ${JSON.stringify(errorDetails)}`);
-    }
-    
-    // Check for errors in successful response (Twitter sometimes returns 200 with errors)
-    const appendResult = await appendResponse.json().catch(() => ({}));
-    if (appendResult.errors) {
-      console.error(`[APPEND Error] Response contains errors:`, appendResult);
-      throw new Error(`APPEND failed: ${JSON.stringify(appendResult)}`);
-    }
-    
-    console.log(`[APPEND] Segment ${segmentIndex} uploaded successfully (${chunk.length} bytes)`);
-    
-    segmentIndex++;
-  }
-  
-  // Step 3: Finalize media upload
-  console.log(`[Twitter Upload Media OAuth1] Finalizing upload...`);
-  const finalizeParams = {
-    command: 'FINALIZE',
-    media_id: mediaId,
-  };
-  
-  const { signature: finalizeSignature, timestamp: finalizeTimestamp, nonce: finalizeNonce } = generateOAuth1Signature(
-    'POST',
-    uploadUrl,
-    finalizeParams,
-    consumerKey,
-    consumerSecret,
-    token,
-    tokenSecret
-  );
-  
-  const finalizeResponse = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      'Authorization': createOAuth1Header(consumerKey, token, finalizeSignature, finalizeTimestamp, finalizeNonce, false, undefined, uploadUrl),
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams(finalizeParams),
-  });
-  
-  if (!finalizeResponse.ok) {
-    const errorText = await finalizeResponse.text();
-    let errorMessage = 'Failed to finalize media upload';
-    try {
-      const error = JSON.parse(errorText);
-      errorMessage = error.error || errorMessage;
-    } catch {
-      errorMessage = `${errorMessage}: ${finalizeResponse.status} ${finalizeResponse.statusText}`;
-    }
-    console.error(`[Twitter Upload Media OAuth1] Finalize failed:`, errorMessage);
-    throw new Error(errorMessage);
-  }
-  
-  // Wait for processing to complete
-  let processingInfo = await finalizeResponse.json();
-  let attempts = 0;
-  const maxAttempts = 15;
-  console.log(`[Twitter Upload Media OAuth1] Processing state: ${processingInfo.processing_info?.state || 'none'}`);
-  
-  while (processingInfo.processing_info && processingInfo.processing_info.state === 'in_progress' && attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const statusParams = {
-      command: 'STATUS',
-      media_id: mediaId,
-    };
-    
-    const statusUrl = `${uploadUrl}?command=STATUS&media_id=${mediaId}`;
-    const { signature: statusSignature, timestamp: statusTimestamp, nonce: statusNonce } = generateOAuth1Signature(
-      'GET',
-      uploadUrl,
-      statusParams,
-      consumerKey,
-      consumerSecret,
-      token,
-      tokenSecret
-    );
-    
-    const statusResponse = await fetch(statusUrl, {
-      headers: {
-        'Authorization': createOAuth1Header(consumerKey, token, statusSignature, statusTimestamp, statusNonce, false, undefined, uploadUrl),
-      },
-    });
-    processingInfo = await statusResponse.json();
-    attempts++;
-    console.log(`[Twitter Upload Media OAuth1] Processing attempt ${attempts}/${maxAttempts}, state: ${processingInfo.processing_info?.state}`);
-  }
-  
-  if (processingInfo.processing_info?.state === 'failed') {
-    const errorMessage = processingInfo.processing_info.error?.message || 'Media processing failed';
-    console.error(`[Twitter Upload Media OAuth1] Processing failed:`, errorMessage);
-    throw new Error(`Media processing failed: ${errorMessage}`);
-  }
-  
-  console.log(`[Twitter Upload Media OAuth1] Upload complete. Media ID: ${mediaId}`);
-  return mediaId;
 }
 
 /**
@@ -1244,7 +797,7 @@ export async function postTwitterThread(
 
 import { createHash, randomBytes, createHmac } from 'crypto';
 import { URLSearchParams as NodeURLSearchParams } from 'url';
-import https from 'https';
+// Removed https import - now using twitter-api-v2 library for media uploads
 import { URL } from 'url';
 
 /**
@@ -1402,11 +955,11 @@ export async function getOAuth1RequestToken(
   try {
     // First attempt: With Content-Type and explicit empty body
     response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
       body: '', // Explicit empty body
     });
     
