@@ -730,12 +730,18 @@ export async function uploadMediaOAuth1(
     // form-data package sets Content-Type with boundary automatically
     // IMPORTANT: Do NOT manually set Content-Type - form-data will set it with the correct boundary
     // The OAuth signature is calculated WITHOUT the Content-Type header
+    // CRITICAL: For Node.js, we need to ensure form-data stream is properly handled
+    // Get headers first to ensure Content-Type with boundary is set correctly
+    const formHeaders = formData.getHeaders();
+    console.log(`[APPEND Debug] Form headers:`, formHeaders);
+    console.log(`[APPEND Debug] Content-Type:`, formHeaders['content-type']);
+    
     const appendResponse = await fetch(uploadUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
         // form-data will set Content-Type with boundary - don't set it manually
-        ...formData.getHeaders(), // This sets Content-Type with boundary
+        ...formHeaders, // This sets Content-Type with boundary
       },
       body: formData as any, // form-data is compatible with fetch body
     });
