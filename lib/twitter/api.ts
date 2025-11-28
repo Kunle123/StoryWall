@@ -554,6 +554,8 @@ export async function uploadMediaOAuth1(
   // This solves the OAuth 1.0a multipart/form-data authentication issue
   try {
     console.log(`[Twitter Upload Media OAuth1] Uploading media using twitter-api-v2 library...`);
+    console.log(`[Twitter Upload Media OAuth1] 📊 API CALL TRACKING: Making media upload request at ${new Date().toISOString()}`);
+    console.log(`[Twitter Upload Media OAuth1] 📊 NOTE: Media upload uses /1.1/media/upload.json (different rate limit than /2/tweets)`);
     const mediaId = await client.v1.uploadMedia(imageBufferNode, {
       mimeType: contentType,
     });
@@ -682,6 +684,9 @@ export async function postTweet(
   }
   
   console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${uploadedMediaId ? ' with image' : ''}`);
+  console.log(`[Twitter Post Tweet] 📊 API CALL TRACKING: Making POST /2/tweets request at ${new Date().toISOString()}`);
+  console.log(`[Twitter Post Tweet] 📊 This is a rate-limited endpoint - each call counts toward your limit`);
+  
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -690,6 +695,21 @@ export async function postTweet(
     },
     body: JSON.stringify(body),
   });
+  
+  // Log rate limit headers immediately after the call
+  const rateLimitLimit = response.headers.get('x-rate-limit-limit');
+  const rateLimitRemaining = response.headers.get('x-rate-limit-remaining');
+  const rateLimitReset = response.headers.get('x-rate-limit-reset');
+  console.log(`[Twitter Post Tweet] 📊 Rate limit headers from POST /2/tweets:`);
+  console.log(`[Twitter Post Tweet] 📊   Limit: ${rateLimitLimit || 'not provided'}`);
+  console.log(`[Twitter Post Tweet] 📊   Remaining: ${rateLimitRemaining || 'not provided'}`);
+  console.log(`[Twitter Post Tweet] 📊   Reset: ${rateLimitReset || 'not provided'}`);
+  if (rateLimitReset) {
+    const resetTime = new Date(parseInt(rateLimitReset, 10) * 1000);
+    const now = new Date();
+    const minutesUntilReset = Math.ceil((resetTime.getTime() - now.getTime()) / (1000 * 60));
+    console.log(`[Twitter Post Tweet] 📊   Reset time: ${resetTime.toISOString()} (in ${minutesUntilReset} minutes)`);
+  }
   
   if (!response.ok) {
     const errorText = await response.text();

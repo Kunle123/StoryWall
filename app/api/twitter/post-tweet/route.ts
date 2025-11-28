@@ -209,8 +209,26 @@ export async function POST(request: NextRequest) {
     let retryCount = 0;
     const maxRetries = 3;
     
+    console.log(`[Twitter Post Tweet] 📊 STARTING POST ATTEMPT at ${new Date().toISOString()}`);
+    console.log(`[Twitter Post Tweet] 📊 Retry count: ${retryCount}/${maxRetries}`);
+    console.log(`[Twitter Post Tweet] 📊 This will make 1 API call to POST /2/tweets (media upload is separate)`);
+    console.log(`[Twitter Post Tweet] 📊 IMPORTANT: POST /2/tweets has a per-user rate limit (not per-app)`);
+    console.log(`[Twitter Post Tweet] 📊 Free tier: ~50-150 requests per 15 minutes per user`);
+    console.log(`[Twitter Post Tweet] 📊 Paid tiers: 300+ requests per 15 minutes per user`);
+    console.log(`[Twitter Post Tweet] 📊 Rate limits include failed attempts and are shared across all apps using your account`);
+    
+    // Check rate limit status before attempting (if possible)
+    // Note: Twitter doesn't provide a way to check rate limits without making a call
+    // But we can log this for diagnostics
+    console.log(`[Twitter Post Tweet] 📊 DIAGNOSTIC: If you're hitting limits after waiting 30 minutes, possible causes:`);
+    console.log(`[Twitter Post Tweet] 📊   1. Other apps/services using your Twitter account`);
+    console.log(`[Twitter Post Tweet] 📊   2. Previous failed attempts still counting (rolling window)`);
+    console.log(`[Twitter Post Tweet] 📊   3. Rate limit window is rolling (not fixed 15-min blocks)`);
+    console.log(`[Twitter Post Tweet] 📊   4. Multiple retry attempts consuming quota`);
+    
     while (retryCount <= maxRetries) {
       try {
+        console.log(`[Twitter Post Tweet] 📊 Attempt ${retryCount + 1}: Calling postTweet() at ${new Date().toISOString()}`);
         result = await postTweet(
           accessToken,
           finalText,
@@ -222,8 +240,13 @@ export async function POST(request: NextRequest) {
           tokenSecretToPass,
           imageUrl
         );
+        console.log(`[Twitter Post Tweet] 📊 Attempt ${retryCount + 1} SUCCESS at ${new Date().toISOString()}`);
         break; // Success, exit retry loop
       } catch (error: any) {
+        console.log(`[Twitter Post Tweet] 📊 Attempt ${retryCount + 1} FAILED at ${new Date().toISOString()}`);
+        console.log(`[Twitter Post Tweet] 📊 Error: ${error.message || 'Unknown error'}`);
+        console.log(`[Twitter Post Tweet] 📊 Error code: ${error.code || 'none'}`);
+        console.log(`[Twitter Post Tweet] 📊 Error status: ${error.status || 'none'}`);
         // Check if it's a 401 error and we have a refresh token
         if (error.status === 401 && error.code === 'OAUTH2_TOKEN_INVALID' && userWithToken.twitterRefreshToken) {
           if (retryCount === 0) {
