@@ -112,15 +112,19 @@ export async function POST(request: NextRequest) {
     // Post the tweet with or without image
     console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${imageUrl ? ' with image' : ' without image'}`);
     
-    // CUSTODY CHAIN VERIFICATION: Log tokens being passed to postTweet
+    // CUSTODY CHAIN VERIFICATION: Store full tokens from database for comparison
     const tokenToPass = userWithToken.twitterOAuth1Token || undefined;
     const tokenSecretToPass = userWithToken.twitterOAuth1TokenSecret || undefined;
     if (tokenToPass) {
+      console.log('[Twitter Post Tweet] 🔐 CUSTODY CHAIN: Tokens retrieved from database:');
+      console.log('[Twitter Post Tweet] 🔐 Token (FULL from DB):', tokenToPass);
+      console.log('[Twitter Post Tweet] 🔐 Token (length):', tokenToPass.length);
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (FULL from DB):', tokenSecretToPass || 'NULL');
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (length):', tokenSecretToPass?.length || 0);
+      
       console.log('[Twitter Post Tweet] 🔐 CUSTODY CHAIN: Tokens being passed to postTweet():');
-      console.log('[Twitter Post Tweet] 🔐 Token (first 20):', tokenToPass.substring(0, 20));
-      console.log('[Twitter Post Tweet] 🔐 Token (full length):', tokenToPass.length);
-      console.log('[Twitter Post Tweet] 🔐 Token Secret (first 20):', tokenSecretToPass?.substring(0, 20) || 'NULL');
-      console.log('[Twitter Post Tweet] 🔐 Token Secret (full length):', tokenSecretToPass?.length || 0);
+      console.log('[Twitter Post Tweet] 🔐 Token (FULL being passed):', tokenToPass);
+      console.log('[Twitter Post Tweet] 🔐 Token Secret (FULL being passed):', tokenSecretToPass || 'NULL');
     }
     
     const result = await postTweet(
@@ -236,11 +240,19 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if it's a rate limit error
-    const isRateLimit = errorMessage.includes('rate limit') || errorMessage.includes('Too Many Requests');
+    const isRateLimit = errorMessage.includes('rate limit') || errorMessage.includes('Too Many Requests') || error.code === 'RATE_LIMIT_EXCEEDED';
     const statusCode = isRateLimit ? 429 : 500;
     
+    // Include rate limit reset time in response if available
+    const responseData: any = { error: error.message || 'Failed to post tweet' };
+    if (isRateLimit && (error as any).rateLimitReset) {
+      responseData.rateLimitReset = (error as any).rateLimitReset;
+      responseData.rateLimitResetTime = (error as any).rateLimitResetTime;
+      responseData.minutesUntilReset = Math.ceil(((error as any).rateLimitReset * 1000 - Date.now()) / (1000 * 60));
+    }
+    
     return NextResponse.json(
-      { error: error.message || 'Failed to post tweet' },
+      responseData,
       { status: statusCode }
     );
   }

@@ -263,14 +263,33 @@ export async function GET(request: NextRequest) {
       });
       
       console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN: Tokens retrieved from database (AFTER storage):');
-      console.log('[Twitter OAuth1 Callback] 🔐 Token (first 20):', verification?.twitterOAuth1Token?.substring(0, 20) || 'NULL');
-      console.log('[Twitter OAuth1 Callback] 🔐 Token (full length):', verification?.twitterOAuth1Token?.length || 0);
-      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (first 20):', verification?.twitterOAuth1TokenSecret?.substring(0, 20) || 'NULL');
-      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (full length):', verification?.twitterOAuth1TokenSecret?.length || 0);
-      console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN VERIFICATION:', {
-        tokenMatches: verification?.twitterOAuth1Token === tokenBeforeStore,
-        tokenSecretMatches: verification?.twitterOAuth1TokenSecret === tokenSecretBeforeStore,
-      });
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (FULL from DB):', verification?.twitterOAuth1Token || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token (length):', verification?.twitterOAuth1Token?.length || 0);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (FULL from DB):', verification?.twitterOAuth1TokenSecret || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret (length):', verification?.twitterOAuth1TokenSecret?.length || 0);
+      
+      // CUSTODY CHAIN VERIFICATION: Compare FULL tokens
+      const tokenMatches = verification?.twitterOAuth1Token === tokenBeforeStore;
+      const tokenSecretMatches = verification?.twitterOAuth1TokenSecret === tokenSecretBeforeStore;
+      
+      console.log('[Twitter OAuth1 Callback] 🔐 CUSTODY CHAIN VERIFICATION (FULL token comparison):');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token from Twitter (FULL):', tokenBeforeStore);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token from DB (FULL):', verification?.twitterOAuth1Token || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token matches:', tokenMatches);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret from Twitter (FULL):', tokenSecretBeforeStore);
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret from DB (FULL):', verification?.twitterOAuth1TokenSecret || 'NULL');
+      console.log('[Twitter OAuth1 Callback] 🔐 Token Secret matches:', tokenSecretMatches);
+      
+      if (!tokenMatches) {
+        console.error('[Twitter OAuth1 Callback] ⚠️ ERROR: Token mismatch! Token was corrupted during storage!');
+        console.error('[Twitter OAuth1 Callback] ⚠️ Expected:', tokenBeforeStore);
+        console.error('[Twitter OAuth1 Callback] ⚠️ Got:', verification?.twitterOAuth1Token);
+      }
+      if (!tokenSecretMatches) {
+        console.error('[Twitter OAuth1 Callback] ⚠️ ERROR: Token Secret mismatch! Token Secret was corrupted during storage!');
+        console.error('[Twitter OAuth1 Callback] ⚠️ Expected:', tokenSecretBeforeStore);
+        console.error('[Twitter OAuth1 Callback] ⚠️ Got:', verification?.twitterOAuth1TokenSecret);
+      }
       
       // CUSTODY CHAIN SUMMARY: Always log this for verification
       console.log('[Twitter OAuth1 Callback] ========== CUSTODY CHAIN VERIFICATION ==========');

@@ -511,12 +511,41 @@ export async function uploadMediaOAuth1(
   tokenSecret: string,
   imageUrl: string
 ): Promise<string> {
+  // TOKEN VERIFICATION: Store original tokens for comparison
+  const originalTokenReceived = token;
+  const originalTokenSecretReceived = tokenSecret;
+  
+  // TOKEN VERIFICATION: Log FULL tokens to verify no corruption
+  console.log('[Twitter Upload Media OAuth1] 🔐 TOKEN VERIFICATION: Full tokens received');
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (FULL):', originalTokenReceived);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (length):', originalTokenReceived.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (FULL):', originalTokenSecretReceived);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (length):', originalTokenSecretReceived.length);
+  
+  // Verify token format (Twitter OAuth 1.0a tokens are typically 50 chars for token, 45 for secret)
+  if (originalTokenReceived.length !== 50) {
+    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token length is not 50! Length:', originalTokenReceived.length);
+    console.error('[Twitter Upload Media OAuth1] ⚠️ Token value:', originalTokenReceived);
+  }
+  if (originalTokenSecretReceived.length !== 45) {
+    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token Secret length is not 45! Length:', originalTokenSecretReceived.length);
+    console.error('[Twitter Upload Media OAuth1] ⚠️ Token Secret value:', originalTokenSecretReceived);
+  }
+  
+  // Check for any unexpected characters or truncation
+  if (originalTokenReceived.includes('\n') || originalTokenReceived.includes('\r') || originalTokenReceived.includes('\0')) {
+    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token contains unexpected characters (newlines/null bytes)!');
+  }
+  if (originalTokenSecretReceived.includes('\n') || originalTokenSecretReceived.includes('\r') || originalTokenSecretReceived.includes('\0')) {
+    console.error('[Twitter Upload Media OAuth1] ⚠️ WARNING: Token Secret contains unexpected characters (newlines/null bytes)!');
+  }
+  
   // CUSTODY CHAIN VERIFICATION: Log tokens received in uploadMediaOAuth1
   console.log('[Twitter Upload Media OAuth1] 🔐 CUSTODY CHAIN: Tokens received in uploadMediaOAuth1():');
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (first 20):', token.substring(0, 20));
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token (full length):', token.length);
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (first 20):', tokenSecret.substring(0, 20));
-  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (full length):', tokenSecret.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (FULL):', originalTokenReceived);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token (length):', originalTokenReceived.length);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (FULL):', originalTokenSecretReceived);
+  console.log('[Twitter Upload Media OAuth1] 🔐 Token Secret (length):', originalTokenSecretReceived.length);
   console.log(`[Twitter Upload Media OAuth1] Starting upload for: ${imageUrl}`);
   
   // First, download the image
@@ -683,6 +712,30 @@ export async function uploadMediaOAuth1(
       segment_index: segmentIndex.toString(),
     };
     
+    // TOKEN VERIFICATION: Compare token with original received token
+    console.log(`[APPEND Debug] Token verification before signature generation:`);
+    console.log(`[APPEND Debug] Token (FULL):`, token);
+    console.log(`[APPEND Debug] Token (length):`, token.length);
+    console.log(`[APPEND Debug] Token Secret (FULL):`, tokenSecret);
+    console.log(`[APPEND Debug] Token Secret (length):`, tokenSecret.length);
+    
+    // Verify token matches original (hasn't been modified)
+    if (token !== originalTokenReceived) {
+      console.error(`[APPEND Debug] ⚠️ ERROR: Token was modified!`);
+      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenReceived);
+      console.error(`[APPEND Debug] ⚠️ Current:`, token);
+    } else {
+      console.log(`[APPEND Debug] ✅ Token matches original (no modification detected)`);
+    }
+    
+    if (tokenSecret !== originalTokenSecretReceived) {
+      console.error(`[APPEND Debug] ⚠️ ERROR: Token Secret was modified!`);
+      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenSecretReceived);
+      console.error(`[APPEND Debug] ⚠️ Current:`, tokenSecret);
+    } else {
+      console.log(`[APPEND Debug] ✅ Token Secret matches original (no modification detected)`);
+    }
+    
     // Generate signature - this combines OAuth params + form field params internally
     const { signature: appendSignature, timestamp: appendTimestamp, nonce: appendNonce } = generateOAuth1Signature(
       'POST',
@@ -693,6 +746,25 @@ export async function uploadMediaOAuth1(
       token,
       tokenSecret
     );
+    
+    // TOKEN VERIFICATION: Verify token hasn't changed after signature generation
+    console.log(`[APPEND Debug] Token verification after signature generation:`);
+    console.log(`[APPEND Debug] Token (FULL):`, token);
+    console.log(`[APPEND Debug] Token (length):`, token.length);
+    console.log(`[APPEND Debug] Token Secret (FULL):`, tokenSecret);
+    console.log(`[APPEND Debug] Token Secret (length):`, tokenSecret.length);
+    
+    // Final verification: token should still match original
+    if (token !== originalTokenReceived) {
+      console.error(`[APPEND Debug] ⚠️ ERROR: Token was modified during signature generation!`);
+      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenReceived);
+      console.error(`[APPEND Debug] ⚠️ After signature:`, token);
+    }
+    if (tokenSecret !== originalTokenSecretReceived) {
+      console.error(`[APPEND Debug] ⚠️ ERROR: Token Secret was modified during signature generation!`);
+      console.error(`[APPEND Debug] ⚠️ Original:`, originalTokenSecretReceived);
+      console.error(`[APPEND Debug] ⚠️ After signature:`, tokenSecret);
+    }
     
     // Use createOAuth1Header to ensure signature is percent-encoded for media upload endpoints
     // This is a Twitter quirk - signature must be percent-encoded for /media/upload endpoints
@@ -725,33 +797,45 @@ export async function uploadMediaOAuth1(
     console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
     console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
     
-    // CRITICAL: Use https module with form-data pipe() method instead of fetch
-    // form-data + fetch in Node.js can have compatibility issues with multipart requests
-    // The form-data package is designed to work with Node.js http/https modules
+    // CRITICAL: Get Content-Type and Content-Length from form-data BEFORE creating request
+    // This ensures headers are set correctly before the request is sent
+    // form-data.getLength() calculates the exact size including boundaries
     const uploadUrlObj = new URL(uploadUrl);
+    
+    // Get Content-Type from form-data (includes boundary)
+    const formHeaders = formData.getHeaders();
+    const contentType = formHeaders['content-type'] as string;
+    
+    // Get Content-Length from form-data (calculated including all boundaries)
+    // This is the exact length that form-data will send
+    const contentLength = await new Promise<number>((resolve, reject) => {
+      formData.getLength((err: Error | null, length?: number) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(length || 0);
+        }
+      });
+    });
+    
+    console.log(`[APPEND Debug] Form headers:`, formHeaders);
+    console.log(`[APPEND Debug] Content-Type:`, contentType);
+    console.log(`[APPEND Debug] Content-Length (calculated by form-data):`, contentLength);
+    console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
+    
     const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
-      // CRITICAL: Only set Authorization header manually
-      // DO NOT set Content-Type or Content-Length - form-data will set both automatically when piping
-      // Setting these manually causes conflicts and authentication failures (code 32)
-      // When form-data.pipe(req) is called, form-data will:
-      // 1. Calculate the exact Content-Length (including all boundaries and data)
-      // 2. Set Content-Type with the correct boundary
-      // 3. Stream the data correctly
-      const headers: Record<string, string> = {
-        'Authorization': authHeader,
-      };
-      
-      // Get form headers for logging only (don't use them in request)
-      const formHeaders = formData.getHeaders();
-      console.log(`[APPEND Debug] Form headers (for reference only):`, formHeaders);
-      console.log(`[APPEND Debug] Content-Type that form-data will set:`, formHeaders['content-type']);
-      
+      // Set all headers manually using values from form-data
+      // This ensures headers are correct before request is sent
       const requestOptions = {
         hostname: uploadUrlObj.hostname,
         port: uploadUrlObj.port || 443,
         path: uploadUrlObj.pathname + uploadUrlObj.search,
         method: 'POST',
-        headers,
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': contentType, // From form-data (includes boundary)
+          'Content-Length': contentLength.toString(), // From form-data (exact length)
+        },
       };
       
       console.log(`[APPEND Debug] Request options:`, {
@@ -759,21 +843,10 @@ export async function uploadMediaOAuth1(
         path: requestOptions.path,
         method: requestOptions.method,
         hasAuthHeader: !!requestOptions.headers.Authorization,
-        headerKeys: Object.keys(requestOptions.headers),
-        note: 'Content-Type and Content-Length will be set by form-data when piping',
+        contentType: requestOptions.headers['Content-Type'],
+        contentLength: requestOptions.headers['Content-Length'],
+        note: 'All headers set from form-data values',
       });
-      
-      // CRITICAL: Verify we're NOT setting Content-Type or Content-Length manually
-      // form-data will add both automatically when piping, with the correct values
-      if ('Content-Type' in requestOptions.headers || 'content-type' in requestOptions.headers) {
-        console.error(`[APPEND Debug] ⚠️ ERROR: Content-Type found in headers! This will cause conflicts. Headers:`, requestOptions.headers);
-      }
-      if ('Content-Length' in requestOptions.headers || 'content-length' in requestOptions.headers) {
-        console.error(`[APPEND Debug] ⚠️ ERROR: Content-Length found in headers! This will cause code 32. Headers:`, requestOptions.headers);
-      }
-      if (!('Content-Type' in requestOptions.headers) && !('Content-Length' in requestOptions.headers)) {
-        console.log(`[APPEND Debug] ✅ Only Authorization header set - form-data will set Content-Type and Content-Length when piping`);
-      }
       
       const req = https.request(requestOptions, (res) => {
         const chunks: Buffer[] = [];
@@ -797,29 +870,15 @@ export async function uploadMediaOAuth1(
       });
       
       req.on('error', reject);
-      
-      // CRITICAL: form-data package requires explicit handling when piping
-      // The form-data stream must be properly piped and the request must be ended correctly
-      // When form-data finishes, it will automatically end the request
       formData.on('error', reject);
       
-      // CRITICAL: Let form-data calculate and set Content-Length automatically
-      // When we pipe form-data to the request, it will:
-      // 1. Calculate the exact Content-Length (including all boundaries and data)
-      // 2. Set the Content-Length header automatically
-      // 3. Stream the data correctly
-      // DO NOT set Content-Length manually - this causes off-by-one errors
+      console.log(`[APPEND Debug] About to pipe form-data to request`);
       
-      // Log before piping to verify setup
-      console.log(`[APPEND Debug] About to pipe form-data to request. Chunk size: ${chunk.length} bytes`);
-      
+      // Pipe form-data to request
+      // Headers are already set correctly, so form-data will just stream the data
       formData.pipe(req);
       
-      // Log after piping starts
-      console.log(`[APPEND Debug] Form-data piped to request. form-data will calculate Content-Length automatically.`);
-      
-      // form-data will automatically end the request when the stream finishes
-      // No need to manually call req.end() - form-data handles it
+      console.log(`[APPEND Debug] Form-data piped to request`);
     });
     
     if (appendResponse.status < 200 || appendResponse.status >= 300) {
@@ -1040,18 +1099,43 @@ export async function postTweet(
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = `Failed to post tweet: ${response.statusText}`;
+    
+    // Extract rate limit information from headers
+    const rateLimitLimit = response.headers.get('x-rate-limit-limit');
+    const rateLimitRemaining = response.headers.get('x-rate-limit-remaining');
+    const rateLimitReset = response.headers.get('x-rate-limit-reset');
+    
+    // Calculate reset time if available
+    let resetTimeMessage = '';
+    if (rateLimitReset) {
+      const resetTimestamp = parseInt(rateLimitReset, 10);
+      const resetDate = new Date(resetTimestamp * 1000); // Convert Unix timestamp to Date
+      const now = new Date();
+      const minutesUntilReset = Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60));
+      
+      resetTimeMessage = ` Rate limit resets at ${resetDate.toISOString()} (in ${minutesUntilReset} minutes).`;
+      
+      console.log(`[Twitter Post Tweet] Rate limit info:`, {
+        limit: rateLimitLimit,
+        remaining: rateLimitRemaining,
+        reset: rateLimitReset,
+        resetTime: resetDate.toISOString(),
+        minutesUntilReset,
+      });
+    }
+    
     try {
       const error = JSON.parse(errorText);
       errorMessage = error.detail || error.errors?.[0]?.message || errorMessage;
       
       // Check for rate limit errors
       if (response.status === 429 || errorMessage.includes('Too Many Requests') || errorMessage.includes('rate limit')) {
-        errorMessage = 'Twitter API rate limit exceeded. Please wait a few minutes and try again.';
+        errorMessage = `Twitter API rate limit exceeded.${resetTimeMessage || ' Please wait a few minutes and try again.'}`;
       }
     } catch {
       // Use default error message
       if (response.status === 429) {
-        errorMessage = 'Twitter API rate limit exceeded. Please wait a few minutes and try again.';
+        errorMessage = `Twitter API rate limit exceeded.${resetTimeMessage || ' Please wait a few minutes and try again.'}`;
       }
     }
     console.error(`[Twitter Post Tweet] Failed (${response.status}):`, errorMessage);
@@ -1062,6 +1146,18 @@ export async function postTweet(
       (authError as any).code = 'OAUTH2_TOKEN_INVALID';
       (authError as any).status = 401;
       throw authError;
+    }
+    
+    // Include rate limit info in error for 429 status
+    if (response.status === 429) {
+      const rateLimitError = new Error(errorMessage);
+      (rateLimitError as any).code = 'RATE_LIMIT_EXCEEDED';
+      (rateLimitError as any).status = 429;
+      if (rateLimitReset) {
+        (rateLimitError as any).rateLimitReset = parseInt(rateLimitReset, 10);
+        (rateLimitError as any).rateLimitResetTime = new Date(parseInt(rateLimitReset, 10) * 1000).toISOString();
+      }
+      throw rateLimitError;
     }
     
     throw new Error(errorMessage);
