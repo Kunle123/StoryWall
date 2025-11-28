@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // Check if it's a rate limit error (429) - retry with exponential backoff
+        // Check if it's a rate limit error (429) - retry only if wait time is reasonable
         if (error.status === 429 && error.code === 'RATE_LIMIT_EXCEEDED' && retryCount < maxRetries) {
           const rateLimitReset = (error as any).rateLimitReset;
           if (rateLimitReset) {
@@ -272,12 +272,18 @@ export async function POST(request: NextRequest) {
             const now = new Date();
             const waitTime = Math.max(0, resetTime.getTime() - now.getTime());
             
-            if (waitTime > 0 && waitTime < 15 * 60 * 1000) { // Only retry if wait time is less than 15 minutes
+            // Only retry if wait time is less than 2 minutes (120 seconds) - reasonable for user to wait
+            const MAX_WAIT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
+            if (waitTime > 0 && waitTime < MAX_WAIT_TIME) {
               const waitSeconds = Math.ceil(waitTime / 1000);
               console.log(`[Twitter Post Tweet] ⏳ Rate limit exceeded. Waiting ${waitSeconds} seconds before retry ${retryCount + 1}/${maxRetries}...`);
               await new Promise(resolve => setTimeout(resolve, waitTime + 1000)); // Add 1 second buffer
               retryCount++;
               continue;
+            } else {
+              // Wait time is too long (more than 2 minutes), return error immediately
+              console.log(`[Twitter Post Tweet] ⏳ Rate limit wait time too long (${Math.ceil(waitTime / 1000)}s), returning error immediately`);
+              throw error;
             }
           }
           // Rate limit wait time too long, throw error
