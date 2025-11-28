@@ -736,17 +736,50 @@ export async function uploadMediaOAuth1(
     console.log(`[APPEND Debug] Form headers:`, formHeaders);
     console.log(`[APPEND Debug] Content-Type:`, formHeaders['content-type']);
     
-    const appendResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        // form-data will set Content-Type with boundary - don't set it manually
-        ...formHeaders, // This sets Content-Type with boundary
-      },
-      body: formData as any, // form-data is compatible with fetch body
+    // CRITICAL: Use https module with form-data pipe() method instead of fetch
+    // form-data + fetch in Node.js can have compatibility issues with multipart requests
+    // The form-data package is designed to work with Node.js http/https modules
+    const uploadUrlObj = new URL(uploadUrl);
+    const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
+      const requestOptions = {
+        hostname: uploadUrlObj.hostname,
+        port: uploadUrlObj.port || 443,
+        path: uploadUrlObj.pathname + uploadUrlObj.search,
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          ...formHeaders, // This sets Content-Type with boundary
+        },
+      };
+      
+      const req = https.request(requestOptions, (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => {
+          const responseText = Buffer.concat(chunks).toString();
+          resolve({
+            status: res.statusCode || 500,
+            statusText: res.statusMessage || 'Unknown',
+            headers: res.headers,
+            text: async () => responseText,
+            json: async () => {
+              try {
+                return JSON.parse(responseText);
+              } catch {
+                return {};
+              }
+            },
+          });
+        });
+      });
+      
+      req.on('error', reject);
+      
+      // Use form-data's pipe method to send the request
+      formData.pipe(req);
     });
     
-    if (!appendResponse.ok) {
+    if (appendResponse.status < 200 || appendResponse.status >= 300) {
       const errorText = await appendResponse.text();
       let errorMessage = `Failed to append media chunk: ${appendResponse.status} ${appendResponse.statusText}`;
       let errorDetails: any = {};
@@ -760,7 +793,7 @@ export async function uploadMediaOAuth1(
         errorMessage = `${errorMessage} - ${errorText.substring(0, 200)}`;
       }
       console.error(`[APPEND Error] Response status: ${appendResponse.status}`);
-      console.error(`[APPEND Error] Response headers:`, Object.fromEntries(appendResponse.headers.entries()));
+      console.error(`[APPEND Error] Response headers:`, appendResponse.headers);
       throw new Error(`APPEND failed: ${JSON.stringify(errorDetails)}`);
     }
     
@@ -1030,6 +1063,8 @@ export async function postTwitterThread(
 
 import { createHash, randomBytes, createHmac } from 'crypto';
 import { URLSearchParams as NodeURLSearchParams } from 'url';
+import https from 'https';
+import { URL } from 'url';
 
 /**
  * Generate a random string for PKCE code_verifier
