@@ -741,26 +741,29 @@ export async function uploadMediaOAuth1(
     // The form-data package is designed to work with Node.js http/https modules
     const uploadUrlObj = new URL(uploadUrl);
     const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
+      // Build headers object - use Record type to allow dynamic properties
+      const headers: Record<string, string> = {
+        'Authorization': authHeader,
+        // CRITICAL: Only set Content-Type from form-data headers
+        // DO NOT set Content-Length - form-data will calculate it automatically when piping
+        // Setting Content-Length manually causes off-by-one errors that Twitter rejects
+        'Content-Type': formHeaders['content-type'] as string,
+      };
+      
+      // Remove Content-Length if it exists in formHeaders (form-data will set it correctly)
+      // This prevents off-by-one errors that cause code 32 authentication failures
+      if (formHeaders['content-length']) {
+        // Don't include it - form-data will calculate it correctly when piping
+        console.log(`[APPEND Debug] Ignoring Content-Length from formHeaders - form-data will calculate it automatically`);
+      }
+      
       const requestOptions = {
         hostname: uploadUrlObj.hostname,
         port: uploadUrlObj.port || 443,
         path: uploadUrlObj.pathname + uploadUrlObj.search,
         method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          // CRITICAL: Only set Content-Type from form-data headers
-          // DO NOT set Content-Length - form-data will calculate it automatically when piping
-          // Setting Content-Length manually causes off-by-one errors that Twitter rejects
-          'Content-Type': formHeaders['content-type'] as string,
-        },
+        headers,
       };
-      
-      // Remove Content-Length if it exists (form-data will set it correctly)
-      // This prevents off-by-one errors that cause code 32 authentication failures
-      if (requestOptions.headers['Content-Length']) {
-        delete requestOptions.headers['Content-Length'];
-        console.log(`[APPEND Debug] Removed manual Content-Length - form-data will calculate it`);
-      }
       
       console.log(`[APPEND Debug] Request options:`, {
         hostname: requestOptions.hostname,
