@@ -748,9 +748,19 @@ export async function uploadMediaOAuth1(
         method: 'POST',
         headers: {
           'Authorization': authHeader,
-          ...formHeaders, // This sets Content-Type with boundary
+          // CRITICAL: Only set Content-Type from form-data headers
+          // form-data will calculate and set Content-Length automatically when piping
+          'Content-Type': formHeaders['content-type'] as string,
         },
       };
+      
+      console.log(`[APPEND Debug] Request options:`, {
+        hostname: requestOptions.hostname,
+        path: requestOptions.path,
+        method: requestOptions.method,
+        hasAuthHeader: !!requestOptions.headers.Authorization,
+        contentType: requestOptions.headers['Content-Type'],
+      });
       
       const req = https.request(requestOptions, (res) => {
         const chunks: Buffer[] = [];
@@ -775,8 +785,16 @@ export async function uploadMediaOAuth1(
       
       req.on('error', reject);
       
-      // Use form-data's pipe method to send the request
+      // CRITICAL: form-data package requires explicit handling when piping
+      // The form-data stream must be properly piped and the request must be ended correctly
+      // When form-data finishes, it will automatically end the request
+      formData.on('error', reject);
+      
+      // Pipe form-data to request - form-data will handle Content-Length automatically
       formData.pipe(req);
+      
+      // Ensure form-data stream is properly ended (though pipe should handle this)
+      // The form-data package will automatically end the request when the stream finishes
     });
     
     if (appendResponse.status < 200 || appendResponse.status >= 300) {
