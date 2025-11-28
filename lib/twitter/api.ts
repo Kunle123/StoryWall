@@ -727,35 +727,26 @@ export async function uploadMediaOAuth1(
     console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
     console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
     
-    // form-data package sets Content-Type with boundary automatically
-    // IMPORTANT: Do NOT manually set Content-Type - form-data will set it with the correct boundary
-    // The OAuth signature is calculated WITHOUT the Content-Type header
-    // CRITICAL: For Node.js, we need to ensure form-data stream is properly handled
-    // Get headers first to ensure Content-Type with boundary is set correctly
-    const formHeaders = formData.getHeaders();
-    console.log(`[APPEND Debug] Form headers:`, formHeaders);
-    console.log(`[APPEND Debug] Content-Type:`, formHeaders['content-type']);
-    
     // CRITICAL: Use https module with form-data pipe() method instead of fetch
     // form-data + fetch in Node.js can have compatibility issues with multipart requests
     // The form-data package is designed to work with Node.js http/https modules
     const uploadUrlObj = new URL(uploadUrl);
     const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
-      // Build headers object - use Record type to allow dynamic properties
+      // CRITICAL: Only set Authorization header manually
+      // DO NOT set Content-Type or Content-Length - form-data will set both automatically when piping
+      // Setting these manually causes conflicts and authentication failures (code 32)
+      // When form-data.pipe(req) is called, form-data will:
+      // 1. Calculate the exact Content-Length (including all boundaries and data)
+      // 2. Set Content-Type with the correct boundary
+      // 3. Stream the data correctly
       const headers: Record<string, string> = {
         'Authorization': authHeader,
-        // CRITICAL: Only set Content-Type from form-data headers
-        // DO NOT set Content-Length - form-data will calculate it automatically when piping
-        // Setting Content-Length manually causes off-by-one errors that Twitter rejects
-        'Content-Type': formHeaders['content-type'] as string,
       };
       
-      // Remove Content-Length if it exists in formHeaders (form-data will set it correctly)
-      // This prevents off-by-one errors that cause code 32 authentication failures
-      if (formHeaders['content-length']) {
-        // Don't include it - form-data will calculate it correctly when piping
-        console.log(`[APPEND Debug] Ignoring Content-Length from formHeaders - form-data will calculate it automatically`);
-      }
+      // Get form headers for logging only (don't use them in request)
+      const formHeaders = formData.getHeaders();
+      console.log(`[APPEND Debug] Form headers (for reference only):`, formHeaders);
+      console.log(`[APPEND Debug] Content-Type that form-data will set:`, formHeaders['content-type']);
       
       const requestOptions = {
         hostname: uploadUrlObj.hostname,
@@ -770,17 +761,20 @@ export async function uploadMediaOAuth1(
         path: requestOptions.path,
         method: requestOptions.method,
         hasAuthHeader: !!requestOptions.headers.Authorization,
-        contentType: requestOptions.headers['Content-Type'],
-        hasContentLength: !!requestOptions.headers['Content-Length'],
         headerKeys: Object.keys(requestOptions.headers),
+        note: 'Content-Type and Content-Length will be set by form-data when piping',
       });
       
-      // CRITICAL: Verify Content-Length is NOT in headers
-      // form-data will add it automatically when piping, with the correct value
+      // CRITICAL: Verify we're NOT setting Content-Type or Content-Length manually
+      // form-data will add both automatically when piping, with the correct values
+      if ('Content-Type' in requestOptions.headers || 'content-type' in requestOptions.headers) {
+        console.error(`[APPEND Debug] ⚠️ ERROR: Content-Type found in headers! This will cause conflicts. Headers:`, requestOptions.headers);
+      }
       if ('Content-Length' in requestOptions.headers || 'content-length' in requestOptions.headers) {
         console.error(`[APPEND Debug] ⚠️ ERROR: Content-Length found in headers! This will cause code 32. Headers:`, requestOptions.headers);
-      } else {
-        console.log(`[APPEND Debug] ✅ Content-Length NOT in headers - form-data will calculate it correctly`);
+      }
+      if (!('Content-Type' in requestOptions.headers) && !('Content-Length' in requestOptions.headers)) {
+        console.log(`[APPEND Debug] ✅ Only Authorization header set - form-data will set Content-Type and Content-Length when piping`);
       }
       
       const req = https.request(requestOptions, (res) => {
