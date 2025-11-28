@@ -173,14 +173,22 @@ function createOAuth1Header(
   const isMediaUpload = url ? url.includes('/media/upload') : false;
   const shouldEncodeSignature = isRequestToken || isMediaUpload;
   
-  // DEBUG: Log encoding decision
-  if (isRequestToken || isMediaUpload) {
-    const debugPrefix = isRequestToken ? '[Twitter OAuth1 Request Token]' : '[Twitter Media Upload]';
-    console.log(`${debugPrefix} 🔐 DEBUG: shouldEncodeSignature =`, shouldEncodeSignature);
-    console.log(`${debugPrefix} 🔐 DEBUG: isRequestToken =`, isRequestToken);
-    console.log(`${debugPrefix} 🔐 DEBUG: isMediaUpload =`, isMediaUpload);
-    console.log(`${debugPrefix} 🔐 DEBUG: Signature before encoding:`, signature);
-    console.log(`${debugPrefix} 🔐 DEBUG: Signature after encoding:`, percentEncode(signature));
+  // DEBUG: Always log for media upload endpoints to verify detection
+  if (url && url.includes('/media/upload')) {
+    console.log('[Twitter Media Upload] 🔐 DEBUG: createOAuth1Header called for media upload');
+    console.log('[Twitter Media Upload] 🔐 DEBUG: url =', url);
+    console.log('[Twitter Media Upload] 🔐 DEBUG: isMediaUpload =', isMediaUpload);
+    console.log('[Twitter Media Upload] 🔐 DEBUG: shouldEncodeSignature =', shouldEncodeSignature);
+    console.log('[Twitter Media Upload] 🔐 DEBUG: Signature before encoding:', signature);
+    console.log('[Twitter Media Upload] 🔐 DEBUG: Signature after encoding:', percentEncode(signature));
+  }
+  
+  // DEBUG: Log encoding decision for request_token
+  if (isRequestToken) {
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: shouldEncodeSignature =', shouldEncodeSignature);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: isRequestToken =', isRequestToken);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature before encoding:', signature);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature after encoding:', percentEncode(signature));
   }
   
   return 'OAuth ' + sortedKeys
