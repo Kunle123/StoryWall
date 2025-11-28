@@ -17,14 +17,20 @@ interface TwitterThreadResponse {
 /**
  * Percent encode according to RFC 3986 (OAuth 1.0a spec)
  * This is more strict than encodeURIComponent
+ * 
+ * RFC 3986 requires encoding of: ! * ' ( )
+ * encodeURIComponent already encodes most characters correctly,
+ * but we need to fix these specific ones that it doesn't handle per spec
  */
 function percentEncode(str: string): string {
+  // encodeURIComponent handles most characters correctly
+  // But per RFC 3986, we need to ensure ! * ' ( ) are encoded
   return encodeURIComponent(str)
-    .replace(/!/g, '%21')
-    .replace(/'/g, '%27')
-    .replace(/\(/g, '%28')
-    .replace(/\)/g, '%29')
-    .replace(/\*/g, '%2A');
+    .replace(/!/g, '%21')      // Fix ! (encodeURIComponent encodes as %21, but we ensure it)
+    .replace(/'/g, '%27')      // Fix ' (single quote)
+    .replace(/\(/g, '%28')      // Fix ( (left parenthesis)
+    .replace(/\)/g, '%29')       // Fix ) (right parenthesis)
+    .replace(/\*/g, '%2A');     // Fix * (asterisk)
 }
 
 /**
@@ -86,7 +92,18 @@ export function generateOAuth1Signature(
   // Step 5: Create signing key
   // CRITICAL: OAuth 1.0a signing key uses percent-encoded secrets per RFC 5849
   // Format: encoded_consumer_secret&encoded_token_secret
-  const signingKey = `${percentEncode(consumerSecret)}&${percentEncode(tokenSecret)}`;
+  // For request_token, tokenSecret is empty string, so signing key is: encoded_secret&
+  const encodedConsumerSecret = percentEncode(consumerSecret);
+  const encodedTokenSecret = tokenSecret ? percentEncode(tokenSecret) : '';
+  const signingKey = `${encodedConsumerSecret}&${encodedTokenSecret}`;
+  
+  // DEBUG: Log signing key construction for request_token
+  if (url.includes('/oauth/request_token')) {
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signing key construction:');
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Consumer Secret encoded length:', encodedConsumerSecret.length);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Token Secret encoded length:', encodedTokenSecret.length);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signing key format:', `${encodedConsumerSecret.substring(0, 10)}...&${encodedTokenSecret || '(empty)'}`);
+  }
 
   // Step 6: Generate signature
   const signature = createHmac('sha1', signingKey)
@@ -142,15 +159,21 @@ function createOAuth1Header(
   }
 
   // CRITICAL: Sort parameters alphabetically (OAuth 1.0a requirement)
-  // CRITICAL: Signature value should NOT be percent-encoded (it's already base64)
+  // NOTE: Per OAuth 1.0a spec, signature should NOT be percent-encoded (it's already base64)
+  // However, Twitter's request_token endpoint may have a quirk where it expects signature to be encoded
   const sortedKeys = Object.keys(oauthParams).sort();
+  
+  // Detect if this is a request_token call (no token, has callback)
+  const isRequestToken = !token && includeCallback;
+  
   return 'OAuth ' + sortedKeys
     .map(key => {
       const encodedKey = percentEncode(key);
-      // Signature is already base64 encoded - don't percent-encode it again
-      const encodedValue = key === 'oauth_signature' 
-        ? oauthParams[key] 
-        : percentEncode(oauthParams[key]);
+      // For request_token endpoint: percent-encode signature (Twitter quirk - technically wrong per spec)
+      // For other endpoints: don't encode signature (correct per OAuth 1.0a spec)
+      const encodedValue = (key === 'oauth_signature' && !isRequestToken)
+        ? oauthParams[key]  // Don't encode signature for non-request-token endpoints (per spec)
+        : percentEncode(oauthParams[key]);  // Encode everything for request_token (including signature - Twitter quirk)
       return `${encodedKey}="${encodedValue}"`;
     })
     .join(', ');
@@ -1113,6 +1136,14 @@ export async function getOAuth1RequestToken(
   console.log('[Twitter OAuth1 Request Token] 🔐 Consumer Secret length:', consumerSecret.length);
   console.log('[Twitter OAuth1 Request Token] 🔐 Authorization Header:', authHeader);
   
+  // DEBUG: Verify callback URL encoding matches in signature and header
+  const callbackInSignature = percentEncode('oauth_callback') + '=' + percentEncode(callbackUrl);
+  const callbackInHeader = 'oauth_callback="' + percentEncode(callbackUrl) + '"';
+  console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Callback in signature params:', callbackInSignature);
+  console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Callback in header:', callbackInHeader);
+  console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Callback URL raw:', callbackUrl);
+  console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Callback URL percent-encoded:', percentEncode(callbackUrl));
+  
   // CRITICAL VERIFICATION CHECKLIST:
   // If code 215 persists, verify ALL of these:
   // 1. Consumer Key in logs above matches EXACTLY "API Key" in Developer Portal → Keys and tokens
@@ -1129,15 +1160,39 @@ export async function getOAuth1RequestToken(
   // - Callback URL doesn't match exactly (second most common)
   // - App permissions not set correctly for OAuth 1.0a
   
-  // Try with Content-Type header (some OAuth 1.0a implementations require this)
-  // Even though request_token has no body, Twitter might expect this header
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': authHeader,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-  });
+  // CRITICAL: For request_token endpoint, Twitter expects:
+  // 1. oauth_callback in Authorization header (included in signature) ✅
+  // 2. No POST body parameters (callback is only in header, not body)
+  // 3. Content-Type header may or may not be required - try both approaches
+  // 
+  // Some OAuth 1.0a implementations are strict about Content-Type when body is empty
+  // Try with explicit empty body first
+  let response;
+  try {
+    // First attempt: With Content-Type and explicit empty body
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: '', // Explicit empty body
+    });
+    
+    // If still fails, the issue is likely signature encoding or callback URL mismatch
+    if (!response.ok && response.status === 400) {
+      console.warn('[Twitter OAuth1 Request Token] ⚠️  First attempt failed, this might indicate a signature encoding issue');
+    }
+  } catch (error) {
+    // Fallback: Try without Content-Type header
+    console.warn('[Twitter OAuth1 Request Token] ⚠️  Retrying without Content-Type header');
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+      },
+    });
+  }
   
   if (!response.ok) {
     const errorText = await response.text();
