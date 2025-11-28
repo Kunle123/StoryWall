@@ -31,7 +31,7 @@ function percentEncode(str: string): string {
  * Generate OAuth 1.0a signature for Twitter API requests
  * Required for v1.1 media upload endpoint
  */
-function generateOAuth1Signature(
+export function generateOAuth1Signature(
   method: string,
   url: string,
   params: Record<string, string>,
