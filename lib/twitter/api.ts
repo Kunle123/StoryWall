@@ -749,10 +749,18 @@ export async function uploadMediaOAuth1(
         headers: {
           'Authorization': authHeader,
           // CRITICAL: Only set Content-Type from form-data headers
-          // form-data will calculate and set Content-Length automatically when piping
+          // DO NOT set Content-Length - form-data will calculate it automatically when piping
+          // Setting Content-Length manually causes off-by-one errors that Twitter rejects
           'Content-Type': formHeaders['content-type'] as string,
         },
       };
+      
+      // Remove Content-Length if it exists (form-data will set it correctly)
+      // This prevents off-by-one errors that cause code 32 authentication failures
+      if (requestOptions.headers['Content-Length']) {
+        delete requestOptions.headers['Content-Length'];
+        console.log(`[APPEND Debug] Removed manual Content-Length - form-data will calculate it`);
+      }
       
       console.log(`[APPEND Debug] Request options:`, {
         hostname: requestOptions.hostname,
@@ -760,6 +768,7 @@ export async function uploadMediaOAuth1(
         method: requestOptions.method,
         hasAuthHeader: !!requestOptions.headers.Authorization,
         contentType: requestOptions.headers['Content-Type'],
+        hasContentLength: !!requestOptions.headers['Content-Length'],
       });
       
       const req = https.request(requestOptions, (res) => {
@@ -790,11 +799,16 @@ export async function uploadMediaOAuth1(
       // When form-data finishes, it will automatically end the request
       formData.on('error', reject);
       
-      // Pipe form-data to request - form-data will handle Content-Length automatically
+      // CRITICAL: Let form-data calculate and set Content-Length automatically
+      // When we pipe form-data to the request, it will:
+      // 1. Calculate the exact Content-Length (including all boundaries and data)
+      // 2. Set the Content-Length header automatically
+      // 3. Stream the data correctly
+      // DO NOT set Content-Length manually - this causes off-by-one errors
       formData.pipe(req);
       
-      // Ensure form-data stream is properly ended (though pipe should handle this)
-      // The form-data package will automatically end the request when the stream finishes
+      // form-data will automatically end the request when the stream finishes
+      // No need to manually call req.end() - form-data handles it
     });
     
     if (appendResponse.status < 200 || appendResponse.status >= 300) {
