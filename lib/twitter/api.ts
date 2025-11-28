@@ -818,10 +818,52 @@ export async function uploadMediaOAuth1(
       });
     });
     
+    // VALIDATION: Ensure Content-Length is a valid integer with no extra characters
+    if (!Number.isInteger(contentLength) || contentLength <= 0) {
+      throw new Error(`Invalid Content-Length calculated: ${contentLength} (must be positive integer)`);
+    }
+    
+    // VALIDATION: Check against Twitter's limits
+    // Twitter's max chunk size is typically 5MB, but with multipart boundaries it can be slightly larger
+    // Maximum Content-Length for APPEND is approximately 5MB + overhead (boundaries, headers)
+    const maxContentLength = 5.5 * 1024 * 1024; // 5.5MB to account for multipart overhead
+    if (contentLength > maxContentLength) {
+      throw new Error(`Content-Length (${contentLength} bytes) exceeds Twitter's maximum (${maxContentLength} bytes). Chunk size: ${chunk.length} bytes`);
+    }
+    
+    // VALIDATION: Convert to string and ensure no extra characters/spaces
+    const contentLengthString = String(contentLength).trim();
+    if (contentLengthString !== String(contentLength) || !/^\d+$/.test(contentLengthString)) {
+      throw new Error(`Content-Length string contains invalid characters: "${contentLengthString}" (original: ${contentLength})`);
+    }
+    
+    // VALIDATION: Verify no leading/trailing spaces or non-digit characters
+    const cleanContentLength = contentLengthString.replace(/\s/g, '');
+    if (cleanContentLength !== contentLengthString) {
+      throw new Error(`Content-Length contains spaces: "${contentLengthString}" (cleaned: "${cleanContentLength}")`);
+    }
+    
     console.log(`[APPEND Debug] Form headers:`, formHeaders);
     console.log(`[APPEND Debug] Content-Type:`, contentType);
     console.log(`[APPEND Debug] Content-Length (calculated by form-data):`, contentLength);
+    console.log(`[APPEND Debug] Content-Length (as string):`, contentLengthString);
+    console.log(`[APPEND Debug] Content-Length validation:`, {
+      isInteger: Number.isInteger(contentLength),
+      isPositive: contentLength > 0,
+      withinLimit: contentLength <= maxContentLength,
+      stringLength: contentLengthString.length,
+      stringValue: contentLengthString,
+      hasSpaces: contentLengthString.includes(' '),
+      hasNonDigits: !/^\d+$/.test(contentLengthString),
+      maxAllowed: maxContentLength,
+    });
     console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
+    console.log(`[APPEND Debug] Content-Length vs Chunk size:`, {
+      contentLength,
+      chunkSize: chunk.length,
+      difference: contentLength - chunk.length,
+      note: 'Content-Length includes multipart boundaries and headers, so it should be larger than chunk size',
+    });
     
     const appendResponse = await new Promise<{ status: number; statusText: string; headers: Record<string, string | string[] | undefined>; text: () => Promise<string>; json: () => Promise<any> }>((resolve, reject) => {
       // Set all headers manually using values from form-data
@@ -834,7 +876,7 @@ export async function uploadMediaOAuth1(
         headers: {
           'Authorization': authHeader,
           'Content-Type': contentType, // From form-data (includes boundary)
-          'Content-Length': contentLength.toString(), // From form-data (exact length)
+          'Content-Length': contentLengthString, // Validated string (no spaces, no extra chars)
         },
       };
       
