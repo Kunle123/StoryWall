@@ -420,6 +420,10 @@ export async function POST(request: NextRequest) {
       responseData.rateLimitReset = (error as any).rateLimitReset;
       responseData.rateLimitResetTime = (error as any).rateLimitResetTime;
       responseData.minutesUntilReset = Math.ceil(((error as any).rateLimitReset * 1000 - Date.now()) / (1000 * 60));
+      responseData.isFreeTier = (error as any).isFreeTier || false;
+      responseData.note = responseData.isFreeTier 
+        ? 'Twitter FREE tier has strict rate limits (~50-150 requests per 15 minutes). Consider upgrading to Basic/Pro tier for higher limits (300+ requests per 15 min).'
+        : 'Twitter POST /2/tweets has a per-user rate limit. This limit includes failed attempts and is separate from app-level limits. Wait 15 minutes or check for other apps using your Twitter account.';
     }
     
     return NextResponse.json(

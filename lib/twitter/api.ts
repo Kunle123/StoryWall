@@ -745,9 +745,22 @@ export async function postTweet(
     
     // Include rate limit info in error for 429 status
     if (response.status === 429) {
+      console.warn(`[Twitter Post Tweet] ⚠️  RATE LIMIT HIT - POST /2/tweets endpoint`);
+      console.warn(`[Twitter Post Tweet] ⚠️  Rate limit: ${rateLimitLimit || 'unknown'}, Remaining: ${rateLimitRemaining || 'unknown'}`);
+      console.warn(`[Twitter Post Tweet] ⚠️  NOTE: Twitter FREE tier has very strict rate limits`);
+      console.warn(`[Twitter Post Tweet] ⚠️  POST /2/tweets free tier limit: ~50-150 requests per 15 minutes per user`);
+      console.warn(`[Twitter Post Tweet] ⚠️  This is much lower than paid tiers (300+ requests per 15 min)`);
+      console.warn(`[Twitter Post Tweet] ⚠️  Rate limits include failed attempts and are per-user (not per-app)`);
+      console.warn(`[Twitter Post Tweet] ⚠️  If you're on free tier and hitting limits frequently:`);
+      console.warn(`[Twitter Post Tweet] ⚠️  1. Consider upgrading to Basic/Pro tier in Twitter Developer Portal`);
+      console.warn(`[Twitter Post Tweet] ⚠️  2. Check for other apps/services using your Twitter account`);
+      console.warn(`[Twitter Post Tweet] ⚠️  3. Wait 15 minutes between posting attempts`);
+      console.warn(`[Twitter Post Tweet] ⚠️  4. Avoid multiple failed attempts (they count toward limit)`);
+      
       const rateLimitError = new Error(errorMessage);
       (rateLimitError as any).code = 'RATE_LIMIT_EXCEEDED';
       (rateLimitError as any).status = 429;
+      (rateLimitError as any).isFreeTier = true; // Flag for frontend to show upgrade message
       if (rateLimitReset) {
         (rateLimitError as any).rateLimitReset = parseInt(rateLimitReset, 10);
         (rateLimitError as any).rateLimitResetTime = new Date(parseInt(rateLimitReset, 10) * 1000).toISOString();

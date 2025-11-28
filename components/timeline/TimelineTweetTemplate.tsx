@@ -351,6 +351,29 @@ export const TimelineTweetTemplate = ({
             return;
           }
           
+          // Handle rate limit errors (429) specifically
+          if (response.status === 429 || error.code === 'RATE_LIMIT_EXCEEDED') {
+            const minutesUntilReset = error.minutesUntilReset || error.rateLimitResetTime 
+              ? Math.ceil((new Date(error.rateLimitResetTime).getTime() - Date.now()) / (1000 * 60))
+              : null;
+            const resetMessage = minutesUntilReset 
+              ? ` Please try again in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}.`
+              : ' Please try again later.';
+            
+            const isFreeTier = error.isFreeTier || false;
+            const freeTierNote = isFreeTier 
+              ? ' Twitter FREE tier has strict limits (~50-150 requests/15min). Consider upgrading to Basic/Pro tier for higher limits.'
+              : '';
+            
+            toast({
+              title: "Rate Limit Exceeded",
+              description: error.error || `Twitter API rate limit exceeded.${resetMessage}${freeTierNote}`,
+              variant: "destructive",
+              duration: 15000, // Show for 15 seconds (longer for free tier message)
+            });
+            return;
+          }
+          
           // Handle 403 Forbidden specifically
           if (response.status === 403 || error.code === 'TWITTER_MEDIA_UPLOAD_FORBIDDEN') {
             toast({
@@ -402,6 +425,30 @@ export const TimelineTweetTemplate = ({
         } catch {}
         
         const errorMessage = error.message || errorData.error || '';
+        
+        // Check if it's a rate limit error
+        const isRateLimit = errorData.code === 'RATE_LIMIT_EXCEEDED' || 
+                           errorMessage.includes('rate limit') ||
+                           errorMessage.includes('Rate limit');
+        
+        if (isRateLimit) {
+          const minutesUntilReset = errorData.minutesUntilReset || 
+            (errorData.rateLimitResetTime 
+              ? Math.ceil((new Date(errorData.rateLimitResetTime).getTime() - Date.now()) / (1000 * 60))
+              : null);
+          const resetMessage = minutesUntilReset 
+            ? ` Please try again in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}.`
+            : ' Please try again later.';
+          
+          toast({
+            title: "Rate Limit Exceeded",
+            description: errorMessage || `Twitter API rate limit exceeded.${resetMessage}`,
+            variant: "destructive",
+            duration: 10000, // Show for 10 seconds
+          });
+          return;
+        }
+        
         const requiresReconnection = errorData.code === 'OAUTH1_TOKEN_PERMISSIONS_ERROR' ||
                                      errorData.code === 'OAUTH2_TOKEN_INVALID' ||
                                      errorData.requiresReconnection ||
