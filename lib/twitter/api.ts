@@ -166,6 +166,15 @@ function createOAuth1Header(
   // Detect if this is a request_token call (no token, has callback)
   const isRequestToken = !token && includeCallback;
   
+  // DEBUG: Log encoding decision for request_token
+  if (isRequestToken) {
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: isRequestToken =', isRequestToken);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: token =', token ? `"${token.substring(0, 10)}..."` : '(empty)');
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: includeCallback =', includeCallback);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature before encoding:', signature);
+    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature after encoding:', percentEncode(signature));
+  }
+  
   return 'OAuth ' + sortedKeys
     .map(key => {
       const encodedKey = percentEncode(key);
