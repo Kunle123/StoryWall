@@ -714,11 +714,9 @@ export async function uploadMediaOAuth1(
     formData.append('command', 'APPEND');
     formData.append('media_id', mediaId);
     formData.append('segment_index', segmentIndex.toString());
-    // Append Buffer directly with explicit options
-    formData.append('media', chunk, {
-      filename: 'blob',
-      contentType: 'application/octet-stream',
-    });
+    // Append Buffer directly - form-data will handle content-type automatically
+    // Match twurl behavior: just append the file data, let form-data handle the rest
+    formData.append('media', chunk);
     
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
