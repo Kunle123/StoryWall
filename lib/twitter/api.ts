@@ -136,7 +136,8 @@ function createOAuth1Header(
   timestamp: string,
   nonce: string,
   includeCallback?: boolean,
-  callbackUrl?: string
+  callbackUrl?: string,
+  url?: string
 ): string {
   // Build OAuth params object (same structure as APPEND step for consistency)
   const oauthParams: Record<string, string> = {
@@ -164,25 +165,32 @@ function createOAuth1Header(
   const sortedKeys = Object.keys(oauthParams).sort();
   
   // Detect if this is a request_token call (no token, has callback)
-  const isRequestToken = !token && includeCallback;
+  // Explicitly check for empty string to avoid type coercion issues
+  const isRequestToken = (token === '' || !token) && includeCallback;
   
-  // DEBUG: Log encoding decision for request_token
-  if (isRequestToken) {
-    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: isRequestToken =', isRequestToken);
-    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: token =', token ? `"${token.substring(0, 10)}..."` : '(empty)');
-    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: includeCallback =', includeCallback);
-    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature before encoding:', signature);
-    console.log('[Twitter OAuth1 Request Token] 🔐 DEBUG: Signature after encoding:', percentEncode(signature));
+  // Twitter quirk: Percent-encode signature for request_token AND media upload endpoints
+  // This is technically wrong per OAuth 1.0a spec, but Twitter requires it
+  const isMediaUpload = url ? url.includes('/media/upload') : false;
+  const shouldEncodeSignature = isRequestToken || isMediaUpload;
+  
+  // DEBUG: Log encoding decision
+  if (isRequestToken || isMediaUpload) {
+    const debugPrefix = isRequestToken ? '[Twitter OAuth1 Request Token]' : '[Twitter Media Upload]';
+    console.log(`${debugPrefix} 🔐 DEBUG: shouldEncodeSignature =`, shouldEncodeSignature);
+    console.log(`${debugPrefix} 🔐 DEBUG: isRequestToken =`, isRequestToken);
+    console.log(`${debugPrefix} 🔐 DEBUG: isMediaUpload =`, isMediaUpload);
+    console.log(`${debugPrefix} 🔐 DEBUG: Signature before encoding:`, signature);
+    console.log(`${debugPrefix} 🔐 DEBUG: Signature after encoding:`, percentEncode(signature));
   }
   
   return 'OAuth ' + sortedKeys
     .map(key => {
       const encodedKey = percentEncode(key);
-      // For request_token endpoint: percent-encode signature (Twitter quirk - technically wrong per spec)
+      // For request_token and media upload endpoints: percent-encode signature (Twitter quirk)
       // For other endpoints: don't encode signature (correct per OAuth 1.0a spec)
-      const encodedValue = (key === 'oauth_signature' && !isRequestToken)
-        ? oauthParams[key]  // Don't encode signature for non-request-token endpoints (per spec)
-        : percentEncode(oauthParams[key]);  // Encode everything for request_token (including signature - Twitter quirk)
+      const encodedValue = (key === 'oauth_signature' && !shouldEncodeSignature)
+        ? oauthParams[key]  // Don't encode signature for standard endpoints (per spec)
+        : percentEncode(oauthParams[key]);  // Encode everything for request_token/media upload (Twitter quirk)
       return `${encodedKey}="${encodedValue}"`;
     })
     .join(', ');
@@ -216,7 +224,7 @@ export async function verifyOAuth1TokenPermissions(
       tokenSecret
     );
     
-    const verifyAuthHeader = createOAuth1Header(consumerKey, token, verifySignature, verifyTimestamp, verifyNonce);
+    const verifyAuthHeader = createOAuth1Header(consumerKey, token, verifySignature, verifyTimestamp, verifyNonce, false, undefined, verifyUrl);
     
     const verifyResponse = await fetch(verifyUrl, {
       method: 'GET',
@@ -271,7 +279,7 @@ export async function verifyOAuth1TokenPermissions(
       tokenSecret
     );
     
-    const testAuthHeader = createOAuth1Header(consumerKey, token, testSignature, testTimestamp, testNonce);
+    const testAuthHeader = createOAuth1Header(consumerKey, token, testSignature, testTimestamp, testNonce, false, undefined, testUploadUrl);
     
     const testResponse = await fetch(testUploadUrl, {
       method: 'POST',
@@ -567,7 +575,7 @@ export async function uploadMediaOAuth1(
     tokenSecret
   );
   
-  const initAuthHeader = createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce);
+  const initAuthHeader = createOAuth1Header(consumerKey, token, initSignature, initTimestamp, initNonce, false, undefined, uploadUrl);
   
   // Debug logging for INIT step
   console.log(`[INIT Debug] OAuth params:`, JSON.stringify({ consumerKey: consumerKey.substring(0, 10) + '...', token: token ? token.substring(0, 10) + '...' : 'empty', timestamp: initTimestamp, nonce: initNonce.substring(0, 10) + '...' }));
@@ -791,7 +799,7 @@ export async function uploadMediaOAuth1(
   const finalizeResponse = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
-      'Authorization': createOAuth1Header(consumerKey, token, finalizeSignature, finalizeTimestamp, finalizeNonce),
+      'Authorization': createOAuth1Header(consumerKey, token, finalizeSignature, finalizeTimestamp, finalizeNonce, false, undefined, uploadUrl),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams(finalizeParams),
@@ -837,7 +845,7 @@ export async function uploadMediaOAuth1(
     
     const statusResponse = await fetch(statusUrl, {
       headers: {
-        'Authorization': createOAuth1Header(consumerKey, token, statusSignature, statusTimestamp, statusNonce),
+        'Authorization': createOAuth1Header(consumerKey, token, statusSignature, statusTimestamp, statusNonce, false, undefined, uploadUrl),
       },
     });
     processingInfo = await statusResponse.json();
@@ -1134,7 +1142,8 @@ export async function getOAuth1RequestToken(
     timestamp,
     nonce,
     true, // Include callback
-    callbackUrl
+    callbackUrl,
+    url // Pass URL to detect request_token endpoint
   );
   
   console.log('[Twitter OAuth1 Request Token] 🔐 Callback URL being sent to Twitter:', callbackUrl);
@@ -1291,7 +1300,7 @@ export async function exchangeOAuth1RequestTokenForAccessToken(
     requestTokenSecret
   );
   
-  const authHeader = createOAuth1Header(consumerKey, requestToken, signature, timestamp, nonce);
+  const authHeader = createOAuth1Header(consumerKey, requestToken, signature, timestamp, nonce, false, undefined, url);
   
   const response = await fetch(url, {
     method: 'POST',
