@@ -2,7 +2,72 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
-import { postTweet, uploadMediaOAuth1 } from '@/lib/twitter/api';
+import { postTweet, uploadMediaOAuth1, refreshAccessToken } from '@/lib/twitter/api';
+import { generateHashtags, addHashtagsToTweet } from '@/lib/utils/twitterThread';
+
+/**
+ * Helper function to get a valid access token, refreshing if necessary
+ * Returns the access token and updates the database if refreshed
+ */
+async function getValidAccessToken(userId: string): Promise<string> {
+  const user = await getOrCreateUser(userId);
+  
+  const userWithTokens = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      twitterAccessToken: true,
+      twitterRefreshToken: true,
+    },
+  });
+  
+  if (!userWithTokens?.twitterAccessToken) {
+    throw new Error('Twitter not connected. Please connect your Twitter account first.');
+  }
+  
+  // If we have a refresh token, we can refresh if needed
+  // For now, return the access token - it will be refreshed on 401 error
+  return userWithTokens.twitterAccessToken;
+}
+
+/**
+ * Helper function to refresh and store new access token
+ */
+async function refreshAndStoreToken(userId: string): Promise<string> {
+  const user = await getOrCreateUser(userId);
+  
+  const userWithTokens = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      twitterRefreshToken: true,
+    },
+  });
+  
+  if (!userWithTokens?.twitterRefreshToken) {
+    throw new Error('No refresh token available. Please reconnect your Twitter account.');
+  }
+  
+  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Twitter OAuth 2.0 credentials not configured');
+  }
+  
+  console.log('[Twitter Post Tweet] 🔄 Refreshing OAuth 2.0 access token...');
+  const tokenData = await refreshAccessToken(clientId, clientSecret, userWithTokens.twitterRefreshToken);
+  
+  // Store the new tokens
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      twitterAccessToken: tokenData.access_token,
+      twitterRefreshToken: tokenData.refresh_token, // Twitter may return a new refresh token
+    },
+  });
+  
+  console.log('[Twitter Post Tweet] ✅ Successfully refreshed and stored new access token');
+  return tokenData.access_token;
+}
 
 export async function POST(request: NextRequest) {
   let userId: string | null = null; // Store userId for use in catch block
@@ -21,6 +86,7 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       select: { 
         twitterAccessToken: true,
+        twitterRefreshToken: true,
         twitterOAuth1Token: true,
         twitterOAuth1TokenSecret: true,
       },
@@ -43,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { text, imageUrl: imageUrlFromBody } = body;
+    const { text, imageUrl: imageUrlFromBody, addHashtags: addHashtagsFromBody } = body;
     
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -109,8 +175,18 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Generate hashtags if requested
+    let finalText = text;
+    if (addHashtagsFromBody !== false) { // Default to true if not specified
+      const hashtags = generateHashtags(text, 3);
+      if (hashtags.length > 0) {
+        finalText = addHashtagsToTweet(text, hashtags);
+        console.log(`[Twitter Post Tweet] Added hashtags: ${hashtags.join(' ')}`);
+      }
+    }
+    
     // Post the tweet with or without image
-    console.log(`[Twitter Post Tweet] Posting tweet (${text.length} chars)${imageUrl ? ' with image' : ' without image'}`);
+    console.log(`[Twitter Post Tweet] Posting tweet (${finalText.length} chars)${imageUrl ? ' with image' : ' without image'}`);
     
     // CUSTODY CHAIN VERIFICATION: Store full tokens from database for comparison
     const tokenToPass = userWithToken.twitterOAuth1Token || undefined;
@@ -127,17 +203,95 @@ export async function POST(request: NextRequest) {
       console.log('[Twitter Post Tweet] 🔐 Token Secret (FULL being passed):', tokenSecretToPass || 'NULL');
     }
     
-    const result = await postTweet(
-      userWithToken.twitterAccessToken,
-      text,
-      undefined, // No reply
-      undefined, // mediaId is now handled internally by postTweet
-      consumerKey,
-      consumerSecret,
-      tokenToPass,
-      tokenSecretToPass,
-      imageUrl
-    );
+    // Try posting with retry logic for rate limits and auto-refresh for 401 errors
+    let accessToken = userWithToken.twitterAccessToken;
+    let result;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        result = await postTweet(
+          accessToken,
+          finalText,
+          undefined, // No reply
+          undefined, // mediaId is now handled internally by postTweet
+          consumerKey,
+          consumerSecret,
+          tokenToPass,
+          tokenSecretToPass,
+          imageUrl
+        );
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        // Check if it's a 401 error and we have a refresh token
+        if (error.status === 401 && error.code === 'OAUTH2_TOKEN_INVALID' && userWithToken.twitterRefreshToken) {
+          if (retryCount === 0) {
+            // First attempt failed with 401, try refreshing token
+            console.log('[Twitter Post Tweet] 🔄 Access token expired, refreshing...');
+            try {
+              accessToken = await refreshAndStoreToken(user.id);
+              retryCount++;
+              continue; // Retry with new token
+            } catch (refreshError: any) {
+              console.error('[Twitter Post Tweet] Failed to refresh token:', refreshError);
+              // If refresh fails, clear tokens and require reconnection
+              if (refreshError.code === 'REFRESH_TOKEN_INVALID') {
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: {
+                    twitterAccessToken: null,
+                    twitterRefreshToken: null,
+                    twitterOAuth1Token: null,
+                    twitterOAuth1TokenSecret: null,
+                  },
+                });
+                return NextResponse.json(
+                  {
+                    error: 'Your Twitter refresh token is invalid or expired. Please reconnect your Twitter account.',
+                    code: 'REFRESH_TOKEN_INVALID',
+                    requiresReconnection: true,
+                    solution: '1. Click "Connect Twitter Account" to reconnect\n2. Authorize the app again to get fresh tokens',
+                  },
+                  { status: 401 }
+                );
+              }
+              throw refreshError;
+            }
+          } else {
+            // Already tried refreshing, token refresh didn't help
+            throw error;
+          }
+        }
+        
+        // Check if it's a rate limit error (429) - retry with exponential backoff
+        if (error.status === 429 && error.code === 'RATE_LIMIT_EXCEEDED' && retryCount < maxRetries) {
+          const rateLimitReset = (error as any).rateLimitReset;
+          if (rateLimitReset) {
+            const resetTime = new Date(rateLimitReset * 1000);
+            const now = new Date();
+            const waitTime = Math.max(0, resetTime.getTime() - now.getTime());
+            
+            if (waitTime > 0 && waitTime < 15 * 60 * 1000) { // Only retry if wait time is less than 15 minutes
+              const waitSeconds = Math.ceil(waitTime / 1000);
+              console.log(`[Twitter Post Tweet] ⏳ Rate limit exceeded. Waiting ${waitSeconds} seconds before retry ${retryCount + 1}/${maxRetries}...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime + 1000)); // Add 1 second buffer
+              retryCount++;
+              continue;
+            }
+          }
+          // Rate limit wait time too long, throw error
+          throw error;
+        }
+        
+        // For other errors or max retries reached, throw
+        throw error;
+      }
+    }
+    
+    if (!result) {
+      throw new Error('Failed to post tweet after retries');
+    }
     
     console.log(`[Twitter Post Tweet] Successfully posted. Tweet ID: ${result.tweetId}`);
     
@@ -166,18 +320,20 @@ export async function POST(request: NextRequest) {
     console.error('[Twitter Post Tweet] Error:', error);
     
     // Check if it's an OAuth 2.0 token invalid/expired error (401 Unauthorized)
+    // This handles cases where refresh token is also invalid or missing
     const isOAuth2Invalid = error.code === 'OAUTH2_TOKEN_INVALID' || 
-                            error.status === 401 ||
-                            (error.message && error.message.includes('OAuth 2.0 authentication failed'));
+                            error.code === 'REFRESH_TOKEN_INVALID' ||
+                            (error.status === 401 && !error.code);
     
     if (isOAuth2Invalid && userId) {
       try {
         const user = await getOrCreateUser(userId);
-        console.log('[Twitter Post Tweet] OAuth 2.0 token invalid - clearing all Twitter tokens to force reconnection');
+        console.log('[Twitter Post Tweet] OAuth 2.0 token invalid and refresh failed - clearing all Twitter tokens to force reconnection');
         await prisma.user.update({
           where: { id: user.id },
           data: {
             twitterAccessToken: null,
+            twitterRefreshToken: null,
             twitterOAuth1Token: null,
             twitterOAuth1TokenSecret: null,
           },
@@ -190,7 +346,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Your Twitter access token is invalid or expired. Please reconnect your Twitter account.',
-          code: 'OAUTH2_TOKEN_INVALID',
+          code: error.code || 'OAUTH2_TOKEN_INVALID',
           requiresReconnection: true,
           solution: '1. Click "Connect Twitter Account" to reconnect\n2. Authorize the app again to get fresh tokens',
         },

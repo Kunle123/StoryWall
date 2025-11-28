@@ -4,11 +4,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, Twitter, Check, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
-import { formatTimelineAsTwitterThread, formatTweetsAsThreadString, copyThreadToClipboard } from "@/lib/utils/twitterThread";
+import { formatTimelineAsTwitterThread, formatTweetsAsThreadString, copyThreadToClipboard, generateHashtags, addHashtagsToTweet } from "@/lib/utils/twitterThread";
 import { TimelineEvent } from "./Timeline";
 import { TimelineTweetTemplate } from "./TimelineTweetTemplate";
 
@@ -36,6 +37,7 @@ export function TwitterThreadDialog({
   const [copied, setCopied] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [addHashtags, setAddHashtags] = useState(true); // Default checked
   
   const tweets = formatTimelineAsTwitterThread(
     timelineTitle,
@@ -115,14 +117,25 @@ export function TwitterThreadDialog({
     
     setIsPosting(true);
     try {
+      // Generate hashtags for first tweet if checkbox is checked
+      let tweetsToPost = tweets.map(t => ({ text: t.text }));
+      if (addHashtags && tweetsToPost.length > 0) {
+        const hashtags = generateHashtags(tweetsToPost[0].text, 3);
+        if (hashtags.length > 0) {
+          tweetsToPost[0].text = addHashtagsToTweet(tweetsToPost[0].text, hashtags);
+          console.log('[TwitterThreadDialog] Added hashtags to first tweet:', hashtags);
+        }
+      }
+      
       const response = await fetch('/api/twitter/post-thread', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          tweets: tweets.map(t => ({ text: t.text })),
+          tweets: tweetsToPost,
           imageUrl: timelineImageUrl || undefined, // Include image URL for first tweet
+          addHashtags: addHashtags,
         }),
       });
       
@@ -255,6 +268,23 @@ export function TwitterThreadDialog({
           )}
           
           <div className="space-y-2">
+            {/* Add hashtags checkbox */}
+            {isSignedIn && isConnected && (
+              <div className="flex items-center space-x-2 pb-2">
+                <Checkbox
+                  id="add-hashtags-thread"
+                  checked={addHashtags}
+                  onCheckedChange={(checked) => setAddHashtags(checked === true)}
+                />
+                <Label
+                  htmlFor="add-hashtags-thread"
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Add hashtags
+                </Label>
+              </div>
+            )}
+            
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Thread Preview</label>
               <div className="flex gap-2">

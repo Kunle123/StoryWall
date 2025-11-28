@@ -149,3 +149,128 @@ export async function copyThreadToClipboard(tweets: TwitterThreadTweet[]): Promi
   }
 }
 
+/**
+ * Generate up to 3 relevant hashtags from tweet text
+ * Extracts keywords and creates hashtags, ensuring they fit within character limit
+ */
+export function generateHashtags(text: string, maxHashtags: number = 3): string[] {
+  // Remove URLs and common words
+  const cleanText = text
+    .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+    .replace(/[^\w\s]/g, ' ') // Remove special characters
+    .toLowerCase();
+  
+  // Common stop words to exclude
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by',
+    'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'have', 'has', 'had', 'do', 'does',
+    'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this', 'that',
+    'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who',
+    'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most',
+    'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too',
+    'very', 'just', 'now', 'then', 'here', 'there', 'up', 'down', 'out', 'off', 'over', 'under',
+    'again', 'further', 'once', 'about', 'into', 'through', 'during', 'before', 'after', 'above',
+    'below', 'between', 'among', 'within', 'without', 'across', 'around', 'near', 'far', 'away'
+  ]);
+  
+  // Extract words (2+ characters) and count frequency
+  const words = cleanText
+    .split(/\s+/)
+    .filter(word => word.length >= 2 && !stopWords.has(word));
+  
+  // Count word frequency
+  const wordCounts = new Map<string, number>();
+  words.forEach(word => {
+    wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+  });
+  
+  // Sort by frequency and length (prefer longer, more frequent words)
+  const sortedWords = Array.from(wordCounts.entries())
+    .sort((a, b) => {
+      // First sort by frequency (descending)
+      if (b[1] !== a[1]) return b[1] - a[1];
+      // Then by length (descending) - longer words make better hashtags
+      return b[0].length - a[0].length;
+    })
+    .map(([word]) => word);
+  
+  // Generate hashtags (max 3, ensure they're unique and valid)
+  const hashtags: string[] = [];
+  const seen = new Set<string>();
+  
+  for (const word of sortedWords) {
+    if (hashtags.length >= maxHashtags) break;
+    
+    // Create hashtag: capitalize first letter of each word if multi-word, or use as-is
+    // Remove spaces and special characters, ensure it's valid
+    let hashtag = word
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join('');
+    
+    // Ensure hashtag is valid (alphanumeric, max 100 chars per Twitter rules)
+    if (hashtag.length > 0 && hashtag.length <= 100 && /^[a-zA-Z0-9]+$/.test(hashtag)) {
+      const fullHashtag = `#${hashtag}`;
+      if (!seen.has(fullHashtag.toLowerCase())) {
+        hashtags.push(fullHashtag);
+        seen.add(fullHashtag.toLowerCase());
+      }
+    }
+  }
+  
+  // If we don't have enough hashtags, try to create compound hashtags from common words
+  if (hashtags.length < maxHashtags && sortedWords.length > 0) {
+    // Try combining words for better hashtags
+    for (let i = 0; i < sortedWords.length && hashtags.length < maxHashtags; i++) {
+      const word = sortedWords[i];
+      if (word.length >= 4 && word.length <= 15) { // Good length for hashtags
+        const hashtag = `#${word.charAt(0).toUpperCase() + word.slice(1)}`;
+        if (!seen.has(hashtag.toLowerCase())) {
+          hashtags.push(hashtag);
+          seen.add(hashtag.toLowerCase());
+        }
+      }
+    }
+  }
+  
+  return hashtags.slice(0, maxHashtags);
+}
+
+/**
+ * Add hashtags to tweet text, ensuring it stays within 280 character limit
+ * Returns the text with hashtags appended
+ */
+export function addHashtagsToTweet(text: string, hashtags: string[]): string {
+  if (hashtags.length === 0) return text;
+  
+  const hashtagsText = ' ' + hashtags.join(' ');
+  const maxLength = 280;
+  
+  // If adding hashtags would exceed limit, truncate text to make room
+  if (text.length + hashtagsText.length > maxLength) {
+    const availableLength = maxLength - hashtagsText.length - 3; // -3 for ellipsis
+    if (availableLength > 0) {
+      text = text.substring(0, availableLength).trim() + '...';
+    } else {
+      // If hashtags themselves are too long, use fewer hashtags
+      let hashtagsToUse: string[] = [];
+      let hashtagsLength = 0;
+      for (const hashtag of hashtags) {
+        const testLength = hashtagsLength + hashtag.length + 1; // +1 for space
+        if (text.length + testLength <= maxLength) {
+          hashtagsToUse.push(hashtag);
+          hashtagsLength = testLength;
+        } else {
+          break;
+        }
+      }
+      if (hashtagsToUse.length > 0) {
+        return text + ' ' + hashtagsToUse.join(' ');
+      }
+      return text; // Can't fit any hashtags
+    }
+  }
+  
+  return text + hashtagsText;
+}
+

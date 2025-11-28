@@ -872,6 +872,59 @@ export async function exchangeCodeForToken(
 }
 
 /**
+ * Refresh OAuth 2.0 access token using refresh token
+ * Returns new access token, refresh token, and expiration time
+ */
+export async function refreshAccessToken(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string
+): Promise<{ access_token: string; refresh_token: string; expires_in: number }> {
+  console.log('[Twitter Refresh Token] Refreshing OAuth 2.0 access token...');
+  
+  const response = await fetch('https://api.twitter.com/2/oauth2/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+    },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMessage = 'Failed to refresh access token';
+    try {
+      const error = JSON.parse(errorText);
+      errorMessage = error.error_description || error.error || errorMessage;
+    } catch {
+      errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
+    }
+    
+    console.error('[Twitter Refresh Token] Refresh failed:', errorMessage);
+    
+    // If refresh token is invalid/expired, throw a specific error
+    if (response.status === 400 || response.status === 401) {
+      const authError = new Error('Refresh token is invalid or expired. Please reconnect your Twitter account.');
+      (authError as any).code = 'REFRESH_TOKEN_INVALID';
+      (authError as any).status = response.status;
+      throw authError;
+    }
+    
+    throw new Error(errorMessage);
+  }
+  
+  const tokenData = await response.json();
+  console.log('[Twitter Refresh Token] ✅ Successfully refreshed access token');
+  console.log('[Twitter Refresh Token] New token expires in:', tokenData.expires_in, 'seconds');
+  
+  return tokenData;
+}
+
+/**
  * OAuth 1.0a 3-legged flow functions
  */
 

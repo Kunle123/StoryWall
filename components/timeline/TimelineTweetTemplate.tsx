@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Copy, Share2, Loader2, Twitter, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
+import { generateHashtags, addHashtagsToTweet } from "@/lib/utils/twitterThread";
 
 interface TimelineTweetTemplateProps {
   title: string;
@@ -28,6 +30,7 @@ export const TimelineTweetTemplate = ({
   const [hasOAuth1, setHasOAuth1] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [addHashtags, setAddHashtags] = useState(true); // Default checked
 
   // Calculate tweet length with URL counting as 23 characters (Twitter's shortened URL length)
   // Twitter automatically shortens URLs to ~23 characters, but we must include the full URL
@@ -296,6 +299,16 @@ export const TimelineTweetTemplate = ({
     if (absoluteImageUrl && isSignedIn && isConnected) {
       setIsPosting(true);
       try {
+        // Generate hashtags if checkbox is checked
+        let finalTweetText = tweetText;
+        if (addHashtags) {
+          const hashtags = generateHashtags(tweetText, 3);
+          if (hashtags.length > 0) {
+            finalTweetText = addHashtagsToTweet(tweetText, hashtags);
+            console.log('[TimelineTweetTemplate] Added hashtags:', hashtags);
+          }
+        }
+        
         console.log('[TimelineTweetTemplate] Posting tweet with image:', absoluteImageUrl);
         const response = await fetch('/api/twitter/post-tweet', {
           method: 'POST',
@@ -303,8 +316,9 @@ export const TimelineTweetTemplate = ({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            text: tweetText,
+            text: finalTweetText,
             imageUrl: absoluteImageUrl,
+            addHashtags: addHashtags,
           }),
         });
 
@@ -504,6 +518,23 @@ export const TimelineTweetTemplate = ({
             <Twitter className="h-4 w-4" />
             Connect Twitter Account
           </Button>
+        )}
+        
+        {/* Add hashtags checkbox */}
+        {isSignedIn && isConnected && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="add-hashtags"
+              checked={addHashtags}
+              onCheckedChange={(checked) => setAddHashtags(checked === true)}
+            />
+            <Label
+              htmlFor="add-hashtags"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Add hashtags
+            </Label>
+          </div>
         )}
         
         <div className="flex gap-2">

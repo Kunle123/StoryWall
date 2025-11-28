@@ -168,10 +168,11 @@ export async function GET(request: NextRequest) {
       where: { id: user.id },
       data: {
         twitterAccessToken: tokenData.access_token,
-        // TODO: Add twitterRefreshToken field to schema and store refresh token
-        // twitterRefreshToken: tokenData.refresh_token,
+        twitterRefreshToken: tokenData.refresh_token,
       },
     });
+    
+    console.log('[Twitter Callback] ✅ Stored OAuth 2.0 access token and refresh token');
     
     // Always complete OAuth 1.0a flow after OAuth 2.0 to ensure tokens match consumer key/secret
     // This ensures fresh tokens that are guaranteed to work with the current app credentials
