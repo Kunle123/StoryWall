@@ -772,7 +772,16 @@ export async function uploadMediaOAuth1(
         hasAuthHeader: !!requestOptions.headers.Authorization,
         contentType: requestOptions.headers['Content-Type'],
         hasContentLength: !!requestOptions.headers['Content-Length'],
+        headerKeys: Object.keys(requestOptions.headers),
       });
+      
+      // CRITICAL: Verify Content-Length is NOT in headers
+      // form-data will add it automatically when piping, with the correct value
+      if ('Content-Length' in requestOptions.headers || 'content-length' in requestOptions.headers) {
+        console.error(`[APPEND Debug] ⚠️ ERROR: Content-Length found in headers! This will cause code 32. Headers:`, requestOptions.headers);
+      } else {
+        console.log(`[APPEND Debug] ✅ Content-Length NOT in headers - form-data will calculate it correctly`);
+      }
       
       const req = https.request(requestOptions, (res) => {
         const chunks: Buffer[] = [];
@@ -808,7 +817,14 @@ export async function uploadMediaOAuth1(
       // 2. Set the Content-Length header automatically
       // 3. Stream the data correctly
       // DO NOT set Content-Length manually - this causes off-by-one errors
+      
+      // Log before piping to verify setup
+      console.log(`[APPEND Debug] About to pipe form-data to request. Chunk size: ${chunk.length} bytes`);
+      
       formData.pipe(req);
+      
+      // Log after piping starts
+      console.log(`[APPEND Debug] Form-data piped to request. form-data will calculate Content-Length automatically.`);
       
       // form-data will automatically end the request when the stream finishes
       // No need to manually call req.end() - form-data handles it
