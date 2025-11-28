@@ -38,15 +38,24 @@ function getBaseUrl(): string {
     return 'https://www.storywall.com';
   }
   
-  // Development fallback
-  return 'http://localhost:3000';
+  // In development, require NEXT_PUBLIC_APP_URL to be set
+  throw new Error('NEXT_PUBLIC_APP_URL must be set in development environment');
 }
 
 // Mark this route as dynamic to prevent static generation
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const baseUrl = getBaseUrl();
+  let baseUrl: string;
+  try {
+    baseUrl = getBaseUrl();
+  } catch (error: any) {
+    console.error('[Twitter Callback] Failed to get base URL:', error);
+    return NextResponse.json(
+      { error: error.message || 'Configuration error: NEXT_PUBLIC_APP_URL must be set' },
+      { status: 500 }
+    );
+  }
   
   try {
     const { userId } = await auth();
@@ -126,16 +135,16 @@ export async function GET(request: NextRequest) {
     const clientId = process.env.TWITTER_CLIENT_ID;
     const clientSecret = process.env.TWITTER_CLIENT_SECRET;
     
-    // In production, require TWITTER_REDIRECT_URI to be set explicitly
-    // In development, allow fallback to localhost
+    // Require TWITTER_REDIRECT_URI to be set explicitly
     let redirectUri = process.env.TWITTER_REDIRECT_URI;
     if (!redirectUri) {
+      // In production, require TWITTER_REDIRECT_URI
       if (process.env.NODE_ENV === 'production') {
         return NextResponse.redirect(
           new URL('/?error=twitter_not_configured', baseUrl)
         );
       }
-      // Development fallback
+      // In development, construct from baseUrl (which comes from NEXT_PUBLIC_APP_URL)
       redirectUri = `${baseUrl}/api/twitter/callback`;
     }
     
@@ -241,11 +250,9 @@ export async function GET(request: NextRequest) {
     try {
       new URL(baseUrl); // Validate it's a proper URL
     } catch {
-      // If baseUrl is invalid, use default
-      finalBaseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://www.storywall.com' 
-        : 'http://localhost:3000';
-      console.warn('[Twitter Callback] Invalid baseUrl, using default:', finalBaseUrl);
+      // If baseUrl is invalid, use production default
+      finalBaseUrl = 'https://www.storywall.com';
+      console.warn('[Twitter Callback] Invalid baseUrl, using production default:', finalBaseUrl);
     }
     
     const redirectUrl = new URL(redirectPath, finalBaseUrl);
@@ -253,9 +260,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
     console.error('[Twitter Callback] Error:', error);
-    const baseUrl = getBaseUrl();
+    let errorBaseUrl: string;
+    try {
+      errorBaseUrl = getBaseUrl();
+      new URL(errorBaseUrl); // Validate it's a proper URL
+    } catch {
+      // If getBaseUrl fails or URL is invalid, use production default
+      errorBaseUrl = 'https://www.storywall.com';
+    }
     return NextResponse.redirect(
-      new URL(`/?error=twitter_auth_error&message=${encodeURIComponent(error.message)}`, baseUrl)
+      new URL(`/?error=twitter_auth_error&message=${encodeURIComponent(error.message)}`, errorBaseUrl)
     );
   }
 }

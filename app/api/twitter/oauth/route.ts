@@ -19,18 +19,25 @@ export async function GET(request: NextRequest) {
     
     const clientId = process.env.TWITTER_CLIENT_ID;
     
-    // In production, require TWITTER_REDIRECT_URI to be set explicitly
-    // In development, allow fallback to localhost
+    // Require TWITTER_REDIRECT_URI to be set explicitly
     let redirectUri = process.env.TWITTER_REDIRECT_URI;
     if (!redirectUri) {
+      // In production, require TWITTER_REDIRECT_URI
       if (process.env.NODE_ENV === 'production') {
         return NextResponse.json(
           { error: 'Twitter API not configured. Please add TWITTER_REDIRECT_URI to environment variables.' },
           { status: 500 }
         );
       }
-      // Development fallback
-      redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/twitter/callback`;
+      // In development, construct from NEXT_PUBLIC_APP_URL (required)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+      if (!appUrl) {
+        return NextResponse.json(
+          { error: 'NEXT_PUBLIC_APP_URL must be set in development. Please add it to your environment variables.' },
+          { status: 500 }
+        );
+      }
+      redirectUri = `${appUrl}/api/twitter/callback`;
     }
     
     if (!clientId) {
