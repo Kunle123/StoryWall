@@ -686,33 +686,18 @@ export async function uploadMediaOAuth1(
       tokenSecret
     );
     
-    // Build Authorization header manually (more explicit approach)
-    // All OAuth parameters must be included and sorted alphabetically
-    const oauthParams: Record<string, string> = {
-      oauth_consumer_key: consumerKey,
-      oauth_token: token,
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: appendTimestamp,
-      oauth_nonce: appendNonce,
-      oauth_version: '1.0',
-      oauth_signature: appendSignature,
-    };
-    
-    // Build Authorization header: OAuth + sorted, percent-encoded parameters
-    // CRITICAL: Authorization header contains ONLY OAuth parameters (not form fields)
-    // CRITICAL: Signature value should NOT be percent-encoded (it's already base64)
-    // CRITICAL: All other values should be percent-encoded
-    const sortedKeys = Object.keys(oauthParams).sort();
-    const authHeader = 'OAuth ' + sortedKeys
-      .map(key => {
-        const encodedKey = percentEncode(key);
-        // Signature is already base64 encoded - don't percent-encode it again
-        const encodedValue = key === 'oauth_signature' 
-          ? oauthParams[key] 
-          : percentEncode(oauthParams[key]);
-        return `${encodedKey}="${encodedValue}"`;
-      })
-      .join(', ');
+    // Use createOAuth1Header to ensure signature is percent-encoded for media upload endpoints
+    // This is a Twitter quirk - signature must be percent-encoded for /media/upload endpoints
+    const authHeader = createOAuth1Header(
+      consumerKey,
+      token,
+      appendSignature,
+      appendTimestamp,
+      appendNonce,
+      false, // No callback for APPEND
+      undefined, // No callback URL
+      uploadUrl // Pass URL to detect media upload endpoint
+    );
     
     // Use form-data package for Node.js multipart/form-data (more reliable than native FormData)
     // This ensures proper multipart encoding that Twitter expects
@@ -729,12 +714,10 @@ export async function uploadMediaOAuth1(
     
     // Log signature details for debugging
     console.log(`[APPEND Debug] Form field params:`, JSON.stringify(appendParams));
-    console.log(`[APPEND Debug] All params for signature:`, JSON.stringify({ ...oauthParams, ...appendParams }, null, 2));
     console.log(`[APPEND Debug] Signature:`, appendSignature);
     console.log(`[APPEND Debug] Auth header:`, authHeader);
     console.log(`[APPEND Debug] Segment ${segmentIndex}, media_id: ${mediaId}`);
     console.log(`[APPEND Debug] Chunk size: ${chunk.length} bytes`);
-    console.log(`[APPEND Debug] FormData keys:`, Array.from(formData.keys()));
     
     // form-data package sets Content-Type with boundary automatically
     // IMPORTANT: Do NOT manually set Content-Type - form-data will set it with the correct boundary
