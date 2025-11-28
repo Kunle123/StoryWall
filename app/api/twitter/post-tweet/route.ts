@@ -265,28 +265,37 @@ export async function POST(request: NextRequest) {
         }
         
         // Check if it's a rate limit error (429) - retry only if wait time is reasonable
-        if (error.status === 429 && error.code === 'RATE_LIMIT_EXCEEDED' && retryCount < maxRetries) {
+        if (error.status === 429 && error.code === 'RATE_LIMIT_EXCEEDED') {
           const rateLimitReset = (error as any).rateLimitReset;
           if (rateLimitReset) {
             const resetTime = new Date(rateLimitReset * 1000);
             const now = new Date();
             const waitTime = Math.max(0, resetTime.getTime() - now.getTime());
+            const waitSeconds = Math.ceil(waitTime / 1000);
             
             // Only retry if wait time is less than 2 minutes (120 seconds) - reasonable for user to wait
             const MAX_WAIT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
-            if (waitTime > 0 && waitTime < MAX_WAIT_TIME) {
-              const waitSeconds = Math.ceil(waitTime / 1000);
+            if (waitTime > 0 && waitTime < MAX_WAIT_TIME && retryCount < maxRetries) {
               console.log(`[Twitter Post Tweet] ⏳ Rate limit exceeded. Waiting ${waitSeconds} seconds before retry ${retryCount + 1}/${maxRetries}...`);
               await new Promise(resolve => setTimeout(resolve, waitTime + 1000)); // Add 1 second buffer
               retryCount++;
               continue;
             } else {
-              // Wait time is too long (more than 2 minutes), return error immediately
-              console.log(`[Twitter Post Tweet] ⏳ Rate limit wait time too long (${Math.ceil(waitTime / 1000)}s), returning error immediately`);
-              throw error;
+              // Wait time is too long (more than 2 minutes) or max retries reached, return error immediately
+              const minutesUntilReset = Math.ceil(waitSeconds / 60);
+              console.log(`[Twitter Post Tweet] ⏳ Rate limit wait time too long (${waitSeconds}s / ${minutesUntilReset}min), returning error immediately`);
+              // Create a more user-friendly error message
+              const rateLimitError = new Error(
+                `Twitter API rate limit exceeded. Rate limit resets in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}. Please try again later.`
+              );
+              (rateLimitError as any).code = 'RATE_LIMIT_EXCEEDED';
+              (rateLimitError as any).status = 429;
+              (rateLimitError as any).rateLimitReset = rateLimitReset;
+              (rateLimitError as any).rateLimitResetTime = resetTime.toISOString();
+              throw rateLimitError;
             }
           }
-          // Rate limit wait time too long, throw error
+          // No reset time available, throw error immediately
           throw error;
         }
         
