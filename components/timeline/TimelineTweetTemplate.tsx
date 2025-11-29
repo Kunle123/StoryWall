@@ -361,9 +361,15 @@ export const TimelineTweetTemplate = ({
               : ' Please try again later.';
             
             const isFreeTier = error.isFreeTier || false;
-            const freeTierNote = isFreeTier 
-              ? ' Twitter FREE tier has strict limits (~50-150 requests/15min). Consider upgrading to Basic/Pro tier for higher limits.'
-              : '';
+            const headersMisleading = error.headersMisleading || false;
+            let freeTierNote = '';
+            if (isFreeTier) {
+              freeTierNote = ' Twitter FREE tier has strict limits (~50-150 requests/15min per user).';
+              if (headersMisleading) {
+                freeTierNote += ' Rate limit headers may be misleading - actual limit is much lower.';
+              }
+              freeTierNote += ' Rate limits are shared across ALL apps using your account. Check https://twitter.com/settings/apps and revoke unused apps. Consider upgrading to Basic/Pro tier for higher limits.';
+            }
             
             toast({
               title: "Rate Limit Exceeded",
@@ -440,11 +446,22 @@ export const TimelineTweetTemplate = ({
             ? ` Please try again in ${minutesUntilReset} minute${minutesUntilReset !== 1 ? 's' : ''}.`
             : ' Please try again later.';
           
+          const isFreeTier = errorData.isFreeTier || false;
+          const headersMisleading = errorData.headersMisleading || false;
+          let freeTierNote = '';
+          if (isFreeTier) {
+            freeTierNote = ' Twitter FREE tier has strict limits (~50-150 requests/15min per user).';
+            if (headersMisleading) {
+              freeTierNote += ' Rate limit headers may be misleading - actual limit is much lower.';
+            }
+            freeTierNote += ' Rate limits are shared across ALL apps using your account. Check https://twitter.com/settings/apps and revoke unused apps.';
+          }
+          
           toast({
             title: "Rate Limit Exceeded",
-            description: errorMessage || `Twitter API rate limit exceeded.${resetMessage}`,
+            description: `${errorMessage || 'Twitter API rate limit exceeded.'}${resetMessage}${freeTierNote}`,
             variant: "destructive",
-            duration: 10000, // Show for 10 seconds
+            duration: 15000, // Show for 15 seconds (longer for free tier message)
           });
           return;
         }

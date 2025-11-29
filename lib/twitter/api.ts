@@ -704,6 +704,24 @@ export async function postTweet(
   console.log(`[Twitter Post Tweet] 📊   Limit: ${rateLimitLimit || 'not provided'}`);
   console.log(`[Twitter Post Tweet] 📊   Remaining: ${rateLimitRemaining || 'not provided'}`);
   console.log(`[Twitter Post Tweet] 📊   Reset: ${rateLimitReset || 'not provided'}`);
+  
+  // WARNING: These headers might be misleading for free tier
+  // Twitter free tier has per-user limits that may not be accurately reflected in headers
+  // POST /2/tweets free tier limit is ~50-150 per 15 min, but headers often show much higher values
+  const limitValue = rateLimitLimit ? parseInt(rateLimitLimit, 10) : 0;
+  if (limitValue > 100000) {
+    console.error(`[Twitter Post Tweet] 🚨🚨🚨 CRITICAL: MISLEADING RATE LIMIT HEADERS 🚨🚨🚨`);
+    console.error(`[Twitter Post Tweet] 🚨 Header shows limit: ${rateLimitLimit} (THIS IS WRONG!)`);
+    console.error(`[Twitter Post Tweet] 🚨 These headers are NOT from POST /2/tweets endpoint`);
+    console.error(`[Twitter Post Tweet] 🚨 POST /2/tweets FREE tier actual limit: ~50-150 requests per 15 minutes per user`);
+    console.error(`[Twitter Post Tweet] 🚨 The actual limit is MUCH lower than what headers suggest`);
+    console.error(`[Twitter Post Tweet] 🚨 DO NOT TRUST these headers - they are misleading`);
+    console.error(`[Twitter Post Tweet] 🚨🚨🚨 END CRITICAL WARNING 🚨🚨🚨`);
+  } else if (limitValue > 0 && limitValue < 200) {
+    // This looks like a realistic limit for POST /2/tweets
+    console.log(`[Twitter Post Tweet] 📊 Rate limit headers appear accurate for POST /2/tweets`);
+  }
+  
   if (rateLimitReset) {
     const resetTime = new Date(parseInt(rateLimitReset, 10) * 1000);
     const now = new Date();
@@ -766,21 +784,37 @@ export async function postTweet(
     // Include rate limit info in error for 429 status
     if (response.status === 429) {
       console.warn(`[Twitter Post Tweet] ⚠️  RATE LIMIT HIT - POST /2/tweets endpoint`);
-      console.warn(`[Twitter Post Tweet] ⚠️  Rate limit: ${rateLimitLimit || 'unknown'}, Remaining: ${rateLimitRemaining || 'unknown'}`);
+      console.warn(`[Twitter Post Tweet] ⚠️  Rate limit headers: Limit=${rateLimitLimit || 'unknown'}, Remaining=${rateLimitRemaining || 'unknown'}`);
+      
+      // Check if headers are misleading (very high limit suggests wrong endpoint)
+      const limitValue = rateLimitLimit ? parseInt(rateLimitLimit, 10) : 0;
+      const isMisleadingHeaders = limitValue > 100000;
+      if (isMisleadingHeaders) {
+        console.error(`[Twitter Post Tweet] 🚨🚨🚨 CRITICAL: MISLEADING RATE LIMIT HEADERS 🚨🚨🚨`);
+        console.error(`[Twitter Post Tweet] 🚨 Header shows limit: ${rateLimitLimit} (THIS IS WRONG!)`);
+        console.error(`[Twitter Post Tweet] 🚨 These headers are NOT from POST /2/tweets endpoint`);
+        console.error(`[Twitter Post Tweet] 🚨 POST /2/tweets FREE tier actual limit: ~50-150 per 15 min per user`);
+        console.error(`[Twitter Post Tweet] 🚨 The actual limit is MUCH lower than what headers suggest`);
+        console.error(`[Twitter Post Tweet] 🚨 DO NOT TRUST these headers - they are misleading`);
+        console.error(`[Twitter Post Tweet] 🚨🚨🚨 END CRITICAL WARNING 🚨🚨🚨`);
+      }
+      
       console.warn(`[Twitter Post Tweet] ⚠️  NOTE: Twitter FREE tier has very strict rate limits`);
       console.warn(`[Twitter Post Tweet] ⚠️  POST /2/tweets free tier limit: ~50-150 requests per 15 minutes per user`);
       console.warn(`[Twitter Post Tweet] ⚠️  This is much lower than paid tiers (300+ requests per 15 min)`);
       console.warn(`[Twitter Post Tweet] ⚠️  Rate limits include failed attempts and are per-user (not per-app)`);
-      console.warn(`[Twitter Post Tweet] ⚠️  If you're on free tier and hitting limits frequently:`);
-      console.warn(`[Twitter Post Tweet] ⚠️  1. Consider upgrading to Basic/Pro tier in Twitter Developer Portal`);
-      console.warn(`[Twitter Post Tweet] ⚠️  2. Check for other apps/services using your Twitter account`);
-      console.warn(`[Twitter Post Tweet] ⚠️  3. Wait 15 minutes between posting attempts`);
-      console.warn(`[Twitter Post Tweet] ⚠️  4. Avoid multiple failed attempts (they count toward limit)`);
+      console.warn(`[Twitter Post Tweet] ⚠️  Rate limits are SHARED across ALL apps using your Twitter account`);
+      console.warn(`[Twitter Post Tweet] ⚠️  If you're hitting limits after waiting 30+ minutes:`);
+      console.warn(`[Twitter Post Tweet] ⚠️  1. Check https://twitter.com/settings/apps for other connected apps`);
+      console.warn(`[Twitter Post Tweet] ⚠️  2. Revoke access for unused apps (they share your rate limit)`);
+      console.warn(`[Twitter Post Tweet] ⚠️  3. Rate limits may use rolling windows (not fixed 15-min blocks)`);
+      console.warn(`[Twitter Post Tweet] ⚠️  4. Consider upgrading to Basic/Pro tier for higher limits`);
       
       const rateLimitError = new Error(errorMessage);
       (rateLimitError as any).code = 'RATE_LIMIT_EXCEEDED';
       (rateLimitError as any).status = 429;
       (rateLimitError as any).isFreeTier = true; // Flag for frontend to show upgrade message
+      (rateLimitError as any).headersMisleading = isMisleadingHeaders; // Flag if headers are wrong
       if (rateLimitReset) {
         (rateLimitError as any).rateLimitReset = parseInt(rateLimitReset, 10);
         (rateLimitError as any).rateLimitResetTime = new Date(parseInt(rateLimitReset, 10) * 1000).toISOString();
