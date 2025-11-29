@@ -343,12 +343,26 @@ export const GenerateImagesStep = ({
                     );
                     
                     // If timeline exists, save image to database immediately
+                    // CRITICAL: Save each image as it arrives to prevent data loss
                     if (timelineId && event.id) {
                       updateEvent(event.id, { 
                         image_url: data.imageUrl,
                         image_prompt: data.prompt || undefined, // Save the prompt used
+                      }).then(() => {
+                        console.log(`[GenerateImages] ✅ Saved image to database for event ${event.id} (streaming)`);
                       }).catch(error => {
-                        console.error(`[GenerateImages] Failed to save image for event ${event.id}:`, error);
+                        console.error(`[GenerateImages] ❌ Failed to save image for event ${event.id} (streaming):`, error);
+                        // Retry once after a short delay
+                        setTimeout(() => {
+                          updateEvent(event.id, { 
+                            image_url: data.imageUrl,
+                            image_prompt: data.prompt || undefined,
+                          }).then(() => {
+                            console.log(`[GenerateImages] ✅ Retry successful: Saved image for event ${event.id}`);
+                          }).catch(retryError => {
+                            console.error(`[GenerateImages] ❌ Retry failed: Could not save image for event ${event.id}:`, retryError);
+                          });
+                        }, 1000);
                       });
                     }
                     
@@ -379,8 +393,9 @@ export const GenerateImagesStep = ({
                   });
                   
                   // If timeline exists, save images to database immediately
+                  // CRITICAL: Use Promise.all instead of forEach to ensure all saves complete
                   if (timelineId) {
-                    updatedEvents.forEach(async (e) => {
+                    const savePromises = updatedEvents.map(async (e) => {
                       const selectedIndex = eventIdToIndex.get(e.id);
                       if (selectedIndex !== undefined && data.images[selectedIndex] && e.id) {
                         try {
@@ -388,11 +403,26 @@ export const GenerateImagesStep = ({
                             image_url: data.images[selectedIndex],
                             image_prompt: data.prompts?.[selectedIndex] || undefined, // Save the prompt used
                           });
-                          console.log(`[GenerateImages] Saved image to database for event ${e.id}`);
-                        } catch (error) {
-                          console.error(`[GenerateImages] Failed to save image for event ${e.id}:`, error);
+                          console.log(`[GenerateImages] ✅ Saved image to database for event ${e.id}`);
+                          return { success: true, eventId: e.id };
+                        } catch (error: any) {
+                          console.error(`[GenerateImages] ❌ Failed to save image for event ${e.id}:`, error);
+                          return { success: false, eventId: e.id, error: error.message };
                         }
                       }
+                      return null;
+                    }).filter(p => p !== null);
+                    
+                    // Wait for all saves to complete (but don't block the UI update)
+                    Promise.all(savePromises).then(results => {
+                      const successful = results.filter(r => r && r.success).length;
+                      const failed = results.filter(r => r && !r.success).length;
+                      console.log(`[GenerateImages] Database save complete: ${successful} saved, ${failed} failed`);
+                      if (failed > 0) {
+                        console.error(`[GenerateImages] ⚠️ ${failed} images failed to save to database. Check logs above for details.`);
+                      }
+                    }).catch(error => {
+                      console.error(`[GenerateImages] ❌ Error waiting for database saves:`, error);
                     });
                   }
                   
@@ -1062,4 +1092,5 @@ export const GenerateImagesStep = ({
     </div>
   );
 };
+
 
