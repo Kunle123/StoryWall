@@ -2,6 +2,7 @@ import './globals.css';
 import type { ReactNode } from 'react';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from '@/components/theme-provider';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 export const metadata = {
   title: 'Timeline - Interactive Timeline Platform',
@@ -12,6 +13,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
   return (
     <ClerkProvider
       // Suppress development key warnings in development
@@ -27,6 +30,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           >
             {children}
           </ThemeProvider>
+          {gaMeasurementId && (
+            <GoogleAnalytics gaId={gaMeasurementId} />
+          )}
         </body>
       </html>
     </ClerkProvider>
