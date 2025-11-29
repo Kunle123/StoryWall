@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit } from "lucide-react";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchTimelines, deleteTimeline, updateTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,11 +48,38 @@ const Profile = () => {
   const [updatingTimelineId, setUpdatingTimelineId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [timelineToDelete, setTimelineToDelete] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    async function checkAdminStatus() {
+      if (!isSignedIn || !user) {
+        setCheckingAdmin(false);
+        return;
+      }
+
+      try {
+        const email = user.emailAddresses[0]?.emailAddress;
+        if (email) {
+          const response = await fetch(`/api/admin/check-access?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+          setIsAdmin(data.isAdmin || false);
+        }
+      } catch (error) {
+        console.error('Failed to check admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    }
+
+    checkAdminStatus();
+  }, [isSignedIn, user]);
 
   useEffect(() => {
     async function loadUserTimelines() {
@@ -162,6 +189,17 @@ const Profile = () => {
               >
                 <Plus className="w-4 h-4" />
               </Button>
+              {!checkingAdmin && isAdmin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push("/admin")}
+                  title="Admin Portal"
+                  className="border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950"
+                >
+                  <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -212,6 +250,12 @@ const Profile = () => {
             <Badge variant="secondary">Timeline Creator</Badge>
             {userTimelines.length > 0 && (
               <Badge variant="secondary">{userTimelines.length} Timeline{userTimelines.length !== 1 ? 's' : ''}</Badge>
+            )}
+            {!checkingAdmin && isAdmin && (
+              <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-800">
+                <Shield className="w-3 h-3 mr-1" />
+                Admin
+              </Badge>
             )}
           </div>
         </Card>
