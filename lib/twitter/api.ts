@@ -781,6 +781,22 @@ export async function postTweet(
       throw authError;
     }
     
+    // Check for 403 Forbidden - could indicate no Project access to v2 endpoints
+    if (response.status === 403) {
+      console.error(`[Twitter Post Tweet] 🚨 403 FORBIDDEN - POST /2/tweets endpoint`);
+      console.error(`[Twitter Post Tweet] 🚨 This could mean:`);
+      console.error(`[Twitter Post Tweet] 🚨 1. Your app doesn't have a Project (required for v2 endpoints)`);
+      console.error(`[Twitter Post Tweet] 🚨 2. Apps without Projects are limited to v1.1 endpoints only`);
+      console.error(`[Twitter Post Tweet] 🚨 3. Check Twitter Developer Portal to ensure you have a Project`);
+      console.error(`[Twitter Post Tweet] 🚨 4. v1.1 access is for a restricted set of endpoints - /2/tweets is NOT included`);
+      
+      const forbiddenError = new Error('Twitter API v2 endpoint access denied (403): Your app may not have a Project. Apps without Projects are limited to v1.1 endpoints only. Please create a Project in Twitter Developer Portal to access v2 endpoints like /2/tweets.');
+      (forbiddenError as any).code = 'V2_ENDPOINT_ACCESS_DENIED';
+      (forbiddenError as any).status = 403;
+      (forbiddenError as any).requiresProject = true;
+      throw forbiddenError;
+    }
+    
     // Include rate limit info in error for 429 status
     if (response.status === 429) {
       console.warn(`[Twitter Post Tweet] ⚠️  RATE LIMIT HIT - POST /2/tweets endpoint`);

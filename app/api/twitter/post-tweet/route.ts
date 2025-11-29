@@ -433,6 +433,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Check if it's a v2 endpoint access denied error (403 - no Project)
+    const isV2AccessDenied = error.code === 'V2_ENDPOINT_ACCESS_DENIED' || error.status === 403;
+    if (isV2AccessDenied) {
+      return NextResponse.json(
+        { 
+          error: error.message || 'Twitter API v2 endpoint access denied. Your app may not have a Project.',
+          code: 'V2_ENDPOINT_ACCESS_DENIED',
+          requiresProject: true,
+          solution: '1. Go to Twitter Developer Portal\n2. Create a Project (if you don\'t have one)\n3. Apps without Projects are limited to v1.1 endpoints only\n4. v1.1 access is for a restricted set of endpoints - /2/tweets requires a Project',
+          note: 'According to Twitter API: "v1.1 access for a restricted set of existing endpoints that connect to the X API. Apps without Projects are limited to this level."',
+        },
+        { status: 403 }
+      );
+    }
+    
     // Check if it's a rate limit error
     const isRateLimit = errorMessage.includes('rate limit') || errorMessage.includes('Too Many Requests') || error.code === 'RATE_LIMIT_EXCEEDED';
     const statusCode = isRateLimit ? 429 : 500;

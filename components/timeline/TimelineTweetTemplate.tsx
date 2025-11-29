@@ -381,13 +381,27 @@ export const TimelineTweetTemplate = ({
           }
           
           // Handle 403 Forbidden specifically
-          if (response.status === 403 || error.code === 'TWITTER_MEDIA_UPLOAD_FORBIDDEN') {
-            toast({
-              title: "Twitter Permission Error",
-              description: error.details || "Your Twitter account needs media upload permissions. Please disconnect and reconnect your Twitter account to grant the 'media.write' scope.",
-              variant: "destructive",
-            });
-            setIsConnected(false); // Mark as disconnected so user can reconnect
+          if (response.status === 403 || error.code === 'TWITTER_MEDIA_UPLOAD_FORBIDDEN' || error.code === 'V2_ENDPOINT_ACCESS_DENIED') {
+            let description = error.details || error.error || "Twitter API access denied.";
+            
+            // Special handling for v2 endpoint access denied (no Project)
+            if (error.code === 'V2_ENDPOINT_ACCESS_DENIED' || error.requiresProject) {
+              description = error.solution || error.note || "Your app may not have a Project. Apps without Projects are limited to v1.1 endpoints only. Please create a Project in Twitter Developer Portal to access v2 endpoints like /2/tweets.";
+              toast({
+                title: "Twitter API v2 Access Denied",
+                description: description,
+                variant: "destructive",
+                duration: 20000, // Show longer for this important message
+              });
+            } else {
+              description = error.details || "Your Twitter account needs media upload permissions. Please disconnect and reconnect your Twitter account to grant the 'media.write' scope.";
+              toast({
+                title: "Twitter Permission Error",
+                description: description,
+                variant: "destructive",
+              });
+              setIsConnected(false); // Mark as disconnected so user can reconnect
+            }
             return;
           }
           
