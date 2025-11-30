@@ -456,7 +456,7 @@ export const ExperimentalBottomMenuBar = ({
                           className="w-full justify-start gap-2"
                           onClick={() => {
                             setShowShareMenu(false);
-                            const timelineId = window.location.pathname.split('/')[2];
+                            const timelineId = pathname?.split('/')[2];
                             if (timelineId) {
                               router.push(`/timeline/${timelineId}/share/tiktok`);
                             }

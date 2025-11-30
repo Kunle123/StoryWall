@@ -346,13 +346,10 @@ export default function TikTokSharePage() {
           {/* Preview Section */}
           {eventsWithImages.length > 0 && !isGenerating && (
             <Card className="p-6">
-              <Label className="text-base mb-4 block">TikTok Slideshow Preview</Label>
-              <div className="border rounded-lg p-2 bg-muted/30">
-                <TikTokSlideshowPreview
-                  events={eventsWithImages}
-                  title={timeline.title}
-                />
-              </div>
+              <TikTokSlideshowPreview
+                events={eventsWithImages}
+                title={timeline.title}
+              />
             </Card>
           )}
 
@@ -393,41 +390,20 @@ export default function TikTokSharePage() {
           {!videoUrl && !zipUrl && (
             <Card className="p-6">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                {mode === 'video' && (
                   <div className="space-y-2">
-                    <Label>Aspect Ratio</Label>
-                    <Select
-                      value={options.aspectRatio}
-                      onValueChange={(value: '9:16' | '16:9' | '1:1') =>
-                        setOptions({ ...options, aspectRatio: value })
+                    <Label>Duration per Slide: {options.durationPerSlide}s</Label>
+                    <Slider
+                      value={[options.durationPerSlide]}
+                      onValueChange={([value]) =>
+                        setOptions({ ...options, durationPerSlide: value })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="9:16">9:16 (Vertical)</SelectItem>
-                        <SelectItem value="16:9">16:9 (Horizontal)</SelectItem>
-                        <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      min={2}
+                      max={5}
+                      step={0.5}
+                    />
                   </div>
-
-                  {mode === 'video' && (
-                    <div className="space-y-2">
-                      <Label>Duration per Slide: {options.durationPerSlide}s</Label>
-                      <Slider
-                        value={[options.durationPerSlide]}
-                        onValueChange={([value]) =>
-                          setOptions({ ...options, durationPerSlide: value })
-                        }
-                        min={2}
-                        max={5}
-                        step={0.5}
-                      />
-                    </div>
-                  )}
-                </div>
+                )}
 
                 {mode === 'video' && (
                   <div className="space-y-2">
@@ -626,38 +602,6 @@ export default function TikTokSharePage() {
             </Card>
           )}
 
-          {/* Generate Button */}
-          {!videoUrl && !zipUrl && (
-            <Card className="p-6">
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating || eventsWithImages.length === 0}
-                className="w-full gap-2"
-                size="lg"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    {mode === 'native' ? (
-                      <>
-                        <ImageIcon className="w-4 h-4" />
-                        Generate Images
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4" />
-                        Generate Video
-                      </>
-                    )}
-                  </>
-                )}
-              </Button>
-            </Card>
-          )}
 
           {/* Regenerate Button */}
           {(videoUrl || zipUrl) && !isGenerating && (

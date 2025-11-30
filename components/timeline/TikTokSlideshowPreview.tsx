@@ -5,6 +5,7 @@ import { TimelineEvent } from "./Timeline";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { formatEventDate } from "@/lib/utils/dateFormat";
 
 interface TikTokSlideshowPreviewProps {
@@ -45,10 +46,15 @@ export const TikTokSlideshowPreview = ({ events, title }: TikTokSlideshowPreview
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[600px] bg-background p-4">
-      <Card className="relative w-full max-w-[380px] bg-card overflow-hidden shadow-2xl">
-        {/* TikTok 9:16 aspect ratio container */}
-        <div className="relative" style={{ aspectRatio: "9/16" }}>
+    <div className="w-full">
+      {/* Preview label */}
+      <div className="mb-4">
+        <Label className="text-base font-semibold text-foreground">Preview</Label>
+      </div>
+      <div className="flex items-center justify-center min-h-[600px] bg-background p-4 w-full">
+        <Card className="relative w-full max-w-[380px] mx-auto bg-card overflow-hidden shadow-2xl">
+          {/* TikTok 9:16 aspect ratio container */}
+          <div className="relative" style={{ aspectRatio: "9/16" }}>
           {/* Main content area */}
           <div className="absolute inset-0 flex flex-col">
             {/* Header with timeline title */}
@@ -179,7 +185,8 @@ export const TikTokSlideshowPreview = ({ events, title }: TikTokSlideshowPreview
             </div>
           </div>
         </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };
