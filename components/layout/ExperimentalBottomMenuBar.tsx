@@ -450,22 +450,6 @@ export const ExperimentalBottomMenuBar = ({
                           Share on X/Twitter
                         </Button>
                       )}
-                      {onShareTwitterThread && (
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start gap-2"
-                          onClick={() => {
-                            setShowShareMenu(false);
-                            const timelineId = window.location.pathname.split('/')[2];
-                            if (timelineId) {
-                              router.push(`/timeline/${timelineId}/share/twitter`);
-                            }
-                          }}
-                        >
-                          <Twitter className="h-4 w-4" />
-                          Twitter Thread
-                        </Button>
-                      )}
                       {onShareTikTokSlideshow && (
                         <Button
                           variant="ghost"

@@ -11,6 +11,9 @@ import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { fetchEventLikeStatus, likeEvent, unlikeEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { EditEventDialog } from "./EditEventDialog";
+import { ShareMenu } from "@/components/sharing/ShareMenu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TimelineTweetTemplate } from "./TimelineTweetTemplate";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -36,6 +39,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
   const [userLiked, setUserLiked] = useState(false);
   const [liking, setLiking] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showTwitterDialog, setShowTwitterDialog] = useState(false);
   
   useEffect(() => {
     async function fetchStats() {
@@ -251,18 +255,29 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
               <Bookmark className="w-4 h-4" />
             </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 hover:bg-muted gap-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Handle share action
+          <ShareMenu
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 hover:bg-muted gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <Share2 className="w-4 h-4" />
+                {!loadingStats && <span className="text-xs text-muted-foreground">{stats.shares}</span>}
+              </Button>
+            }
+            url={timelineId ? (typeof window !== 'undefined' ? `${window.location.origin}/timeline/${timelineId}` : '') : undefined}
+            title={timeline?.title}
+            showTwitter={!!(timeline?.title && timelineId)}
+            onTwitterShare={() => {
+              setShowTwitterDialog(true);
             }}
-          >
-            <Share2 className="w-4 h-4" />
-            {!loadingStats && <span className="text-xs text-muted-foreground">{stats.shares}</span>}
-          </Button>
+            align="end"
+            side="top"
+          />
         </div>
       </div>
       {isEditable && showEditDialog && (
@@ -279,6 +294,28 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             setShowEditDialog(false);
           }}
         />
+      )}
+      
+      {/* Twitter Share Dialog */}
+      {timeline?.title && timelineId && (
+        <Dialog open={showTwitterDialog} onOpenChange={setShowTwitterDialog}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share on X/Twitter</DialogTitle>
+              <DialogDescription>
+                Share this timeline on X/Twitter with description and image
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <TimelineTweetTemplate
+                title={timeline.title}
+                description={timeline.description || `Explore this timeline: ${timeline.title}`}
+                imageUrl={event.image || ''}
+                timelineUrl={typeof window !== 'undefined' ? `${window.location.origin}/timeline/${timelineId}` : ''}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </Card>
   );

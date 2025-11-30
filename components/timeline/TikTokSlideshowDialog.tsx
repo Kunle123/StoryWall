@@ -15,7 +15,6 @@ import { SlideshowOptions, generateNarrationScript, generateEventNarrationScript
 import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
 import JSZip from "jszip";
 import { TikTokSlideshowPreview } from "./TikTokSlideshowPreview";
-import { TimelineTweetTemplate } from "./TimelineTweetTemplate";
 
 interface TikTokSlideshowDialogProps {
   open: boolean;
@@ -502,19 +501,6 @@ export function TikTokSlideshowDialog({
         </DialogHeader>
         
         <div className="space-y-6 py-4">
-          {/* Twitter Tweet Template Preview */}
-          {eventsWithImages.length > 0 && eventsWithImages[0]?.image && !isGenerating && (
-            <div className="space-y-2">
-              <Label>Share on X/Twitter</Label>
-              <TimelineTweetTemplate
-                title={timelineTitle}
-                description={timelineDescription || `Explore this timeline: ${timelineTitle}`}
-                imageUrl={eventsWithImages[0].image || ''}
-                timelineUrl={timelineUrl || (typeof window !== 'undefined' ? `${window.location.origin}/timeline/${timelineId || ''}` : '')}
-              />
-            </div>
-          )}
-
           {/* Preview Section - Show preview of slideshow design */}
           {eventsWithImages.length > 0 && !isGenerating && (
             <div className="space-y-2">
