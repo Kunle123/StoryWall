@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, TrendingUp, Clock, Share2, Eye } from "lucide-react";
+import { Search, TrendingUp, Clock, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines } from "@/lib/api/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
+import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
 
 interface TimelineDisplay {
   id: string;
@@ -32,7 +31,6 @@ const Discover = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const router = useRouter();
-  const { toast } = useToast();
   const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
@@ -126,45 +124,6 @@ const Discover = () => {
     return `${Math.floor(seconds / 2592000)}mo ago`;
   }
 
-  const handleShare = async (timelineId: string, title: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent navigating to timeline
-    const url = `${window.location.origin}/timeline/${timelineId}`;
-    
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `Check out "${title}" on StoryWall`,
-          text: `Check out this timeline: ${title}`,
-          url: url,
-        });
-      } else {
-        // Fallback: Copy to clipboard
-        await navigator.clipboard.writeText(url);
-        toast({
-          title: "Link copied!",
-          description: "Timeline link copied to clipboard",
-        });
-      }
-    } catch (error: any) {
-      // User cancelled share or error occurred
-      if (error.name !== 'AbortError') {
-        // Try clipboard as fallback
-        try {
-          await navigator.clipboard.writeText(url);
-          toast({
-            title: "Link copied!",
-            description: "Timeline link copied to clipboard",
-          });
-        } catch (clipboardError) {
-          toast({
-            title: "Failed to share",
-            description: "Please try copying the link manually",
-            variant: "destructive",
-          });
-        }
-      }
-    }
-  };
 
   // Filter timelines based on search and category
   const filteredTimelines = useMemo(() => {
@@ -206,57 +165,39 @@ const Discover = () => {
 
   const TimelineCard = ({ timeline }: { timeline: TimelineDisplay }) => (
     <Card
-      className="p-4 cursor-pointer hover:shadow-md transition-all border-b border-x-0 rounded-none hover:bg-accent/5"
+      className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
       onClick={() => router.push(`/timeline/${timeline.id}`)}
     >
-      <div className="flex gap-3">
-        <Avatar className="w-10 h-10 flex-shrink-0">
-          <AvatarImage src={timeline.avatar} alt={timeline.creator} />
-          <AvatarFallback>{timeline.creator[0]}</AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-sm truncate">{timeline.creator}</span>
-                <span className="text-xs text-muted-foreground">·</span>
-                <span className="text-xs text-muted-foreground">{formatTimeAgo(timeline.createdAt)}</span>
-              </div>
-              <h3 className="font-semibold text-base mb-1 leading-tight">{timeline.title}</h3>
-              {timeline.description && (
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {timeline.description}
-                </p>
-              )}
+      <div className="flex flex-col sm:flex-row">
+        <div className="w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
+          {timeline.previewImage ? (
+            <img
+              src={timeline.previewImage}
+              alt={timeline.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted flex items-center justify-center">
+              <Eye className="w-8 h-8 text-muted-foreground" />
             </div>
-            {timeline.previewImage && (
-              <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border border-border">
-                <img
-                  src={timeline.previewImage}
-                  alt={timeline.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+          )}
+        </div>
+        <div className="flex-1 p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h3 className="font-bold text-lg font-display line-clamp-2">{timeline.title}</h3>
+            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap">
+              {timeline.category}
+            </span>
           </div>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-4">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                {timeline.category}
-              </span>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Eye className="w-3 h-3" />
-                <span>{timeline.views} views</span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 hover:bg-muted"
-              onClick={(e) => handleShare(timeline.id, timeline.title, e)}
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
+          {timeline.description && (
+            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+              {timeline.description}
+            </p>
+          )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{timeline.creator}</span>
+            <span>·</span>
+            <span>{timeline.views} views</span>
           </div>
         </div>
       </div>
@@ -333,18 +274,17 @@ const Discover = () => {
 
           <TabsContent value="trending" className="mt-6">
             <section>
-              <div className="flex items-center gap-2 px-4 mb-3">
+              <div className="flex items-center gap-2 px-4 mb-4">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="font-display font-bold text-xl">Trending Now</h2>
-                <span className="text-sm text-muted-foreground">
-                  ({trendingTimelines.length} {trendingTimelines.length === 1 ? 'timeline' : 'timelines'})
-                </span>
+                <h2 className="text-lg font-bold font-display">Trending Now</h2>
               </div>
-              <div>
+              <div className="grid gap-4 px-4">
                 {loading ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Loading timelines...
-                  </div>
+                  <>
+                    <DiscoverCardSkeleton />
+                    <DiscoverCardSkeleton />
+                    <DiscoverCardSkeleton />
+                  </>
                 ) : trendingTimelines.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     {searchQuery || selectedCategory 
@@ -362,18 +302,17 @@ const Discover = () => {
 
           <TabsContent value="recent" className="mt-6">
             <section>
-              <div className="flex items-center gap-2 px-4 mb-3">
+              <div className="flex items-center gap-2 px-4 mb-4">
                 <Clock className="w-5 h-5 text-accent" />
-                <h2 className="font-display font-bold text-xl">Recently Added</h2>
-                <span className="text-sm text-muted-foreground">
-                  ({recentTimelines.length} {recentTimelines.length === 1 ? 'timeline' : 'timelines'})
-                </span>
+                <h2 className="text-lg font-bold font-display">Recently Added</h2>
               </div>
-              <div>
+              <div className="grid gap-4 px-4">
                 {loading ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Loading timelines...
-                  </div>
+                  <>
+                    <DiscoverCardSkeleton />
+                    <DiscoverCardSkeleton />
+                    <DiscoverCardSkeleton />
+                  </>
                 ) : recentTimelines.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     {searchQuery || selectedCategory 

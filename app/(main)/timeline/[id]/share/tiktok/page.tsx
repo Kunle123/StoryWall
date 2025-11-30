@@ -18,7 +18,6 @@ import { SlideshowOptions, prepareImagesForSlideshow } from "@/lib/utils/tiktokS
 import { generateSlideshowVideo, downloadAudio } from "@/lib/utils/videoGeneration";
 import JSZip from "jszip";
 import { TikTokSlideshowPreview } from "@/components/timeline/TikTokSlideshowPreview";
-import { TimelineTweetTemplate } from "@/components/timeline/TimelineTweetTemplate";
 
 export default function TikTokSharePage() {
   const params = useParams();
@@ -344,19 +343,6 @@ export default function TikTokSharePage() {
         </div>
 
         <div className="space-y-6">
-          {/* Twitter Tweet Template Preview */}
-          {eventsWithImages.length > 0 && eventsWithImages[0]?.image && !isGenerating && (
-            <Card className="p-6">
-              <Label className="text-base mb-4 block">Share on X/Twitter</Label>
-              <TimelineTweetTemplate
-                title={timeline.title}
-                description={timeline.description || `Explore this timeline: ${timeline.title}`}
-                imageUrl={eventsWithImages[0].image || ''}
-                timelineUrl={timelineUrl}
-              />
-            </Card>
-          )}
-
           {/* Preview Section */}
           {eventsWithImages.length > 0 && !isGenerating && (
             <Card className="p-6">
