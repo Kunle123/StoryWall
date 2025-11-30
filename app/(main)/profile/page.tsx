@@ -246,7 +246,7 @@ const Profile = () => {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                    className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive dark:text-red-400 dark:hover:bg-destructive/20"
                     onClick={async () => {
                       setMenuOpen(false);
                       try {
@@ -422,7 +422,7 @@ const Profile = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-destructive hover:text-destructive"
+                      className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
                       onClick={(e) => {
                         e.stopPropagation();
                         setTimelineToDelete(timeline.id);

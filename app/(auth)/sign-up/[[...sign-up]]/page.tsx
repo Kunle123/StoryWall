@@ -51,7 +51,6 @@ export default function SignUpPage() {
           signInUrl="/sign-in"
           fallbackRedirectUrl="/"
           appearance={{
-            baseTheme: isDark ? 'dark' : 'light',
             elements: {
               rootBox: 'w-full',
               card: 'shadow-none bg-transparent',
