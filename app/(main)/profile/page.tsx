@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit, Shield } from "lucide-react";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit, Shield, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchTimelines, deleteTimeline, updateTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Timeline {
   id: string;
@@ -50,6 +51,7 @@ const Profile = () => {
   const [timelineToDelete, setTimelineToDelete] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -180,71 +182,96 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.push("/editor")}
-                title="Create New Timeline"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-              {!checkingAdmin && isAdmin && (
+            <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+              <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => router.push("/admin")}
-                  title="Admin Portal"
-                  className="border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950"
+                  title="Menu"
                 >
-                  <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <Menu className="w-4 h-4" />
                 </Button>
-              )}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                title="Toggle Dark Mode"
-              >
-                {mounted && theme === "dark" ? (
-                  <Sun className="w-4 h-4" />
-                ) : (
-                  <Moon className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => router.push("/settings")}
-                title="Settings"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={async () => {
-                  try {
-                    await signOut();
-                    toast({
-                      title: "Logged out",
-                      description: "You have been successfully signed out",
-                    });
-                    router.push("/");
-                  } catch (error: any) {
-                    console.error('[Profile] Logout error:', error);
-                    toast({
-                      title: "Error",
-                      description: error.message || "Failed to sign out. Please try again.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push("/editor");
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create New Timeline
+                  </Button>
+                  {!checkingAdmin && isAdmin && (
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        router.push("/admin");
+                      }}
+                    >
+                      <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      Admin Portal
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setTheme(theme === "dark" ? "light" : "dark");
+                    }}
+                  >
+                    {mounted && theme === "dark" ? (
+                      <Sun className="w-4 h-4" />
+                    ) : (
+                      <Moon className="w-4 h-4" />
+                    )}
+                    {mounted && theme === "dark" ? "Light Mode" : "Dark Mode"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push("/settings");
+                    }}
+                  >
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      setMenuOpen(false);
+                      try {
+                        await signOut();
+                        toast({
+                          title: "Logged out",
+                          description: "You have been successfully signed out",
+                        });
+                        router.push("/");
+                      } catch (error: any) {
+                        console.error('[Profile] Logout error:', error);
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to sign out. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">Timeline Creator</Badge>
