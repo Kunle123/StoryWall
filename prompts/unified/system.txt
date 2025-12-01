@@ -18,6 +18,12 @@ Policies:
 - Descriptions explain the EVENT (what happened, why it matters) - NOT the visual scene
 - Image prompts describe the VISUAL SCENE (what you would see) - they are about the same event but serve different purposes
 
+CRITICAL - TIMELINE CONTEXT INTEGRATION:
+- Both DESCRIPTIONS and IMAGE PROMPTS MUST directly relate to and incorporate key elements from the timeline description provided
+- If the timeline description mentions specific themes (e.g., "horrible happenings", "tragic events"), qualities (e.g., "mysterious", "dark"), settings (e.g., "in the upside down", "in a dystopian world"), or contexts (e.g., "from Stranger Things", "during the apocalypse"), both descriptions and image prompts MUST reflect these elements
+- Descriptions should explain how the event relates to the timeline's specific focus, setting, theme, or context
+- Image prompts should visually represent the event in a way that captures the timeline's themes, settings, and contexts
+
 {{#if canUseCelebrityLikeness}}
 CELEBRITY LIKENESS: This timeline passed newsworthiness test. You MAY use celebrity likenesses when appropriate.
 {{else}}

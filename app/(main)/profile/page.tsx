@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit, Shield, Menu } from "lucide-react";
+import { Eye, Trash2, Settings, LogOut, UserPlus, Users, Plus, Globe, Lock, Moon, Sun, Edit, Shield, Menu, Music, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { fetchTimelines, deleteTimeline, updateTimeline } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,8 @@ const Profile = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tiktokConnected, setTiktokConnected] = useState(false);
+  const [checkingTikTok, setCheckingTikTok] = useState(true);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -81,6 +83,30 @@ const Profile = () => {
     }
 
     checkAdminStatus();
+  }, [isSignedIn, user]);
+
+  useEffect(() => {
+    async function checkTikTokConnection() {
+      if (!isSignedIn || !user) {
+        setCheckingTikTok(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/tiktok/check-connection');
+        if (response.ok) {
+          const data = await response.json();
+          setTiktokConnected(data.connected || false);
+        }
+      } catch (error) {
+        console.error('Failed to check TikTok connection:', error);
+        setTiktokConnected(false);
+      } finally {
+        setCheckingTikTok(false);
+      }
+    }
+
+    checkTikTokConnection();
   }, [isSignedIn, user]);
 
   useEffect(() => {
@@ -284,6 +310,44 @@ const Profile = () => {
                 Admin
               </Badge>
             )}
+          </div>
+        </Card>
+
+        {/* Connected Accounts */}
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-4">Connected Accounts</h2>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <Music className="w-5 h-5" />
+                <div>
+                  <div className="font-semibold">TikTok</div>
+                  <div className="text-sm text-muted-foreground">
+                    {checkingTikTok ? 'Checking...' : (tiktokConnected ? 'Connected' : 'Not connected')}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {!checkingTikTok && (
+                  tiktokConnected ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-muted-foreground" />
+                  )
+                )}
+                <Button
+                  variant={tiktokConnected ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => {
+                    const connectUrl = `/api/tiktok/oauth?returnUrl=${encodeURIComponent('/profile')}`;
+                    window.location.href = connectUrl;
+                  }}
+                  disabled={checkingTikTok}
+                >
+                  {tiktokConnected ? 'Reconnect' : 'Connect'}
+                </Button>
+              </div>
+            </div>
           </div>
         </Card>
 

@@ -36,6 +36,9 @@ export default function TikTokSharePage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [zipBlob, setZipBlob] = useState<Blob | null>(null);
   const [zipUrl, setZipUrl] = useState<string | null>(null);
+  const [isTikTokConnected, setIsTikTokConnected] = useState(false);
+  const [isPostingToTikTok, setIsPostingToTikTok] = useState(false);
+  const [tiktokUploadProgress, setTiktokUploadProgress] = useState(0);
   
   const [options, setOptions] = useState<SlideshowOptions>({
     aspectRatio: '9:16',
@@ -83,8 +86,21 @@ export default function TikTokSharePage() {
       }
     };
 
+    const checkTikTokConnection = async () => {
+      try {
+        const response = await fetch('/api/tiktok/check-connection');
+        if (response.ok) {
+          const data = await response.json();
+          setIsTikTokConnected(data.connected || false);
+        }
+      } catch (error) {
+        console.error("Error checking TikTok connection:", error);
+      }
+    };
+
     if (timelineId) {
       loadTimeline();
+      checkTikTokConnection();
     }
   }, [timelineId, router, toast]);
 
@@ -310,6 +326,92 @@ export default function TikTokSharePage() {
 
   const handleOpenTikTok = () => {
     window.open('https://www.tiktok.com/upload', '_blank');
+  };
+
+  const handlePostToTikTok = async () => {
+    if (!videoBlob) {
+      toast({
+        title: "Error",
+        description: "No video available to post",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isTikTokConnected) {
+      // Redirect to connect TikTok
+      const connectUrl = `/api/tiktok/oauth?returnUrl=${encodeURIComponent(window.location.pathname)}`;
+      window.location.href = connectUrl;
+      return;
+    }
+
+    setIsPostingToTikTok(true);
+    setTiktokUploadProgress(0);
+
+    try {
+      // Step 1: Initialize upload
+      setTiktokUploadProgress(10);
+      const initResponse = await fetch('/api/tiktok/post-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: timeline?.title || 'Timeline Slideshow',
+          privacy_level: 'PUBLIC_TO_EVERYONE',
+        }),
+      });
+
+      if (!initResponse.ok) {
+        const error = await initResponse.json();
+        if (error.requiresReconnect) {
+          setIsTikTokConnected(false);
+          toast({
+            title: "TikTok Connection Required",
+            description: "Please reconnect your TikTok account",
+            variant: "destructive",
+          });
+          const connectUrl = `/api/tiktok/oauth?returnUrl=${encodeURIComponent(window.location.pathname)}`;
+          window.location.href = connectUrl;
+          return;
+        }
+        throw new Error(error.error || 'Failed to initialize upload');
+      }
+
+      const { publish_id, upload_url } = await initResponse.json();
+
+      // Step 2: Upload video file
+      setTiktokUploadProgress(20);
+      const uploadResponse = await fetch(upload_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'video/mp4',
+        },
+        body: videoBlob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload video to TikTok');
+      }
+
+      setTiktokUploadProgress(100);
+
+      toast({
+        title: "Success!",
+        description: "Video uploaded to TikTok! Check your TikTok inbox to finalize and post.",
+      });
+
+      // Open TikTok
+      window.open('https://www.tiktok.com/', '_blank');
+    } catch (error: any) {
+      console.error('Error posting to TikTok:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to post video to TikTok",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPostingToTikTok(false);
+      setTiktokUploadProgress(0);
+    }
   };
 
   if (loading || !timeline) {
@@ -583,20 +685,64 @@ export default function TikTokSharePage() {
                     <Download className="w-4 h-4" />
                     Download Video
                   </Button>
+                  {isTikTokConnected ? (
+                    <Button 
+                      onClick={handlePostToTikTok} 
+                      disabled={isPostingToTikTok}
+                      className="flex-1 gap-2 bg-black text-white hover:bg-gray-800"
+                    >
+                      {isPostingToTikTok ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Posting...
+                        </>
+                      ) : (
+                        <>
+                          <Music className="w-4 h-4" />
+                          Post to TikTok
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handlePostToTikTok}
+                      variant="outline" 
+                      className="gap-2"
+                    >
+                      <Music className="w-4 h-4" />
+                      Connect & Post
+                    </Button>
+                  )}
                   <Button onClick={handleOpenTikTok} variant="outline" className="gap-2">
                     <Play className="w-4 h-4" />
                     Open TikTok
                   </Button>
                 </div>
+                {isPostingToTikTok && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Uploading to TikTok...</span>
+                      <span>{Math.round(tiktokUploadProgress)}%</span>
+                    </div>
+                    <Progress value={tiktokUploadProgress} />
+                  </div>
+                )}
                 <div className="bg-muted/50 p-4 rounded-lg space-y-2 text-sm">
                   <h4 className="font-semibold">How to upload:</h4>
-                  <ol className="text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Download the video</li>
-                    <li>Open TikTok app (or other platform)</li>
-                    <li>Tap the "+" button to create a new video</li>
-                    <li>Select "Upload" and choose the downloaded video</li>
-                    <li>Add caption, hashtags, and post!</li>
-                  </ol>
+                  {isTikTokConnected ? (
+                    <p className="text-muted-foreground">
+                      Click "Post to TikTok" above to automatically upload your video to your TikTok inbox. 
+                      You can then finalize and post it from the TikTok app.
+                    </p>
+                  ) : (
+                    <ol className="text-muted-foreground space-y-1 list-decimal list-inside">
+                      <li>Click "Connect & Post" to connect your TikTok account</li>
+                      <li>Or download the video and upload manually</li>
+                      <li>Open TikTok app and tap the "+" button</li>
+                      <li>Select "Upload" and choose the downloaded video</li>
+                      <li>Add caption, hashtags, and post!</li>
+                    </ol>
+                  )}
                 </div>
               </div>
             </Card>

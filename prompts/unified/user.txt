@@ -17,6 +17,13 @@ FACTUAL DETAILS (MUST BE ACCURATELY DEPICTED):
 {{/each}}
 {{/if}}
 
+CRITICAL - TIMELINE CONTEXT REQUIREMENTS:
+- Both DESCRIPTIONS and IMAGE PROMPTS MUST directly relate to and incorporate key elements from the timeline description above
+- If the timeline description mentions specific themes (e.g., "horrible happenings", "tragic events"), qualities (e.g., "mysterious", "dark"), settings (e.g., "in the upside down", "in a dystopian world"), or contexts (e.g., "from Stranger Things", "during the apocalypse"), both descriptions and image prompts MUST reflect these elements
+- Descriptions should explain how the event relates to the timeline's specific focus, setting, theme, or context
+- Image prompts should visually represent the event in a way that captures the timeline's themes, settings, and contexts
+- Example: If timeline is "horrible happenings in Stranger Things that occurred in the upside down", descriptions should explain the horrible nature and upside down setting, and image prompts should visually depict scenes in the upside down with appropriate horror elements
+
 Generate:
 1. Anchor Style: Comprehensive visual guide (5-7 sentences) covering:
    - Visual Palette (colors, saturation, contrast, lighting)
@@ -35,8 +42,8 @@ Generate:
    - Ensure tags are relevant to the timeline's subject matter
 
 3. For each event:
-   - Description: 2-4 sentences explaining the EVENT - what happened, why it matters, its historical/educational significance. The description should explain the event itself, NOT describe what the scene looks like. Focus on the event's meaning, impact, and context.
-   - Image Prompt: Literal, recognizable scene that visually represents this event. After generating anchorStyle, prepend a 60-80 character preview of it to each imagePrompt (e.g., "ANCHOR: [preview]. [scene description]")
+   - Description: 2-4 sentences explaining the EVENT - what happened, why it matters, its historical/educational significance. The description should explain the event itself, NOT describe what the scene looks like. Focus on the event's meaning, impact, and context. MUST incorporate key themes, settings, and contexts from the timeline description above.
+   - Image Prompt: Literal, recognizable scene that visually represents this event. MUST incorporate key themes, settings, and contexts from the timeline description (e.g., if timeline mentions "upside down", image prompt should visually depict that setting). After generating anchorStyle, prepend a 60-80 character preview of it to each imagePrompt (e.g., "ANCHOR: [preview]. [scene description]")
    
    CRITICAL FOR IMAGE PROMPTS WITH PEOPLE:
    - When the event involves a specific person (named individual), you MUST explicitly state their race/ethnicity in the image prompt

@@ -11,28 +11,32 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  clerkId   String   @unique @map("clerk_id") @db.VarChar(255)
-  username  String   @unique @db.VarChar(50)
-  email     String   @unique @db.VarChar(255)
-  avatarUrl String?  @map("avatar_url")
-  credits   Int      @default(100) @map("credits")
-  twitterAccessToken String? @map("twitter_access_token") @db.Text
-  twitterRefreshToken String? @map("twitter_refresh_token") @db.Text
+  id                       String   @id @default(uuid())
+  clerkId                  String   @unique @map("clerk_id") @db.VarChar(255)
+  username                 String   @unique @db.VarChar(50)
+  email                    String   @unique @db.VarChar(255)
+  avatarUrl                String?  @map("avatar_url")
+  credits                  Int      @default(100) @map("credits")
+  twitterAccessToken       String?  @map("twitter_access_token") @db.Text
+  twitterRefreshToken      String?  @map("twitter_refresh_token") @db.Text
   // OAuth 1.0a credentials for media uploads (v1.1 endpoint requires OAuth 1.0a)
-  twitterOAuth1Token String? @map("twitter_oauth1_token") @db.Text
-  twitterOAuth1TokenSecret String? @map("twitter_oauth1_token_secret") @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  twitterOAuth1Token       String?  @map("twitter_oauth1_token") @db.Text
+  twitterOAuth1TokenSecret String?  @map("twitter_oauth1_token_secret") @db.Text
+  // TikTok OAuth credentials
+  tiktokAccessToken        String?  @map("tiktok_access_token") @db.Text
+  tiktokRefreshToken       String?  @map("tiktok_refresh_token") @db.Text
+  tiktokOpenId             String?  @map("tiktok_open_id") @db.Text
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
 
   // Relations
   timelines      Timeline[]     @relation("TimelineCreator")
-  events     Event[]
+  events         Event[]
   collaborations Collaborator[]
-  comments   Comment[]
-  likes      Like[]
-  following  Follow[]          @relation("UserFollowing")
-  followers  Follow[]          @relation("UserFollowers")
+  comments       Comment[]
+  likes          Like[]
+  following      Follow[]       @relation("UserFollowing")
+  followers      Follow[]       @relation("UserFollowers")
 
   @@map("users")
 }
@@ -75,7 +79,7 @@ model Event {
   date         DateTime  @db.Date
   endDate      DateTime? @map("end_date") @db.Date
   number       Int?      @map("number") // For numbered events (1, 2, 3...)
-  numberLabel  String?  @map("number_label") @db.VarChar(50) // Label for numbered events (e.g., "Day", "Event")
+  numberLabel  String?   @map("number_label") @db.VarChar(50) // Label for numbered events (e.g., "Day", "Event")
   imageUrl     String?   @map("image_url")
   imagePrompt  String?   @map("image_prompt") @db.Text // The AI-generated prompt used to create the image
   locationLat  Decimal?  @map("location_lat") @db.Decimal(10, 8)
@@ -88,8 +92,8 @@ model Event {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
-  creator  User?    @relation(fields: [createdBy], references: [id])
+  timeline Timeline  @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  creator  User?     @relation(fields: [createdBy], references: [id])
   comments Comment[]
   likes    Like[]
 
@@ -140,11 +144,11 @@ model Comment {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   // Relations
-  timeline Timeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
-  event    Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  timeline Timeline  @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  event    Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   likes    Like[]
 
   @@index([timelineId])
@@ -182,13 +186,13 @@ model Like {
 
 model Follow {
   id          String   @id @default(uuid())
-  followerId String   @map("follower_id")
+  followerId  String   @map("follower_id")
   followingId String   @map("following_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
   // Relations
-  follower  User   @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
-  following User   @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId])
