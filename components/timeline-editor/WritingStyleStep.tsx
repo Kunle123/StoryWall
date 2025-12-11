@@ -174,8 +174,12 @@ export const WritingStyleStep = ({
 
       console.log('[GenerateEvents] Successfully parsed events:', data.events.length);
 
+      // Check if events were converted to numbered (API detected no dates)
+      const wasConvertedToNumbered = data.wasConvertedToNumbered === true;
+      
       const generatedEvents: TimelineEvent[] = data.events.map((e: any, idx: number) => {
-        if (isNumbered) {
+        // If events were converted to numbered, or if event has number field, treat as numbered
+        if (wasConvertedToNumbered || e.number !== undefined || isNumbered) {
           // For numbered events, use number instead of year
           return {
             id: `event-${Date.now()}-${idx}`,
@@ -204,10 +208,19 @@ export const WritingStyleStep = ({
         );
       }
       setHasGenerated(true); // Disable button after generation
-      toast({
-        title: "Success!",
-        description: `Generated ${generatedEvents.length} events`,
-      });
+      
+      // Show appropriate message
+      if (wasConvertedToNumbered) {
+        toast({
+          title: "Events Generated",
+          description: `${generatedEvents.length} events sequenced (no dates available)`,
+        });
+      } else {
+        toast({
+          title: "Success!",
+          description: `Generated ${generatedEvents.length} events`,
+        });
+      }
     } catch (error: any) {
       console.error("[GenerateEvents] Error generating events:", error);
       console.error("[GenerateEvents] Error details:", {

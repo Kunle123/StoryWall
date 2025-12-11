@@ -154,8 +154,37 @@ export async function POST(request: NextRequest) {
       
       console.log(`[GenerateEvents API] Combined ${allEvents.length} events from ${batches.length} batches`);
       
+      // Check if any batch converted to numbered, or if combined events lack meaningful dates
+      let wasConverted = false;
+      const batchWasConverted = batchResults.some((r: any) => r.wasConvertedToNumbered === true);
+      
+      if (!isNumbered && !batchWasConverted && allEvents.length > 0) {
+        // Check if events have years (not undefined/null)
+        const eventsWithYears = allEvents.filter((e: any) => {
+          return e.year !== undefined && e.year !== null;
+        });
+        
+        // If less than 50% of events have years, convert all to numbered events
+        // This means AI didn't provide years for most events
+        if (eventsWithYears.length < allEvents.length * 0.5) {
+          console.log('[GenerateEvents API] Detected combined events without years - converting to numbered events');
+          allEvents = allEvents.map((e: any, idx: number) => ({
+            number: idx + 1,
+            title: e.title || `Event ${idx + 1}`,
+            description: e.description || '',
+          }));
+          wasConverted = true;
+        }
+      } else if (batchWasConverted) {
+        wasConverted = true;
+      }
+      
       // Return combined results
       const responsePayload: any = { events: allEvents.slice(0, maxEvents) };
+      if (wasConverted) {
+        responsePayload.wasConvertedToNumbered = true;
+        responsePayload.reason = 'Events did not have meaningful dates, so they were sequenced using numbers instead';
+      }
       if (allSources.length > 0) {
         responsePayload.sources = allSources.slice(0, 10);
       }
@@ -804,19 +833,25 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     
     // Map events with better validation
     // Multi-pass approach: Detect BC patterns, then parse with context
+    // Also track which events actually had years provided by AI (vs made up)
     const parsedYears: number[] = [];
+    const hadYearProvided: boolean[] = []; // Track if AI actually provided a year
     if (!isNumbered) {
       // First pass: parse all years and detect BC patterns
       const rawYears: number[] = [];
       const hasExplicitBC: boolean[] = [];
       
       content.events.forEach((event: any) => {
+        // Check if AI actually provided a year field (not undefined/null/empty)
+        const hadYear = event.year !== undefined && event.year !== null && String(event.year).trim() !== '';
+        hadYearProvided.push(hadYear);
+        
         const yearStr = String(event.year || '').trim();
         const hasBC = /(BC|BCE)/i.test(yearStr);
         hasExplicitBC.push(hasBC);
         
         // Parse without context first
-        const year = parseYear(event.year);
+        const year = hadYear ? parseYear(event.year) : undefined;
         rawYears.push(year);
       });
       
@@ -824,9 +859,10 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       // - All years are large ancient years (>= 1000)
       // - Years are in descending order (typical BC pattern)
       // - At least some have explicit BC notation, or all are ambiguous
-      const allLargeAncient = rawYears.every(y => Math.abs(y) >= 1000 && Math.abs(y) < 10000);
-      const isDescending = rawYears.length > 1 && 
-        rawYears.every((y, i) => i === 0 || Math.abs(rawYears[i - 1]) >= Math.abs(y));
+      const providedYears = rawYears.filter((y, i) => hadYearProvided[i] && y !== undefined);
+      const allLargeAncient = providedYears.length > 0 && providedYears.every(y => Math.abs(y) >= 1000 && Math.abs(y) < 10000);
+      const isDescending = providedYears.length > 1 && 
+        providedYears.every((y, i) => i === 0 || Math.abs(providedYears[i - 1]) >= Math.abs(y));
       const hasAnyBC = hasExplicitBC.some(bc => bc);
       const allAmbiguous = hasExplicitBC.every(bc => !bc);
       
@@ -842,18 +878,24 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         const yearStr = String(event.year || '').trim();
         const hasExplicitNotation = /(BC|BCE|AD|CE)/i.test(yearStr);
         
-        let year: number;
-        if (hasExplicitNotation) {
-          year = parseYear(event.year);
-        } else if (isBCTimeline && !hasExplicitBC[index]) {
-          // Infer BC for ambiguous years in BC timeline pattern
-          const numericYear = parseInt(yearStr, 10);
-          year = -numericYear; // BC
+        let year: number | undefined;
+        if (hadYearProvided[index]) {
+          // AI provided a year - parse it
+          if (hasExplicitNotation) {
+            year = parseYear(event.year);
+          } else if (isBCTimeline && !hasExplicitBC[index]) {
+            // Infer BC for ambiguous years in BC timeline pattern
+            const numericYear = parseInt(yearStr, 10);
+            year = -numericYear; // BC
+          } else {
+            // Use context from previous parsing
+            const previousYear = index > 0 ? parsedYears[index - 1] : undefined;
+            const nextYear = index < rawYears.length - 1 ? rawYears[index + 1] : undefined;
+            year = parseYear(event.year, { previousYear, nextYear });
+          }
         } else {
-          // Use context from previous parsing
-          const previousYear = index > 0 ? parsedYears[index - 1] : undefined;
-          const nextYear = index < rawYears.length - 1 ? rawYears[index + 1] : undefined;
-          year = parseYear(event.year, { previousYear, nextYear });
+          // AI did not provide a year - leave undefined
+          year = undefined;
         }
         parsedYears.push(year);
       });
@@ -907,8 +949,10 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           // If only month is provided, it's likely a placeholder, so ignore it
         }
         
+        // If no year was provided by AI, don't default to current year
+        // We'll detect this later and convert to numbered events
         return {
-          year: year || new Date().getFullYear(),
+          year: year || undefined,
           month: month,
           day: day,
           title: title || `Event ${index + 1}`,
@@ -916,6 +960,31 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         };
       }
     });
+    
+    // Detect if events don't have meaningful dates (AI didn't provide years)
+    // If so, convert them to numbered events instead of using fake dates
+    if (!isNumbered && mappedEvents.length > 0) {
+      // Check if AI actually provided years for the events
+      const eventsWithYearsProvided = hadYearProvided.filter(had => had).length;
+      
+      // If less than 50% of events had years provided by AI, convert all to numbered events
+      // This handles cases like fictional content where dates don't exist
+      if (eventsWithYearsProvided < mappedEvents.length * 0.5) {
+        console.log('[GenerateEvents API] Detected events without years provided by AI - converting to numbered events');
+        const convertedEvents = mappedEvents.map((e: any, idx: number) => ({
+          number: idx + 1,
+          title: e.title || `Event ${idx + 1}`,
+          description: e.description || '',
+        }));
+        
+        // Update response to indicate these are now numbered
+        return NextResponse.json({
+          events: convertedEvents.slice(0, maxEvents),
+          wasConvertedToNumbered: true,
+          reason: 'Events did not have dates, so they were sequenced using numbers instead',
+        });
+      }
+    }
     
     // Filter out only events that are completely invalid
     const events = mappedEvents.filter((event: any) => {
@@ -1336,12 +1405,18 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
   }
   
   // Map and validate events
-  // Two-pass approach: First parse all years (initial pass), then refine ambiguous ones
+  // Track which events actually had years provided by AI (vs made up)
   const parsedYears: number[] = [];
+  const hadYearProvided: boolean[] = []; // Track if AI actually provided a year
   if (!isNumbered) {
-    // First pass: parse all years without context (to get initial values)
+    // First pass: check which events had years provided and parse them
     content.events.forEach((event: any) => {
-      const year = parseYear(event.year);
+      // Check if AI actually provided a year field (not undefined/null/empty)
+      const hadYear = event.year !== undefined && event.year !== null && String(event.year).trim() !== '';
+      hadYearProvided.push(hadYear);
+      
+      // Parse year only if it was provided
+      const year = hadYear ? parseYear(event.year) : undefined;
       parsedYears.push(year);
     });
   }
@@ -1364,9 +1439,17 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       // Re-parse with context (but only if the year string doesn't have explicit BC/AD notation)
       const yearStr = String(event.year || '').trim();
       const hasExplicitNotation = /(BC|BCE|AD|CE)/i.test(yearStr);
-      const year = hasExplicitNotation 
-        ? parseYear(event.year) 
-        : parseYear(event.year, { previousYear, nextYear });
+      
+      let year: number | undefined;
+      if (hadYearProvided[index]) {
+        // AI provided a year - parse it
+        year = hasExplicitNotation 
+          ? parseYear(event.year) 
+          : parseYear(event.year, { previousYear, nextYear });
+      } else {
+        // AI did not provide a year - leave undefined
+        year = undefined;
+      }
       
       // Filter out placeholder dates (Jan 1, Dec 31) - only include month/day if they're real dates
       let month: number | undefined = undefined;
@@ -1385,8 +1468,10 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         // If only month is provided, it's likely a placeholder, so ignore it
       }
       
+      // If no year was provided by AI, don't default to current year
+      // We'll detect this later and convert to numbered events
       return {
-        year: year || new Date().getFullYear(),
+        year: year || undefined,
         month: month,
         day: day,
         title: title || `Event ${index + 1}`,
@@ -1426,6 +1511,32 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       })
       .filter((s: any) => s.url && isUrl(s.url))
       .slice(0, 12));
+  }
+  
+  // Detect if events don't have meaningful dates (AI didn't provide years)
+  // If so, convert them to numbered events instead of using fake dates
+  if (!isNumbered && events.length > 0) {
+    // Check if AI actually provided years for the events
+    const eventsWithYearsProvided = hadYearProvided.filter(had => had).length;
+    
+    // If less than 50% of events had years provided by AI, convert all to numbered events
+    // This handles cases like fictional content where dates don't exist
+    if (eventsWithYearsProvided < events.length * 0.5) {
+      console.log(`[GenerateEventsBatch] Detected events without years provided by AI - converting to numbered events${batchLabel}`);
+      const convertedEvents = events.map((e: any, idx: number) => ({
+        number: idx + 1,
+        title: e.title || `Event ${idx + 1}`,
+        description: e.description || '',
+      }));
+      
+      return {
+        events: convertedEvents,
+        wasConvertedToNumbered: true,
+        reason: 'Events did not have dates, so they were sequenced using numbers instead',
+        sources: normalizedSources.length > 0 ? normalizedSources : undefined,
+        imageReferences: normalizedImageRefs.length > 0 ? normalizedImageRefs : undefined,
+      };
+    }
   }
   
   console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${events.length} events`);
