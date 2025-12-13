@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       console.log(`[GenerateEvents API] Will generate ${batches.length} batches: ${batches.join(', ')} events each`);
       
       // Generate batches in parallel (with concurrency limit to avoid rate limits)
-      const allEvents: any[] = [];
+      let allEvents: any[] = [];
       const allSources: any[] = [];
       const allImageRefs: any[] = [];
       
