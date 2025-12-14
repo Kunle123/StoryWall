@@ -51,8 +51,24 @@ function repairJSON(jsonString: string): string {
  * Response:
  * {
  *   events: Array<{ year: number, month?: number, day?: number, title: string }>
+ *   wasConvertedToNumbered?: boolean
+ *   reason?: string
+ *   sources?: Array<{ name: string, url: string }>
+ *   imageReferences?: Array<{ name: string, url: string }>
+ *   isProgression?: boolean
+ *   progressionSubject?: string
  * }
  */
+
+type GenerateEventsResponse = {
+  events: any[];
+  wasConvertedToNumbered?: boolean;
+  reason?: string;
+  sources?: any[];
+  imageReferences?: any[];
+  isProgression?: boolean;
+  progressionSubject?: string;
+};
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -243,11 +259,19 @@ Examples of FALSE progressions (episodic/sequential but NOT cumulative):
 If it is a progression, identify the single, core subject of the progression (e.g., "a human fetus", "a skyscraper", "a piece of steel").
 
 STEP 2: EVENT GENERATION
-You MUST generate ${maxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events.
+Generate accurate historical events based on the provided timeline description. Generate UP TO ${maxEvents} events, but ONLY if you can find that many UNIQUE, DISTINCT events. DO NOT fabricate events to reach ${maxEvents} - if fewer unique events exist, return only those.
+
+CRITICAL UNIQUENESS REQUIREMENTS:
+- Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
+- Do NOT create repetitive events that are essentially the same thing with slightly different wording
+- Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
+- Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
+- If you find similar events, choose the most significant or representative one and exclude the others
+- Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
-If isProgression is false: Include major milestones, key dates, and significant events related to this topic.
+If isProgression is false: Include major milestones, key dates, and significant events related to this topic. Ensure each event is a separate, unique occurrence.
 
 Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
@@ -276,6 +300,8 @@ ACCURACY REQUIREMENTS:
 - ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
 - If web search returns relevant information, you MUST use it to generate events - do not return an empty array
 - Only return an empty events array if the topic is completely unknown or impossible to research
+- DO NOT fabricate events to reach ${maxEvents} - only include events you can verify
+- If you can only find 8 unique events, return 8. If you can find ${maxEvents} unique events, return ${maxEvents}. Do not force the count.
 
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
@@ -1176,7 +1202,17 @@ CRITICAL ANTI-HALLUCINATION REQUIREMENTS (MUST FOLLOW):
 - DO NOT fill gaps in your knowledge with plausible-sounding but unverified information
 - When in doubt, prefer fewer accurate events over many potentially incorrect ones
 
-You MUST generate ${batchMaxEvents} accurate historical events based on the provided timeline description. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+Generate accurate historical events based on the provided timeline description. Generate UP TO ${batchMaxEvents} events, but ONLY if you can find that many UNIQUE, DISTINCT events. DO NOT fabricate events to reach ${batchMaxEvents} - if fewer unique events exist, return only those. NEVER return an empty events array - if information is available (from your knowledge or web search), you MUST generate events. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
+
+CRITICAL UNIQUENESS REQUIREMENTS:
+- Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
+- Do NOT create repetitive events that are essentially the same thing with slightly different wording
+- Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
+- Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
+- If you find similar events, choose the most significant or representative one and exclude the others
+- Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
+- DO NOT fabricate events to reach ${batchMaxEvents} - only include events you can verify
+- If you can only find 8 unique events, return 8. If you can find ${batchMaxEvents} unique events, return ${batchMaxEvents}. Do not force the count.
 
 CRITICAL - DATE FORMAT REQUIREMENTS:
 - For dates BEFORE 1 AD (Common Era), you MUST include "BC" or "BCE" notation in the year field (e.g., "3000 BC", "753 BCE", "44 BC")
@@ -1215,6 +1251,8 @@ ACCURACY REQUIREMENTS:
 - ALWAYS generate events when information is available - even if dates are approximate, include the events with the information you have
 - If web search returns relevant information, you MUST use it to generate events - do not return an empty array
 - Only return an empty events array if the topic is completely unknown or impossible to research
+- DO NOT fabricate events to reach ${batchMaxEvents} - only include events you can verify
+- If you can only find 8 unique events, return 8. If you can find ${batchMaxEvents} unique events, return ${batchMaxEvents}. Do not force the count.
 
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
@@ -1258,8 +1296,12 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
   const userPrompt = isNumbered
     ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
     : isFactual
-    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${batchMaxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
-- You MUST generate ${batchMaxEvents} events - do not return fewer unless absolutely impossible
+    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL REQUIREMENTS:
+- Generate UP TO ${batchMaxEvents} events, but ONLY unique, distinct events
+- Each event must be SEPARATE and UNIQUE - do not create multiple events for the same incident or different aspects of the same event
+- Do NOT create repetitive or similar events - if events are essentially the same, choose the most significant one
+- DO NOT fabricate events to reach ${batchMaxEvents} - if you can only find 5 unique events, return 5
+- Quality over quantity: Better to return fewer unique events than many repetitive ones
 - If web search finds relevant news articles, you MUST use that information to create events
 - CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
 - CRITICAL FOR RECENT TIMELINES: If the timeline description mentions a time period that includes today (e.g., "since 2024", "since the election", "since [recent date]"), you MUST use web search to actively find events from TODAY, YESTERDAY, and the last 48 hours. Do not rely solely on your training data - you MUST search for the most recent news articles. For example, if creating a timeline about "MPs that defected since 2024 general election", you MUST search for defections that happened today, yesterday, and this week.
