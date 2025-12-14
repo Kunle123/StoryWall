@@ -33,7 +33,7 @@ export const EditorTabBar = ({
       <div className="container mx-auto px-4 py-4 max-w-5xl">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
           {/* Center: Step indicator */}
-          <div className="text-sm text-muted-foreground order-1 sm:order-2 w-full sm:w-auto text-center sm:text-left">
+          <div className="text-base font-semibold text-foreground order-1 sm:order-2 w-full sm:w-auto text-center sm:text-left">
             Step {currentStep} of {totalSteps}
           </div>
 

@@ -835,47 +835,13 @@ const TimelineEditor = () => {
         <main className="flex-1 container mx-auto px-4 pt-16 pb-32 max-w-5xl">
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Create a Timeline</h1>
-          <p className="text-muted-foreground">Create your AI-powered timeline in 6 simple steps</p>
         </div>
-
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          {steps.map((step, index) => (
-            <div key={step.number} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                    currentStep >= step.number
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {step.number}
-                </div>
-                <span className="text-xs mt-2 text-center hidden sm:block">{step.title}</span>
-              </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`h-1 flex-1 mx-2 transition-all ${
-                    currentStep > step.number ? "bg-primary" : "bg-muted"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-              </div>
 
         {/* Step Content */}
         {currentStep === 6 ? (
           // Step 6: Show preview directly
           <Card className="p-6 mb-6">
             <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-semibold">
-                  Step {currentStep} of {steps.length}
-                </div>
-                <div className="h-px bg-border flex-1" />
-              </div>
               <h2 className="text-2xl font-display font-semibold mb-2">{steps[currentStep - 1]?.title || "Review & Publish"}</h2>
               <p className="text-muted-foreground mb-4">
                 Review your timeline and publish it when ready.
@@ -936,22 +902,6 @@ const TimelineEditor = () => {
           </Card>
         ) : (
             <Card className="p-6 mb-6">
-              {/* Step Header */}
-              <div className="mb-6 pb-4 border-b">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    currentStep === steps.find(s => s.number === currentStep)?.number
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    Step {currentStep} of {steps.length}
-                  </div>
-                  <div className="h-px bg-border flex-1" />
-                </div>
-                <h2 className="text-xl font-display font-semibold text-muted-foreground">
-                  {steps.find(s => s.number === currentStep)?.title || `Step ${currentStep}`}
-                </h2>
-              </div>
                   {currentStep === 1 && (
                     timelineType === 'statistics' ? (
                       <StatisticsInfoStep
