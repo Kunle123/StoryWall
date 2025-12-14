@@ -265,10 +265,10 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 - Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
 - Do NOT create repetitive events that are essentially the same thing with slightly different wording
 - Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
-- Do NOT repeat the same event title even if it occurred in different years - if an event happened multiple times, choose ONE representative occurrence
+- If the same type of event occurred in different years, you MAY include multiple occurrences (e.g., if someone made the same comment in 2023 and 2025, both are valid separate events)
 - Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
-- Before adding an event, check if you've already included a similar or identical event - if so, skip it
-- If you find similar events, choose the most significant or representative one and exclude the others
+- Before adding an event, check if you've already included the EXACT same event (same title AND same year) - if so, skip it
+- If you find similar events that are clearly the same incident, choose the most significant or representative one and exclude the others
 - Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
@@ -1239,10 +1239,10 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 - Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
 - Do NOT create repetitive events that are essentially the same thing with slightly different wording
 - Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
-- Do NOT repeat the same event title even if it occurred in different years - if an event happened multiple times, choose ONE representative occurrence
+- If the same type of event occurred in different years, you MAY include multiple occurrences (e.g., if someone made the same comment in 2023 and 2025, both are valid separate events)
 - Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
-- Before adding an event, check if you've already included a similar or identical event - if so, skip it
-- If you find similar events, choose the most significant or representative one and exclude the others
+- Before adding an event, check if you've already included the EXACT same event (same title AND same year) - if so, skip it
+- If you find similar events that are clearly the same incident, choose the most significant or representative one and exclude the others
 - Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 - DO NOT fabricate events to reach ${batchMaxEvents} - only include events you can verify
 - If you can only find 8 unique events, return 8. If you can find ${batchMaxEvents} unique events, return ${batchMaxEvents}. Do not force the count.
