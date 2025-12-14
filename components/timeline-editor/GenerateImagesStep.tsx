@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +78,37 @@ export const GenerateImagesStep = ({
   const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
   const [activeTab, setActiveTab] = useState("ai");
   const { deductCredits, credits, fetchCredits } = useCredits();
+
+  // Sync selectedEvents when events change (e.g., when new events are generated)
+  useEffect(() => {
+    const eventIds = events.map(e => e.id).filter(id => id); // Filter out any undefined/null IDs
+    const uniqueIds = new Set(eventIds);
+    
+    // Log if there are missing or duplicate IDs
+    if (eventIds.length !== uniqueIds.size) {
+      console.warn('[GenerateImagesStep] Duplicate event IDs detected:', {
+        totalEvents: events.length,
+        uniqueIds: uniqueIds.size,
+        eventIds: eventIds.length
+      });
+    }
+    
+    if (eventIds.length !== events.length) {
+      console.warn('[GenerateImagesStep] Some events are missing IDs:', {
+        totalEvents: events.length,
+        eventsWithIds: eventIds.length
+      });
+    }
+    
+    // Update selectedEvents to include all valid event IDs
+    setSelectedEvents(prev => {
+      const newSet = new Set(uniqueIds);
+      // Keep any previously selected events that still exist
+      const existingSelected = Array.from(prev).filter(id => uniqueIds.has(id));
+      existingSelected.forEach(id => newSet.add(id));
+      return newSet;
+    });
+  }, [events]);
 
   const handleSaveEdit = () => {
     if (editingEvent) {
