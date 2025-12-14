@@ -838,11 +838,11 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     // Map events with better validation
     // Multi-pass approach: Detect BC patterns, then parse with context
     // Also track which events actually had years provided by AI (vs made up)
-    const parsedYears: number[] = [];
+    const parsedYears: (number | undefined)[] = [];
     const hadYearProvided: boolean[] = []; // Track if AI actually provided a year
     if (!isNumbered) {
       // First pass: parse all years and detect BC patterns
-      const rawYears: number[] = [];
+      const rawYears: (number | undefined)[] = [];
       const hasExplicitBC: boolean[] = [];
       
       content.events.forEach((event: any) => {
@@ -1410,7 +1410,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
   
   // Map and validate events
   // Track which events actually had years provided by AI (vs made up)
-  const parsedYears: number[] = [];
+  const parsedYears: (number | undefined)[] = [];
   const hadYearProvided: boolean[] = []; // Track if AI actually provided a year
   if (!isNumbered) {
     // First pass: check which events had years provided and parse them
