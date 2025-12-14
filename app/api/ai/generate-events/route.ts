@@ -1054,32 +1054,34 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
 
-    // Deduplicate events by title AND year (only remove exact duplicates)
-    // Allow same title in different years (legitimate repeated events)
-    const seenEventKeys = new Set<string>();
-    const deduplicatedEvents = events.filter((event: any) => {
+    // Minimal deduplication: only remove consecutive exact duplicates (same title AND year)
+    // This catches obvious AI mistakes where the same event appears twice in a row
+    // Users can manually edit other duplicates if needed
+    const finalEvents = events.filter((event: any, index: number) => {
+      if (index === 0) return true; // Always keep first event
+      
+      const prevEvent = events[index - 1];
       const normalizedTitle = (event.title || '').trim().toLowerCase();
-      if (!normalizedTitle) return false; // Skip events without titles
+      const prevNormalizedTitle = (prevEvent.title || '').trim().toLowerCase();
       
-      // Create a unique key from title + year to only catch exact duplicates
-      const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
-      
-      if (seenEventKeys.has(eventKey)) {
-        console.warn('[GenerateEvents API] Filtered out exact duplicate event:', {
+      // Only remove if it's consecutive AND exact same title AND same year
+      if (normalizedTitle === prevNormalizedTitle && 
+          event.year === prevEvent.year && 
+          event.year !== undefined) {
+        console.warn('[GenerateEvents API] Filtered out consecutive exact duplicate event:', {
           title: event.title,
           year: event.year,
+          index,
         });
         return false;
       }
       
-      seenEventKeys.add(eventKey);
       return true;
     });
     
-    console.log('[GenerateEvents API] Events after deduplication:', deduplicatedEvents.length, 'out of', events.length);
-    
-    // Use deduplicated events
-    const finalEvents = deduplicatedEvents;
+    if (finalEvents.length < events.length) {
+      console.log('[GenerateEvents API] Removed', events.length - finalEvents.length, 'consecutive duplicates');
+    }
 
     // Normalize and validate sources if provided (require article-level URLs, not bare domains)
     let normalizedSources: any[] = [];
@@ -1616,29 +1618,36 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     }
   }
   
-  // Deduplicate events by title AND year (only remove exact duplicates)
-  // Allow same title in different years (legitimate repeated events)
-  const seenEventKeys = new Set<string>();
-  const deduplicatedEvents = events.filter((event: any) => {
+  // Minimal deduplication: only remove consecutive exact duplicates (same title AND year)
+  // This catches obvious AI mistakes where the same event appears twice in a row
+  // Users can manually edit other duplicates if needed
+  const deduplicatedEvents = events.filter((event: any, index: number) => {
+    if (index === 0) return true; // Always keep first event
+    
+    const prevEvent = events[index - 1];
     const normalizedTitle = (event.title || '').trim().toLowerCase();
-    if (!normalizedTitle) return false; // Skip events without titles
+    const prevNormalizedTitle = (prevEvent.title || '').trim().toLowerCase();
     
-    // Create a unique key from title + year to only catch exact duplicates
-    const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
-    
-    if (seenEventKeys.has(eventKey)) {
-      console.warn(`[GenerateEventsBatch] Filtered out exact duplicate event${batchLabel}:`, {
+    // Only remove if it's consecutive AND exact same title AND same year
+    if (normalizedTitle === prevNormalizedTitle && 
+        event.year === prevEvent.year && 
+        event.year !== undefined) {
+      console.warn(`[GenerateEventsBatch] Filtered out consecutive exact duplicate event${batchLabel}:`, {
         title: event.title,
         year: event.year,
+        index,
       });
       return false;
     }
     
-    seenEventKeys.add(eventKey);
     return true;
   });
   
-  console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${deduplicatedEvents.length} events (${events.length - deduplicatedEvents.length} duplicates removed)`);
+  if (deduplicatedEvents.length < events.length) {
+    console.log(`[GenerateEventsBatch] Removed${batchLabel} ${events.length - deduplicatedEvents.length} consecutive duplicates`);
+  }
+  
+  console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${deduplicatedEvents.length} events`);
   
   return {
     events: deduplicatedEvents,
