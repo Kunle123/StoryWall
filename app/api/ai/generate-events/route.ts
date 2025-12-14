@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       let allEvents: any[] = [];
       const allSources: any[] = [];
       const allImageRefs: any[] = [];
+      const allBatchResults: any[] = []; // Collect all batch results to check for conversions
       
       const CONCURRENCY_LIMIT = 2; // Run 2 batches in parallel at a time
       
@@ -138,6 +139,9 @@ export async function POST(request: NextRequest) {
         // Wait for this group to complete before starting the next
         const batchResults = await Promise.all(batchPromises);
         
+        // Collect batch results for later checking
+        allBatchResults.push(...batchResults);
+        
         // Combine results
         for (const batchResponse of batchResults) {
           if (batchResponse.events) {
@@ -156,7 +160,7 @@ export async function POST(request: NextRequest) {
       
       // Check if any batch converted to numbered, or if combined events lack meaningful dates
       let wasConverted = false;
-      const batchWasConverted = batchResults.some((r: any) => r.wasConvertedToNumbered === true);
+      const batchWasConverted = allBatchResults.some((r: any) => r.wasConvertedToNumbered === true);
       
       if (!isNumbered && !batchWasConverted && allEvents.length > 0) {
         // Check if events have years (not undefined/null)
