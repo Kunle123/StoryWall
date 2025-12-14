@@ -1156,7 +1156,7 @@ async function generateEventsBatch(
   sourceRestrictions?: string[],
   batchNumber?: number,
   totalBatches?: number
-): Promise<{ events: any[]; sources?: any[]; imageReferences?: any[] }> {
+): Promise<{ events: any[]; sources?: any[]; imageReferences?: any[]; wasConvertedToNumbered?: boolean; reason?: string }> {
   const batchLabel = batchNumber ? ` (batch ${batchNumber}/${totalBatches})` : '';
   console.log(`[GenerateEventsBatch] Generating${batchLabel}: ${batchMaxEvents} events`);
   
