@@ -42,9 +42,14 @@ export async function createTimeline(
 
     return transformTimeline(timeline);
   } catch (error: any) {
-    // If error is about missing is_numbered column, use raw SQL as fallback
-    if (error.message?.includes('is_numbered') || error.message?.includes('isNumbered')) {
-      console.warn('[createTimeline] Falling back to raw SQL due to missing is_numbered column');
+    // If error is about missing columns (is_numbered, tiktok_access_token, etc.), use raw SQL as fallback
+    const isColumnError = error.message?.includes('is_numbered') || 
+                         error.message?.includes('isNumbered') ||
+                         error.message?.includes('tiktok_access_token') ||
+                         error.code === 'P2022'; // P2022 is "Column does not exist"
+    
+    if (isColumnError) {
+      console.warn('[createTimeline] Falling back to raw SQL due to missing column:', error.message);
       
       const isNumbered = input.is_numbered !== undefined ? input.is_numbered : false;
       const numberLabel = input.number_label || 'Day';

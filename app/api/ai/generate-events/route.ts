@@ -265,7 +265,9 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 - Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
 - Do NOT create repetitive events that are essentially the same thing with slightly different wording
 - Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
+- Do NOT repeat the same event title even if it occurred in different years - if an event happened multiple times, choose ONE representative occurrence
 - Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
+- Before adding an event, check if you've already included a similar or identical event - if so, skip it
 - If you find similar events, choose the most significant or representative one and exclude the others
 - Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 
@@ -1052,6 +1054,33 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
 
+    // Deduplicate events by title AND year (only remove exact duplicates)
+    // Allow same title in different years (legitimate repeated events)
+    const seenEventKeys = new Set<string>();
+    const deduplicatedEvents = events.filter((event: any) => {
+      const normalizedTitle = (event.title || '').trim().toLowerCase();
+      if (!normalizedTitle) return false; // Skip events without titles
+      
+      // Create a unique key from title + year to only catch exact duplicates
+      const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
+      
+      if (seenEventKeys.has(eventKey)) {
+        console.warn('[GenerateEvents API] Filtered out exact duplicate event:', {
+          title: event.title,
+          year: event.year,
+        });
+        return false;
+      }
+      
+      seenEventKeys.add(eventKey);
+      return true;
+    });
+    
+    console.log('[GenerateEvents API] Events after deduplication:', deduplicatedEvents.length, 'out of', events.length);
+    
+    // Use deduplicated events
+    const finalEvents = deduplicatedEvents;
+
     // Normalize and validate sources if provided (require article-level URLs, not bare domains)
     let normalizedSources: any[] = [];
     let normalizedImageRefs: any[] = [];
@@ -1083,7 +1112,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     }
     
     // If all events were filtered out, return the mapped events anyway (with defaults)
-    if (events.length === 0 && mappedEvents.length > 0) {
+    if (finalEvents.length === 0 && mappedEvents.length > 0) {
       console.warn('[GenerateEvents API] All events filtered out, using mapped events with defaults');
       const fallbackEvents = mappedEvents.map((e: any, idx: number) => {
         if (isNumbered) {
@@ -1105,7 +1134,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       return NextResponse.json({ events: fallbackEvents.slice(0, maxEvents) });
     }
     
-    if (events.length === 0) {
+    if (finalEvents.length === 0) {
       console.error('[GenerateEvents API] No valid events after processing.');
       console.error('[GenerateEvents API] Raw content keys:', Object.keys(content));
       console.error('[GenerateEvents API] Raw events array:', content.events);
@@ -1126,7 +1155,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       );
     }
     
-    console.log('[GenerateEvents API] Successfully generated events:', events.length);
+    console.log('[GenerateEvents API] Successfully generated events:', finalEvents.length);
     
     // Extract progression detection data from content
     const isProgression = content.isProgression === true;
@@ -1138,7 +1167,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     });
     
     // Include sources in response if provided
-    const responsePayload: any = { events: events.slice(0, maxEvents) };
+    const responsePayload: any = { events: finalEvents.slice(0, maxEvents) };
     if (isProgression && progressionSubject) {
       responsePayload.isProgression = true;
       responsePayload.progressionSubject = progressionSubject;
@@ -1208,7 +1237,9 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 - Each event MUST be DISTINCT and UNIQUE - do not create multiple events that describe the same incident or different aspects of the same event
 - Do NOT create repetitive events that are essentially the same thing with slightly different wording
 - Do NOT create multiple events for the same incident just because it happened on different dates or was reported in different sources
+- Do NOT repeat the same event title even if it occurred in different years - if an event happened multiple times, choose ONE representative occurrence
 - Each event should represent a SEPARATE, INDEPENDENT occurrence or milestone
+- Before adding an event, check if you've already included a similar or identical event - if so, skip it
 - If you find similar events, choose the most significant or representative one and exclude the others
 - Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 - DO NOT fabricate events to reach ${batchMaxEvents} - only include events you can verify
@@ -1585,10 +1616,32 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     }
   }
   
-  console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${events.length} events`);
+  // Deduplicate events by title AND year (only remove exact duplicates)
+  // Allow same title in different years (legitimate repeated events)
+  const seenEventKeys = new Set<string>();
+  const deduplicatedEvents = events.filter((event: any) => {
+    const normalizedTitle = (event.title || '').trim().toLowerCase();
+    if (!normalizedTitle) return false; // Skip events without titles
+    
+    // Create a unique key from title + year to only catch exact duplicates
+    const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
+    
+    if (seenEventKeys.has(eventKey)) {
+      console.warn(`[GenerateEventsBatch] Filtered out exact duplicate event${batchLabel}:`, {
+        title: event.title,
+        year: event.year,
+      });
+      return false;
+    }
+    
+    seenEventKeys.add(eventKey);
+    return true;
+  });
+  
+  console.log(`[GenerateEventsBatch] Generated${batchLabel}: ${deduplicatedEvents.length} events (${events.length - deduplicatedEvents.length} duplicates removed)`);
   
   return {
-    events,
+    events: deduplicatedEvents,
     sources: normalizedSources.length > 0 ? normalizedSources : undefined,
     imageReferences: normalizedImageRefs.length > 0 ? normalizedImageRefs : undefined,
   };
