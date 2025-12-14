@@ -863,7 +863,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       // - All years are large ancient years (>= 1000)
       // - Years are in descending order (typical BC pattern)
       // - At least some have explicit BC notation, or all are ambiguous
-      const providedYears = rawYears.filter((y, i) => hadYearProvided[i] && y !== undefined);
+      const providedYears = rawYears.filter((y, i): y is number => hadYearProvided[i] && y !== undefined);
       const allLargeAncient = providedYears.length > 0 && providedYears.every(y => Math.abs(y) >= 1000 && Math.abs(y) < 10000);
       const isDescending = providedYears.length > 1 && 
         providedYears.every((y, i) => i === 0 || Math.abs(providedYears[i - 1]) >= Math.abs(y));
