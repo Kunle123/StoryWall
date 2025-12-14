@@ -3,7 +3,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Pipette } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface ImageStyleStepProps {
@@ -26,18 +25,6 @@ const imageStyles = [
   "Abstract",
 ];
 
-const themeColors = [
-  { name: "None", value: "" },
-  { name: "Blue", value: "#3B82F6" },
-  { name: "Purple", value: "#A855F7" },
-  { name: "Green", value: "#10B981" },
-  { name: "Orange", value: "#F97316" },
-  { name: "Red", value: "#EF4444" },
-  { name: "Pink", value: "#EC4899" },
-  { name: "Teal", value: "#14B8A6" },
-  { name: "Yellow", value: "#EAB308" },
-];
-
 export const ImageStyleStep = ({ 
   imageStyle, 
   setImageStyle,
@@ -48,7 +35,6 @@ export const ImageStyleStep = ({
   setIncludesPeople
 }: ImageStyleStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
-  const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
   
   // Set default to "Illustration" if imageStyle is empty
   useEffect(() => {
@@ -84,7 +70,7 @@ export const ImageStyleStep = ({
           Step 4: Select Image Style
         </h2>
         <p className="text-muted-foreground mb-6">
-          Choose an art style and optional theme color for all timeline images
+          Choose an art style for all timeline images
         </p>
       </div>
 
@@ -131,58 +117,6 @@ export const ImageStyleStep = ({
               rows={2}
               className="resize-none"
             />
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-base mb-3 block">Theme Color (Optional)</Label>
-          <p className="text-sm text-muted-foreground mb-3">
-            Select a dominant color theme for the generated images
-          </p>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {themeColors.map((color) => (
-              <Button
-                key={color.name}
-                type="button"
-                variant={themeColor === color.value ? "default" : "outline"}
-                className="px-4 py-2 text-sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setThemeColor(color.value);
-                }}
-              >
-                {color.value && (
-                  <div 
-                    className="w-4 h-4 rounded-full mr-2 border border-border"
-                    style={{ backgroundColor: color.value }}
-                  />
-                )}
-                {color.name}
-              </Button>
-            ))}
-          </div>
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
-              <Label className="text-sm mb-2 block">Custom Color</Label>
-              <Input
-                type="color"
-                value={customColor}
-                onChange={(e) => {
-                  setCustomColor(e.target.value);
-                  setThemeColor(e.target.value);
-                }}
-                className="h-10 w-full cursor-pointer"
-              />
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => setThemeColor(customColor)}
-              className="h-10"
-            >
-              <Pipette className="mr-2 h-4 w-4" />
-              Apply Color
-            </Button>
           </div>
         </div>
 

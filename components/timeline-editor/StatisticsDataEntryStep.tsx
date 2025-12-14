@@ -237,6 +237,7 @@ export const StatisticsDataEntryStep = ({
 
               {events.length === 0 ? (
                 <Button
+                  id="generate-statistics-data-button"
                   onClick={handleGenerateWithAI}
                   disabled={isGenerating}
                   className="w-full"

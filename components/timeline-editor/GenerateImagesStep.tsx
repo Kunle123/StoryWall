@@ -686,6 +686,7 @@ export const GenerateImagesStep = ({
         {activeTab === "ai" && !hasStartedGeneration && (
           <div className="mt-4">
             <Button
+              id="generate-images-button"
               onClick={handleGenerateImages}
               disabled={isGenerating || selectedEvents.size === 0 || !imageStyle || events.some(e => e.imageUrl)}
               className="w-full"

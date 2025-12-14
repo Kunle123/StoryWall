@@ -375,8 +375,25 @@ const TimelineEditor = () => {
     { number: 6, title: "Review & Publish" },
   ];
 
+  const scrollToButtonIfNotVisible = (buttonId: string) => {
+    setTimeout(() => {
+      const button = document.getElementById(buttonId);
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+        
+        if (!isVisible) {
+          button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 100);
+  };
+
   const handleNext = () => {
     if (!canProceed()) {
+      // Check for incomplete actions and scroll to relevant buttons
+      let buttonToScroll: string | null = null;
+      
       // Show validation error
       let errorMessage = "Please complete the required fields before proceeding.";
       switch (currentStep) {
@@ -397,12 +414,16 @@ const TimelineEditor = () => {
               errorMessage = "Please select a data source method (AI or Manual).";
             } else if (statisticsDataMode === 'ai' && !statisticsDataSource.trim()) {
               errorMessage = "Please provide a data source for AI to search.";
+            } else if (statisticsDataMode === 'ai' && statisticsEvents.length === 0) {
+              errorMessage = "Please generate events with data using AI.";
+              buttonToScroll = "generate-statistics-data-button";
             }
           } else {
           if (!writingStyle && !customStyle) {
             errorMessage = "Please select a writing style or enter a custom style.";
           } else if (events.length === 0) {
             errorMessage = "Please add at least one event (generate with AI or add manually).";
+            buttonToScroll = "generate-events-button";
           } else if (!events.every(e => e.title)) {
             errorMessage = "Please add titles to all events.";
             }
@@ -418,18 +439,51 @@ const TimelineEditor = () => {
               errorMessage = "Please add data values for all events.";
             }
           } else {
-          errorMessage = "Please add descriptions to all events.";
+          // Check if descriptions are missing
+          const eventsWithoutDescriptions = events.filter(e => !e.description || e.description.trim() === '');
+          if (eventsWithoutDescriptions.length > 0) {
+            errorMessage = "Please add descriptions to all events.";
+            buttonToScroll = "generate-descriptions-button";
+          } else {
+            errorMessage = "Please add descriptions to all events.";
+          }
           }
           break;
         case 4:
           errorMessage = "Please select a preset image style or enter a custom style description.";
           break;
+        case 5:
+          if (timelineType === 'statistics') {
+            // Statistics charts should be generated
+            const eventsWithoutCharts = statisticsEvents.filter(e => !e.chartUrl);
+            if (eventsWithoutCharts.length > 0) {
+              errorMessage = "Please generate charts for all events.";
+              buttonToScroll = "generate-charts-button";
+            }
+          } else {
+            // Check if images are missing
+            const eventsWithoutImages = events.filter(e => !e.imageUrl);
+            if (eventsWithoutImages.length > 0) {
+              errorMessage = "Please generate images for all events.";
+              buttonToScroll = "generate-images-button";
+            } else {
+              errorMessage = "Please generate images for all events.";
+            }
+          }
+          break;
       }
+      
       toast({
         title: "Cannot proceed",
         description: errorMessage,
         variant: "destructive",
       });
+      
+      // Scroll to button if needed
+      if (buttonToScroll) {
+        scrollToButtonIfNotVisible(buttonToScroll);
+      }
+      
       return;
     }
     

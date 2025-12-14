@@ -304,6 +304,7 @@ export const StatisticsGenerateChartsStep = ({
               )}
               {!allChartsGenerated && (
                 <Button
+                  id="generate-charts-button"
                   onClick={handleGenerateCharts}
                   disabled={isGenerating || events.length === 0}
                   size="lg"

@@ -344,6 +344,7 @@ export const WritingStyleStep = ({
         <Label className="text-base mb-3 block">2. Generate with AI or Add Events Manually</Label>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
+            id="generate-events-button"
             onClick={() => {
               // If customStyle is set but writingStyle is not, set it
               if (customStyle && !writingStyle) {

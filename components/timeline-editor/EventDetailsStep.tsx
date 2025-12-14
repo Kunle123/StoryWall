@@ -248,6 +248,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         </p>
         <div className="flex gap-2">
           <Button
+            id="generate-descriptions-button"
             onClick={generateAllDescriptions}
             disabled={isGeneratingAll || events.length === 0 || generatedEventIds.size === events.length}
             size="lg"
