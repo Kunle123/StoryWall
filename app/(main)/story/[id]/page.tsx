@@ -29,7 +29,7 @@ const Story = () => {
   const [loading, setLoading] = useState(true);
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
-  const [timelineCreator, setTimelineCreator] = useState<{ id?: string; name: string; username?: string; avatar?: string } | null>(null);
+  const [timelineCreator, setTimelineCreator] = useState<{ id?: string; name: string; username?: string; avatar?: string; bio?: string } | null>(null);
   const [timelineIsPublic, setTimelineIsPublic] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -112,11 +112,13 @@ const Story = () => {
               const creatorUsername = creator?.username ? `@${creator.username}` : creator?.email?.split('@')[0] ? `@${creator.email.split('@')[0]}` : "@historian";
               const creatorAvatar = creator?.avatar_url;
               const creatorId = creator?.id;
+              const creatorBio = creator?.bio;
               setTimelineCreator({
                 id: creatorId,
                 name: creatorName,
                 username: creatorUsername,
-                avatar: creatorAvatar
+                avatar: creatorAvatar,
+                bio: creatorBio
               });
               
               // Fetch follow status if user is signed in and creator ID is available
@@ -483,6 +485,9 @@ const Story = () => {
               <div>
                 <p className="text-base font-bold leading-tight">{timelineCreator?.name || "Timeline Creator"}</p>
                 <p className="text-sm text-muted-foreground">{timelineCreator?.username || "@historian"}</p>
+                {timelineCreator?.bio && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{timelineCreator.bio}</p>
+                )}
               </div>
             </div>
             <Button

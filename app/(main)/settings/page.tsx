@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +19,7 @@ interface UserProfile {
   username: string;
   email: string;
   avatar_url?: string;
+  bio?: string;
   credits: number;
   created_at: string;
   updated_at: string;
@@ -34,6 +36,7 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
 
@@ -51,6 +54,7 @@ const Settings = () => {
           const data = await response.json();
           setProfile(data);
           setUsername(data.username);
+          setBio(data.bio || "");
           setAvatarUrl(data.avatar_url);
           setPreviewUrl(data.avatar_url || clerkUser?.imageUrl);
         } else {
@@ -165,6 +169,7 @@ const Settings = () => {
         body: JSON.stringify({
           username: username.trim(),
           avatar_url: avatarUrl,
+          bio: bio.trim() || null,
         }),
       });
 
@@ -304,6 +309,25 @@ const Settings = () => {
             />
             <p className="text-sm text-muted-foreground">
               Letters, numbers, underscores, and hyphens only. 50 characters max.
+            </p>
+          </div>
+
+          {/* Bio Section */}
+          <div className="space-y-4 mb-8">
+            <Label htmlFor="bio" className="text-base font-semibold">
+              Bio
+            </Label>
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us about yourself... (optional)"
+              maxLength={500}
+              rows={4}
+              className="max-w-md resize-none"
+            />
+            <p className="text-sm text-muted-foreground">
+              {bio.length}/500 characters. This will be displayed on your profile and timelines.
             </p>
           </div>
 

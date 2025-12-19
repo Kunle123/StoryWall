@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db/prisma';
 import { createTimeline } from '@/lib/db/timelines';
 import { createEvent } from '@/lib/db/events';
 import { slugify } from '@/lib/utils/slugify';
+import { isAdminEmail } from '@/lib/utils/admin';
 
 interface SeedUser {
   email: string;
   username: string;
   clerkId?: string;
+  bio?: string;
 }
 
 interface SeedTimeline {
@@ -45,11 +49,23 @@ interface SeedEntry {
  */
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check
-    // const { userId } = await auth();
-    // if (!userId || !isAdmin(userId)) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    // Admin authentication check
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user email from Clerk
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses[0]?.emailAddress;
+
+    if (!email || !isAdminEmail(email)) {
+      return NextResponse.json(
+        { error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
+    }
 
     const seedData: SeedEntry[] = await request.json();
 
@@ -89,6 +105,7 @@ export async function POST(request: NextRequest) {
                 clerkId: entry.user.clerkId,
                 username: entry.user.username,
                 email: entry.user.email,
+                bio: entry.user.bio,
                 credits: 1000, // Give seeded users extra credits
               },
             });
@@ -119,6 +136,7 @@ export async function POST(request: NextRequest) {
                 clerkId: placeholderClerkId,
                 username: entry.user.username,
                 email: entry.user.email,
+                bio: entry.user.bio,
                 credits: 1000,
               },
             });

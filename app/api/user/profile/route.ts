@@ -55,7 +55,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, avatar_url } = body;
+    const { username, avatar_url, bio } = body;
 
     // Validate input
     if (username !== undefined) {
@@ -87,9 +87,25 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (bio !== undefined) {
+      if (typeof bio !== 'string') {
+        return NextResponse.json(
+          { error: 'Bio must be a string' },
+          { status: 400 }
+        );
+      }
+      if (bio.length > 500) {
+        return NextResponse.json(
+          { error: 'Bio must be 500 characters or less' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedUser = await updateUserProfile(userId, {
       username: username?.trim(),
       avatarUrl: avatar_url || undefined,
+      bio: bio !== undefined ? (bio.trim() || null) : undefined,
     });
 
     return NextResponse.json({
@@ -98,6 +114,7 @@ export async function PATCH(request: NextRequest) {
       username: updatedUser.username,
       email: updatedUser.email,
       avatar_url: updatedUser.avatarUrl,
+      bio: updatedUser.bio,
       credits: updatedUser.credits,
       created_at: updatedUser.createdAt.toISOString(),
       updated_at: updatedUser.updatedAt.toISOString(),

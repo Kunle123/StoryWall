@@ -54,6 +54,7 @@ const Profile = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [tiktokConnected, setTiktokConnected] = useState(false);
   const [checkingTikTok, setCheckingTikTok] = useState(true);
+  const [userBio, setUserBio] = useState<string | null>(null);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -137,6 +138,26 @@ const Profile = () => {
     loadUserTimelines();
   }, [isSignedIn, user?.id]);
 
+  useEffect(() => {
+    async function loadUserProfile() {
+      if (!isSignedIn) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          setUserBio(data.bio || null);
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    }
+
+    loadUserProfile();
+  }, [isSignedIn]);
+
   function formatDistance(dateString: string) {
     const date = new Date(dateString);
     const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
@@ -197,6 +218,9 @@ const Profile = () => {
                 <p className="text-muted-foreground mb-2">
                   {loading ? "Loading..." : `${userTimelines.length} timeline${userTimelines.length !== 1 ? 's' : ''} created`}
                 </p>
+                {userBio && (
+                  <p className="text-sm text-muted-foreground mb-2 max-w-md">{userBio}</p>
+                )}
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-1.5">
                     <Eye className="w-4 h-4 text-muted-foreground" />

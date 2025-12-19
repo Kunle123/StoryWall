@@ -153,6 +153,7 @@ export async function getUserById(userId: string) {
       username: true,
       email: true,
       avatarUrl: true,
+      bio: true,
       credits: true,
       createdAt: true,
       updatedAt: true,
@@ -168,6 +169,7 @@ export async function updateUserProfile(
   updates: {
     username?: string;
     avatarUrl?: string;
+    bio?: string;
   }
 ) {
   // Check if username is being updated and if it's already taken
@@ -189,6 +191,7 @@ export async function updateUserProfile(
     data: {
       ...(updates.username && { username: updates.username }),
       ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
+      ...(updates.bio !== undefined && { bio: updates.bio || null }),
     },
     select: {
       id: true,
@@ -196,6 +199,7 @@ export async function updateUserProfile(
       username: true,
       email: true,
       avatarUrl: true,
+      bio: true,
       credits: true,
       createdAt: true,
       updatedAt: true,
