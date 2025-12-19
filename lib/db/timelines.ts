@@ -128,11 +128,12 @@ export async function createTimeline(
           username: string;
           email: string;
           avatar_url: string | null;
+          bio: string | null;
           credits: number;
           created_at: Date;
           updated_at: Date;
         }>>(`
-          SELECT id, clerk_id, username, email, avatar_url, credits, created_at, updated_at
+          SELECT id, clerk_id, username, email, avatar_url, bio, credits, created_at, updated_at
           FROM users
           WHERE id = $1
           LIMIT 1
@@ -145,6 +146,7 @@ export async function createTimeline(
             username: creatorRows[0].username,
             email: creatorRows[0].email,
             avatarUrl: creatorRows[0].avatar_url,
+            bio: creatorRows[0].bio,
             credits: creatorRows[0].credits,
             createdAt: creatorRows[0].created_at,
             updatedAt: creatorRows[0].updated_at,
@@ -304,11 +306,12 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
         username: string;
         email: string;
         avatar_url: string | null;
+        bio: string | null;
         credits: number;
         created_at: Date;
         updated_at: Date;
       }>>(`
-        SELECT id, clerk_id, username, email, avatar_url, credits, created_at, updated_at
+        SELECT id, clerk_id, username, email, avatar_url, bio, credits, created_at, updated_at
         FROM users
         WHERE id = $1
         LIMIT 1
@@ -321,6 +324,7 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
           username: creatorRows[0].username,
           email: creatorRows[0].email,
           avatarUrl: creatorRows[0].avatar_url,
+          bio: creatorRows[0].bio,
           credits: creatorRows[0].credits,
           createdAt: creatorRows[0].created_at,
           updatedAt: creatorRows[0].updated_at,
@@ -471,6 +475,7 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
           username: true,
           email: true,
           avatarUrl: true,
+          bio: true,
           credits: true,
           createdAt: true,
           updatedAt: true,
@@ -1016,8 +1021,9 @@ export async function listTimelines(options: {
             username: string;
             email: string;
             avatar_url: string | null;
+            bio: string | null;
           }>>(`
-            SELECT id, clerk_id, username, email, avatar_url
+            SELECT id, clerk_id, username, email, avatar_url, bio
             FROM users
             WHERE id = $1
             LIMIT 1
@@ -1030,6 +1036,7 @@ export async function listTimelines(options: {
               username: creatorRows[0].username,
               email: creatorRows[0].email,
               avatarUrl: creatorRows[0].avatar_url,
+              bio: creatorRows[0].bio,
             };
           }
         } catch (creatorError: any) {
@@ -1044,6 +1051,7 @@ export async function listTimelines(options: {
                 username: true, 
                 email: true, 
                 avatarUrl: true,
+                bio: true,
                 credits: true,
                 createdAt: true,
                 updatedAt: true,
