@@ -498,6 +498,11 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
               return "Unknown";
             };
             
+            // Determine if this is first or last event (for watermark)
+            const isFirst = index === 0;
+            const isLast = index === sortedEvents.length - 1;
+            const isFirstOrLast = isFirst || isLast;
+            
             return (
               <div key={`card-wrapper-${event.id}`} className="max-w-2xl mx-auto">
                 <div
@@ -528,6 +533,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
                     timelineId={timelineId}
                     timeline={timeline}
                     onEventUpdate={onEventUpdate}
+                    isFirstOrLast={isFirstOrLast}
                   />
                 </div>
                 

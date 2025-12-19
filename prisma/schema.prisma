@@ -11,23 +11,27 @@ datasource db {
 }
 
 model User {
-  id                       String   @id @default(uuid())
-  clerkId                  String   @unique @map("clerk_id") @db.VarChar(255)
-  username                 String   @unique @db.VarChar(50)
-  email                    String   @unique @db.VarChar(255)
-  avatarUrl                String?  @map("avatar_url")
-  credits                  Int      @default(100) @map("credits")
-  twitterAccessToken       String?  @map("twitter_access_token") @db.Text
-  twitterRefreshToken      String?  @map("twitter_refresh_token") @db.Text
+  id                       String    @id @default(uuid())
+  clerkId                  String    @unique @map("clerk_id") @db.VarChar(255)
+  username                 String    @unique @db.VarChar(50)
+  email                    String    @unique @db.VarChar(255)
+  avatarUrl                String?   @map("avatar_url")
+  bio                      String?   @map("bio") @db.Text
+  credits                  Int       @default(100) @map("credits")
+  firstStoryPublishedAt    DateTime? @map("first_story_published_at")
+  publishedStoryCount      Int       @default(0) @map("published_story_count")
+  twitterAccessToken       String?   @map("twitter_access_token") @db.Text
+  twitterRefreshToken      String?   @map("twitter_refresh_token") @db.Text
   // OAuth 1.0a credentials for media uploads (v1.1 endpoint requires OAuth 1.0a)
-  twitterOAuth1Token       String?  @map("twitter_oauth1_token") @db.Text
-  twitterOAuth1TokenSecret String?  @map("twitter_oauth1_token_secret") @db.Text
+  twitterOAuth1Token       String?   @map("twitter_oauth1_token") @db.Text
+  twitterOAuth1TokenSecret String?   @map("twitter_oauth1_token_secret") @db.Text
   // TikTok OAuth credentials
-  tiktokAccessToken        String?  @map("tiktok_access_token") @db.Text
-  tiktokRefreshToken       String?  @map("tiktok_refresh_token") @db.Text
-  tiktokOpenId             String?  @map("tiktok_open_id") @db.Text
-  createdAt                DateTime @default(now()) @map("created_at")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  tiktokAccessToken        String?   @map("tiktok_access_token") @db.Text
+  tiktokRefreshToken       String?   @map("tiktok_refresh_token") @db.Text
+  tiktokOpenId             String?   @map("tiktok_open_id") @db.Text
+  termsAcceptedAt          DateTime? @map("terms_accepted_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   // Relations
   timelines      Timeline[]     @relation("TimelineCreator")
@@ -54,6 +58,8 @@ model Timeline {
   numberLabel       String?  @default("Day") @map("number_label") @db.VarChar(50)
   hashtags          String[] @default([]) @map("hashtags")
   viewCount         Int      @default(0) @map("view_count")
+  isFeatured        Boolean  @default(false) @map("is_featured")
+  featuredAt        DateTime? @map("featured_at")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -68,6 +74,7 @@ model Timeline {
   @@index([slug])
   @@index([creatorId])
   @@index([isPublic])
+  @@index([isFeatured])
   @@map("timelines")
 }
 

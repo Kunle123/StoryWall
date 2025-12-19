@@ -38,6 +38,22 @@ export async function fetchTimelines(options?: {
   }
 }
 
+export async function fetchFeaturedTimelines(limit: number = 10): Promise<ApiResponse<any[]>> {
+  try {
+    const response = await fetch(`/api/timelines/featured?limit=${limit}`);
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { error: error.error || 'Failed to fetch featured timelines' };
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    return { error: error.message || 'Failed to fetch featured timelines' };
+  }
+}
+
 export async function fetchTimelineById(id: string): Promise<ApiResponse<any>> {
   try {
     const response = await fetch(`/api/timelines/${id}`);

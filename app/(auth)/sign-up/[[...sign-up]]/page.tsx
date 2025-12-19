@@ -39,9 +39,12 @@ export default function SignUpPage() {
               <StoryWallIcon size={48} />
             </div>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to StoryWall</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to Storywall!</h1>
+          <p className="text-sm font-semibold text-primary mb-2">
+            Your 30 free AI image credits are ready.
+          </p>
           <p className="text-sm text-muted-foreground">
-            Share your weird, funny, and strange moments with the world
+            Create stunning visual timelines with AI-generated images
           </p>
         </div>
 
@@ -49,7 +52,7 @@ export default function SignUpPage() {
           routing="path"
           path="/sign-up"
           signInUrl="/sign-in"
-          fallbackRedirectUrl="/"
+          fallbackRedirectUrl="/legal/accept-terms"
           appearance={{
             elements: {
               rootBox: 'w-full',
@@ -71,7 +74,7 @@ export default function SignUpPage() {
         />
 
         <p className="text-xs text-center text-muted-foreground">
-          By continuing, you agree to our{' '}
+          By creating an account, you will be asked to accept our{' '}
           <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
             Terms of Service
           </a>
@@ -79,6 +82,7 @@ export default function SignUpPage() {
           <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
             Privacy Policy
           </a>
+          {' '}before continuing.
         </p>
       </Card>
     </div>

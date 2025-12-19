@@ -198,3 +198,6 @@ If issues arise:
 **Yes, migrate to `twitter-api-v2`**. The library has already solved the exact problem you're facing (OAuth 1.0a multipart/form-data authentication), and it will save you significant maintenance time.
 
 
+
+
+

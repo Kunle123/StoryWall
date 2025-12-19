@@ -12,6 +12,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
+import { ViralFooter } from "@/components/sharing/ViralFooter";
 
 const TimelinePage = () => {
   const params = useParams();
@@ -295,6 +296,11 @@ const TimelinePage = () => {
           <div id="comments" className="mt-12 pb-32 md:pb-40 scroll-mt-24 relative z-10">
             <CommentsSection timelineId={timeline.id || timelineId} />
           </div>
+        )}
+        
+        {/* Viral Footer - Only show on public timelines */}
+        {timeline.is_public && (
+          <ViralFooter timelineTitle={timeline.title} timelineId={timeline.id} />
         )}
       </main>
       {(() => {

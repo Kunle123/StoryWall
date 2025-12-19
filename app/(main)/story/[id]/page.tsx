@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { TimelineEvent } from "@/components/timeline/Timeline";
+import { ViralFooter } from "@/components/sharing/ViralFooter";
+import { ImageWithWatermark } from "@/components/timeline/ImageWithWatermark";
 
 const Story = () => {
   const params = useParams();
@@ -28,6 +30,7 @@ const Story = () => {
   const [allEvents, setAllEvents] = useState<any[]>([]);
   const [commentCount, setCommentCount] = useState(0);
   const [timelineCreator, setTimelineCreator] = useState<{ id?: string; name: string; username?: string; avatar?: string } | null>(null);
+  const [timelineIsPublic, setTimelineIsPublic] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -100,6 +103,8 @@ const Story = () => {
             const timelineResult = await fetchTimelineById(result.data.timeline_id);
             if (timelineResult.data) {
               const timeline = timelineResult.data;
+              // Check if timeline is public for footer display
+              setTimelineIsPublic(timeline.is_public !== false);
               // Extract creator info from timeline
               // API returns timeline.creator (not timeline.user)
               const creator = timeline.creator;
@@ -545,9 +550,11 @@ const Story = () => {
           {(event.image || event.video) && (
             <div className="mb-3 rounded-lg overflow-hidden border border-border">
               {event.image && (
-                <img 
-                  src={event.image} 
+                <ImageWithWatermark
+                  src={event.image}
                   alt={event.title}
+                  isFirstOrLast={currentIndex === 0 || currentIndex === allEvents.length - 1}
+                  timelineIsPublic={timelineIsPublic}
                   className="w-full h-auto max-h-[500px] object-cover"
                 />
               )}
@@ -612,6 +619,11 @@ const Story = () => {
           <div id="comments" className="mt-6 pt-6 pb-32 md:pb-40 border-t border-border scroll-mt-24">
             <CommentsSection eventId={event.id} />
           </div>
+
+          {/* Viral Footer - Only show on public timelines */}
+          {timelineIsPublic && (
+            <ViralFooter timelineTitle={event.title} />
+          )}
         </Card>
       </main>
       {event && allEvents.length > 0 && (

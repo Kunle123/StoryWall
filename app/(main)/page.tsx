@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, Clock, Eye } from "lucide-react";
+import { Search, TrendingUp, Clock, Eye, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fetchTimelines } from "@/lib/api/client";
+import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
 import { Card } from "@/components/ui/card";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
@@ -32,7 +32,9 @@ const Discover = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const router = useRouter();
   const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>([]);
+  const [featuredTimelines, setFeaturedTimelines] = useState<TimelineDisplay[]>([]);
   const [loading, setLoading] = useState(true);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -99,6 +101,47 @@ const Discover = () => {
     }
     
     loadTimelines();
+    
+    // Load featured timelines
+    async function loadFeaturedTimelines() {
+      try {
+        setFeaturedLoading(true);
+        const result = await fetchFeaturedTimelines(6);
+        
+        if (result.data && result.data.length > 0) {
+          const transformed = result.data.map((t: any) => {
+            const previewImage = t.events && t.events.length > 0 && t.events[0].image_url 
+              ? t.events[0].image_url 
+              : undefined;
+
+            return {
+              id: t.id,
+              title: t.title,
+              description: t.description,
+              creator: t.creator?.username || 'Unknown',
+              creatorId: t.creator_id,
+              views: formatViews(t.view_count || 0),
+              viewCount: t.view_count || 0,
+              category: 'Featured',
+              avatar: t.creator?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.creator?.id || t.id}`,
+              createdAt: t.created_at,
+              previewImage,
+              isPublic: t.is_public !== false,
+            };
+          });
+          setFeaturedTimelines(transformed);
+        } else {
+          setFeaturedTimelines([]);
+        }
+      } catch (error) {
+        console.error('Failed to load featured timelines:', error);
+        setFeaturedTimelines([]);
+      } finally {
+        setFeaturedLoading(false);
+      }
+    }
+    
+    loadFeaturedTimelines();
   }, []);
 
   function formatViews(count: number): string {
@@ -233,6 +276,67 @@ const Discover = () => {
 
         {/* Spacer for fixed search bar */}
         <div style={{ height: '56px' }} />
+
+        {/* Featured Section */}
+        {featuredTimelines.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center gap-2 px-4 mb-4">
+              <Star className="w-5 h-5 text-primary fill-primary" />
+              <h2 className="text-lg font-bold font-display">Featured Stories</h2>
+            </div>
+            <div className="grid gap-4 px-4">
+              {featuredLoading ? (
+                <>
+                  <DiscoverCardSkeleton />
+                  <DiscoverCardSkeleton />
+                </>
+              ) : (
+                featuredTimelines.map((timeline) => (
+                  <Card
+                    key={timeline.id}
+                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-primary/20"
+                    onClick={() => router.push(`/timeline/${timeline.id}`)}
+                  >
+                    <div className="flex flex-col sm:flex-row">
+                      <div className="w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
+                        {timeline.previewImage ? (
+                          <img
+                            src={timeline.previewImage}
+                            alt={timeline.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Eye className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 p-4">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h3 className="font-bold text-lg font-display line-clamp-2">{timeline.title}</h3>
+                          <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-primary" />
+                            Featured
+                          </span>
+                        </div>
+                        {timeline.description && (
+                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                            {timeline.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{timeline.creator}</span>
+                          <span>·</span>
+                          <span>{timeline.views} views</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Categories */}
         <div className="py-4 border-b border-border/50">

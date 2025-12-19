@@ -1,4 +1,4 @@
-# TikTok App Submission - Product and Scope Explanation
+hat c# TikTok App Submission - Product and Scope Explanation
 
 Use this response for the "Explain how each product and scope works within your app or website" question in the TikTok Developer Portal.
 

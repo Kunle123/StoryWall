@@ -49,7 +49,7 @@ export default function SignInPage() {
           routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
-          fallbackRedirectUrl="/"
+          fallbackRedirectUrl="/legal/accept-terms"
           appearance={{
             elements: {
               rootBox: 'w-full',

@@ -796,25 +796,65 @@ export async function deleteTimeline(
 }
 
 export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline[]> {
-  const timelines = await prisma.timeline.findMany({
-    where: { isPublic: true },
-    include: {
-      creator: {
-        select: {
-          id: true,
-          username: true,
-          avatarUrl: true,
+  try {
+    const timelines = await prisma.timeline.findMany({
+      where: { 
+        isPublic: true,
+        isFeatured: true,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            clerkId: true,
+            username: true,
+            email: true,
+            avatarUrl: true,
+            credits: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        events: {
+          take: 1, // Just to indicate there are events
         },
       },
-      events: {
-        take: 1, // Just to indicate there are events
-      },
-    },
-    orderBy: { viewCount: 'desc' },
-    take: limit,
-  });
+      orderBy: [
+        { featuredAt: 'desc' }, // Most recently featured first
+        { viewCount: 'desc' }, // Then by views
+      ],
+      take: limit,
+    });
 
-  return timelines.map(transformTimeline);
+    return timelines.map(transformTimeline);
+  } catch (error: any) {
+    // If isFeatured column doesn't exist yet, fall back to view count
+    console.warn('[getFeaturedTimelines] Featured query failed, using view count fallback:', error.message);
+    const timelines = await prisma.timeline.findMany({
+      where: { isPublic: true },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            clerkId: true,
+            username: true,
+            email: true,
+            avatarUrl: true,
+            credits: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        events: {
+          take: 1,
+        },
+      },
+      orderBy: { viewCount: 'desc' },
+      take: limit,
+    });
+
+    return timelines.map(transformTimeline);
+  }
 }
 
 export async function listTimelines(options: {

@@ -14,6 +14,7 @@ import { EditEventDialog } from "./EditEventDialog";
 import { ShareMenu } from "@/components/sharing/ShareMenu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TimelineTweetTemplate } from "./TimelineTweetTemplate";
+import { ImageWithWatermark } from "./ImageWithWatermark";
 
 interface TimelineCardProps {
   event: TimelineEvent;
@@ -27,9 +28,10 @@ interface TimelineCardProps {
   timelineId?: string;
   timeline?: any;
   onEventUpdate?: (event: TimelineEvent) => void;
+  isFirstOrLast?: boolean;
 }
 
-export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false, isEditable = false, timelineId, timeline, onEventUpdate }: TimelineCardProps) => {
+export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false, isEditable = false, timelineId, timeline, onEventUpdate, isFirstOrLast = false }: TimelineCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const { isSignedIn } = useUser();
@@ -175,11 +177,12 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         {/* Image display */}
         {event.image && (
           <div className="mt-3 rounded-lg overflow-hidden border border-border">
-            <img 
-              src={event.image} 
+            <ImageWithWatermark
+              src={event.image}
               alt={event.title}
+              isFirstOrLast={isFirstOrLast || false}
+              timelineIsPublic={timeline?.is_public !== false}
               className="w-full h-auto object-cover"
-              loading="lazy"
             />
           </div>
         )}
