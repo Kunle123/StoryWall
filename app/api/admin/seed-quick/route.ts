@@ -193,9 +193,6 @@ export async function POST(request: NextRequest) {
           title: eventData.title,
           description: eventData.description,
           date: eventDate,
-          year: eventData.year,
-          month: eventData.month,
-          day: eventData.day,
           created_by: user.id,
         });
         results.eventsCreated++;
