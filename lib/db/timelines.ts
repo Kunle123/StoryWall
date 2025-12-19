@@ -34,7 +34,18 @@ export async function createTimeline(
     const timeline = await prisma.timeline.create({
       data: timelineData,
       include: {
-        creator: true,
+        creator: {
+          select: {
+            id: true,
+            clerkId: true,
+            username: true,
+            email: true,
+            avatarUrl: true,
+            credits: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         events: true,
         categories: true,
       },
@@ -230,7 +241,18 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
       const timeline = await prisma.timeline.findUnique({
         where: { id },
         include: {
-          creator: true,
+          creator: {
+            select: {
+              id: true,
+              clerkId: true,
+              username: true,
+              email: true,
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           events: {
             orderBy: { date: 'asc' },
           },
@@ -382,7 +404,18 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
       const timeline = await prisma.timeline.findUnique({
         where: { id },
         include: {
-          creator: true,
+          creator: {
+            select: {
+              id: true,
+              clerkId: true,
+              username: true,
+              email: true,
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           events: {
             orderBy: { date: 'asc' },
           },
@@ -428,7 +461,19 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
       const timelineRow = timelineRows[0];
       
       // Fetch relations separately using raw SQL to avoid missing column issues
-      const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+      const creator = await prisma.user.findUnique({ 
+        where: { id: timelineRow.creator_id },
+        select: {
+          id: true,
+          clerkId: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          credits: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
       
       // Use raw SQL for events to avoid number column issue
       // Sort by date - BC dates stored as negative years will sort correctly
@@ -527,7 +572,19 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
     if (timelineRows.length === 0) return null;
     
     const timelineRow = timelineRows[0];
-    const creator = await prisma.user.findUnique({ where: { id: timelineRow.creator_id } });
+    const creator = await prisma.user.findUnique({ 
+      where: { id: timelineRow.creator_id },
+      select: {
+        id: true,
+        clerkId: true,
+        username: true,
+        email: true,
+        avatarUrl: true,
+        credits: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
     
     // Sort by date - BC dates stored as negative years will sort correctly
     const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
@@ -604,7 +661,18 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
       const timeline = await prisma.timeline.findUnique({
         where: { slug },
         include: {
-          creator: true,
+          creator: {
+            select: {
+              id: true,
+              clerkId: true,
+              username: true,
+              email: true,
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           events: {
             orderBy: { date: 'asc' },
           },
@@ -655,7 +723,18 @@ export async function updateTimeline(
       ...(updates.is_collaborative !== undefined && { isCollaborative: updates.is_collaborative }),
     },
     include: {
-      creator: true,
+      creator: {
+        select: {
+          id: true,
+          clerkId: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          credits: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
       events: true,
       categories: true,
     },
@@ -775,7 +854,18 @@ export async function listTimelines(options: {
       timelines = await prisma.timeline.findMany({
         where,
         include: {
-          creator: true,
+          creator: {
+            select: {
+              id: true,
+              clerkId: true,
+              username: true,
+              email: true,
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           events: {
             take: 1,
             select: {
@@ -800,7 +890,18 @@ export async function listTimelines(options: {
       timelines = await prisma.timeline.findMany({
         where,
         include: {
-          creator: true,
+          creator: {
+            select: {
+              id: true,
+              clerkId: true,
+              username: true,
+              email: true,
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
           // Don't include events if there's a schema mismatch
         },
         orderBy: { createdAt: 'desc' },
@@ -892,7 +993,16 @@ export async function listTimelines(options: {
           try {
             creator = await prisma.user.findUnique({ 
               where: { id: row.creator_id },
-              select: { id: true, clerkId: true, username: true, email: true, avatarUrl: true },
+              select: { 
+                id: true, 
+                clerkId: true, 
+                username: true, 
+                email: true, 
+                avatarUrl: true,
+                credits: true,
+                createdAt: true,
+                updatedAt: true,
+              },
             });
           } catch (prismaCreatorError: any) {
             console.warn('[listTimelines] Failed to fetch creator via Prisma:', prismaCreatorError.message);
