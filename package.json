@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prisma generate && next build",
     "start": "next start",
+    "start:with-migrations": "npx prisma migrate deploy || echo 'Migrations skipped or failed, continuing...' && npm start",
     "lint": "next lint",
     "postinstall": "npm rebuild canvas || true",
     "db:generate": "prisma generate",
