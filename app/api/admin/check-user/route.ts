@@ -61,15 +61,26 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Admin Check User] Checking account data for: ${email}`);
 
-    // Find user by email
+    // Find user by email - use select to avoid bio column if it doesn't exist yet
     const user = await prisma.user.findUnique({
       where: { email },
-      include: {
+      select: {
+        id: true,
+        clerkId: true,
+        username: true,
+        email: true,
+        avatarUrl: true,
+        credits: true,
+        termsAcceptedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        twitterAccessToken: true,
+        tiktokAccessToken: true,
         timelines: {
           include: {
             events: {
               orderBy: { date: 'asc' },
-              take: 10, // Limit events per timeline for response size
+              take: 10,
             },
             categories: true,
           },
@@ -77,6 +88,19 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+
+    // Try to get bio separately in case column doesn't exist yet
+    let bio: string | null = null;
+    try {
+      const userWithBio = await prisma.$queryRawUnsafe<Array<{ bio: string | null }>>(
+        `SELECT bio FROM users WHERE email = $1 LIMIT 1`,
+        email
+      );
+      bio = userWithBio[0]?.bio || null;
+    } catch (error: any) {
+      // Bio column doesn't exist yet - this is okay, migration will add it
+      console.log('[Admin Check User] Bio column not found, migration may be pending');
+    }
 
     if (!user) {
       // Check for similar emails
@@ -121,7 +145,7 @@ export async function GET(request: NextRequest) {
         username: user.username,
         email: user.email,
         avatarUrl: user.avatarUrl,
-        bio: user.bio,
+        bio: bio,
         credits: user.credits,
         termsAcceptedAt: user.termsAcceptedAt,
         createdAt: user.createdAt,
