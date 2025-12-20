@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -8,7 +8,6 @@ const publicRoutes = [
   '/sign-in',
   '/sign-up',
   '/legal',
-  '/api',
 ];
 
 // Routes that don't require terms acceptance check
@@ -19,11 +18,14 @@ const exemptRoutes = [
   '/api',
 ];
 
-export async function middleware(request: NextRequest) {
+const isPublicRoute = createRouteMatcher(publicRoutes);
+const isExemptRoute = createRouteMatcher(exemptRoutes);
+
+export default clerkMiddleware(async (auth, request: NextRequest) => {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  if (isPublicRoute(request) || pathname.startsWith('/api')) {
     return NextResponse.next();
   }
 
@@ -38,7 +40,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if route is exempt from terms check
-  if (exemptRoutes.some(route => pathname.startsWith(route))) {
+  if (isExemptRoute(request)) {
     return NextResponse.next();
   }
 
@@ -66,7 +68,7 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
