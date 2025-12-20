@@ -61,46 +61,182 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Admin Check User] Checking account data for: ${email}`);
 
-    // Find user by email - use select to avoid bio column if it doesn't exist yet
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        clerkId: true,
-        username: true,
-        email: true,
-        avatarUrl: true,
-        credits: true,
-        termsAcceptedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        twitterAccessToken: true,
-        tiktokAccessToken: true,
-        timelines: {
-          include: {
-            events: {
-              orderBy: { date: 'asc' },
-              take: 10,
-            },
-            categories: true,
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+    // Check which columns exist
+    const bioExists = await checkColumnExists('users', 'bio');
+    const termsExists = await checkColumnExists('users', 'terms_accepted_at');
+
+    // Build SELECT query dynamically based on existing columns
+    const selectFields = [
+      'id', 'clerk_id', 'username', 'email', 'avatar_url', 'credits',
+      'created_at', 'updated_at', 'twitter_access_token', 'tiktok_access_token'
+    ];
+    if (bioExists) selectFields.push('bio');
+    if (termsExists) selectFields.push('terms_accepted_at');
+
+    // Use raw SQL to avoid Prisma schema mismatches with missing columns
+    const userRow = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      clerk_id: string;
+      username: string;
+      email: string;
+      avatar_url: string | null;
+      credits: number;
+      created_at: Date;
+      updated_at: Date;
+      twitter_access_token: string | null;
+      tiktok_access_token: string | null;
+      bio?: string | null;
+      terms_accepted_at?: Date | null;
+    }>>(`
+      SELECT ${selectFields.join(', ')}
+      FROM users 
+      WHERE email = $1 
+      LIMIT 1
+    `, email);
+
+    if (!userRow || userRow.length === 0) {
+      // Check for similar emails
+      const similarUsers = await prisma.$queryRawUnsafe<Array<{
+        id: string;
+        email: string;
+        username: string;
+        clerk_id: string;
+        created_at: Date;
+      }>>(`
+        SELECT id, email, username, clerk_id, created_at
+        FROM users
+        WHERE email LIKE $1
+        LIMIT 10
+      `, `%${email.split('@')[0]}%`);
+
+      return NextResponse.json({
+        found: false,
+        message: `User with email "${email}" not found`,
+        similarUsers: similarUsers.length > 0 ? similarUsers : undefined,
+      });
+    }
+
+    const userData = userRow[0];
+    const bio = userData.bio || null;
+    const termsAcceptedAt = userData.terms_accepted_at || null;
+
+    // Get timelines using raw SQL to avoid column issues
+    const timelines = await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      title: string;
+      slug: string;
+      is_public: boolean;
+      is_featured: boolean;
+      created_at: Date;
+    }>>(`
+      SELECT id, title, slug, is_public, is_featured, created_at
+      FROM timelines
+      WHERE creator_id = $1
+      ORDER BY created_at DESC
+    `, userData.id);
+
+    // Get events for each timeline
+    const timelineIds = timelines.map(t => t.id);
+    const events = timelineIds.length > 0 ? await prisma.$queryRawUnsafe<Array<{
+      id: string;
+      timeline_id: string;
+      title: string;
+      date: Date;
+    }>>(`
+      SELECT id, timeline_id, title, date
+      FROM events
+      WHERE timeline_id = ANY($1::uuid[])
+      ORDER BY date ASC
+      LIMIT 100
+    `, timelineIds) : [];
+
+    // Group events by timeline
+    const eventsByTimeline = new Map<string, typeof events>();
+    events.forEach(event => {
+      if (!eventsByTimeline.has(event.timeline_id)) {
+        eventsByTimeline.set(event.timeline_id, []);
+      }
+      eventsByTimeline.get(event.timeline_id)!.push(event);
     });
 
-    // Try to get bio separately in case column doesn't exist yet
-    let bio: string | null = null;
-    try {
-      const userWithBio = await prisma.$queryRawUnsafe<Array<{ bio: string | null }>>(
-        `SELECT bio FROM users WHERE email = $1 LIMIT 1`,
-        email
-      );
-      bio = userWithBio[0]?.bio || null;
-    } catch (error: any) {
-      // Bio column doesn't exist yet - this is okay, migration will add it
-      console.log('[Admin Check User] Bio column not found, migration may be pending');
-    }
+    const timelinesWithEvents = timelines.map(timeline => ({
+      id: timeline.id,
+      title: timeline.title,
+      slug: timeline.slug,
+      isPublic: timeline.is_public,
+      isFeatured: timeline.is_featured || false,
+      eventCount: eventsByTimeline.get(timeline.id)?.length || 0,
+      events: (eventsByTimeline.get(timeline.id) || []).slice(0, 10).map(e => ({
+        id: e.id,
+        title: e.title,
+        date: e.date,
+      })),
+      createdAt: timeline.created_at,
+    }));
+
+    // Get statistics
+    const eventCountResult = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(`
+      SELECT COUNT(*) as count FROM events WHERE created_by = $1
+    `, userData.id);
+    const eventCount = Number(eventCountResult[0]?.count || 0);
+
+    const categoryCountResult = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(`
+      SELECT COUNT(*) as count 
+      FROM categories 
+      WHERE timeline_id IN (SELECT id FROM timelines WHERE creator_id = $1)
+    `, userData.id);
+    const categoryCount = Number(categoryCountResult[0]?.count || 0);
+
+    const response = {
+      found: true,
+      user: {
+        id: userData.id,
+        clerkId: userData.clerk_id,
+        username: userData.username,
+        email: userData.email,
+        avatarUrl: userData.avatar_url,
+        bio: bio,
+        credits: userData.credits,
+        termsAcceptedAt: termsAcceptedAt,
+        createdAt: userData.created_at,
+        updatedAt: userData.updated_at,
+        twitterConnected: !!userData.twitter_access_token,
+        tiktokConnected: !!userData.tiktok_access_token,
+      },
+      timelines: timelinesWithEvents,
+      statistics: {
+        timelineCount: timelines.length,
+        totalEventCount: eventCount,
+        categoryCount: categoryCount,
+      },
+    };
+
+    return NextResponse.json(response);
+  } catch (error: any) {
+    console.error('[Admin Check User] Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to check user data' },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper function to check if a column exists
+async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const result = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = $1 
+        AND column_name = $2
+      ) as exists
+    `, tableName, columnName);
+    return result[0]?.exists || false;
+  } catch {
+    return false;
+  }
+}
 
     if (!user) {
       // Check for similar emails
