@@ -21,7 +21,12 @@ export default function AcceptTermsPage() {
 
   useEffect(() => {
     if (isLoaded && !user) {
-      router.push('/sign-in?redirect=/legal/accept-terms');
+      // Preserve returnUrl when redirecting to sign-in
+      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+      const redirectUrl = returnUrl 
+        ? `/sign-in?redirect=/legal/accept-terms&returnUrl=${encodeURIComponent(returnUrl)}`
+        : '/sign-in?redirect=/legal/accept-terms';
+      router.push(redirectUrl);
     }
   }, [isLoaded, user, router]);
 
@@ -52,9 +57,21 @@ export default function AcceptTermsPage() {
         description: "Thank you for accepting our Terms of Service and Privacy Policy.",
       });
 
+      // Wait a moment for the database update to propagate
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Redirect to home page or return URL
       const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/';
-      router.push(returnUrl);
+      
+      // Use window.location.href for a full page reload to ensure middleware picks up the updated terms status
+      // This ensures the middleware sees the updated termsAcceptedAt value
+      if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
+        window.location.href = returnUrl;
+      } else {
+        // Ensure the path starts with /
+        const path = returnUrl.startsWith('/') ? returnUrl : `/${returnUrl}`;
+        window.location.href = path;
+      }
     } catch (error: any) {
       console.error('Error accepting terms:', error);
       toast({
