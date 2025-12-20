@@ -17,15 +17,35 @@ function isAdminEmail(email: string | null | undefined): boolean {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await auth();
+    // Check authentication - use try-catch to handle Clerk middleware detection issues
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult?.userId || null;
+    } catch (authError: any) {
+      console.warn('[Admin Check User] Clerk auth error:', authError?.message);
+      return NextResponse.json(
+        { error: 'Authentication error. Please ensure you are signed in.' },
+        { status: 401 }
+      );
+    }
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user's email from Clerk
-    const { currentUser } = await import('@clerk/nextjs/server');
-    const clerkUser = await currentUser();
+    let clerkUser;
+    try {
+      const { currentUser } = await import('@clerk/nextjs/server');
+      clerkUser = await currentUser();
+    } catch (error: any) {
+      console.error('[Admin Check User] Error getting current user:', error);
+      return NextResponse.json(
+        { error: 'Failed to get user information' },
+        { status: 500 }
+      );
+    }
     
     if (!clerkUser || !isAdminEmail(clerkUser.emailAddresses[0]?.emailAddress)) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
