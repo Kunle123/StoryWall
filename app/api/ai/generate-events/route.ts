@@ -352,6 +352,14 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
 CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - For timelines about media controversies, TV show incidents, or public figure controversies, you MUST use web search to find ALL specific incidents, quotes, dates, and controversies
 - Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
+- CRITICAL: You MUST make MULTIPLE web search queries with different search terms. Do NOT make just one search query. Make at least 5-10 different searches such as:
+  * "[show name] controversy [year]" for each year in the timespan
+  * "[show name] [host name] controversy"
+  * "[show name] complaints [year]"
+  * "[show name] [specific incident keyword]"
+  * "[show name] [guest name] controversy"
+  * "[show name] [topic] criticism"
+  * Search for each year in the timespan separately (e.g., "Good Morning Britain 2020", "Good Morning Britain 2021", etc.)
 - Search for specific dates, quotes, host names, guest names, and specific incidents mentioned in news articles
 - CRITICAL: You MUST find MULTIPLE different incidents - do NOT stop after finding just one incident. Search extensively using multiple search queries to find ALL documented controversies, incidents, and moments
 - If you find only 1 incident, you MUST search more thoroughly with different search terms - there are almost always multiple incidents for media/controversy topics spanning multiple years
@@ -428,6 +436,31 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
             outputLength: Array.isArray(data.output) ? data.output.length : 0,
             dataKeys: Object.keys(data),
           });
+          
+          // Log tool calls if available to see what searches were made
+          if (data.output && Array.isArray(data.output)) {
+            const toolCalls = data.output.filter((item: any) => item.type === 'tool_call' || item.type === 'tool_result');
+            if (toolCalls.length > 0) {
+              console.log('[GenerateEvents API] Tool calls found:', toolCalls.length);
+              toolCalls.forEach((call: any, idx: number) => {
+                console.log(`[GenerateEvents API] Tool call ${idx + 1}:`, {
+                  type: call.type,
+                  toolName: call.tool_name || call.name,
+                  hasInput: !!call.input,
+                  hasOutput: !!call.output,
+                  inputPreview: call.input ? JSON.stringify(call.input).substring(0, 200) : undefined,
+                });
+              });
+            }
+          }
+          
+          // Log any citations or sources in the response
+          if (data.citations || data.sources) {
+            console.log('[GenerateEvents API] Citations/sources in response:', {
+              citations: data.citations,
+              sources: data.sources,
+            });
+          }
           
           // Prefer convenient field when available
           if (typeof data.output_text === 'string') {
@@ -1370,6 +1403,14 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
 CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - For timelines about media controversies, TV show incidents, or public figure controversies, you MUST use web search to find ALL specific incidents, quotes, dates, and controversies
 - Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
+- CRITICAL: You MUST make MULTIPLE web search queries with different search terms. Do NOT make just one search query. Make at least 5-10 different searches such as:
+  * "[show name] controversy [year]" for each year in the timespan
+  * "[show name] [host name] controversy"
+  * "[show name] complaints [year]"
+  * "[show name] [specific incident keyword]"
+  * "[show name] [guest name] controversy"
+  * "[show name] [topic] criticism"
+  * Search for each year in the timespan separately (e.g., "Good Morning Britain 2020", "Good Morning Britain 2021", etc.)
 - Search for specific dates, quotes, host names, guest names, and specific incidents mentioned in news articles
 - CRITICAL: You MUST find MULTIPLE different incidents - do NOT stop after finding just one incident. Search extensively using multiple search queries to find ALL documented controversies, incidents, and moments
 - If you find only 1 incident, you MUST search more thoroughly with different search terms - there are almost always multiple incidents for media/controversy topics spanning multiple years
