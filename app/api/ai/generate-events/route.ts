@@ -354,7 +354,7 @@ CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
 - Search for specific dates, quotes, host names, guest names, and specific incidents mentioned in news articles
 - Include as many unique incidents as you can find - do not consolidate multiple distinct incidents into one event
-- Example: If there are 5 different controversial moments with different dates/quotes/hosts, create 5 separate events, not 1 generic event\n\nCRITICAL: Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear stages. Examples:\n- Fetal development → Generate events showing developmental stages (conception, implantation, neural tube formation, heart beating, limb buds, etc.)\n- Construction of a building → Generate events showing construction phases (planning, foundation, framing, completion, etc.)\n- A disease progression → Generate events showing disease stages (onset, symptoms, treatment, recovery, etc.)\n- A scientific process → Generate events showing process steps (hypothesis, experiment, results, conclusion, etc.)\n\nWhen a clear progression exists, generate events that tell that story through its stages. Each event should represent a distinct stage or milestone in the progression. The events should allow the user to see how the subject progresses through time.\n\nFor topics WITHOUT a clear progression (e.g., political campaigns, historical events), include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025") or implicit time periods mentioned\n- If a timespan is identified, you MUST distribute events across ALL years in that timespan\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
+- Example: If there are 5 different controversial moments with different dates/quotes/hosts, create 5 separate events, not 1 generic event\n\nCRITICAL: Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear stages. Examples:\n- Fetal development → Generate events showing developmental stages (conception, implantation, neural tube formation, heart beating, limb buds, etc.)\n- Construction of a building → Generate events showing construction phases (planning, foundation, framing, completion, etc.)\n- A disease progression → Generate events showing disease stages (onset, symptoms, treatment, recovery, etc.)\n- A scientific process → Generate events showing process steps (hypothesis, experiment, results, conclusion, etc.)\n\nWhen a clear progression exists, generate events that tell that story through its stages. Each event should represent a distinct stage or milestone in the progression. The events should allow the user to see how the subject progresses through time.\n\nFor topics WITHOUT a clear progression (e.g., political campaigns, historical events), include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for:\n  * Explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025")\n  * Implicit time periods mentioned (e.g., "past decade", "last 10 years", "recent years")\n  * Topic context that suggests a time period (e.g., "Good Morning Britain" suggests searching from ~2014 when it launched to present, or "past decade" for recent controversies)\n- If a timespan is identified OR can be inferred from the topic, you MUST distribute events across ALL years in that timespan\n- For media/controversy topics: If no explicit timespan is mentioned, infer a reasonable timespan (e.g., "past decade" = 2015-2025, "recent years" = 2020-2025) and search across ALL those years\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
 - You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
 - If the topic has a clear progression/story, generate events that show that progression through its stages
 - CRITICAL: You MUST use web search for this topic - do not rely solely on your training data. Actively search for news articles, reports, and documented incidents
@@ -908,17 +908,24 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       });
       
       // Detect if this is a BC timeline pattern:
-      // - All years are large ancient years (>= 1000)
+      // - All years are large ancient years (>= 1000 BC, meaning >= 1000 in absolute value)
       // - Years are in descending order (typical BC pattern)
       // - At least some have explicit BC notation, or all are ambiguous
+      // - CRITICAL: Exclude modern years (1000-3000 AD) from BC detection - these are modern AD years, not ancient BC
       const providedYears = rawYears.filter((y, i): y is number => hadYearProvided[i] && y !== undefined);
-      const allLargeAncient = providedYears.length > 0 && providedYears.every(y => Math.abs(y) >= 1000 && Math.abs(y) < 10000);
+      // Only consider years >= 3000 as potentially "ancient" - modern years (1000-3000) should never be treated as BC
+      const allLargeAncient = providedYears.length > 0 && providedYears.every(y => {
+        const absYear = Math.abs(y);
+        // Ancient years are >= 3000 (BC or AD), not modern years 1000-3000
+        return absYear >= 3000 && absYear < 10000;
+      });
       const isDescending = providedYears.length > 1 && 
         providedYears.every((y, i) => i === 0 || Math.abs(providedYears[i - 1]) >= Math.abs(y));
       const hasAnyBC = hasExplicitBC.some(bc => bc);
       const allAmbiguous = hasExplicitBC.every(bc => !bc);
       
       // If pattern suggests BC timeline, mark ambiguous years as BC
+      // BUT: Only if years are actually ancient (>= 3000), not modern years
       const isBCTimeline = allLargeAncient && isDescending && (hasAnyBC || allAmbiguous);
       
       if (isBCTimeline) {
@@ -1074,21 +1081,15 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     
     console.log('[GenerateEvents API] Events after filtering:', events.length, 'out of', mappedEvents.length);
 
-    // Minimal deduplication: only remove consecutive exact duplicates (same title AND year)
-    // This catches obvious AI mistakes where the same event appears twice in a row
-    // Users can manually edit other duplicates if needed
+    // Aggressive deduplication: remove ALL duplicates (same title AND year), not just consecutive
+    // This catches AI mistakes where the same event appears multiple times in the response
+    const seenEvents = new Set<string>();
     const finalEvents = events.filter((event: any, index: number) => {
-      if (index === 0) return true; // Always keep first event
-      
-      const prevEvent = events[index - 1];
       const normalizedTitle = (event.title || '').trim().toLowerCase();
-      const prevNormalizedTitle = (prevEvent.title || '').trim().toLowerCase();
+      const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
       
-      // Only remove if it's consecutive AND exact same title AND same year
-      if (normalizedTitle === prevNormalizedTitle && 
-          event.year === prevEvent.year && 
-          event.year !== undefined) {
-        console.warn('[GenerateEvents API] Filtered out consecutive exact duplicate event:', {
+      if (seenEvents.has(eventKey)) {
+        console.warn('[GenerateEvents API] Filtered out duplicate event:', {
           title: event.title,
           year: event.year,
           index,
@@ -1096,6 +1097,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         return false;
       }
       
+      seenEvents.add(eventKey);
       return true;
     });
     
@@ -1367,7 +1369,7 @@ CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
 - Search for specific dates, quotes, host names, guest names, and specific incidents mentioned in news articles
 - Include as many unique incidents as you can find - do not consolidate multiple distinct incidents into one event
-- Example: If there are 5 different controversial moments with different dates/quotes/hosts, create 5 separate events, not 1 generic event\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025") or implicit time periods mentioned\n- If a timespan is identified, you MUST distribute events across ALL years in that timespan\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
+- Example: If there are 5 different controversial moments with different dates/quotes/hosts, create 5 separate events, not 1 generic event\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for:\n  * Explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025")\n  * Implicit time periods mentioned (e.g., "past decade", "last 10 years", "recent years")\n  * Topic context that suggests a time period (e.g., "Good Morning Britain" suggests searching from ~2014 when it launched to present, or "past decade" for recent controversies)\n- If a timespan is identified OR can be inferred from the topic, you MUST distribute events across ALL years in that timespan\n- For media/controversy topics: If no explicit timespan is mentioned, infer a reasonable timespan (e.g., "past decade" = 2015-2025, "recent years" = 2020-2025) and search across ALL those years\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
 - Generate UP TO ${batchMaxEvents} events, but ONLY unique, distinct events
 - Each event must be SEPARATE and UNIQUE - do not create multiple events for the same incident or different aspects of the same event
 - Do NOT create repetitive or similar events - if events are essentially the same, choose the most significant one
@@ -1658,21 +1660,15 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     }
   }
   
-  // Minimal deduplication: only remove consecutive exact duplicates (same title AND year)
-  // This catches obvious AI mistakes where the same event appears twice in a row
-  // Users can manually edit other duplicates if needed
+  // Aggressive deduplication: remove ALL duplicates (same title AND year), not just consecutive
+  // This catches AI mistakes where the same event appears multiple times in the response
+  const seenEvents = new Set<string>();
   const deduplicatedEvents = events.filter((event: any, index: number) => {
-    if (index === 0) return true; // Always keep first event
-    
-    const prevEvent = events[index - 1];
     const normalizedTitle = (event.title || '').trim().toLowerCase();
-    const prevNormalizedTitle = (prevEvent.title || '').trim().toLowerCase();
+    const eventKey = `${normalizedTitle}|${event.year || 'no-year'}`;
     
-    // Only remove if it's consecutive AND exact same title AND same year
-    if (normalizedTitle === prevNormalizedTitle && 
-        event.year === prevEvent.year && 
-        event.year !== undefined) {
-      console.warn(`[GenerateEventsBatch] Filtered out consecutive exact duplicate event${batchLabel}:`, {
+    if (seenEvents.has(eventKey)) {
+      console.warn(`[GenerateEventsBatch] Filtered out duplicate event${batchLabel}:`, {
         title: event.title,
         year: event.year,
         index,
@@ -1680,6 +1676,7 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       return false;
     }
     
+    seenEvents.add(eventKey);
     return true;
   });
   
