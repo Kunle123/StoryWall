@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 import { getDebugLogger, resetDebugLogger } from '@/lib/utils/debugLogger';
 import { loadUnifiedPrompts } from '@/lib/prompts/loader';
-import { getLatestPrompt } from '@/lib/utils/promptStorage';
+import { getLatestPrompt, getPrompt } from '@/lib/utils/promptStorage';
 
 /**
  * Debug endpoint for testing prompt fidelity
@@ -162,22 +162,28 @@ export async function POST(request: NextRequest) {
       const customPrompt = promptId ? getPrompt(promptId) : getLatestPrompt('descriptions');
       
       // Use custom prompts if available, otherwise load defaults
-      const unifiedPrompts = customPrompt?.systemPrompt && customPrompt?.userPrompt
-        ? { system: customPrompt.systemPrompt, user: customPrompt.userPrompt }
-        : loadUnifiedPrompts({
-        timelineDescription,
-        events: events.map((e: any) => ({ year: e.year, title: e.title })),
-        writingStyle,
-        imageStyle,
-        themeColor,
-        sourceRestrictions,
-        imageContext: undefined,
-        eventCount: events.length,
-        canUseCelebrityLikeness: false,
-        hasFactualDetails: false,
-        anchorStylePreview: '',
-        isSocialMedia: false,
-      });
+      let unifiedPrompts;
+      if (customPrompt?.systemPrompt && customPrompt?.userPrompt) {
+        unifiedPrompts = { 
+          system: customPrompt.systemPrompt, 
+          user: customPrompt.userPrompt 
+        };
+      } else {
+        unifiedPrompts = loadUnifiedPrompts({
+          timelineDescription,
+          events: events.map((e: any) => ({ year: e.year, title: e.title })),
+          writingStyle,
+          imageStyle,
+          themeColor,
+          sourceRestrictions,
+          imageContext: undefined,
+          eventCount: events.length,
+          canUseCelebrityLikeness: false,
+          hasFactualDetails: false,
+          anchorStylePreview: '',
+          isSocialMedia: false,
+        });
+      }
 
       const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
       const maxTokens = Math.min(
