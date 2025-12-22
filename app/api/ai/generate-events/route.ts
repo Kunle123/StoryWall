@@ -1538,6 +1538,8 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
         }
         
         // Log AI response
+        const finishReason = data.choices[0].finish_reason;
+        const isTruncatedByModel = finishReason === 'length' || finishReason === 'max_tokens';
         debugLogger.logAIResponse('Event Generation (Chat Completions)', contentText, {
           model: modelForGeneration,
           finishReason,
