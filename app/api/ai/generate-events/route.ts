@@ -1537,14 +1537,16 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           throw new Error('Empty assistant response');
         }
         
-        // Log AI response
+        // Log AI response (in batch function, get logger from parent scope)
+        const batchDebugLogger = getDebugLogger();
         const finishReason = data.choices[0].finish_reason;
         const isTruncatedByModel = finishReason === 'length' || finishReason === 'max_tokens';
-        debugLogger.logAIResponse('Event Generation (Chat Completions)', contentText, {
-          model: modelForGeneration,
+        batchDebugLogger.logAIResponse('Event Generation Batch (Chat Completions)', contentText, {
+          model: modelToUse,
           finishReason,
           isTruncated: isTruncatedByModel,
           responseLength: contentText.length,
+          batchNumber,
         });
   
   // Log the raw response for debugging
