@@ -224,9 +224,17 @@ export async function POST(request: NextRequest) {
 
       let parsedContent;
       try {
-        parsedContent = JSON.parse(rawResponse);
+        // Remove markdown code blocks if present
+        let jsonText = rawResponse.trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        parsedContent = JSON.parse(jsonText);
       } catch (e) {
-        parsedContent = { items: [], error: 'Failed to parse JSON' };
+        console.error('[Debug Test] JSON parse error:', e);
+        parsedContent = { items: [], error: 'Failed to parse JSON', rawResponse: rawResponse.substring(0, 500) };
       }
 
       debugLogger.logSystemInfo('Description Generation Test - Results', {
