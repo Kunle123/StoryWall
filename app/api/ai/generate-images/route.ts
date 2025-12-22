@@ -1469,26 +1469,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check credits before generation (1 credit per image) - skip if no user (debugging mode)
-    if (user) {
-      const requiredCredits = events.length;
-      const userCredits = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { credits: true },
-      });
+    // Check credits before generation (1 credit per image)
+    const requiredCredits = events.length;
+    const userCredits = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { credits: true },
+    });
 
-      if (!userCredits || userCredits.credits < requiredCredits) {
-        return NextResponse.json(
-          { 
-            error: 'Insufficient credits',
-            credits: userCredits?.credits || 0,
-            required: requiredCredits,
-          },
-          { status: 400 }
-        );
-      }
-    } else {
-      console.log('[ImageGen] Skipping credit check (no authenticated user - debugging mode)');
+    if (!userCredits || userCredits.credits < requiredCredits) {
+      return NextResponse.json(
+        { 
+          error: 'Insufficient credits',
+          credits: userCredits?.credits || 0,
+          required: requiredCredits,
+        },
+        { status: 400 }
+      );
     }
 
     const replicateApiKey = process.env.REPLICATE_API_TOKEN;
