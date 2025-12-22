@@ -1440,20 +1440,17 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 
 export async function POST(request: NextRequest) {
   try {
-    // Bypass authentication for debugging (allow unauthenticated requests)
-    let userId: string | null = null;
-    let user: any = null;
-    
-    try {
-      const authResult = await auth();
-      userId = authResult.userId || null;
-      if (userId) {
-        user = await getOrCreateUser(userId);
-      }
-    } catch (authError) {
-      // Authentication failed - allow to continue without auth for debugging
-      console.log('[ImageGen] Authentication bypassed for debugging');
+    // Check authentication
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
+
+    // Get or create user for credit management
+    const user = await getOrCreateUser(userId);
 
     const body = await request.json();
     const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
