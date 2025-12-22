@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 import { parseYear } from '@/lib/utils/dateFormat';
+import { getDebugLogger } from '@/lib/utils/debugLogger';
 
 /**
  * Attempts to repair common JSON malformation issues
@@ -70,9 +71,21 @@ type GenerateEventsResponse = {
   progressionSubject?: string;
 };
 export async function POST(request: NextRequest) {
+  const debugLogger = getDebugLogger();
+  
   try {
     const body = await request.json();
     let { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day", sourceRestrictions } = body;
+    
+    // Initialize debug logger
+    debugLogger.init(timelineName, timelineDescription);
+    debugLogger.logUserInput('Event Generation', {
+      maxEvents,
+      isFactual,
+      isNumbered,
+      numberLabel,
+      sourceRestrictions,
+    });
     
     // Validate and clamp maxEvents to 1-100
     maxEvents = Math.max(1, Math.min(100, parseInt(String(maxEvents), 10) || 20));
@@ -500,6 +513,12 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
           
           if (!contentText) {
             console.error('[GenerateEvents API] Could not extract content from Responses API:', JSON.stringify(data, null, 2));
+          } else {
+            // Log AI response
+            debugLogger.logAIResponse('Event Generation (Responses API)', contentText, {
+              responseLength: contentText.length,
+              hasToolCalls: data.output?.some((item: any) => item.type === 'tool_call'),
+            });
           }
         } else {
           const errText = await resp.text();
@@ -1238,6 +1257,16 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       progressionSubject: progressionSubject?.substring(0, 100),
     });
     
+    // Log final events
+    debugLogger.logSystemInfo('Event Generation - Final Results', {
+      eventsGenerated: finalEvents.length,
+      isProgression,
+      progressionSubject,
+      events: finalEvents,
+      sources: normalizedSources,
+      imageReferences: normalizedImageRefs,
+    });
+    
     // Include sources in response if provided
     const responsePayload: any = { events: finalEvents.slice(0, maxEvents) };
     if (isProgression && progressionSubject) {
@@ -1250,6 +1279,13 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     if (normalizedImageRefs.length > 0) {
       responsePayload.imageReferences = normalizedImageRefs;
     }
+    
+    // Include debug log in response (only in development or if explicitly requested)
+    const includeDebugLog = process.env.NODE_ENV === 'development' || body.includeDebugLog === true;
+    if (includeDebugLog) {
+      responsePayload.debugLog = debugLogger.getFormattedLog();
+    }
+    
     return NextResponse.json(responsePayload);
   } catch (error: any) {
     console.error('[GenerateEvents API] Error generating events:', error);
@@ -1397,6 +1433,7 @@ CRITICAL - TITLE REQUIREMENTS:
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
 - Create events that build upon each other to tell a coherent story
+g veracity.
 - Use creative freedom to develop interesting plot points and developments
 - Events should be chronologically ordered and relevant to the timeline description
 - Feel free to include specific dates when they enhance the narrative
@@ -1437,8 +1474,7 @@ CRITICAL: If the timeline description mentions "criticizing the working classes"
 - DO NOT include general complaints, Ofcom complaint numbers, or incidents unrelated to working-class criticism - ONLY include events that directly relate to hosts criticizing or dismissing working-class people
 - Each event should describe a SPECIFIC incident where a host made dismissive comments about working-class people, benefits recipients, or working-class communities
 - Example search queries: "[show name] working class criticism", "[show name] [host name] benefits recipients", "[show name] dismissive working class", "[show name] condescending [host name]"\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for:\n  * Explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025")\n  * Implicit time periods mentioned (e.g., "past decade", "last 10 years", "recent years")\n  * Topic context that suggests a time period (e.g., "Good Morning Britain" suggests searching from ~2014 when it launched to present, or "past decade" for recent controversies)\n- If a timespan is identified OR can be inferred from the topic, you MUST distribute events across ALL years in that timespan\n- For media/controversy topics: If no explicit timespan is mentioned, infer a reasonable timespan (e.g., "past decade" = 2015-2025, "recent years" = 2020-2025) and search across ALL those years\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
-- Generate UP TO ${batchMaxEvents} events, but ONLY unique, distinct events
-- Each event must be SEPARATE and UNIQUE - do not create multiple events for the same incident or different aspects of the same event
+- Generate UP TO ${batchMaxEvents} events, but ONLY unique, distinct events- Each event must be SEPARATE and UNIQUE - do not create multiple events for the same incident or different aspects of the same event
 - Do NOT create repetitive or similar events - if events are essentially the same, choose the most significant one
 - DO NOT fabricate events to reach ${batchMaxEvents} - if you can only find 5 unique events, return 5
 - Quality over quantity: Better to return fewer unique events than many repetitive ones
@@ -1496,10 +1532,18 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
     throw new Error('Invalid response format from AI API');
   }
   
-  const contentText = data.choices[0].message.content;
-  if (!contentText || typeof contentText !== 'string') {
-    throw new Error('Empty assistant response');
-  }
+  const         contentText = data.choices[0].message.content;
+        if (!contentText || typeof contentText !== 'string') {
+          throw new Error('Empty assistant response');
+        }
+        
+        // Log AI response
+        debugLogger.logAIResponse('Event Generation (Chat Completions)', contentText, {
+          model: modelForGeneration,
+          finishReason,
+          isTruncated: isTruncatedByModel,
+          responseLength: contentText.length,
+        });
   
   // Log the raw response for debugging
   console.log(`[GenerateEventsBatch] Raw response${batchLabel} (first 500 chars):`, contentText.substring(0, 500));

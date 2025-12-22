@@ -15,7 +15,11 @@ import { verifyAndCorrectEvents } from '@/lib/utils/verifyAndCorrect';
  * - Added content-based caching
  * - Optimized newsworthiness test (parallel execution)
  */
+import { getDebugLogger } from '@/lib/utils/debugLogger';
+
 export async function POST(request: NextRequest) {
+  const debugLogger = getDebugLogger();
+  
   try {
     const body = await request.json();
     const { 
@@ -28,6 +32,18 @@ export async function POST(request: NextRequest) {
       timelineTitle,
       timelineType // 'social' or 'statistics' or undefined
     } = body;
+    
+    // Initialize debug logger if not already initialized
+    if (!debugLogger.getLogs().length) {
+      debugLogger.init(timelineTitle, timelineDescription);
+    }
+    debugLogger.logUserInput('Description Generation', {
+      eventsCount: events?.length,
+      writingStyle,
+      imageStyle,
+      themeColor,
+      timelineType,
+    });
     
     // Detect if this is a social media timeline
     const isSocialMedia = timelineType === 'social' || 
@@ -252,10 +268,17 @@ export async function POST(request: NextRequest) {
       throw new Error('Invalid response format from AI API');
     }
 
+    // Log AI response
+    const rawResponse = response.choices[0].message.content;
+    debugLogger.logAIResponse('Description Generation', rawResponse, {
+      model: modelToUse,
+      generationTime: Date.now() - generationStartTime,
+    });
+
     // Parse response
     let content;
     try {
-      content = JSON.parse(response.choices[0].message.content);
+      content = JSON.parse(rawResponse);
     } catch (parseError: any) {
       console.error('[GenerateDescriptionsV2] Parse error:', parseError.message);
       throw new Error(`Failed to parse AI response: ${parseError.message}`);
@@ -364,6 +387,20 @@ export async function POST(request: NextRequest) {
     };
     setCached(cacheKey, cacheData);
 
+    // Log final results
+    debugLogger.logSystemInfo('Description Generation - Final Results', {
+      descriptionsGenerated: descriptions.length,
+      imagePromptsGenerated: imagePrompts.length,
+      anchorStyle: anchorStyle ? anchorStyle.substring(0, 100) : null,
+      hashtags,
+    });
+    
+    // Include debug log in response (only in development or if explicitly requested)
+    const includeDebugLog = process.env.NODE_ENV === 'development' || body.includeDebugLog === true;
+    if (includeDebugLog) {
+      responseData.debugLog = debugLogger.getFormattedLog();
+    }
+    
     return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('[GenerateDescriptionsV2] Error:', error);

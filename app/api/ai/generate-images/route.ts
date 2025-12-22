@@ -1915,6 +1915,24 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] Creating prediction ${index + 1}/${events.length} for "${event.title}"${referenceImageUrl ? ' with reference image' : ' (text only)'}`);
         console.log(`[ImageGen] Full prompt for "${event.title}":`, prompt);
         console.log(`[ImageGen] Prompt length: ${prompt.length} characters`);
+        
+        // Log image prompt for debugging
+        const { getDebugLogger } = await import('@/lib/utils/debugLogger');
+        const debugLogger = getDebugLogger();
+        debugLogger.logPrompt(`Image Generation - Event ${index + 1}: ${event.title}`, 
+          `Image generation prompt for event: ${event.title}`, 
+          prompt, 
+          {
+            eventIndex: index,
+            eventTitle: event.title,
+            eventYear: event.year,
+            imageStyle,
+            themeColor,
+            hasReferenceImage: !!referenceImageUrl,
+            needsText,
+            model: selectedModel,
+          }
+        );
         console.log(`[ImageGen] includesPeople: ${includesPeople && relevantImageRefs.length > 0}, hasReferenceImage: ${hasReferenceImage}`);
         if (hasReferenceImage && relevantImageRefs.length > 0) {
           const personNames = extractPersonNames(relevantImageRefs);
