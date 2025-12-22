@@ -1594,7 +1594,8 @@ export async function POST(request: NextRequest) {
     
     // Prepare reference images for Replicate if available (one per event, or use first available)
     // Filter out invalid URLs (categories, articles, non-image URLs)
-    const validImageReferences = finalImageReferences && finalImageReferences.length > 0
+    // Then validate that URLs actually exist (AI sometimes generates fake URLs)
+    let validImageReferences = finalImageReferences && finalImageReferences.length > 0
       ? finalImageReferences.filter((ref: { name: string; url: string }) => {
           // Must have a valid URL
           if (!ref.url || typeof ref.url !== 'string') return false;
@@ -1621,7 +1622,50 @@ export async function POST(request: NextRequest) {
         })
       : [];
     
-    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references`);
+    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references by pattern`);
+    
+    // Validate that URLs actually exist (AI sometimes generates fake URLs like "Piers_Morgan_2019.jpg" that don't exist)
+    // Validate in parallel for speed
+    if (validImageReferences.length > 0) {
+      console.log(`[ImageGen] Validating ${validImageReferences.length} image reference URLs...`);
+      const validationPromises = validImageReferences.map(async (ref: { name: string; url: string }) => {
+        const isValid = await validateImageUrl(ref.url);
+        if (!isValid) {
+          console.warn(`[ImageGen] ✗ Invalid image URL for ${ref.name}: ${ref.url.substring(0, 80)}...`);
+        }
+        return { ref, isValid };
+      });
+      
+      const validationResults = await Promise.all(validationPromises);
+      const validRefs = validationResults.filter(r => r.isValid).map(r => r.ref);
+      const invalidRefs = validationResults.filter(r => !r.isValid).map(r => r.ref);
+      
+      if (invalidRefs.length > 0) {
+        console.log(`[ImageGen] Found ${invalidRefs.length} invalid image URLs - will fetch real ones for: ${invalidRefs.map(r => r.name).join(', ')}`);
+        
+        // For invalid refs, try to fetch real image URLs using the person's name
+        const fetchPromises = invalidRefs.map(async (ref: { name: string; url: string }) => {
+          try {
+            // Extract person name and search for real image
+            const realUrl = await findImageUrlWithGPT4o(ref.name, ref.name) || 
+                           await searchWikimediaForPerson(ref.name, ref.name);
+            if (realUrl) {
+              console.log(`[ImageGen] ✓ Found real image URL for ${ref.name}: ${realUrl.substring(0, 80)}...`);
+              return { name: ref.name, url: realUrl };
+            }
+          } catch (error: any) {
+            console.error(`[ImageGen] Error fetching real image for ${ref.name}:`, error.message);
+          }
+          return null;
+        });
+        
+        const fetchedRefs = (await Promise.all(fetchPromises)).filter((r): r is { name: string; url: string } => r !== null);
+        validImageReferences = [...validRefs, ...fetchedRefs];
+        console.log(`[ImageGen] After validation and fetching: ${validImageReferences.length} valid image references`);
+      } else {
+        console.log(`[ImageGen] ✓ All ${validImageReferences.length} image reference URLs are valid`);
+      }
+    }
     
     // Prepare reference images with error handling
     let preparedReferences: (string | null)[] = [];
