@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 import { getDebugLogger, resetDebugLogger } from '@/lib/utils/debugLogger';
 import { loadUnifiedPrompts } from '@/lib/prompts/loader';
+import { getLatestPrompt } from '@/lib/utils/promptStorage';
 
 /**
  * Debug endpoint for testing prompt fidelity
@@ -25,6 +26,7 @@ export async function POST(request: NextRequest) {
       writingStyle = 'narrative',
       imageStyle,
       themeColor,
+      promptId, // Optional: use a specific saved prompt
       includeDebugLog = true, // Always include debug log for this endpoint
     } = body;
 
@@ -45,12 +47,15 @@ export async function POST(request: NextRequest) {
       const client = getAIClient();
       const openaiApiKey = process.env.OPENAI_API_KEY;
       
-      // Build prompts (simplified version from generate-events)
-      const systemPrompt = isFactual
+      // Check for custom prompts, otherwise use defaults
+      const customPrompt = promptId ? getPrompt(promptId) : getLatestPrompt('events');
+      
+      // Build prompts (use custom if available, otherwise simplified version from generate-events)
+      const systemPrompt = customPrompt?.systemPrompt || (isFactual
         ? `Generate accurate historical events based on the provided timeline description. Generate UP TO ${maxEvents} events, but ONLY if you can find that many UNIQUE, DISTINCT events. DO NOT fabricate events to reach ${maxEvents} - if fewer unique events exist, return only those.`
-        : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description.`;
+        : `You are a creative timeline event generator for fictional narratives. Generate up to ${maxEvents} engaging fictional events based on the provided timeline description.`);
 
-      const userPrompt = `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} events. Return as JSON: { "events": [{ "year": 2020, "title": "Event title" }, ...] }`;
+      const userPrompt = customPrompt?.userPrompt || `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}\n\nGenerate up to ${maxEvents} events. Return as JSON: { "events": [{ "year": 2020, "title": "Event title" }, ...] }`;
 
       debugLogger.logPrompt('Event Generation Test', systemPrompt, userPrompt, {
         maxEvents,
@@ -152,7 +157,14 @@ export async function POST(request: NextRequest) {
       }
 
       const client = getAIClient();
-      const unifiedPrompts = loadUnifiedPrompts({
+      
+      // Check for custom prompts
+      const customPrompt = promptId ? getPrompt(promptId) : getLatestPrompt('descriptions');
+      
+      // Use custom prompts if available, otherwise load defaults
+      const unifiedPrompts = customPrompt?.systemPrompt && customPrompt?.userPrompt
+        ? { system: customPrompt.systemPrompt, user: customPrompt.userPrompt }
+        : loadUnifiedPrompts({
         timelineDescription,
         events: events.map((e: any) => ({ year: e.year, title: e.title })),
         writingStyle,
