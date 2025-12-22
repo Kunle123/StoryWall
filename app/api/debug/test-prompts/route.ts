@@ -137,7 +137,16 @@ export async function POST(request: NextRequest) {
         } else if (jsonText.startsWith('```')) {
           jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
-        parsedContent = JSON.parse(jsonText);
+        const parsed = JSON.parse(jsonText);
+        
+        // Handle both formats: {events: [...]} or [...]
+        if (Array.isArray(parsed)) {
+          parsedContent = { events: parsed };
+        } else if (parsed.events && Array.isArray(parsed.events)) {
+          parsedContent = parsed;
+        } else {
+          parsedContent = { events: [], error: 'Invalid format - expected events array' };
+        }
       } catch (e) {
         console.error('[Debug Test] JSON parse error:', e);
         parsedContent = { events: [], error: 'Failed to parse JSON', rawResponse: contentText.substring(0, 500) };
