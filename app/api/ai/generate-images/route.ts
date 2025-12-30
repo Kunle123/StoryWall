@@ -171,12 +171,67 @@ function generateNameVariations(name: string): string[] {
 }
 
 // Helper to check if a filename/title matches a person's name
-function matchesPersonName(filename: string, personName: string): boolean {
+// Strict name matching to avoid false positives
+// Since AI-provided names are likely correct, we require strict matching
+function scorePersonNameMatch(filename: string, personName: string): number {
   const filenameLower = filename.toLowerCase();
   const nameParts = personName.toLowerCase().split(/\s+/).filter((p: string) => p.length > 2); // Ignore short words like "de", "van", etc.
   
-  // Check if all significant name parts appear in the filename
-  return nameParts.every(part => filenameLower.includes(part));
+  if (nameParts.length === 0) return 0;
+  
+  // For single-part names, require exact match
+  if (nameParts.length === 1) {
+    const isExactWord = new RegExp(`\\b${nameParts[0]}\\b`).test(filenameLower);
+    return isExactWord ? 10 : 0;
+  }
+  
+  // For multi-part names, require ALL significant parts to match as exact words
+  // This prevents false positives like "Mary Berry" matching "Mary (Berry) Beall"
+  let allPartsMatch = true;
+  let totalScore = 0;
+  
+  for (const part of nameParts) {
+    const isExactWord = new RegExp(`\\b${part}\\b`).test(filenameLower);
+    if (!isExactWord) {
+      allPartsMatch = false;
+      break;
+    }
+    // Give higher score for longer names (more specific matches)
+    totalScore += part.length > 4 ? 3 : 2; // Longer names = more specific
+  }
+  
+  // Require ALL parts to match as exact words to avoid false positives
+  if (!allPartsMatch) {
+    return 0;
+  }
+  
+  // Additional validation: check for common false positive patterns
+  // Reject if filename contains other names that might indicate wrong person
+  const commonFalsePositivePatterns = [
+    /\(.*\)/, // Names in parentheses often indicate different person
+    /and\s+\w+/, // "X and Y" suggests multiple people
+    /\d{4}-\d{4}/, // Date ranges might indicate different person
+  ];
+  
+  for (const pattern of commonFalsePositivePatterns) {
+    if (pattern.test(filenameLower)) {
+      // Only reject if the pattern appears near the name parts
+      const nameContext = nameParts.join('.*');
+      if (new RegExp(nameContext).test(filenameLower)) {
+        // If pattern is present but name still matches, be cautious
+        // Reduce score but don't reject completely
+        totalScore *= 0.5;
+      }
+    }
+  }
+  
+  return totalScore;
+}
+
+function matchesPersonName(filename: string, personName: string): boolean {
+  const score = scorePersonNameMatch(filename, personName);
+  // Require minimum score to ensure quality match
+  return score >= 4; // At least 2 name parts with decent score
 }
 
 // Helper to use GPT-4o to find direct image URLs for people
@@ -273,6 +328,9 @@ async function findImageUrlWithGPT4o(personName: string, searchQuery: string): P
 // Helper to search Wikimedia Commons for person images (fallback)
 async function searchWikimediaForPerson(searchQuery: string, personName: string): Promise<string | null> {
   try {
+    // Throttle Wikimedia API requests to avoid rate limits
+    await throttleWikimediaRequest();
+    
     // Use the person's name more directly in the search
     const nameParts = personName.split(/\s+/).filter((p: string) => p.length > 1);
     const directNameSearch = nameParts.join(' ');
@@ -285,11 +343,21 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     try {
-      const response = await fetch(searchUrl, { signal: controller.signal });
+      const searchRequest = async (): Promise<Response> => {
+        const response = await fetch(searchUrl, { 
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          },
+        });
+        return response;
+      };
+      
+      const response = await retryWithBackoff(searchRequest, 3, 1000, [429, 503, 502, 500]);
       clearTimeout(timeoutId);
       
-      if (!response.ok) {
-        console.warn(`[ImageGen] Wikimedia search failed: ${response.status}`);
+      if (!response || !response.ok) {
+        console.warn(`[ImageGen] Wikimedia search failed: ${response?.status || 'unknown'}`);
         return null;
       }
       
@@ -301,24 +369,41 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
         return null;
       }
       
-      // Find the first result that actually matches the person's name
-      let matchingResult = null;
+      // Find the best matching result using strict scoring
+      let bestMatch: { result: any; score: number } | null = null;
+      const MIN_SCORE_THRESHOLD = 4; // Require minimum score to ensure quality match
+      
       for (const result of results) {
         const pageTitle = result.title;
-        if (matchesPersonName(pageTitle, personName)) {
-          matchingResult = result;
-          console.log(`[ImageGen] Found matching result for ${personName}: ${pageTitle}`);
-          break;
+        const score = scorePersonNameMatch(pageTitle, personName);
+        
+        if (score >= MIN_SCORE_THRESHOLD) {
+          if (!bestMatch || score > bestMatch.score) {
+            bestMatch = { result, score };
+          }
+        } else if (score > 0) {
+          // Log why this result was rejected (for debugging)
+          console.log(`[ImageGen] Rejected "${pageTitle}" for ${personName} (score: ${score} < ${MIN_SCORE_THRESHOLD})`);
         }
       }
       
-      // If no exact match, try the first result but log a warning
-      if (!matchingResult) {
-        console.warn(`[ImageGen] No exact name match found for ${personName}, using first result: ${results[0].title}`);
-        matchingResult = results[0];
+      // Only use a match if we found a good one above threshold
+      // Don't use first result as fallback - it's too dangerous
+      if (!bestMatch) {
+        console.warn(`[ImageGen] No matching result found for ${personName} in ${results.length} results (required score >= ${MIN_SCORE_THRESHOLD}). Skipping to avoid false positives.`);
+        if (results.length > 0) {
+          console.log(`[ImageGen] Top result was: "${results[0].title}" (would need to match all name parts as exact words)`);
+        }
+        return null;
       }
       
+      const matchingResult = bestMatch.result;
+      console.log(`[ImageGen] ✓ Found high-quality match for ${personName} (score: ${bestMatch.score}): ${matchingResult.title}`);
+      
       const pageTitle = matchingResult.title;
+      
+      // Throttle before fetching image info
+      await throttleWikimediaRequest();
       
       // Fetch image info to get the direct URL (create new controller for this request)
       const imageInfoUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(pageTitle)}&prop=imageinfo&iiprop=url&origin=*`;
@@ -326,10 +411,19 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
       const infoController = new AbortController();
       const infoTimeoutId = setTimeout(() => infoController.abort(), 10000);
       
-      const infoResponse = await fetch(imageInfoUrl, { signal: infoController.signal });
+      const infoRequest = async (): Promise<Response> => {
+        return await fetch(imageInfoUrl, { 
+          signal: infoController.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          },
+        });
+      };
+      
+      const infoResponse = await retryWithBackoff(infoRequest, 3, 1000, [429, 503, 502, 500]);
       clearTimeout(infoTimeoutId);
-      if (!infoResponse.ok) {
-        console.warn(`[ImageGen] Failed to get image info: ${infoResponse.status}`);
+      if (!infoResponse || !infoResponse.ok) {
+        console.warn(`[ImageGen] Failed to get image info: ${infoResponse?.status || 'unknown'}`);
         return null;
       }
       
@@ -559,8 +653,49 @@ function getModelForStyle(imageStyle: string, needsText: boolean = false): strin
 // Legacy constant for backward compatibility
 const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
+// Rate limit tracking for Wikimedia requests
+let lastWikimediaRequest = 0;
+const WIKIMEDIA_MIN_DELAY = 200; // Minimum 200ms between requests to avoid rate limits
+
+// Helper to throttle Wikimedia requests
+async function throttleWikimediaRequest(): Promise<void> {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastWikimediaRequest;
+  if (timeSinceLastRequest < WIKIMEDIA_MIN_DELAY) {
+    await new Promise(resolve => setTimeout(resolve, WIKIMEDIA_MIN_DELAY - timeSinceLastRequest));
+  }
+  lastWikimediaRequest = Date.now();
+}
+
+// Helper to retry with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000,
+  retryableStatuses: number[] = [429, 503, 502, 500]
+): Promise<T | null> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const result = await fn();
+      return result;
+    } catch (error: any) {
+      const status = error.status || error.response?.status;
+      const isRetryable = status && retryableStatuses.includes(status);
+      
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.warn(`[ImageGen] Retry ${attempt + 1}/${maxRetries} after ${delay}ms (status: ${status})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return null;
+}
+
 // Helper to validate that a URL actually points to an image
-async function validateImageUrl(url: string): Promise<boolean> {
+async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): Promise<boolean> {
   try {
     // Check if URL has image extension
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'];
@@ -571,34 +706,58 @@ async function validateImageUrl(url: string): Promise<boolean> {
       return false;
     }
     
-    // Make HEAD request to check content-type with proper headers to avoid 403
-    const headResponse = await fetch(url, { 
-      method: 'HEAD',
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'image/*',
-      },
-      signal: AbortSignal.timeout(5000) // 5 second timeout
-    });
-    
-    if (!headResponse.ok) {
-      console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
-      return false;
+    // Throttle Wikimedia requests
+    if (url.includes('wikimedia.org')) {
+      await throttleWikimediaRequest();
     }
     
-    const contentType = headResponse.headers.get('content-type') || '';
-    const isImage = contentType.startsWith('image/');
+    const validateRequest = async (): Promise<boolean> => {
+      // Make HEAD request to check content-type with proper headers to avoid 403
+      const headResponse = await fetch(url, { 
+        method: 'HEAD',
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'image/*',
+        },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (!headResponse.ok) {
+        // If rate limited and retry is enabled, throw to trigger retry
+        if (headResponse.status === 429 && retryOnRateLimit) {
+          const error: any = new Error(`Rate limited: ${headResponse.status}`);
+          error.status = headResponse.status;
+          throw error;
+        }
+        console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
+        return false;
+      }
+      
+      const contentType = headResponse.headers.get('content-type') || '';
+      const isImage = contentType.startsWith('image/');
+      
+      if (!isImage) {
+        console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
+        return false;
+      }
+      
+      console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
+      return true;
+    };
     
-    if (!isImage) {
-      console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
-      return false;
+    if (retryOnRateLimit && url.includes('wikimedia.org')) {
+      const result = await retryWithBackoff(validateRequest, 3, 1000, [429, 503, 502]);
+      return result ?? false;
     }
     
-    console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
-    return true;
+    return await validateRequest();
   } catch (error: any) {
-    console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+    if (error.name === 'AbortError') {
+      console.warn(`[ImageGen] Timeout validating image URL: ${url.substring(0, 100)}`);
+    } else {
+      console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+    }
     return false;
   }
 }
@@ -654,17 +813,55 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
   try {
     console.log(`[ImageGen] Starting upload to Replicate for: ${imageUrl.substring(0, 80)}...`);
     
-    // Download the image with proper headers to avoid 403
-    const imageResponse = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'image/*',
-      },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
-
-    if (!imageResponse.ok) {
-      console.warn(`[ImageGen] Failed to download image (${imageResponse.status}): ${imageUrl.substring(0, 100)}`);
+    // Throttle Wikimedia requests before downloading
+    if (imageUrl.includes('wikimedia.org')) {
+      await throttleWikimediaRequest();
+    }
+    
+    // Download the image with retry logic for rate limits
+    const downloadImage = async (): Promise<Response> => {
+      const imageResponse = await fetch(imageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'image/*',
+        },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+      
+      if (!imageResponse.ok) {
+        // If rate limited, throw to trigger retry
+        if (imageResponse.status === 429 || imageResponse.status === 503 || imageResponse.status === 502) {
+          const error: any = new Error(`Rate limited or server error: ${imageResponse.status}`);
+          error.status = imageResponse.status;
+          throw error;
+        }
+        // For other errors, throw to fail immediately
+        const error: any = new Error(`Failed to download: ${imageResponse.status}`);
+        error.status = imageResponse.status;
+        throw error;
+      }
+      
+      return imageResponse;
+    };
+    
+    let imageResponse: Response;
+    try {
+      if (imageUrl.includes('wikimedia.org')) {
+        const result = await retryWithBackoff(downloadImage, 3, 2000, [429, 503, 502]);
+        if (!result) {
+          console.warn(`[ImageGen] Failed to download image after retries: ${imageUrl.substring(0, 100)}`);
+          return null;
+        }
+        imageResponse = result;
+      } else {
+        imageResponse = await downloadImage();
+      }
+    } catch (error: any) {
+      if (error.status && [429, 503, 502].includes(error.status)) {
+        console.warn(`[ImageGen] Failed to download image after retries (${error.status}): ${imageUrl.substring(0, 100)}`);
+      } else {
+        console.warn(`[ImageGen] Failed to download image (${error.status || 'unknown'}): ${imageUrl.substring(0, 100)}`);
+      }
       return null;
     }
 
@@ -1625,18 +1822,25 @@ export async function POST(request: NextRequest) {
     console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references by pattern`);
     
     // Validate that URLs actually exist (AI sometimes generates fake URLs like "Piers_Morgan_2019.jpg" that don't exist)
-    // Validate in parallel for speed
+    // Validate with delays to avoid rate limits (especially for Wikimedia)
     if (validImageReferences.length > 0) {
       console.log(`[ImageGen] Validating ${validImageReferences.length} image reference URLs...`);
-      const validationPromises = validImageReferences.map(async (ref: { name: string; url: string }) => {
+      
+      // Process validation with delays between requests to avoid rate limits
+      const validationResults: Array<{ ref: { name: string; url: string }; isValid: boolean }> = [];
+      for (let i = 0; i < validImageReferences.length; i++) {
+        const ref = validImageReferences[i];
         const isValid = await validateImageUrl(ref.url);
         if (!isValid) {
           console.warn(`[ImageGen] ✗ Invalid image URL for ${ref.name}: ${ref.url.substring(0, 80)}...`);
         }
-        return { ref, isValid };
-      });
-      
-      const validationResults = await Promise.all(validationPromises);
+        validationResults.push({ ref, isValid });
+        
+        // Add delay between validations to avoid rate limits (especially for Wikimedia)
+        if (i < validImageReferences.length - 1 && ref.url.includes('wikimedia.org')) {
+          await new Promise(resolve => setTimeout(resolve, WIKIMEDIA_MIN_DELAY));
+        }
+      }
       const validRefs = validationResults.filter(r => r.isValid).map(r => r.ref);
       const invalidRefs = validationResults.filter(r => !r.isValid).map(r => r.ref);
       
@@ -1876,7 +2080,7 @@ export async function POST(request: NextRequest) {
               referenceImageUrl = uploadedUrl;
               console.log(`[ImageGen] ✓ Using uploaded Replicate URL: ${uploadedUrl.substring(0, 80)}...`);
             } else {
-              console.warn(`[ImageGen] Upload failed, will skip reference image to avoid 403 errors`);
+              console.warn(`[ImageGen] Upload failed (likely rate limit or network error), will skip reference image to avoid 403 errors`);
               referenceImageUrl = null; // Don't use direct Wikimedia URL - it will fail
             }
           }
