@@ -2179,6 +2179,10 @@ export async function POST(request: NextRequest) {
         let relevantImageRefs: Array<{ name: string; url: string }> = [];
         let referenceImageUrl: string | null = null;
         
+        const singleSubjectRef = finalImageReferences && finalImageReferences.length === 1
+          ? finalImageReferences[0]
+          : null;
+
         if (finalImageReferences && finalImageReferences.length > 0) {
           // Find which reference images are relevant to this event
           // Use precise matching: prefer full name, then first+last, then last name only if unambiguous
@@ -2220,6 +2224,22 @@ export async function POST(request: NextRequest) {
             return false;
           });
           
+          // If there is exactly one subject reference and no explicit match, assume the timeline
+          // is about that person and apply the reference across events (e.g., Ben Affleck),
+          // but only when we actually prepared a reference.
+          if (relevantImageRefs.length === 0 && singleSubjectRef && hasPreparedReferences) {
+            relevantImageRefs = [singleSubjectRef];
+            console.log(`[ImageGen] Forcing single-subject reference for "${event.title}" using ${singleSubjectRef.name}`);
+          }
+
+          // Avoid reusing a single reference for multiple distinct people in the same event
+          // (e.g., "Ben Affleck interviewing Ben Affleck").
+          const preparedAvailable = preparedReferences.filter(r => r).length;
+          if (relevantImageRefs.length > 1 && preparedAvailable <= 1) {
+            console.log(`[ImageGen] Multiple people detected (${relevantImageRefs.map(r => r.name).join(', ')}), but only one reference available. Skipping reference to avoid reusing the same image for multiple people.`);
+            relevantImageRefs = [];
+          }
+
           if (relevantImageRefs.length > 0) {
             // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
             let bestMatch = relevantImageRefs[0];
