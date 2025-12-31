@@ -949,30 +949,42 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     // Convert ArrayBuffer to Buffer for Node.js
     const buffer = Buffer.from(imageBuffer);
     
-    // Create FormData - in Node.js 18+, FormData is available globally
-    const formData = new FormData();
+    // Use form-data package for reliable multipart uploads in Node.js
+    // The built-in FormData might not work correctly with Replicate's API
+    const FormDataNode = require('form-data');
+    const formData = new FormDataNode();
     
-    // In Node.js, FormData can accept a Blob directly
-    // Create a Blob from the buffer
-    const blob = new Blob([buffer], { type: contentType });
-    
-    // Append the blob to FormData with a filename
-    // In Node.js FormData, we can append a Blob with options
-    formData.append('file', blob, 'image.jpg');
+    // Append the buffer directly - form-data will handle it correctly
+    // Use a proper filename with extension based on content type
+    const extension = contentType.includes('png') ? 'png' : 
+                     contentType.includes('webp') ? 'webp' : 
+                     contentType.includes('gif') ? 'gif' : 'jpg';
+    formData.append('file', buffer, {
+      filename: `image.${extension}`,
+      contentType: contentType,
+    });
 
     console.log(`[ImageGen] Uploading to Replicate...`);
+    
+    // Get headers from form-data (includes boundary)
+    const formHeaders = formData.getHeaders();
+    console.log(`[ImageGen] FormData headers:`, formHeaders);
+    console.log(`[ImageGen] Buffer size: ${buffer.length} bytes, Content-Type: ${contentType}`);
+    
     const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${replicateApiKey}`,
+        ...formHeaders, // Include Content-Type with boundary from form-data
       },
-      body: formData,
+      body: formData as any, // form-data package works with fetch in Node.js
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
       console.error(`[ImageGen] Failed to upload image to Replicate (${uploadResponse.status}): ${errorText}`);
+      console.error(`[ImageGen] Upload error details: status=${uploadResponse.status}, statusText=${uploadResponse.statusText}`);
       return null;
     }
 
