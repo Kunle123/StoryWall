@@ -1015,15 +1015,20 @@ export async function listTimelines(options: {
         // Use raw SQL for creator to avoid Twitter token column issues
         let creator = null;
         try {
+          // Check if bio column exists before selecting it
+          const bioExists = await checkColumnExists('users', 'bio');
+          const selectFields = ['id', 'clerk_id', 'username', 'email', 'avatar_url'];
+          if (bioExists) selectFields.push('bio');
+          
           const creatorRows = await prisma.$queryRawUnsafe<Array<{
             id: string;
             clerk_id: string;
             username: string;
             email: string;
             avatar_url: string | null;
-            bio: string | null;
+            bio?: string | null;
           }>>(`
-            SELECT id, clerk_id, username, email, avatar_url, bio
+            SELECT ${selectFields.join(', ')}
             FROM users
             WHERE id = $1
             LIMIT 1
@@ -1036,26 +1041,31 @@ export async function listTimelines(options: {
               username: creatorRows[0].username,
               email: creatorRows[0].email,
               avatarUrl: creatorRows[0].avatar_url,
-              bio: creatorRows[0].bio,
+              bio: creatorRows[0].bio || null,
             };
           }
         } catch (creatorError: any) {
           console.warn('[listTimelines] Failed to fetch creator via raw SQL:', creatorError.message);
-          // Try Prisma as fallback
+          // Try Prisma as fallback (but don't select bio if column doesn't exist)
           try {
+            const bioExists = await checkColumnExists('users', 'bio');
+            const selectFields: any = { 
+              id: true, 
+              clerkId: true, 
+              username: true, 
+              email: true, 
+              avatarUrl: true,
+              credits: true,
+              createdAt: true,
+              updatedAt: true,
+            };
+            if (bioExists) {
+              selectFields.bio = true;
+            }
+            
             creator = await prisma.user.findUnique({ 
               where: { id: row.creator_id },
-              select: { 
-                id: true, 
-                clerkId: true, 
-                username: true, 
-                email: true, 
-                avatarUrl: true,
-                bio: true,
-                credits: true,
-                createdAt: true,
-                updatedAt: true,
-              },
+              select: selectFields,
             });
           } catch (prismaCreatorError: any) {
             console.warn('[listTimelines] Failed to fetch creator via Prisma:', prismaCreatorError.message);
@@ -1135,6 +1145,23 @@ export async function listTimelines(options: {
 }
 
 // Helper function to safely convert dates to ISO strings
+// Helper function to check if a column exists
+async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const result = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = $1 
+        AND column_name = $2
+      ) as exists
+    `, tableName, columnName);
+    return result[0]?.exists || false;
+  } catch {
+    return false;
+  }
+}
+
 function safeToISOString(date: any): string {
   if (!date) {
     return new Date().toISOString(); // Fallback to current date if null/undefined

@@ -161,6 +161,23 @@ export async function getUserById(userId: string) {
   });
 }
 
+// Helper function to check if a column exists
+async function checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
+  try {
+    const result = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = $1 
+        AND column_name = $2
+      ) as exists
+    `, tableName, columnName);
+    return result[0]?.exists || false;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Update user profile (username and/or avatarUrl)
  */
@@ -186,24 +203,38 @@ export async function updateUserProfile(
     }
   }
 
+  // Check if bio column exists before including it in update/select
+  const bioExists = await checkColumnExists('users', 'bio');
+  const updateData: any = {
+    ...(updates.username && { username: updates.username }),
+    ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
+  };
+  
+  // Only include bio in update if column exists and bio is being updated
+  if (bioExists && updates.bio !== undefined) {
+    updateData.bio = updates.bio || null;
+  }
+
+  const selectFields: any = {
+    id: true,
+    clerkId: true,
+    username: true,
+    email: true,
+    avatarUrl: true,
+    credits: true,
+    createdAt: true,
+    updatedAt: true,
+  };
+  
+  // Only select bio if column exists
+  if (bioExists) {
+    selectFields.bio = true;
+  }
+
   return await prisma.user.update({
     where: { clerkId: clerkUserId },
-    data: {
-      ...(updates.username && { username: updates.username }),
-      ...(updates.avatarUrl !== undefined && { avatarUrl: updates.avatarUrl }),
-      ...(updates.bio !== undefined && { bio: updates.bio || null }),
-    },
-    select: {
-      id: true,
-      clerkId: true,
-      username: true,
-      email: true,
-      avatarUrl: true,
-      bio: true,
-      credits: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    data: updateData,
+    select: selectFields,
   });
 }
 

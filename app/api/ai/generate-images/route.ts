@@ -952,34 +952,80 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     // Use form-data package for reliable multipart uploads in Node.js
     // The built-in FormData might not work correctly with Replicate's API
     const FormDataNode = require('form-data');
-    const formData = new FormDataNode();
     
-    // Append the buffer directly - form-data will handle it correctly
     // Use a proper filename with extension based on content type
     const extension = contentType.includes('png') ? 'png' : 
                      contentType.includes('webp') ? 'webp' : 
                      contentType.includes('gif') ? 'gif' : 'jpg';
-    formData.append('file', buffer, {
-      filename: `image.${extension}`,
-      contentType: contentType,
-    });
 
     console.log(`[ImageGen] Uploading to Replicate...`);
-    
-    // Get headers from form-data (includes boundary)
-    const formHeaders = formData.getHeaders();
-    console.log(`[ImageGen] FormData headers:`, formHeaders);
     console.log(`[ImageGen] Buffer size: ${buffer.length} bytes, Content-Type: ${contentType}`);
     
-    const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Token ${replicateApiKey}`,
-        ...formHeaders, // Include Content-Type with boundary from form-data
-      },
-      body: formData as any, // form-data package works with fetch in Node.js
-      signal: AbortSignal.timeout(30000), // 30 second timeout
-    });
+    // Retry logic for Replicate uploads (especially for 500 errors which are often transient)
+    // FormData can only be used once, so we recreate it for each retry
+    const performUpload = async (): Promise<Response> => {
+      // Create a new FormData for each retry attempt (FormData is a stream and can only be used once)
+      const formData = new FormDataNode();
+      formData.append('file', buffer, {
+        filename: `image.${extension}`,
+        contentType: contentType,
+      });
+      
+      // Get headers from form-data (includes boundary)
+      const formHeaders = formData.getHeaders();
+      
+      const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${replicateApiKey}`,
+          ...formHeaders, // Include Content-Type with boundary from form-data
+        },
+        body: formData as any, // form-data package works with fetch in Node.js
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+      
+      // For retryable errors, throw to trigger retry
+      if (!uploadResponse.ok) {
+        const status = uploadResponse.status;
+        // 500, 502, 503, 429 are retryable
+        if ([500, 502, 503, 429].includes(status)) {
+          const errorText = await uploadResponse.text().catch(() => 'Unable to read error response');
+          const error: any = new Error(`Replicate upload failed: ${status} - ${errorText}`);
+          error.status = status;
+          throw error;
+        }
+        // For non-retryable errors, return the response to handle normally
+        return uploadResponse;
+      }
+      
+      return uploadResponse;
+    };
+    
+    let uploadResponse: Response;
+    try {
+      // Retry up to 3 times for 500, 502, 503, 429 errors with exponential backoff
+      const result = await retryWithBackoff(performUpload, 3, 2000, [500, 502, 503, 429]);
+      if (!result) {
+        console.error(`[ImageGen] Failed to upload to Replicate after retries`);
+        return null;
+      }
+      uploadResponse = result;
+    } catch (error: any) {
+      // If retry failed or non-retryable error, handle it
+      if (error.status && ![500, 502, 503, 429].includes(error.status)) {
+        // Non-retryable error that was thrown
+        console.error(`[ImageGen] Failed to upload image to Replicate (${error.status}): ${error.message}`);
+        return null;
+      } else if (error.status) {
+        // Retryable error that exhausted retries
+        console.error(`[ImageGen] Failed to upload image to Replicate after retries (${error.status}): ${error.message}`);
+        return null;
+      } else {
+        // Unexpected error
+        console.error(`[ImageGen] Unexpected error uploading to Replicate: ${error.message}`);
+        return null;
+      }
+    }
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
@@ -2829,6 +2875,10 @@ export async function POST(request: NextRequest) {
                               decrement: creditsToDeduct,
                             },
                           },
+                          select: {
+                            id: true,
+                            credits: true,
+                          },
                         });
                         console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images`);
                       } catch (creditError: any) {
@@ -2882,6 +2932,10 @@ export async function POST(request: NextRequest) {
                               decrement: creditsToDeduct,
                             },
                           },
+                          select: {
+                            id: true,
+                            credits: true,
+                          },
                         });
                         console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images (with processing errors)`);
                       } catch (creditError: any) {
@@ -2922,6 +2976,10 @@ export async function POST(request: NextRequest) {
                           credits: {
                             decrement: creditsToDeduct,
                           },
+                        },
+                        select: {
+                          id: true,
+                          credits: true,
                         },
                       });
                       console.log(`[ImageGen] [Streaming] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images (with errors)`);
@@ -3053,6 +3111,10 @@ export async function POST(request: NextRequest) {
             credits: {
               decrement: creditsToDeduct,
             },
+          },
+          select: {
+            id: true,
+            credits: true,
           },
         });
         console.log(`[ImageGen] Deducted ${creditsToDeduct} credits from user ${user.id} for ${successfulImages.length} generated images`);
