@@ -335,9 +335,12 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
     const nameParts = personName.split(/\s+/).filter((p: string) => p.length > 1);
     const directNameSearch = nameParts.join(' ');
     
-    // Search with both the search query and direct name
-    const searchTerms = `${directNameSearch} ${searchQuery}`.trim();
-    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(searchTerms + ' portrait OR headshot OR official photo')}&srnamespace=6&srlimit=10&origin=*`;
+    // Search with person's name first (more important), then add generic terms
+    // Prioritize name matches over generic "official photo" terms to avoid false positives
+    // Use "intitle:" prefix to prioritize files with the person's name in the title
+    const nameSearch = `intitle:${directNameSearch}`;
+    const searchTerms = `${nameSearch} ${searchQuery}`.trim();
+    const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(searchTerms)}&srnamespace=6&srlimit=10&origin=*`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -369,11 +372,66 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
         return null;
       }
       
+      // "Ashlan Chidester" appearing in results is a strong indicator that the search was too generic
+      // This image ranks highly because it matches generic terms like "official photo headshot"
+      // If we see it, the search query needs to be more specific - retry with just the person's name
+      const KNOWN_FALSE_POSITIVE_INDICATOR = 'Ashlan Chidester';
+      const hasFalsePositiveIndicator = results.some((result: any) => 
+        result.title.toLowerCase().includes(KNOWN_FALSE_POSITIVE_INDICATOR.toLowerCase())
+      );
+      
+      if (hasFalsePositiveIndicator) {
+        console.warn(`[ImageGen] ⚠️ Search quality error: "Ashlan Chidester" found - search "${searchTerms}" was too generic`);
+        console.warn(`[ImageGen] Retrying with more specific search (name only, no generic terms)...`);
+        
+        // Retry with just the person's name (more specific, no generic terms)
+        const specificSearchUrl = `https://commons.wikimedia.org/w/api.php?action=query&format=json&list=search&srsearch=${encodeURIComponent(`intitle:${directNameSearch}`)}&srnamespace=6&srlimit=10&origin=*`;
+        
+        try {
+          await throttleWikimediaRequest();
+          const specificResponse = await fetch(specificSearchUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            },
+            signal: controller.signal,
+          });
+          
+          if (specificResponse.ok) {
+            const specificData = await specificResponse.json();
+            const specificResults = specificData.query?.search || [];
+            
+            if (specificResults.length > 0) {
+              console.log(`[ImageGen] ✓ Retry found ${specificResults.length} more specific results`);
+              // Use the more specific results instead
+              results = specificResults;
+            }
+          }
+        } catch (retryError: any) {
+          console.warn(`[ImageGen] Retry search failed: ${retryError.message}`);
+          // Continue with original results
+        }
+      }
+      
+      // Filter out known false positive images
+      const KNOWN_FALSE_POSITIVES = [
+        'Ashlan Chidester',
+        'Ashlan Chidestar', // Common misspelling
+      ];
+      
+      const filteredResults = results.filter((result: any) => {
+        const titleLower = result.title.toLowerCase();
+        return !KNOWN_FALSE_POSITIVES.some(fp => titleLower.includes(fp.toLowerCase()));
+      });
+      
+      if (filteredResults.length < results.length) {
+        console.log(`[ImageGen] Filtered out ${results.length - filteredResults.length} known false positive(s)`);
+      }
+      
       // Find the best matching result using strict scoring
       let bestMatch: { result: any; score: number } | null = null;
       const MIN_SCORE_THRESHOLD = 4; // Require minimum score to ensure quality match
       
-      for (const result of results) {
+      for (const result of filteredResults) {
         const pageTitle = result.title;
         const score = scorePersonNameMatch(pageTitle, personName);
         
@@ -390,9 +448,12 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
       // Only use a match if we found a good one above threshold
       // Don't use first result as fallback - it's too dangerous
       if (!bestMatch) {
-        console.warn(`[ImageGen] No matching result found for ${personName} in ${results.length} results (required score >= ${MIN_SCORE_THRESHOLD}). Skipping to avoid false positives.`);
-        if (results.length > 0) {
-          console.log(`[ImageGen] Top result was: "${results[0].title}" (would need to match all name parts as exact words)`);
+        const errorMsg = hasFalsePositiveIndicator 
+          ? `Search was too generic (Ashlan Chidester indicator) and no specific matches found`
+          : `No matching result found`;
+        console.warn(`[ImageGen] ${errorMsg} for ${personName} in ${filteredResults.length} results (required score >= ${MIN_SCORE_THRESHOLD}). Skipping to avoid false positives.`);
+        if (filteredResults.length > 0) {
+          console.log(`[ImageGen] Top result was: "${filteredResults[0].title}" (would need to match all name parts as exact words)`);
         }
         return null;
       }
