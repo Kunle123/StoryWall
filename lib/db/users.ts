@@ -188,7 +188,17 @@ export async function updateUserProfile(
     avatarUrl?: string;
     bio?: string;
   }
-) {
+): Promise<{
+  id: string;
+  clerkId: string;
+  username: string;
+  email: string;
+  avatarUrl: string | null;
+  credits: number;
+  createdAt: Date;
+  updatedAt: Date;
+  bio?: string | null;
+}> {
   // Check if username is being updated and if it's already taken
   if (updates.username) {
     const existingUser = await prisma.user.findFirst({
