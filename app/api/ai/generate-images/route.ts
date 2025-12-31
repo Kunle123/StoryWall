@@ -1847,6 +1847,12 @@ export async function POST(request: NextRequest) {
     
     const hasReferenceImages = finalImageReferences && finalImageReferences.length > 0;
     
+    // Log summary of reference image state
+    console.log(`[ImageGen] 📊 Reference Image Summary: hasReferenceImages=${hasReferenceImages}, count=${finalImageReferences?.length || 0}, includesPeople=${includesPeople}`);
+    if (hasReferenceImages) {
+      console.log(`[ImageGen] Reference images: ${finalImageReferences.map(r => `${r.name} (${r.url.substring(0, 50)}...)`).join(', ')}`);
+    }
+    
     // Get style-specific visual language for cohesion
     const styleVisualLanguage = STYLE_VISUAL_LANGUAGE[imageStyle] || STYLE_VISUAL_LANGUAGE['Illustration'];
     
@@ -1880,20 +1886,24 @@ export async function POST(request: NextRequest) {
         })
       : [];
     
-    console.log(`[ImageGen] Filtered ${validImageReferences.length}/${finalImageReferences?.length || 0} valid image references by pattern`);
+    console.log(`[ImageGen] 🔍 Pattern Filtering: ${validImageReferences.length}/${finalImageReferences?.length || 0} passed pattern validation`);
     
     // Validate that URLs actually exist (AI sometimes generates fake URLs like "Piers_Morgan_2019.jpg" that don't exist)
     // Validate with delays to avoid rate limits (especially for Wikimedia)
     if (validImageReferences.length > 0) {
-      console.log(`[ImageGen] Validating ${validImageReferences.length} image reference URLs...`);
+      console.log(`[ImageGen] ✅ Starting URL validation for ${validImageReferences.length} image reference(s)...`);
+      const validationStartTime = Date.now();
       
       // Process validation with delays between requests to avoid rate limits
       const validationResults: Array<{ ref: { name: string; url: string }; isValid: boolean }> = [];
       for (let i = 0; i < validImageReferences.length; i++) {
         const ref = validImageReferences[i];
+        console.log(`[ImageGen] Validating [${i + 1}/${validImageReferences.length}] ${ref.name}...`);
         const isValid = await validateImageUrl(ref.url);
-        if (!isValid) {
-          console.warn(`[ImageGen] ✗ Invalid image URL for ${ref.name}: ${ref.url.substring(0, 80)}...`);
+        if (isValid) {
+          console.log(`[ImageGen] ✓ Valid: ${ref.name} (${ref.url.substring(0, 60)}...)`);
+        } else {
+          console.warn(`[ImageGen] ✗ Invalid: ${ref.name} (${ref.url.substring(0, 60)}...)`);
         }
         validationResults.push({ ref, isValid });
         
@@ -1902,59 +1912,102 @@ export async function POST(request: NextRequest) {
           await new Promise(resolve => setTimeout(resolve, WIKIMEDIA_MIN_DELAY));
         }
       }
+      const validationTime = Date.now() - validationStartTime;
       const validRefs = validationResults.filter(r => r.isValid).map(r => r.ref);
       const invalidRefs = validationResults.filter(r => !r.isValid).map(r => r.ref);
       
+      console.log(`[ImageGen] 📊 Validation Results: ${validRefs.length} valid, ${invalidRefs.length} invalid (took ${validationTime}ms)`);
+      
       if (invalidRefs.length > 0) {
-        console.log(`[ImageGen] Found ${invalidRefs.length} invalid image URLs - will fetch real ones for: ${invalidRefs.map(r => r.name).join(', ')}`);
+        console.log(`[ImageGen] 🔄 Fetching replacement images for ${invalidRefs.length} invalid URL(s): ${invalidRefs.map(r => r.name).join(', ')}`);
+        const fetchStartTime = Date.now();
         
         // For invalid refs, try to fetch real image URLs using the person's name
         const fetchPromises = invalidRefs.map(async (ref: { name: string; url: string }) => {
           try {
+            console.log(`[ImageGen] Searching for replacement image for ${ref.name}...`);
             // Extract person name and search for real image
             const realUrl = await findImageUrlWithGPT4o(ref.name, ref.name) || 
                            await searchWikimediaForPerson(ref.name, ref.name);
             if (realUrl) {
-              console.log(`[ImageGen] ✓ Found real image URL for ${ref.name}: ${realUrl.substring(0, 80)}...`);
+              console.log(`[ImageGen] ✓ Found replacement for ${ref.name}: ${realUrl.substring(0, 80)}...`);
               return { name: ref.name, url: realUrl };
+            } else {
+              console.warn(`[ImageGen] ✗ No replacement found for ${ref.name}`);
             }
           } catch (error: any) {
-            console.error(`[ImageGen] Error fetching real image for ${ref.name}:`, error.message);
+            console.error(`[ImageGen] Error fetching replacement for ${ref.name}:`, error.message);
           }
           return null;
         });
         
         const fetchedRefs = (await Promise.all(fetchPromises)).filter((r): r is { name: string; url: string } => r !== null);
+        const fetchTime = Date.now() - fetchStartTime;
         validImageReferences = [...validRefs, ...fetchedRefs];
-        console.log(`[ImageGen] After validation and fetching: ${validImageReferences.length} valid image references`);
+        console.log(`[ImageGen] 📊 After replacement fetch: ${validImageReferences.length} total valid (${fetchedRefs.length} replacements found, took ${fetchTime}ms)`);
       } else {
-        console.log(`[ImageGen] ✓ All ${validImageReferences.length} image reference URLs are valid`);
+        console.log(`[ImageGen] ✓ All ${validImageReferences.length} image reference URLs are valid (no replacements needed)`);
       }
+    } else {
+      console.log(`[ImageGen] ⚠️ No valid image references after pattern filtering`);
     }
     
     // Prepare reference images with error handling
     let preparedReferences: (string | null)[] = [];
     if (validImageReferences.length > 0) {
+      console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Replicate...`);
+      const prepStartTime = Date.now();
       try {
-        const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }) => {
+        const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
           try {
-            return await prepareImageForReplicate(ref.url, replicateApiKey);
+            console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name}...`);
+            const preparedUrl = await prepareImageForReplicate(ref.url, replicateApiKey);
+            if (preparedUrl) {
+              console.log(`[ImageGen] ✓ Prepared ${ref.name}: ${preparedUrl.substring(0, 60)}...`);
+            } else {
+              console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
+            }
+            return preparedUrl;
           } catch (error: any) {
-            console.error(`[ImageGen] Error preparing reference image for ${ref.name}:`, error.message);
+            console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
             return null;
           }
         });
         preparedReferences = await Promise.all(referenceImagePromises);
-        console.log(`[ImageGen] Prepared ${preparedReferences.filter(r => r !== null).length}/${validImageReferences.length} reference images for Replicate`);
+        const prepTime = Date.now() - prepStartTime;
+        const successCount = preparedReferences.filter(r => r !== null).length;
+        const failureCount = preparedReferences.length - successCount;
+        console.log(`[ImageGen] 📊 Preparation Results: ${successCount} succeeded, ${failureCount} failed (took ${prepTime}ms)`);
+        if (failureCount > 0) {
+          const failedNames = validImageReferences.slice(0, events.length)
+            .filter((_, i) => !preparedReferences[i])
+            .map(ref => ref.name);
+          console.warn(`[ImageGen] ⚠️ Failed to prepare: ${failedNames.join(', ')}`);
+        }
       } catch (error: any) {
-        console.error('[ImageGen] Error preparing reference images:', error.message);
+        console.error('[ImageGen] ✗ Fatal error during reference image preparation:', error.message);
+        console.error('[ImageGen] Error stack:', error.stack);
         preparedReferences = [];
       }
+    } else {
+      console.log(`[ImageGen] ⚠️ No valid image references to prepare`);
     }
     
     // Check if we actually have successfully prepared reference images (not just attempted)
     const hasPreparedReferences = preparedReferences.some(ref => ref !== null && ref.length > 0);
-    console.log(`[ImageGen] Has prepared reference images: ${hasPreparedReferences} (${preparedReferences.filter(r => r !== null).length} successful)`);
+    const preparedCount = preparedReferences.filter(r => r !== null && r.length > 0).length;
+    console.log(`[ImageGen] 📊 Final Reference Image Status: hasPreparedReferences=${hasPreparedReferences}, preparedCount=${preparedCount}/${preparedReferences.length}, willUseIPAdapter=${hasPreparedReferences}`);
+    
+    // Log comprehensive summary
+    console.log(`[ImageGen] 📋 Reference Image Pipeline Summary:`);
+    console.log(`[ImageGen]    - Initial: provided=${imageReferences?.length || 0}, includesPeople=${includesPeople}`);
+    console.log(`[ImageGen]    - After fetch: finalImageReferences=${finalImageReferences?.length || 0}`);
+    console.log(`[ImageGen]    - After pattern filter: validImageReferences=${validImageReferences.length}`);
+    console.log(`[ImageGen]    - After preparation: preparedReferences=${preparedCount}/${preparedReferences.length}`);
+    console.log(`[ImageGen]    - Final decision: hasPreparedReferences=${hasPreparedReferences}, willUseIPAdapter=${hasPreparedReferences}`);
+    if (!hasPreparedReferences && hasReferenceImages) {
+      console.log(`[ImageGen]    ⚠️ WARNING: Reference images were provided but none were successfully prepared!`);
+    }
     
     // PARALLEL GENERATION: Start all predictions at once for faster processing
     console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
@@ -1983,21 +2036,26 @@ export async function POST(request: NextRequest) {
                                  selectedModel.includes('flux-dev') ||
                                  selectedModel.includes('imagen');
         
-        if (hasReferenceImages) {
+        // Use hasPreparedReferences instead of hasReferenceImages - we need actual prepared images, not just attempted ones
+        if (hasPreparedReferences) {
           // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
           // This is cheaper than Flux Kontext Pro and works well with SDXL
           if (isSDXL || isArtistic) {
             selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter (SDXL + IP-Adapter)
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to IP-Adapter (SDXL with reference images, $0.028/image)`);
+            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to IP-Adapter (hasPreparedReferences=true, preparedCount=${preparedCount}, $0.028/image)`);
           } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
-            console.log(`[ImageGen] ✓ Switching from ${originalModel} to Flux Kontext Pro (with reference images, $0.04/image)`);
+            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to Flux Kontext Pro (hasPreparedReferences=true, preparedCount=${preparedCount}, $0.04/image)`);
           }
         } else {
-          // No reference images - SDXL is the default for all styles
+          // No prepared reference images - SDXL is the default for all styles
           if (isSDXL) {
-            console.log(`[ImageGen] Using SDXL (${selectedModel}) - default model for all styles`);
+            if (hasReferenceImages) {
+              console.log(`[ImageGen] ⚠️ Model Selection: Reference images were provided (${finalImageReferences?.length || 0}) but all failed validation/preparation - using SDXL without reference images`);
+            } else {
+              console.log(`[ImageGen] ℹ️ Model Selection: Using SDXL (${selectedModel}) - no reference images available (hasReferenceImages=false, includesPeople=${includesPeople})`);
+            }
           }
         }
         
@@ -2126,8 +2184,10 @@ export async function POST(request: NextRequest) {
         const hasReferenceImage = !!referenceImageUrl;
         
         if (hasReferenceImage && referenceImageUrl) {
-          console.log(`[ImageGen] ✓ Reference image URL for "${event.title}" (index ${index}): ${referenceImageUrl.substring(0, 80)}...`);
-          console.log(`[ImageGen] Reference image will be INJECTED into model input for this event`);
+          const personName = relevantImageRefs.length > 0 ? relevantImageRefs[0].name : 'unknown';
+          console.log(`[ImageGen] ✅ Event "${event.title}" (${index + 1}/${events.length}): Using reference image for ${personName}`);
+          console.log(`[ImageGen]    Reference URL: ${referenceImageUrl.substring(0, 80)}...`);
+          console.log(`[ImageGen]    Model: ${selectedModel} (will inject reference image)`);
           
           // Upload to Replicate if using IP-Adapter or SDXL (which have 403 errors with Wikimedia)
           // Skip for Imagen which can fetch Wikimedia URLs directly
@@ -2146,8 +2206,12 @@ export async function POST(request: NextRequest) {
             }
           }
         } else {
-          console.log(`[ImageGen] ⚠️ No reference image available for "${event.title}" (prepared: ${preparedReferences.length}, index: ${index})`);
-          console.log(`[ImageGen] Prepared references: ${preparedReferences.map((r, i) => `[${i}]: ${r ? '✓' : '✗'}`).join(', ')}`);
+          console.log(`[ImageGen] ⚠️ Event "${event.title}" (${index + 1}/${events.length}): No reference image available`);
+          console.log(`[ImageGen]    Reason: preparedReferences.length=${preparedReferences.length}, index=${index}, hasPreparedReferences=${hasPreparedReferences}`);
+          console.log(`[ImageGen]    Prepared references status: ${preparedReferences.map((r, i) => `[${i}]: ${r ? '✓' : '✗'}`).join(', ')}`);
+          if (finalImageReferences && finalImageReferences.length > 0) {
+            console.log(`[ImageGen]    Note: ${finalImageReferences.length} reference image(s) were provided but not prepared/available for this event`);
+          }
         }
         
         // Build enhanced prompt with AI-generated prompt (if available), style, color, and cohesion
@@ -2524,7 +2588,8 @@ export async function POST(request: NextRequest) {
             
             // For retries, use the same model selection logic as original
             // BUT: Don't use Imagen (google/imagen-4-fast) as it doesn't expose versions via Replicate API
-            if (hasReferenceImages) {
+            // Use hasPreparedReferences to ensure we actually have prepared images, not just attempted ones
+            if (hasPreparedReferences) {
               if (isSDXL || isArtistic) {
                 selectedModel = MODELS.ARTISTIC_WITH_REF; // Use IP-Adapter, not Imagen
               } else if (originalSelectedModel.includes('flux') && !originalSelectedModel.includes('kontext')) {
