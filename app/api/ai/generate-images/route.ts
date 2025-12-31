@@ -966,13 +966,22 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     const performUpload = async (): Promise<Response> => {
       // Create a new FormData for each retry attempt (FormData is a stream and can only be used once)
       const formData = new FormDataNode();
-      formData.append('file', buffer, {
+      // Replicate expects the multipart field to be named "content"
+      formData.append('content', buffer, {
         filename: `image.${extension}`,
         contentType: contentType,
       });
       
-      // Get headers from form-data (includes boundary)
+      // Get headers from form-data (includes boundary). Also include Content-Length when available.
       const formHeaders = formData.getHeaders();
+      try {
+        const contentLength = formData.getLengthSync();
+        if (typeof contentLength === 'number' && Number.isFinite(contentLength)) {
+          formHeaders['Content-Length'] = contentLength;
+        }
+      } catch (err) {
+        // getLengthSync may throw; skip setting Content-Length in that case.
+      }
       
       const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
         method: 'POST',
