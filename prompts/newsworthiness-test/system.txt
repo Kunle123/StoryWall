@@ -65,12 +65,15 @@ Provide a JSON object with the following structure:
   }
 }
 
-CRITICAL: The "canUseLikeness" field must be true ONLY if:
+CRITICAL: The "canUseLikeness" field must be true if ANY of the following apply:
 1. The project is clearly newsworthy (political events, major life events, public interest)
-2. The framing is informational/commentary, not commercial
-3. The risk level is Low or Medium (not High)
+2. The subject is a historical figure (especially deceased historical figures like presidents, world leaders, historical personalities)
+3. The framing is informational/commentary, not commercial
+4. The risk level is Low or Medium (not High)
 
-If the risk is High or the project is purely commercial/entertainment, set "canUseLikeness" to false.
+SPECIAL RULE FOR HISTORICAL FIGURES: Historical figures, especially deceased ones (presidents, world leaders, historical personalities), are matters of public interest and their likenesses can generally be used in informational/educational contexts. Set "canUseLikeness" to true for historical/biographical timelines about deceased public figures.
+
+If the risk is High AND the project is purely commercial/entertainment (not informational/historical), set "canUseLikeness" to false.
 
 Return ONLY valid JSON, no explanatory text.
 

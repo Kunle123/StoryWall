@@ -34,7 +34,7 @@ function quickNewsworthinessCheck(
   const descLower = timelineDescription.toLowerCase();
   const combined = `${titleLower} ${descLower}`;
   
-  // Clear newsworthy indicators (political, death, major events)
+  // Clear newsworthy indicators (political, death, major events, historical figures)
   const newsworthyKeywords = [
     'election', 'president', 'governor', 'mayor', 'senator', 'congress', 'parliament',
     'death', 'dies', 'passed away', 'obituary', 'memorial',
@@ -42,7 +42,32 @@ function quickNewsworthinessCheck(
     'award', 'oscar', 'nobel', 'grammy', 'emmy',
     'marriage', 'divorce', 'announcement', 'public statement',
     'war', 'conflict', 'crisis', 'disaster', 'emergency',
+    // Historical figures (common names that indicate historical/biographical content)
+    'roosevelt', 'lincoln', 'washington', 'kennedy', 'churchill', 'einstein', 'gandhi',
+    'historical', 'biography', 'biographical', 'timeline of', 'life of',
   ];
+  
+  // Known deceased historical figures (always allow likeness for these)
+  const knownHistoricalFigures = [
+    'franklin d roosevelt', 'fdr', 'theodore roosevelt', 'abraham lincoln', 
+    'george washington', 'john f kennedy', 'jfk', 'winston churchill',
+    'albert einstein', 'mahatma gandhi', 'martin luther king', 'mlk',
+    'nelson mandela', 'queen victoria', 'napoleon', 'shakespeare',
+  ];
+  
+  // Check if this is about a known historical figure
+  const isHistoricalFigure = knownHistoricalFigures.some(figure => 
+    combined.includes(figure.toLowerCase())
+  );
+  
+  if (isHistoricalFigure) {
+    return {
+      canUseLikeness: true,
+      riskLevel: 'Low',
+      justification: 'Timeline is about a historical figure (deceased), which is a matter of public interest',
+      recommendation: 'Likeness usage is appropriate for historical/biographical content',
+    };
+  }
   
   // Clear non-newsworthy indicators (entertainment, films, general biography)
   const nonNewsworthyKeywords = [
