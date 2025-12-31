@@ -225,7 +225,8 @@ export async function updateUserProfile(
     updateData.bio = updates.bio || null;
   }
 
-  const selectFields: any = {
+  // Build select fields with proper typing
+  const baseSelect = {
     id: true,
     clerkId: true,
     username: true,
@@ -234,17 +235,30 @@ export async function updateUserProfile(
     credits: true,
     createdAt: true,
     updatedAt: true,
-  };
+  } as const;
   
-  // Only select bio if column exists
-  if (bioExists) {
-    selectFields.bio = true;
-  }
+  // Conditionally add bio if column exists
+  const selectFields = bioExists 
+    ? { ...baseSelect, bio: true as const }
+    : baseSelect;
 
-  return await prisma.user.update({
+  const result = await prisma.user.update({
     where: { clerkId: clerkUserId },
     data: updateData,
     select: selectFields,
   });
+
+  // Type assertion needed because Prisma's return type with dynamic select is complex
+  return result as {
+    id: string;
+    clerkId: string;
+    username: string;
+    email: string;
+    avatarUrl: string | null;
+    credits: number;
+    createdAt: Date;
+    updatedAt: Date;
+    bio?: string | null;
+  };
 }
 
