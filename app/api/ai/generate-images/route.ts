@@ -365,7 +365,7 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
       }
       
       const data = await response.json();
-      const results = data.query?.search || [];
+      let results = data.query?.search || [];
       
       if (results.length === 0) {
         console.log(`[ImageGen] No Wikimedia results for: ${searchTerms}`);
