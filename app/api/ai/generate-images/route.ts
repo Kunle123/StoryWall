@@ -206,22 +206,38 @@ function scorePersonNameMatch(filename: string, personName: string): number {
   }
   
   // Additional validation: check for common false positive patterns
-  // Reject if filename contains other names that might indicate wrong person
-  const commonFalsePositivePatterns = [
-    /\(.*\)/, // Names in parentheses often indicate different person
-    /and\s+\w+/, // "X and Y" suggests multiple people
-    /\d{4}-\d{4}/, // Date ranges might indicate different person
+  // But be smart about it - don't penalize metadata like "(cropped)" or file IDs
+  // Check for "X and Y" pattern - this is a strong indicator of multiple people
+  // But only penalize if there are capitalized names before "and"
+  const andPattern = /[A-Z][a-z]+\s+and\s+[A-Z][a-z]+/;
+  if (andPattern.test(filename)) {
+    // Check if the person's name appears AFTER "and" (less ideal - group photo)
+    const nameAfterAnd = new RegExp(`and\\s+.*${nameParts.join('.*')}`, 'i').test(filenameLower);
+    if (nameAfterAnd) {
+      // Person appears after "and" - likely a group photo, reduce score significantly
+      totalScore *= 0.4;
+    } else {
+      // Person appears before "and" - might be primary subject, less penalty
+      totalScore *= 0.7;
+    }
+  }
+  
+  // Don't penalize common metadata patterns like "(cropped)", "(cropped 2)", file IDs, etc.
+  // These are just image processing notes, not false positives
+  const metadataPatterns = [
+    /\(cropped/i,
+    /\(cropped \d+\)/i,
+    /\(noirlab-.*\)/i,
+    /\(cropped\)/i,
   ];
   
-  for (const pattern of commonFalsePositivePatterns) {
-    if (pattern.test(filenameLower)) {
-      // Only reject if the pattern appears near the name parts
-      const nameContext = nameParts.join('.*');
-      if (new RegExp(nameContext).test(filenameLower)) {
-        // If pattern is present but name still matches, be cautious
-        // Reduce score but don't reject completely
-        totalScore *= 0.5;
-      }
+  const hasOnlyMetadata = metadataPatterns.some(p => p.test(filenameLower));
+  
+  // Apply other false positive penalties only if not just metadata
+  if (!hasOnlyMetadata) {
+    // Date ranges might indicate different person
+    if (/\d{4}-\d{4}/.test(filenameLower)) {
+      totalScore *= 0.7;
     }
   }
   
@@ -429,7 +445,7 @@ async function searchWikimediaForPerson(searchQuery: string, personName: string)
       
       // Find the best matching result using strict scoring
       let bestMatch: { result: any; score: number } | null = null;
-      const MIN_SCORE_THRESHOLD = 4; // Require minimum score to ensure quality match
+      const MIN_SCORE_THRESHOLD = 3; // Require minimum score to ensure quality match (lowered to allow metadata like "cropped")
       
       for (const result of filteredResults) {
         const pageTitle = result.title;
