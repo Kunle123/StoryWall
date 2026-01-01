@@ -174,11 +174,25 @@ export default function AbridgedFlowPage() {
     }
   }
 
+  // Progress calculation
+  const steps = ['idle', 'generatingDescription', 'generatingEvents', 'generatingEventDescriptions', 'generatingImages', 'done'];
+  const currentStepIndex = steps.indexOf(step);
+  const progressPercentage = step === 'idle' ? 0 : Math.round((currentStepIndex / (steps.length - 1)) * 100);
+
+  const stepLabels: Record<Step, string> = {
+    idle: 'Ready',
+    generatingDescription: '1. Generating Description',
+    generatingEvents: '2. Generating Events',
+    generatingEventDescriptions: '3. Generating Descriptions & Prompts',
+    generatingImages: '4. Generating Images',
+    done: '✓ Complete',
+  };
+
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 space-y-6">
-      <h1 className="text-2xl font-semibold">Abridged Flow (Title → Description → Events → Prompts → Images)</h1>
+      <h1 className="text-2xl font-semibold">Abridged Flow Test Page</h1>
       <p className="text-sm text-gray-600">
-        Uses illustration image style and narration narrative style. No auth required. Adjust endpoints in the code if your routes differ.
+        Tests: Title → Description → Events → Prompts → Images (with Google Imagen 4 Fast for face references)
       </p>
 
       <div className="space-y-3">
@@ -187,56 +201,145 @@ export default function AbridgedFlowPage() {
           className="w-full border rounded px-3 py-2"
           value={title}
           onChange={e => setTitle(e.target.value)}
-          placeholder="e.g., King Charles III recent milestones"
+          placeholder="e.g., Tom Holland career highlights"
         />
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60"
+          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60 hover:bg-blue-700 transition"
           onClick={runFlow}
           disabled={loading}
         >
-          {loading ? 'Running...' : 'Run abridged flow'}
+          {loading ? '⏳ Running...' : '▶️ Run Flow'}
         </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm">Error: {error}</div>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded">
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
-      <div className="space-y-2">
-        <div className="text-sm font-semibold">Step: {step}</div>
-        <pre className="bg-gray-100 text-xs p-3 rounded max-h-48 overflow-auto">
+      {/* Progress Bar */}
+      {loading && (
+        <div className="space-y-3 bg-blue-50 border border-blue-200 p-4 rounded">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-semibold text-blue-900">{stepLabels[step]}</span>
+            <span className="text-blue-700">{progressPercentage}%</span>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+          
+          {/* Step Indicators */}
+          <div className="flex justify-between text-xs text-gray-600 mt-2">
+            {steps.slice(1, -1).map((s, idx) => (
+              <div 
+                key={s}
+                className={`flex flex-col items-center ${
+                  currentStepIndex > idx + 1 
+                    ? 'text-green-600 font-semibold' 
+                    : currentStepIndex === idx + 1 
+                    ? 'text-blue-600 font-semibold' 
+                    : 'text-gray-400'
+                }`}
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center mb-1 ${
+                  currentStepIndex > idx + 1 
+                    ? 'bg-green-100 border-2 border-green-600' 
+                    : currentStepIndex === idx + 1 
+                    ? 'bg-blue-100 border-2 border-blue-600 animate-pulse' 
+                    : 'bg-gray-100 border-2 border-gray-300'
+                }`}>
+                  {currentStepIndex > idx + 1 ? '✓' : idx + 1}
+                </div>
+                <span className="text-center w-16">{['Desc', 'Events', 'Prompts', 'Images'][idx]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Log Output */}
+      {log.length > 0 && (
+        <details className="space-y-2">
+          <summary className="text-sm font-semibold cursor-pointer hover:text-blue-600">
+            📋 Detailed Log ({log.length} entries)
+          </summary>
+          <pre className="bg-gray-100 text-xs p-3 rounded max-h-64 overflow-auto border">
 {log.join('\n')}
-        </pre>
-      </div>
+          </pre>
+        </details>
+      )}
 
+      {/* Results */}
       {timelineDescription && (
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold">Timeline Description</h2>
-          <p className="text-sm whitespace-pre-wrap">{timelineDescription}</p>
+        <section className="space-y-2 bg-green-50 border border-green-200 p-4 rounded">
+          <h2 className="text-lg font-semibold text-green-900 flex items-center gap-2">
+            ✓ Timeline Description
+          </h2>
+          <p className="text-sm whitespace-pre-wrap text-gray-700">{timelineDescription}</p>
         </section>
       )}
 
       {events.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Events (10)</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {step === 'done' ? '✓' : '⏳'} Events & Images 
+            <span className="text-sm font-normal text-gray-600">
+              ({events.filter(e => e.imageUrl).length}/{events.length} images)
+            </span>
+          </h2>
           <div className="space-y-3">
             {events.map((ev, idx) => (
-              <div key={idx} className="border rounded p-3 space-y-1">
-                <div className="font-semibold">{ev.title}</div>
+              <div 
+                key={idx} 
+                className={`border rounded p-4 space-y-2 transition ${
+                  ev.imageUrl 
+                    ? 'bg-green-50 border-green-200' 
+                    : ev.description 
+                    ? 'bg-blue-50 border-blue-200' 
+                    : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="text-xs font-mono text-gray-500 mt-1">#{idx + 1}</span>
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-900">{ev.title}</div>
+                    {ev.year && <div className="text-xs text-gray-500">{ev.year}</div>}
+                  </div>
+                  {ev.imageUrl && (
+                    <span className="text-green-600 text-xl">✓</span>
+                  )}
+                  {!ev.imageUrl && ev.description && (
+                    <span className="text-blue-600 text-xl animate-pulse">⏳</span>
+                  )}
+                </div>
+                
                 {ev.description && (
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap pl-8">
                     {ev.description}
                   </div>
                 )}
+                
                 {ev.prompt && (
-                  <div className="text-xs text-gray-600 whitespace-pre-wrap">
-                    <strong>Prompt:</strong> {ev.prompt}
-                  </div>
+                  <details className="pl-8">
+                    <summary className="text-xs text-gray-600 cursor-pointer hover:text-blue-600">
+                      View Image Prompt
+                    </summary>
+                    <div className="text-xs text-gray-600 whitespace-pre-wrap mt-1 bg-white p-2 rounded border">
+                      {ev.prompt}
+                    </div>
+                  </details>
                 )}
+                
                 {ev.imageUrl && (
-                  <div className="mt-2">
+                  <div className="mt-2 pl-8">
                     <img
                       src={ev.imageUrl}
                       alt={ev.title}
-                      className="w-full h-auto rounded border"
+                      className="w-full h-auto rounded border shadow-sm hover:shadow-md transition"
                     />
                   </div>
                 )}
@@ -244,6 +347,17 @@ export default function AbridgedFlowPage() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Completion Summary */}
+      {step === 'done' && (
+        <div className="bg-green-100 border-2 border-green-500 p-4 rounded text-center">
+          <div className="text-2xl mb-2">🎉</div>
+          <div className="font-semibold text-green-900">Flow Complete!</div>
+          <div className="text-sm text-green-700 mt-1">
+            Generated {events.filter(e => e.imageUrl).length} images using Google Imagen 4 Fast
+          </div>
+        </div>
       )}
     </main>
   );
