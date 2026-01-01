@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
-import { persistImagesToCloudinary, persistImageToCloudinary } from '@/lib/utils/imagePersistence';
+import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
 import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
@@ -1090,22 +1090,11 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // NEW APPROACH: Upload Wikimedia images to Cloudinary for reliable hosting
-    // This avoids the "fetch failed" errors we were seeing with Replicate uploads
+    // Pass Wikimedia URLs directly to IP-Adapter (no re-hosting to avoid licensing issues)
+    // IP-Adapter will download the image directly from Wikimedia
     if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      console.log(`[ImageGen] Uploading Wikimedia image to Cloudinary for stable hosting...`);
-      const cloudinaryUrl = await persistImageToCloudinary(finalUrl);
-      if (cloudinaryUrl && cloudinaryUrl !== finalUrl) {
-        console.log(`[ImageGen] ✓ Uploaded to Cloudinary: ${cloudinaryUrl.substring(0, 80)}...`);
-        return cloudinaryUrl;
-      } else if (cloudinaryUrl === finalUrl) {
-        // Cloudinary upload failed, falling back to original URL
-        console.warn(`[ImageGen] ⚠️ Cloudinary upload failed, using Wikimedia URL directly: ${finalUrl.substring(0, 80)}...`);
-        return finalUrl;
-      } else {
-        console.warn(`[ImageGen] ✗ Cloudinary upload returned null`);
-        return null;
-      }
+      console.log(`[ImageGen] Using Wikimedia URL directly: ${finalUrl.substring(0, 80)}...`);
+      return finalUrl;
     }
     
     // For non-Wikimedia URLs, validate that the URL actually points to an image
