@@ -94,7 +94,7 @@ export default function AbridgedFlowPage() {
           events: [{
             title: 'Visual Style Reference',
             description: `A pure style reference image capturing the visual aesthetic for: ${generatedDescription}`,
-            imagePrompt: `Illustration style: Bright reds & blues on white, golden theatre wings, lean athletic silhouette in practice wear, low-angle 28mm lens. Warm backstage theatrical lighting, centered composition, documentary photography style, soft even lighting, neutral background.`,
+            imagePrompt: `Illustration style reference for "${title}". Create a visually striking composition that establishes a consistent color palette, lighting style, and overall aesthetic that will be used throughout this timeline. Focus on mood, atmosphere, color harmony, and visual tone rather than specific subjects. Use documentary photography principles: soft even lighting, neutral or thematic background, balanced composition. This image defines the visual language for the entire series - consistent lighting direction, color scheme, composition style, and level of detail.`,
           }],
         }),
       });
