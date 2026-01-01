@@ -1859,8 +1859,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const allowGuest = request.headers.get('x-abridged-flow') === 'true' || request.nextUrl.searchParams.get('abridged') === 'true';
-
     // Check credits before generation (1 credit per image) unless guest (abridged flow)
     const requiredCredits = events.length;
     let userCredits: { credits: number } | null = null;
