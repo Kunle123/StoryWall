@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Timelines: add is_featured
-    if (migrationName === 'timelines' || migrationName === 'all' || migrationName === 'is_featured') {
+    // Timelines: add is_featured and featured_at
+    if (migrationName === 'timelines' || migrationName === 'all' || migrationName === 'is_featured' || migrationName === 'featured_at') {
       try {
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "is_featured" BOOLEAN NOT NULL DEFAULT false;
@@ -92,6 +92,15 @@ export async function POST(request: NextRequest) {
         results.push('✅ Added is_featured column to timelines table');
       } catch (error: any) {
         errors.push(`❌ Failed to add is_featured column: ${error.message}`);
+      }
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "featured_at" TIMESTAMP NULL;
+        `);
+        results.push('✅ Added featured_at column to timelines table');
+      } catch (error: any) {
+        errors.push(`❌ Failed to add featured_at column: ${error.message}`);
       }
     }
 
@@ -135,10 +144,11 @@ export async function POST(request: NextRequest) {
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = 'timelines'
-        AND column_name IN ('is_featured')
+        AND column_name IN ('is_featured', 'featured_at')
         ORDER BY column_name;
       `);
       verifyResults.is_featured = timelineColumns.some(c => c.column_name === 'is_featured');
+      verifyResults.featured_at = timelineColumns.some(c => c.column_name === 'featured_at');
     } catch (error: any) {
       errors.push(`❌ Failed to verify columns: ${error.message}`);
     }

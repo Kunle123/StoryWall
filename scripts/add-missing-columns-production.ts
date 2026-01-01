@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
  * One-off helper to add missing columns safely in production:
  * - users.bio (TEXT, nullable)
  * - timelines.is_featured (BOOLEAN NOT NULL DEFAULT false)
+ * - timelines.featured_at (TIMESTAMP NULL)
  *
  * Run with production DATABASE_URL, e.g.:
  *   DATABASE_URL="postgres://..." npx tsx scripts/add-missing-columns-production.ts
@@ -41,6 +42,20 @@ async function run() {
           ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "is_featured" BOOLEAN NOT NULL DEFAULT false;
         `);
         actions.push('Added timelines.is_featured (default false)');
+      }
+
+      // Add timelines.featured_at if missing
+      const featuredAtCols = await tx.$queryRawUnsafe<Array<{ column_name: string }>>(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'timelines'
+          AND column_name = 'featured_at'
+      `);
+      if (featuredAtCols.length === 0) {
+        await tx.$executeRawUnsafe(`
+          ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "featured_at" TIMESTAMP NULL;
+        `);
+        actions.push('Added timelines.featured_at (nullable timestamp)');
       }
 
       return actions;
