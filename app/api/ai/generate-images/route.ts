@@ -1068,6 +1068,44 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
   }
 }
 
+// Helper to prepare image for Imagen (download and convert to base64)
+async function prepareImageForImagen(imageUrl: string): Promise<string | null> {
+  try {
+    let finalUrl = imageUrl;
+    
+    // Convert Wikimedia Commons page URLs to direct image URLs
+    if (imageUrl.includes('commons.wikimedia.org/wiki/File:')) {
+      console.log(`[ImageGen] Converting Wikimedia page URL to direct image URL...`);
+      const directUrl = await getWikimediaDirectImageUrl(imageUrl);
+      if (directUrl) {
+        finalUrl = directUrl;
+        console.log(`[ImageGen] Using direct Wikimedia image: ${finalUrl.substring(0, 100)}...`);
+      } else {
+        console.warn(`[ImageGen] Failed to convert Wikimedia URL: ${imageUrl.substring(0, 100)}`);
+        return null;
+      }
+    }
+    
+    // Download image and convert to base64
+    console.log(`[ImageGen] Downloading image for Imagen: ${finalUrl.substring(0, 80)}...`);
+    const response = await fetch(finalUrl);
+    if (!response.ok) {
+      console.warn(`[ImageGen] Failed to download image (${response.status}): ${finalUrl.substring(0, 100)}`);
+      return null;
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    
+    console.log(`[ImageGen] ✓ Downloaded and converted to base64 (${buffer.length} bytes)`);
+    return base64;
+  } catch (error: any) {
+    console.error(`[ImageGen] Error preparing image for Imagen: ${imageUrl.substring(0, 100)}`, error.message);
+    return null;
+  }
+}
+
 // Helper to prepare image for Replicate (upload to Replicate to avoid 403 errors)
 async function prepareImageForReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
@@ -2099,42 +2137,85 @@ export async function POST(request: NextRequest) {
       console.log(`[ImageGen] ⚠️ No valid image references after pattern filtering`);
     }
     
+    // Decide which model path to use BEFORE preparing images
+    // PRIORITY: For abridged flow with reference images available, use Google Imagen
+    const willUseImagen = allowGuest && validImageReferences.length > 0 && isGoogleCloudConfigured();
+    
     // Prepare reference images with error handling
     let preparedReferences: (string | null)[] = [];
     if (validImageReferences.length > 0) {
-      console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Replicate...`);
-      const prepStartTime = Date.now();
-      try {
-        const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
-          try {
-            console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name}...`);
-            const preparedUrl = await prepareImageForReplicate(ref.url, replicateApiKey);
-            if (preparedUrl) {
-              console.log(`[ImageGen] ✓ Prepared ${ref.name}: ${preparedUrl.substring(0, 60)}...`);
-            } else {
-              console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
+      if (willUseImagen) {
+        // IMAGEN PATH: Download and convert to base64 (no Replicate upload needed)
+        console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Imagen (base64)...`);
+        const prepStartTime = Date.now();
+        try {
+          const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
+            try {
+              console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name} for Imagen...`);
+              const preparedBase64 = await prepareImageForImagen(ref.url);
+              if (preparedBase64) {
+                console.log(`[ImageGen] ✓ Prepared ${ref.name} (${preparedBase64.length} chars base64)`);
+              } else {
+                console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
+              }
+              return preparedBase64;
+            } catch (error: any) {
+              console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
+              return null;
             }
-            return preparedUrl;
-          } catch (error: any) {
-            console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
-            return null;
+          });
+          preparedReferences = await Promise.all(referenceImagePromises);
+          const prepTime = Date.now() - prepStartTime;
+          const successCount = preparedReferences.filter(r => r !== null).length;
+          const failureCount = preparedReferences.length - successCount;
+          console.log(`[ImageGen] 📊 Imagen Preparation Results: ${successCount} succeeded, ${failureCount} failed (took ${prepTime}ms)`);
+          if (failureCount > 0) {
+            const failedNames = validImageReferences.slice(0, events.length)
+              .filter((_, i) => !preparedReferences[i])
+              .map(ref => ref.name);
+            console.warn(`[ImageGen] ⚠️ Failed to prepare for Imagen: ${failedNames.join(', ')}`);
           }
-        });
-        preparedReferences = await Promise.all(referenceImagePromises);
-        const prepTime = Date.now() - prepStartTime;
-        const successCount = preparedReferences.filter(r => r !== null).length;
-        const failureCount = preparedReferences.length - successCount;
-        console.log(`[ImageGen] 📊 Preparation Results: ${successCount} succeeded, ${failureCount} failed (took ${prepTime}ms)`);
-        if (failureCount > 0) {
-          const failedNames = validImageReferences.slice(0, events.length)
-            .filter((_, i) => !preparedReferences[i])
-            .map(ref => ref.name);
-          console.warn(`[ImageGen] ⚠️ Failed to prepare: ${failedNames.join(', ')}`);
+        } catch (error: any) {
+          console.error('[ImageGen] ✗ Fatal error during Imagen reference image preparation:', error.message);
+          console.error('[ImageGen] Error stack:', error.stack);
+          preparedReferences = [];
         }
-      } catch (error: any) {
-        console.error('[ImageGen] ✗ Fatal error during reference image preparation:', error.message);
-        console.error('[ImageGen] Error stack:', error.stack);
-        preparedReferences = [];
+      } else {
+        // REPLICATE PATH: Upload to Replicate for IP-Adapter
+        console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Replicate...`);
+        const prepStartTime = Date.now();
+        try {
+          const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
+            try {
+              console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name}...`);
+              const preparedUrl = await prepareImageForReplicate(ref.url, replicateApiKey);
+              if (preparedUrl) {
+                console.log(`[ImageGen] ✓ Prepared ${ref.name}: ${preparedUrl.substring(0, 60)}...`);
+              } else {
+                console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
+              }
+              return preparedUrl;
+            } catch (error: any) {
+              console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
+              return null;
+            }
+          });
+          preparedReferences = await Promise.all(referenceImagePromises);
+          const prepTime = Date.now() - prepStartTime;
+          const successCount = preparedReferences.filter(r => r !== null).length;
+          const failureCount = preparedReferences.length - successCount;
+          console.log(`[ImageGen] 📊 Replicate Preparation Results: ${successCount} succeeded, ${failureCount} failed (took ${prepTime}ms)`);
+          if (failureCount > 0) {
+            const failedNames = validImageReferences.slice(0, events.length)
+              .filter((_, i) => !preparedReferences[i])
+              .map(ref => ref.name);
+            console.warn(`[ImageGen] ⚠️ Failed to prepare for Replicate: ${failedNames.join(', ')}`);
+          }
+        } catch (error: any) {
+          console.error('[ImageGen] ✗ Fatal error during reference image preparation:', error.message);
+          console.error('[ImageGen] Error stack:', error.stack);
+          preparedReferences = [];
+        }
       }
     } else {
       console.log(`[ImageGen] ⚠️ No valid image references to prepare`);
@@ -2143,7 +2224,7 @@ export async function POST(request: NextRequest) {
     // Check if we actually have successfully prepared reference images (not just attempted)
     const hasPreparedReferences = preparedReferences.some(ref => ref !== null && ref.length > 0);
     const preparedCount = preparedReferences.filter(r => r !== null && r.length > 0).length;
-    console.log(`[ImageGen] 📊 Final Reference Image Status: hasPreparedReferences=${hasPreparedReferences}, preparedCount=${preparedCount}/${preparedReferences.length}, willUseIPAdapter=${hasPreparedReferences}`);
+    console.log(`[ImageGen] 📊 Final Reference Image Status: hasPreparedReferences=${hasPreparedReferences}, preparedCount=${preparedCount}/${preparedReferences.length}, willUseImagen=${willUseImagen}`);
     
     // Log comprehensive summary
     console.log(`[ImageGen] 📋 Reference Image Pipeline Summary:`);
@@ -2151,8 +2232,8 @@ export async function POST(request: NextRequest) {
     console.log(`[ImageGen]    - After fetch: finalImageReferences=${finalImageReferences?.length || 0}`);
     console.log(`[ImageGen]    - After pattern filter: validImageReferences=${validImageReferences.length}`);
     console.log(`[ImageGen]    - After preparation: preparedReferences=${preparedCount}/${preparedReferences.length}`);
-    console.log(`[ImageGen]    - Final decision: hasPreparedReferences=${hasPreparedReferences}, willUseIPAdapter=${hasPreparedReferences}`);
-    if (!hasPreparedReferences && hasReferenceImages) {
+    console.log(`[ImageGen]    - Model decision: willUseImagen=${willUseImagen}, hasPreparedReferences=${hasPreparedReferences}`);
+    if (!hasPreparedReferences && hasReferenceImages && !willUseImagen) {
       console.log(`[ImageGen]    ⚠️ WARNING: Reference images were provided but none were successfully prepared!`);
     }
     
@@ -2186,11 +2267,8 @@ export async function POST(request: NextRequest) {
         // Use hasPreparedReferences or styleReferenceUrl - we need actual prepared images or a style reference
         const hasAnyReference = hasPreparedReferences || !!styleReferenceUrl;
         
-        // PRIORITY: For abridged flow with face references, use Google Imagen
-        // Imagen provides better face/text separation than IP-Adapter and is cheaper ($0.02 vs $0.028)
-        const useImagen = allowGuest && hasPreparedReferences && isGoogleCloudConfigured();
-        
-        if (useImagen) {
+        // Use the willUseImagen flag set during preparation (not hasPreparedReferences which can be false after Replicate upload failures)
+        if (willUseImagen && hasPreparedReferences) {
           selectedModel = 'google-imagen-4-fast'; // Special marker for Imagen (not a Replicate model)
           console.log(`[ImageGen] ✅ Model Selection: Using Google Imagen 4 Fast for abridged flow (face reference + text style, $0.02/image, better separation)`);
         } else if (hasAnyReference) {
