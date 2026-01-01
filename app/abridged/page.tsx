@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 type GeneratedEvent = {
   title: string;
+  year?: number;
   description?: string;
   prompt?: string;
   imageUrl?: string | null;
