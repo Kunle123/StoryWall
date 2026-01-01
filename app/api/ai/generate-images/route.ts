@@ -1258,7 +1258,41 @@ function extractPersonNames(imageReferences?: Array<{ name: string; url: string 
     }
   });
   
-  return personNames;
+  // Remove duplicates
+  return Array.from(new Set(personNames));
+}
+
+// Generate aliases for better person matching (titles, nicknames)
+function getNameAliases(name: string): string[] {
+  const n = name.toLowerCase().trim();
+  const aliases: string[] = [n];
+
+  if (n.includes('charles')) {
+    aliases.push(
+      'king charles',
+      'king charles iii',
+      'charles iii',
+      'prince charles',
+      'charles windsor',
+      'king',
+      'the king'
+    );
+  }
+  if (n.includes('camilla')) {
+    aliases.push(
+      'queen camilla',
+      'camilla parker bowles',
+      'queen',
+      'queen consort',
+      'the queen'
+    );
+  }
+
+  const parts = n.split(/\s+/).filter(Boolean);
+  if (parts.length >= 1) aliases.push(parts[0]);
+  if (parts.length >= 2) aliases.push(parts[parts.length - 1]);
+
+  return Array.from(new Set(aliases));
 }
 
 // Build enhanced image prompt with style, color, and cohesion
@@ -2185,42 +2219,33 @@ export async function POST(request: NextRequest) {
 
         if (finalImageReferences && finalImageReferences.length > 0) {
           // Find which reference images are relevant to this event
-          // Use precise matching: prefer full name, then first+last, then last name only if unambiguous
+          // Use precise matching: prefer full name, then aliases/titles, then first+last
           relevantImageRefs = finalImageReferences.filter(ref => {
+            const aliases = getNameAliases(ref.name);
+            // Exact alias match
+            if (aliases.some(alias => eventText.includes(alias))) {
+              return true;
+            }
+            // Fallback: full name match
             const personName = ref.name.toLowerCase().trim();
-            const nameParts = personName.split(' ').filter((p: string) => p.length > 0);
-            
-            // 1. Check for full name match (most precise)
             if (eventText.includes(personName)) {
               return true;
             }
-            
-            // 2. Check for first name + last name (if person has both)
+            // Fallback: first+last
+            const nameParts = personName.split(' ').filter((p: string) => p.length > 0);
             if (nameParts.length >= 2) {
               const firstName = nameParts[0];
               const lastName = nameParts[nameParts.length - 1];
-              // Both first and last name must appear (not just last name)
               if (eventText.includes(firstName) && eventText.includes(lastName)) {
-                // Check if this last name is unique among all references
                 const peopleWithSameLastName = finalImageReferences.filter(r => {
                   const rNameParts = r.name.toLowerCase().trim().split(' ').filter((p: string) => p.length > 0);
                   return rNameParts.length >= 2 && rNameParts[rNameParts.length - 1] === lastName;
                 });
-                
-                // If only one person has this last name, it's unambiguous
-                if (peopleWithSameLastName.length === 1) {
-                  return true;
-                }
-                
-                // If multiple people share the last name, require first name match
-                // Check if event text contains the full first name (not just a substring)
+                if (peopleWithSameLastName.length === 1) return true;
                 const firstNamePattern = new RegExp(`\\b${firstName}\\b`, 'i');
-                if (firstNamePattern.test(eventText)) {
-                  return true;
-                }
+                if (firstNamePattern.test(eventText)) return true;
               }
             }
-            
             return false;
           });
           
