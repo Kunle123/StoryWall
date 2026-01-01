@@ -2341,7 +2341,7 @@ export async function POST(request: NextRequest) {
         if (styleReferenceUrl) {
           referenceImageUrl = styleReferenceUrl;
           console.log(`[ImageGen] ✅ Event "${event.title}" (${index + 1}/${events.length}): Using style reference image`);
-          console.log(`[ImageGen]    Style Reference URL: ${referenceImageUrl.substring(0, 80)}...`);
+          console.log(`[ImageGen]    Style Reference URL: ${styleReferenceUrl.substring(0, 80)}...`);
           console.log(`[ImageGen]    Model: ${selectedModel} (will inject style reference)`);
         }
         
