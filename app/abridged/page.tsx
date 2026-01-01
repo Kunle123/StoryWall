@@ -43,7 +43,6 @@ export default function AbridgedFlowPage() {
     setError(null);
     setLog([]);
     setTimelineDescription('');
-    setStyleReferenceUrl('');
     setEvents([]);
     setStep('idle');
 
