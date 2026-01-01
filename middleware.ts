@@ -39,33 +39,8 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // Check if route is exempt from terms check
-  if (isExemptRoute(request)) {
-    return NextResponse.next();
-  }
-
-  // Check if user has accepted terms
-  try {
-    const { prisma } = await import('@/lib/db/prisma');
-    const { getOrCreateUser } = await import('@/lib/db/users');
-    
-    const user = await getOrCreateUser(userId);
-    const userWithTerms = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { termsAcceptedAt: true },
-    });
-
-    // If terms not accepted, redirect to acceptance page
-    if (!userWithTerms?.termsAcceptedAt) {
-      const acceptTermsUrl = new URL('/legal/accept-terms', request.url);
-      acceptTermsUrl.searchParams.set('returnUrl', pathname);
-      return NextResponse.redirect(acceptTermsUrl);
-    }
-  } catch (error) {
-    // If there's an error checking terms, allow through (fail open)
-    // This prevents blocking users if there's a database issue
-    console.error('[Middleware] Error checking terms acceptance:', error);
-  }
+  // Terms acceptance check moved out of Edge middleware to avoid Prisma on Edge.
+  // Perform terms checks in a server route/layout instead of middleware.
 
   return NextResponse.next();
 });
