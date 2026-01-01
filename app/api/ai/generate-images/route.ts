@@ -2186,7 +2186,14 @@ export async function POST(request: NextRequest) {
         // Use hasPreparedReferences or styleReferenceUrl - we need actual prepared images or a style reference
         const hasAnyReference = hasPreparedReferences || !!styleReferenceUrl;
         
-        if (hasAnyReference) {
+        // PRIORITY: For abridged flow with face references, use Google Imagen
+        // Imagen provides better face/text separation than IP-Adapter and is cheaper ($0.02 vs $0.028)
+        const useImagen = allowGuest && hasPreparedReferences && isGoogleCloudConfigured();
+        
+        if (useImagen) {
+          selectedModel = 'google-imagen-4-fast'; // Special marker for Imagen (not a Replicate model)
+          console.log(`[ImageGen] ✅ Model Selection: Using Google Imagen 4 Fast for abridged flow (face reference + text style, $0.02/image, better separation)`);
+        } else if (hasAnyReference) {
           // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
           // This is cheaper than Flux Kontext Pro and works well with SDXL
           if (isSDXL || isArtistic) {
@@ -2211,29 +2218,35 @@ export async function POST(request: NextRequest) {
         
         // Get model version for this specific event
         // Replicate API REQUIRES a version ID (hash), not a model name
-        let modelVersion: string;
-        try {
-          modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-          console.log(`[ImageGen] Fetched version for "${event.title}": ${modelVersion.substring(0, 20)}... (model: ${selectedModel})`);
-          
-          // Validate that we got a proper version ID (hash, typically 64 chars, no slashes)
-          const isValidVersionId = modelVersion && 
-                                   modelVersion.length >= 20 && 
-                                   !modelVersion.includes('/') &&
-                                   !modelVersion.includes('stability-ai') &&
-                                   !modelVersion.includes('black-forest');
-          
-          if (!isValidVersionId) {
-            // If version fetch returned a model name, we need to retry or use a known-good version
-            console.error(`[ImageGen] Invalid version ID format: ${modelVersion} (looks like a model name, not a version ID)`);
-            console.error(`[ImageGen] Replicate API requires a version ID (hash), not a model name`);
-            throw new Error(`Failed to get valid version ID for ${selectedModel}. Got: ${modelVersion}`);
+        // Skip for Google Imagen (uses different API)
+        let modelVersion: string = '';
+        
+        if (!selectedModel.includes('google-imagen')) {
+          try {
+            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+            console.log(`[ImageGen] Fetched version for "${event.title}": ${modelVersion.substring(0, 20)}... (model: ${selectedModel})`);
+            
+            // Validate that we got a proper version ID (hash, typically 64 chars, no slashes)
+            const isValidVersionId = modelVersion && 
+                                     modelVersion.length >= 20 && 
+                                     !modelVersion.includes('/') &&
+                                     !modelVersion.includes('stability-ai') &&
+                                     !modelVersion.includes('black-forest');
+            
+            if (!isValidVersionId) {
+              // If version fetch returned a model name, we need to retry or use a known-good version
+              console.error(`[ImageGen] Invalid version ID format: ${modelVersion} (looks like a model name, not a version ID)`);
+              console.error(`[ImageGen] Replicate API requires a version ID (hash), not a model name`);
+              throw new Error(`Failed to get valid version ID for ${selectedModel}. Got: ${modelVersion}`);
+            }
+          } catch (versionError: any) {
+            console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
+            console.error(`[ImageGen] Version error stack:`, versionError.stack);
+            // Re-throw the error - we cannot proceed without a valid version ID
+            throw new Error(`Cannot generate image for "${event.title}": Failed to get version ID for ${selectedModel}. ${versionError.message}`);
           }
-        } catch (versionError: any) {
-          console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
-          console.error(`[ImageGen] Version error stack:`, versionError.stack);
-          // Re-throw the error - we cannot proceed without a valid version ID
-          throw new Error(`Cannot generate image for "${event.title}": Failed to get version ID for ${selectedModel}. ${versionError.message}`);
+        } else {
+          console.log(`[ImageGen] Using Google Imagen for "${event.title}" - skipping Replicate version fetch`);
         }
         
         if (needsText) {
@@ -2625,6 +2638,48 @@ export async function POST(request: NextRequest) {
           image: input.image ? input.image.substring(0, 80) + '...' : undefined
         }, null, 2));
         
+        // GOOGLE IMAGEN FLOW: Use Google's Imagen API instead of Replicate
+        if (selectedModel.includes('google-imagen')) {
+          try {
+            console.log(`[ImageGen] Using Google Imagen 4 Fast for "${event.title}"`);
+            
+            // Convert reference image URL to base64 if needed
+            let referenceImageBase64: string | undefined;
+            if (referenceImageUrl) {
+              try {
+                console.log(`[ImageGen] Downloading reference image for Imagen: ${referenceImageUrl.substring(0, 80)}...`);
+                const imageResponse = await fetch(referenceImageUrl);
+                if (!imageResponse.ok) {
+                  throw new Error(`Failed to fetch reference image: ${imageResponse.status}`);
+                }
+                const imageBuffer = await imageResponse.arrayBuffer();
+                referenceImageBase64 = Buffer.from(imageBuffer).toString('base64');
+                console.log(`[ImageGen] Reference image converted to base64 (${referenceImageBase64.length} chars)`);
+              } catch (refError: any) {
+                console.warn(`[ImageGen] Failed to download reference image for Imagen, proceeding without it:`, refError.message);
+              }
+            }
+            
+            // Generate with Imagen
+            const imageDataUrl = await generateImageWithImagen(prompt, {
+              quality: 'fast', // $0.02 per image
+              referenceImage: referenceImageBase64,
+              aspectRatio: '1:1',
+              safetyFilterLevel: 'block_some',
+              personGeneration: 'dont_allow_adult',
+            });
+            
+            console.log(`[ImageGen] ✓ Imagen generated image for "${event.title}"`);
+            
+            // Imagen returns base64 data URL, return it directly (Cloudinary persistence happens later)
+            return { index, imageUrl: imageDataUrl, event, prompt };
+          } catch (imagenError: any) {
+            console.error(`[ImageGen] ✗ Imagen error for "${event.title}":`, imagenError.message);
+            return { index, error: imagenError, event, prompt };
+          }
+        }
+        
+        // REPLICATE FLOW: Use Replicate API for SDXL, IP-Adapter, Flux, etc.
         // Create the prediction with a generous timeout for production environment
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
@@ -2705,9 +2760,21 @@ export async function POST(request: NextRequest) {
     
     // Helper function to wait for a prediction with retry
     const waitForPredictionWithRetry = async (
-      result: { index: number; predictionId?: string; error?: Error; event: any; prompt: string; needsText?: boolean },
+      result: { index: number; predictionId?: string; imageUrl?: string; error?: Error; event: any; prompt: string; needsText?: boolean },
       attempt: number = 0
     ): Promise<{ index: number; imageUrl: string | null; error: Error | null; event: any; prompt: string }> => {
+      // If Imagen already returned an imageUrl directly, return it immediately
+      if (result.imageUrl && !result.error) {
+        console.log(`[ImageGen] Image already generated (Imagen) for "${result.event.title}": ${result.imageUrl.substring(0, 100)}...`);
+        return {
+          index: result.index,
+          imageUrl: result.imageUrl,
+          error: null,
+          event: result.event,
+          prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
+        };
+      }
+      
       if (result.error || !result.predictionId) {
         const errorMsg = result.error?.message || (result.error instanceof Error ? result.error.toString() : String(result.error || 'No prediction ID'));
         console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
