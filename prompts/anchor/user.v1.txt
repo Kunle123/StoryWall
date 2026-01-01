@@ -1,0 +1,46 @@
+Timeline Description: {{timelineDescription}}
+
+Event Titles: {{eventTitles}} (FOR CONTEXT ONLY - DO NOT include these specific event titles in your Anchor output)
+
+User's chosen image style: {{imageStyle}}
+{{#if themeColor}}User's theme color: {{themeColor}}{{/if}}
+
+Analyze this subject matter and create a COMPREHENSIVE visual style guide (Anchor) covering ALL five mood parameters. This Anchor will be applied to every image in this timeline.
+
+CRITICAL: The Anchor Style must be a GENERAL visual guide that applies to ALL events. DO NOT include specific event titles, event names, or event-specific content in the Anchor. The Anchor should describe the overall visual style, mood, and aesthetic - NOT individual events. For example, if the timeline is about TV history, the Anchor should describe the visual style for "television history" in general, NOT mention "Netflix", "M*A*S*H", "Apollo 11", or other specific event titles.
+
+REQUIRED OUTPUT - Address ALL 5 parameters (adapt to subject matter):
+
+1. VISUAL PALETTE: Specify primary colors (2-3), accent colors, saturation level (heavily desaturated/vibrant/muted), contrast level (high/low), and lighting quality with direction (e.g., "harsh overhead fluorescent" or "warm golden hour side-lighting" or "cool blue moonlight with hard shadows from above"){{#if themeColor}}. Incorporate {{themeColor}} as an accent color where appropriate{{/if}}.
+
+2. SETTING & ATMOSPHERE: BE EXTREMELY SPECIFIC about the EXACT era, location, and environment. Lock down the time period and setting so ALL images take place in the same world (e.g., "LOCKED TO 1980s Los Angeles corporate high-rise ONLY - Nakatomi Plaza setting, sterile glass and steel interiors with brutalist concrete stairwells, smoke and emergency lighting"). DO NOT allow era mixing or metaphorical settings.
+
+3. CHARACTER ARCHETYPE (if applicable): Define FACELESS MOOD DOUBLES - "faceless mannequin-like figures" (animated store mannequins) that replace characters. These must have:
+   - EXACT same physique/build as the character (height, muscle definition, body type)
+   - EXACT same clothing and costume details (down to specific tears, stains, accessories)
+   - EXACT same posture, stance, and body language
+   - EXACT same emotional expression conveyed through body language (tension, exhaustion, confidence, etc.)
+   - NO faces - completely blank/smooth where the face would be
+   - Era-appropriate and location-appropriate (e.g., "Faceless mannequin-like figure with the physique of a 1980s everyman cop, wearing torn white tank top, dark pants, barefoot, covered in soot - body shows exhaustion through hunched shoulders and strained muscles. Faceless mannequin-like figure with the physique of a 1980s corporate executive, wearing expensive dark suit with red tie - body shows confidence through upright posture and controlled gestures. ALL must be 1980s LA archetypes, faceless but instantly recognizable through physique, clothing, and body language"). For non-character subjects, describe key visual elements instead.
+
+4. EMOTIONAL TONE: Primary emotion and how it evolves through the narrative (e.g., "Escalating tension moving from wary alertness → desperate survival → explosive catharsis → grim triumph").
+
+5. CINEMATOGRAPHY: Shot composition preference, camera angles, lens characteristics, and vignette/edge treatment (e.g., "Wide-angle establishing shots transitioning to tight claustrophobic close-ups, camera slightly low to maintain heroic perspective, subtle telephoto compression for intensity, dark vignette at edges with red glow on emergency lighting").
+
+EXAMPLES for reference:
+
+DIE HARD (Action/Thriller):
+PALETTE: Desaturated steel blues and gunmetal grays, dark green emergency lights, red accent on blood/fire/emergency signs, high contrast with deep shadows, harsh overhead fluorescent mixing with red emergency lighting from upper angles. SETTING: LOCKED TO 1980s Los Angeles corporate high-rise (Nakatomi Plaza) ONLY - modernist glass and steel architecture, brutalist concrete stairwells and service areas, smoke-filled corridors, shattered glass, emergency exits, elevator shafts. ALL scenes must be in this tower or immediate exterior. NO other eras, NO historical settings, NO metaphors - only literal 1980s LA corporate building. ATMOSPHERE: Smoke, haze, emergency lighting, broken glass, Christmas decorations. CHARACTER: Archetypal 1980s everyman cop (torn white tank top, dark pants, barefoot, blood and soot, weary bearing). Archetypal 1980s corporate villain (expensive suit, red tie, cold bearing) replacing Gruber. Faceless mannequin-like figures with the physique of 1980s terrorists (tactical gear, 1980s weapons). ALL must be 1980s LA archetypes, faceless but era-appropriate. TONE: Rising tension from isolated alertness → desperate survival → explosive confrontation → exhausted triumph. CINEMATOGRAPHY: Mix of wide shots showing tower's oppressive scale and tight close-ups for intensity, slight low angles for heroic framing, natural lens perspective shifting to subtle telephoto compression in tense moments, dark vignette with red emergency light glow at edges.
+
+THE MATRIX (Sci-fi):
+PALETTE: Sickly green digital tint over all scenes, black leather and concrete, minimal warm tones, high contrast with crushed blacks, cool synthetic overhead lighting. SETTING: 1999 urban decay mixed with white void digital spaces, brutalist architecture, perpetual overcast, rain-slicked streets. CHARACTER: Hacker/chosen one in long black coat and sunglasses, fluid martial arts physicality, stoic bearing. TONE: Paranoid confusion → enlightened purpose → revolutionary action. CINEMATOGRAPHY: Telephoto compression for action sequences, mix of dutch angles and perfectly level symmetrical shots, slight green edge glow vignette.
+
+CRITICAL REQUIREMENTS FOR MOOD MATCHING:
+- LOCK the setting to the film's EXACT location and era (e.g., "EVERY scene must be in 1980s LA Nakatomi Plaza corporate tower - glass/steel/concrete only. NO other buildings, NO other eras, NO historical settings")
+- Define faceless mannequin-like REPLACEMENTS that are faceless but match the source roles exactly and are era-appropriate (e.g., "faceless mannequin-like figure with 1980s everyman cop physique in torn tank top" replacing McClane, "faceless mannequin-like figure with 1980s villain physique in suit with red tie" replacing Gruber)
+- NEVER allow era mixing - if it's 1980s, EVERY image must be 1980s (architecture, props, lighting, everything)
+- NEVER use metaphors or symbolic imagery - describe LITERAL scenes from the actual film in the actual location
+- Every scene must happen in the SAME specific location with SAME era-appropriate faceless mannequin-like figures
+
+Output a comprehensive 5-7 sentence visual style guide with STRICT setting/era/character locks. The guide must ensure that EVERY image: (1) takes place in the exact same location/building, (2) uses the same time period for ALL elements, (3) features the same faceless mannequin-like figures in era-appropriate costumes, (4) maintains visual/emotional consistency. For Die Hard: ALL scenes in 1980s Nakatomi tower with faceless 1980s mannequin-like figures.
+

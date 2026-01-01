@@ -1,0 +1,37 @@
+Timeline Context: {{timelineDescription}}{{#if sourceRestrictions}}
+
+SOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:
+{{#each sourceRestrictions}}  {{@index}}. {{this}}
+{{/each}}
+
+If information is not available in these sources, indicate that in the event description.{{/if}}
+
+{{#if imageContext}}{{imageContext}}
+
+{{/if}}Generate descriptions and image prompts for these {{eventCount}} events:
+
+{{#each events}}{{@index}}. {{year}}: {{title}}
+{{/each}}
+
+CRITICAL - TIMELINE CONTEXT REQUIREMENTS:
+- Both DESCRIPTIONS and IMAGE PROMPTS MUST directly relate to and incorporate key elements from the timeline description above
+- If the timeline description mentions specific themes (e.g., "horrible happenings", "tragic events"), qualities (e.g., "mysterious", "dark"), settings (e.g., "in the upside down", "in a dystopian world"), or contexts (e.g., "from Stranger Things", "during the apocalypse"), both descriptions and image prompts MUST reflect these elements
+- Descriptions should explain how the event relates to the timeline's specific focus, setting, theme, or context
+- Image prompts should visually represent the event in a way that captures the timeline's themes, settings, and contexts
+- Example: If timeline is "horrible happenings in Stranger Things that occurred in the upside down", descriptions should explain the horrible nature and upside down setting, and image prompts should visually depict scenes in the upside down with appropriate horror elements
+
+CRITICAL DISTINCTION:
+- The DESCRIPTION explains the EVENT (what happened, why it matters, its historical/educational significance) - NOT what the scene looks like
+- The IMAGE PROMPT describes the VISUAL SCENE (what you would see in an image of that event)
+- They should be about the SAME event, but serve different purposes:
+  * Description = explanation of the event's meaning, impact, and context (incorporating timeline themes/settings)
+  * ImagePrompt = visual representation of what that event would look like (incorporating timeline themes/settings)
+
+CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene:
+
+1. RECOGNIZABLE SCENES: Describe specific, iconic scenes that are instantly recognizable
+2. HYPER-SPECIFIC DETAILS: Name EVERYTHING - locations, objects, actions, body positions, clothing details
+3. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there
+
+NEVER use poetic, metaphorical, or abstract language unless specifically instructed otherwise for social media timelines.
+

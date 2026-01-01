@@ -1,0 +1,62 @@
+I need to produce a timeline for {{subjectName}}.
+
+IMPORTANT CONTEXT:
+- Current date: November 2025
+- For CURRENT EVENTS and ONGOING TOPICS: Prioritize recent, current, and newsworthy information
+- For ARTISTS, CREATORS, and HISTORICAL FIGURES: Provide comprehensive analysis covering their entire career/lifetime
+  * Include early years, formative period, and where the bulk of their impact occurred
+  * For deceased subjects: Focus on their lifetime period and historical context
+  * For living artists: Include both early career and recent work, showing full evolution
+  * Identify the period where their greatest impact or most significant work took place
+- For HISTORICAL TOPICS: Provide comprehensive coverage of the full historical period
+
+Give me 5 suggestions of what would be good and engaging themes for the timeline. Phrase each suggestion as a description of a timeline (ready to use as-is).
+
+The suggestions should:
+- Be specific to {{subjectName}} and their work/context
+- Offer different angles or perspectives
+- Be engaging and interesting to explore
+- Work well as visual timelines
+- Be distinct from each other
+- For artists/creators: Include early years, career evolution, peak impact period, and comprehensive coverage
+- For current events: Prioritize recent developments and ongoing developments
+- For historical topics: Provide comprehensive coverage spanning the full period
+- Mix perspectives: some recent-focused (when relevant), some comprehensive historical, some focused on periods of greatest impact
+
+Return your response as a JSON object with a "suggestions" key containing an array of strings, where each string is a complete timeline description.
+
+Example format for a recent topic (e.g., "Scotland World Cup qualifying"):
+{
+  "suggestions": [
+    "Scotland's journey to qualify for the 2026 World Cup, including their recent qualification success in 2025 and the key matches and moments that secured their place.",
+    "A comprehensive timeline of Scotland's World Cup qualifying campaigns from 2022 to 2025, highlighting their progression and recent achievement.",
+    "The key moments and matches in Scotland's 2025 World Cup qualifying campaign, from the opening matches to their successful qualification.",
+    "Scotland's World Cup history and their path to qualification, with emphasis on their recent 2025 qualification success.",
+    "An analysis of Scotland's World Cup qualifying journey, focusing on the most recent campaign and their achievement of qualifying for the 2026 tournament."
+  ]
+}
+
+Example format for artists/creators/historical figures:
+{
+  "suggestions": [
+    "A comprehensive biographical timeline spanning from their early years and formative period through their career evolution, highlighting where the bulk of their impact occurred.",
+    "An overview of their life's work, documenting major achievements from their early career to their most significant contributions, showing the full scope of their influence.",
+    "A critical analysis of their impact and influence, tracing their evolution from early works through their peak creative period and lasting legacy.",
+    "An examination of the key themes and patterns that defined their work, covering their entire career span and identifying the period of greatest significance.",
+    "A detailed timeline of their artistic journey, from early influences and beginnings through their most impactful period, to their enduring contributions to their field."
+  ]
+}
+
+Example format for deceased artists/figures:
+{
+  "suggestions": [
+    "A comprehensive timeline of their life and work, from their early years through their lifetime, focusing on the period where their greatest impact occurred.",
+    "An overview of their career spanning their entire lifetime, documenting major achievements and identifying the era of their most significant contributions.",
+    "A historical analysis of their work and influence, covering their full career from early beginnings to their final works, highlighting their peak creative period.",
+    "An examination of their artistic evolution throughout their lifetime, from formative years to their most influential period and lasting legacy.",
+    "A detailed timeline of their life's work, spanning their entire career and focusing on where the bulk of their artistic impact and influence took place."
+  ]
+}
+
+Generate 5 unique, engaging timeline descriptions for {{subjectName}}, prioritizing recent and current information when relevant:
+

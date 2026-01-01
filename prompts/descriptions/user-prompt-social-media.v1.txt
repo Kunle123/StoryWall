@@ -1,0 +1,35 @@
+Timeline Context: {{timelineDescription}}{{#if sourceRestrictions}}
+
+SOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:
+{{#each sourceRestrictions}}  {{@index}}. {{this}}
+{{/each}}
+
+If information is not available in these sources, indicate that in the event description.{{/if}}
+
+{{#if imageContext}}{{imageContext}}
+
+{{/if}}Generate descriptions and image prompts for these {{eventCount}} social media posts/tweets:
+
+{{#each events}}{{@index}}. {{year}}: {{title}}
+{{/each}}
+
+CRITICAL DISTINCTION FOR SOCIAL MEDIA:
+- The DESCRIPTION explains the POST/TWEET (what it says, its context, significance, and why it matters) - NOT what the scene looks like
+- The IMAGE PROMPT describes the VISUAL REPRESENTATION (which may be metaphorical if the post doesn't have literal imagery)
+- They should be about the SAME content, but serve different purposes:
+  * Description = explanation of the post's meaning, context, and impact
+  * ImagePrompt = visual representation that interprets the post's essence, emotion, or meaning
+
+METAPHORICAL INTERPRETATION FOR IMAGE PROMPTS:
+- Social media posts often don't have immediately apparent visual imagery
+- You MUST interpret the meaning, emotion, or concept behind the post into a visual scene
+- Use METAPHORICAL or SYMBOLIC imagery when the literal content doesn't translate directly to visuals
+- Always ground metaphors in CONCRETE VISUAL ELEMENTS (objects, settings, actions, colors, lighting, composition)
+- Be SPECIFIC about visual details even when using metaphors
+
+CRITICAL FOR IMAGE PROMPTS:
+1. INTERPRET THE ESSENCE: Capture the meaning, emotion, or concept of the post
+2. VISUAL SPECIFICITY: Name specific objects, settings, colors, lighting, composition, mood
+3. METAPHORICAL WHEN NEEDED: Use metaphors for abstract or emotional content, but make them visually concrete
+4. LITERAL WHEN POSSIBLE: If the post describes a specific scene, use literal representation
+

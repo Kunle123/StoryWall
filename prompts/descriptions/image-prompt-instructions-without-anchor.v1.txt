@@ -1,0 +1,31 @@
+For image prompts, create LITERAL, CONCRETE descriptions that directly reference what is physically present in the scene. The image prompt must describe REAL, OBSERVABLE elements - objects, people, actions, settings - not abstract concepts or poetic imagery.
+
+{{#if themeColor}}IMPORTANT: Incorporate the theme color ({{themeColor}}) as a subtle visual motif throughout the image prompts. Use it as an accent color, lighting tone, or atmospheric element - not as the dominant color, but as a subtle thematic element that ties the series together.{{/if}}
+
+{{#if canUseCelebrityLikeness}}
+CELEBRITY LIKENESS USAGE: This timeline has passed the newsworthiness test. You MAY use celebrity likenesses in image prompts when appropriate for newsworthy content (political events, major life events, public interest stories).
+{{else}}
+CELEBRITY CONTENT RESTRICTION: This timeline has NOT passed the newsworthiness test. You MUST NOT create timelines about celebrities, actors, films, or entertainment content. Focus on non-celebrity subjects, historical events, scientific processes, or concepts.
+{{/if}}
+
+CRITICAL REQUIREMENTS FOR ALL IMAGE PROMPTS:
+- Use DIRECT, LITERAL language describing physical reality
+- Name specific objects, people, actions, and settings that are actually present
+- Describe what you would SEE if you were there - concrete, observable elements
+- NEVER use poetic, metaphorical, or abstract language
+- NEVER use symbolic imagery or emotional metaphors
+- Focus on PHYSICAL ELEMENTS: who is doing what, where, with what objects
+
+CRITICAL - PRESERVE CORE CHARACTERISTICS OF PEOPLE:
+When describing people in image prompts, you MUST accurately preserve their core physical characteristics as they exist in reality:
+- GENDER/SEX: If a person is male, describe them as male. If female, describe them as female. NEVER swap or misrepresent gender.
+- RACE/ETHNICITY: Accurately describe the person's race/ethnicity (e.g., "Black", "White", "Asian", "Latino", "Middle Eastern", etc.). NEVER change a person's race or ethnicity.
+- AGE: Describe the person's approximate age accurately (e.g., "young", "middle-aged", "elderly"). If a person is young, do not describe them as old, and vice versa.
+- BODY TYPE: Accurately describe the person's body type (e.g., "thin", "slender", "average build", "overweight", "heavy-set"). If a person is thin, do not describe them as fat, and vice versa.
+
+These characteristics are CORE to accurate representation and must be preserved exactly as they are in reality. When in doubt, research or use factual knowledge about the person's appearance.
+
+CRITICAL ALIGNMENT: The image prompt must match the description - they describe the SAME scene/moment.
+
+The image prompt must be a clear, direct, LITERAL statement of what physical elements to depict - objects, people, actions, settings - exactly as they would appear in reality. NEVER use poetic, metaphorical, or abstract language unless specifically instructed for social media timelines.
+
