@@ -18,9 +18,13 @@ type Step =
   | 'done';
 
 // ENDPOINTS: adjust if your API routes differ.
-const DESCRIPTION_ENDPOINT = '/api/ai/generate-descriptions-v2';
-const EVENTS_ENDPOINT = '/api/timelines/generate-events';
+// 1) suggest timeline description
+const SUGGEST_DESCRIPTION_ENDPOINT = '/api/ai/suggest-timeline-descriptions';
+// 2) generate events
+const EVENTS_ENDPOINT = '/api/ai/generate-events';
+// 3) event descriptions/prompts (requires events + timelineDescription)
 const EVENT_DESCRIPTIONS_ENDPOINT = '/api/ai/generate-descriptions-v2';
+// 4) images
 const IMAGE_ENDPOINT = '/api/ai/generate-images';
 
 export default function AbridgedFlowPage() {
@@ -48,25 +52,25 @@ export default function AbridgedFlowPage() {
 
     setLoading(true);
     try {
-      // 1) Description
+      // 1) Description suggestion (pick first)
       setStep('generatingDescription');
-      appendLog('Generating timeline description...');
-      const descRes = await fetch(DESCRIPTION_ENDPOINT, {
+      appendLog('Generating timeline description (suggestions)...');
+      const descRes = await fetch(SUGGEST_DESCRIPTION_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          narrativeStyle: 'Narration',
-          imageStyle: 'Illustration',
+          subjectName: title,
         }),
       });
       if (!descRes.ok) throw new Error(`Description failed (${descRes.status})`);
       const descData = await descRes.json();
-      const generatedDescription =
-        descData?.description ||
-        descData?.data?.description ||
-        descData?.result?.description ||
-        '';
+      const suggestions: string[] =
+        descData?.suggestions ||
+        descData?.data?.suggestions ||
+        descData?.result?.suggestions ||
+        [];
+      const generatedDescription = suggestions[0] || '';
+      if (!generatedDescription) throw new Error('No description suggestion returned');
       setTimelineDescription(generatedDescription);
       appendLog('Description generated.');
 
@@ -77,11 +81,10 @@ export default function AbridgedFlowPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          description: generatedDescription,
-          limit: 10,
-          style: 'Illustration',
-          narrativeStyle: 'Narration',
+          timelineDescription: generatedDescription,
+          timelineName: title,
+          maxEvents: 10,
+          isFactual: true,
         }),
       });
       if (!eventsRes.ok) throw new Error(`Events failed (${eventsRes.status})`);
@@ -101,9 +104,9 @@ export default function AbridgedFlowPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          events: generatedEvents.map(e => e.title),
-          narrativeStyle: 'Narration',
+          events: generatedEvents.map(e => ({ title: e.title, year: e.year })),
+          timelineDescription: generatedDescription,
+          writingStyle: 'narrative', // matches API default
           imageStyle: 'Illustration',
         }),
       });
@@ -117,7 +120,9 @@ export default function AbridgedFlowPage() {
           eventDescData?.data?.descriptions?.[idx] ||
           e.description,
         prompt:
+          eventDescData?.imagePrompts?.[idx] ||
           eventDescData?.prompts?.[idx] ||
+          eventDescData?.data?.imagePrompts?.[idx] ||
           eventDescData?.data?.prompts?.[idx] ||
           e.prompt,
       }));
