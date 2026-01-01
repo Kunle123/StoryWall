@@ -2232,14 +2232,6 @@ export async function POST(request: NextRequest) {
             console.log(`[ImageGen] Forcing single-subject reference for "${event.title}" using ${singleSubjectRef.name}`);
           }
 
-          // Avoid reusing a single reference for multiple distinct people in the same event
-          // (e.g., "Ben Affleck interviewing Ben Affleck").
-          const preparedAvailable = preparedReferences.filter(r => r).length;
-          if (relevantImageRefs.length > 1 && preparedAvailable <= 1) {
-            console.log(`[ImageGen] Multiple people detected (${relevantImageRefs.map(r => r.name).join(', ')}), but only one reference available. Skipping reference to avoid reusing the same image for multiple people.`);
-            relevantImageRefs = [];
-          }
-
           if (relevantImageRefs.length > 0) {
             // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
             let bestMatch = relevantImageRefs[0];
