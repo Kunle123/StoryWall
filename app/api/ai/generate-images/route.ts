@@ -1844,13 +1844,20 @@ export async function POST(request: NextRequest) {
     const user = userId ? await getOrCreateUser(userId) : { id: 'guest', credits: Number.MAX_SAFE_INTEGER };
 
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
+    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle, styleReferenceUrl } = body;
     
     // Log Anchor status for debugging
     if (anchorStyle) {
       console.log(`[ImageGen] Anchor style provided: ${anchorStyle.substring(0, 100)}...`);
     } else {
       console.log(`[ImageGen] No Anchor style provided`);
+    }
+    
+    // Log Style Reference status
+    if (styleReferenceUrl) {
+      console.log(`[ImageGen] Style reference URL provided: ${styleReferenceUrl.substring(0, 80)}...`);
+    } else {
+      console.log(`[ImageGen] No style reference URL provided`);
     }
 
     if (!events || !Array.isArray(events) || events.length === 0) {
@@ -2172,13 +2179,16 @@ export async function POST(request: NextRequest) {
                                  selectedModel.includes('flux-dev') ||
                                  selectedModel.includes('imagen');
         
-        // Use hasPreparedReferences instead of hasReferenceImages - we need actual prepared images, not just attempted ones
-        if (hasPreparedReferences) {
+        // Use hasPreparedReferences or styleReferenceUrl - we need actual prepared images or a style reference
+        const hasAnyReference = hasPreparedReferences || !!styleReferenceUrl;
+        
+        if (hasAnyReference) {
           // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
           // This is cheaper than Flux Kontext Pro and works well with SDXL
           if (isSDXL || isArtistic) {
             selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter (SDXL + IP-Adapter)
-            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to IP-Adapter (hasPreparedReferences=true, preparedCount=${preparedCount}, $0.028/image)`);
+            const refType = styleReferenceUrl ? 'styleReference' : 'preparedReferences';
+            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to IP-Adapter (${refType}=true, preparedCount=${preparedCount}, $0.028/image)`);
           } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
@@ -2327,9 +2337,17 @@ export async function POST(request: NextRequest) {
           referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         }
         
+        // NEW: Style reference takes priority over face reference for IP-Adapter
+        if (styleReferenceUrl) {
+          referenceImageUrl = styleReferenceUrl;
+          console.log(`[ImageGen] ✅ Event "${event.title}" (${index + 1}/${events.length}): Using style reference image`);
+          console.log(`[ImageGen]    Style Reference URL: ${referenceImageUrl.substring(0, 80)}...`);
+          console.log(`[ImageGen]    Model: ${selectedModel} (will inject style reference)`);
+        }
+        
         const hasReferenceImage = !!referenceImageUrl;
         
-        if (hasReferenceImage && referenceImageUrl) {
+        if (hasReferenceImage && referenceImageUrl && !styleReferenceUrl) {
           const personName = relevantImageRefs.length > 0 ? relevantImageRefs[0].name : 'unknown';
           console.log(`[ImageGen] ✅ Event "${event.title}" (${index + 1}/${events.length}): Using reference image for ${personName}`);
           console.log(`[ImageGen]    Reference URL: ${referenceImageUrl.substring(0, 80)}...`);

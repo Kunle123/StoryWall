@@ -13,6 +13,7 @@ type GeneratedEvent = {
 type Step =
   | 'idle'
   | 'generatingDescription'
+  | 'generatingStyleReference'
   | 'generatingEvents'
   | 'generatingEventDescriptions'
   | 'generatingImages'
@@ -31,6 +32,7 @@ const IMAGE_ENDPOINT = '/api/ai/generate-images';
 export default function AbridgedFlowPage() {
   const [title, setTitle] = useState('');
   const [timelineDescription, setTimelineDescription] = useState('');
+  const [styleReferenceUrl, setStyleReferenceUrl] = useState('');
   const [events, setEvents] = useState<GeneratedEvent[]>([]);
   const [step, setStep] = useState<Step>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export default function AbridgedFlowPage() {
     setError(null);
     setLog([]);
     setTimelineDescription('');
+    setStyleReferenceUrl('');
     setEvents([]);
     setStep('idle');
 
@@ -75,7 +78,34 @@ export default function AbridgedFlowPage() {
       setTimelineDescription(generatedDescription);
       appendLog('Description generated.');
 
-      // 2) Events
+      // 2) Style Reference Image (NEW: generate visual anchor)
+      setStep('generatingStyleReference');
+      appendLog('Generating style reference image...');
+      const styleRefRes = await fetch(IMAGE_ENDPOINT + '?abridged=true', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-abridged-flow': 'true',
+        },
+        body: JSON.stringify({
+          title: title,
+          style: 'Illustration',
+          narrativeStyle: 'Narration',
+          events: [{
+            title: 'Visual Style Reference',
+            description: `A pure style reference image capturing the visual aesthetic for: ${generatedDescription}`,
+            imagePrompt: `Illustration style: Bright reds & blues on white, golden theatre wings, lean athletic silhouette in practice wear, low-angle 28mm lens. Warm backstage theatrical lighting, centered composition, documentary photography style, soft even lighting, neutral background.`,
+          }],
+        }),
+      });
+      if (!styleRefRes.ok) throw new Error(`Style reference failed (${styleRefRes.status})`);
+      const styleRefData = await styleRefRes.json();
+      const styleUrl = styleRefData?.images?.[0]?.url || styleRefData?.images?.[0] || '';
+      if (!styleUrl) throw new Error('No style reference URL returned');
+      setStyleReferenceUrl(styleUrl);
+      appendLog(`Style reference generated: ${styleUrl.substring(0, 50)}...`);
+
+      // 3) Events
       setStep('generatingEvents');
       appendLog('Generating 10 events...');
       const eventsRes = await fetch(EVENTS_ENDPOINT, {
@@ -98,7 +128,7 @@ export default function AbridgedFlowPage() {
       setEvents(generatedEvents);
       appendLog(`Events generated: ${generatedEvents.length}`);
 
-      // 3) Event descriptions/prompts
+      // 4) Event descriptions/prompts
       setStep('generatingEventDescriptions');
       appendLog('Generating event descriptions/prompts...');
       const eventDescRes = await fetch(EVENT_DESCRIPTIONS_ENDPOINT, {
@@ -130,22 +160,25 @@ export default function AbridgedFlowPage() {
       setEvents(enrichedEvents);
       appendLog('Event descriptions/prompts generated.');
 
-      // 4) Images
+      // 5) Images (with style reference)
       setStep('generatingImages');
-      appendLog('Generating images...');
-      const imageRes = await fetch(IMAGE_ENDPOINT, {
+      appendLog('Generating images with style reference...');
+      const imageRes = await fetch(IMAGE_ENDPOINT + '?abridged=true', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-abridged-flow': 'true',
+        },
         body: JSON.stringify({
           title,
           style: 'Illustration',
           narrativeStyle: 'Narration',
+          styleReferenceUrl: styleUrl, // NEW: pass style reference
           events: enrichedEvents.map(e => ({
             title: e.title,
             description: e.description,
             imagePrompt: e.prompt,
           })),
-          // If your image API needs references, add them here
         }),
       });
       if (!imageRes.ok) throw new Error(`Images failed (${imageRes.status})`);
@@ -209,6 +242,18 @@ export default function AbridgedFlowPage() {
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">Timeline Description</h2>
           <p className="text-sm whitespace-pre-wrap">{timelineDescription}</p>
+        </section>
+      )}
+
+      {styleReferenceUrl && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold">Style Reference Image</h2>
+          <p className="text-xs text-gray-600">This image defines the visual style for all event images (composition, lighting, colors)</p>
+          <img
+            src={styleReferenceUrl}
+            alt="Style Reference"
+            className="w-full max-w-md h-auto rounded border"
+          />
         </section>
       )}
 
