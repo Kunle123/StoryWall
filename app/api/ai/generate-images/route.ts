@@ -888,14 +888,14 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
 // Helper to upload image to Replicate's file storage
 async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
-    console.log(`[ImageGen] Starting upload to Replicate for: ${imageUrl.substring(0, 80)}...`);
+    console.log(`[ImageGen] Starting Wikimedia download for upload to Replicate: ${imageUrl.substring(0, 80)}...`);
     
     // Throttle Wikimedia requests before downloading
     if (imageUrl.includes('wikimedia.org')) {
       await throttleWikimediaRequest();
     }
     
-    // Download the image with retry logic for rate limits
+    // Download the image with retry logic for rate limits AND timeouts
     const downloadImage = async (): Promise<Response> => {
       const imageResponse = await fetch(imageUrl, {
         headers: {
@@ -1032,6 +1032,8 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
       } else {
         // Unexpected error
         console.error(`[ImageGen] Unexpected error uploading to Replicate: ${error.message}`);
+        console.error(`[ImageGen] Error stack: ${error.stack}`);
+        console.error(`[ImageGen] Error type: ${error.constructor.name}`);
         return null;
       }
     }
@@ -1090,11 +1092,17 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // Pass Wikimedia URLs directly to IP-Adapter (no re-hosting to avoid licensing issues)
-    // IP-Adapter will download the image directly from Wikimedia
+    // For Wikimedia URLs, we need to upload to Replicate's file storage first
+    // because IP-Adapter cannot fetch directly from Wikimedia (403 Forbidden / fetch failed)
     if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      console.log(`[ImageGen] Using Wikimedia URL directly: ${finalUrl.substring(0, 80)}...`);
-      return finalUrl;
+      console.log(`[ImageGen] Wikimedia URL detected - uploading to Replicate: ${finalUrl.substring(0, 80)}...`);
+      const replicateUrl = await uploadImageToReplicate(finalUrl, replicateApiKey);
+      if (!replicateUrl) {
+        console.warn(`[ImageGen] Failed to upload Wikimedia image to Replicate: ${finalUrl.substring(0, 100)}`);
+        return null;
+      }
+      console.log(`[ImageGen] Successfully uploaded to Replicate, using Replicate URL for IP-Adapter`);
+      return replicateUrl;
     }
     
     // For non-Wikimedia URLs, validate that the URL actually points to an image
