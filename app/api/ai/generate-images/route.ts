@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { containsFamousPerson, makePromptSafeForFamousPeople, getSafeStyleForFamousPeople } from '@/lib/utils/famousPeopleHandler';
-import { persistImagesToCloudinary } from '@/lib/utils/imagePersistence';
+import { persistImagesToCloudinary, persistImageToCloudinary } from '@/lib/utils/imagePersistence';
 import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/imagen';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
