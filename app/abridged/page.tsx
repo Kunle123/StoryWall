@@ -18,9 +18,9 @@ type Step =
   | 'done';
 
 // ENDPOINTS: adjust if your API routes differ.
-const DESCRIPTION_ENDPOINT = '/api/generate-descriptions';
+const DESCRIPTION_ENDPOINT = '/api/ai/generate-descriptions-v2';
 const EVENTS_ENDPOINT = '/api/timelines/generate-events';
-const EVENT_DESCRIPTIONS_ENDPOINT = '/api/generate-descriptions';
+const EVENT_DESCRIPTIONS_ENDPOINT = '/api/ai/generate-descriptions-v2';
 const IMAGE_ENDPOINT = '/api/ai/generate-images';
 
 export default function AbridgedFlowPage() {
