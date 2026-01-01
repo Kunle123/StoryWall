@@ -2951,7 +2951,7 @@ export async function POST(request: NextRequest) {
                     const creditsToDeduct = successfulImages.length;
                     
                     // Deduct credits AFTER all images are generated
-                    if (creditsToDeduct > 0) {
+                    if (creditsToDeduct > 0 && user.id !== 'guest') {
                       try {
                         await prisma.user.update({
                           where: { id: user.id },
@@ -2970,6 +2970,8 @@ export async function POST(request: NextRequest) {
                         console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
                         // Don't fail the request if credit deduction fails - images were already generated
                       }
+                    } else if (user.id === 'guest') {
+                      console.log(`[ImageGen] [Streaming] Skipping credit deduction for guest user (abridged flow)`);
                     }
                     
                     const streamingTime = Date.now() - streamingStartTime;
@@ -3008,7 +3010,7 @@ export async function POST(request: NextRequest) {
                     const successfulImages = images.filter(img => img !== null);
                     const creditsToDeduct = successfulImages.length;
                     
-                    if (creditsToDeduct > 0) {
+                    if (creditsToDeduct > 0 && user.id !== 'guest') {
                       try {
                         await prisma.user.update({
                           where: { id: user.id },
@@ -3026,6 +3028,8 @@ export async function POST(request: NextRequest) {
                       } catch (creditError: any) {
                         console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
                       }
+                    } else if (user.id === 'guest') {
+                      console.log(`[ImageGen] [Streaming] Skipping credit deduction for guest user (abridged flow)`);
                     }
                     
                     // Send final update
@@ -3053,7 +3057,7 @@ export async function POST(request: NextRequest) {
                   const successfulImages = images.filter(img => img !== null);
                   const creditsToDeduct = successfulImages.length;
                   
-                  if (creditsToDeduct > 0) {
+                  if (creditsToDeduct > 0 && user.id !== 'guest') {
                     try {
                       await prisma.user.update({
                         where: { id: user.id },
@@ -3071,6 +3075,8 @@ export async function POST(request: NextRequest) {
                     } catch (creditError: any) {
                       console.error(`[ImageGen] [Streaming] Failed to deduct credits:`, creditError);
                     }
+                  } else if (user.id === 'guest') {
+                    console.log(`[ImageGen] [Streaming] Skipping credit deduction for guest user (abridged flow)`);
                   }
                   
                   // Send final update with credits deducted
@@ -3188,7 +3194,7 @@ export async function POST(request: NextRequest) {
     
     // Deduct credits AFTER successful generation (1 credit per successfully generated image)
     const creditsToDeduct = successfulImages.length;
-    if (creditsToDeduct > 0) {
+    if (creditsToDeduct > 0 && user.id !== 'guest') {
       try {
         await prisma.user.update({
           where: { id: user.id },
@@ -3208,6 +3214,8 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if credit deduction fails - images were already generated
         // But log the error for investigation
       }
+    } else if (user.id === 'guest') {
+      console.log(`[ImageGen] Skipping credit deduction for guest user (abridged flow)`);
     }
     
     // Return all images (including nulls for failed ones) so frontend can handle gracefully
