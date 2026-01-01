@@ -1090,15 +1090,22 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // For Wikimedia URLs, upload to Replicate ONLY if using SDXL (which has 403 errors)
-    // Skip upload for Imagen and other models that can fetch Wikimedia URLs directly
+    // NEW APPROACH: Upload Wikimedia images to Cloudinary for reliable hosting
+    // This avoids the "fetch failed" errors we were seeing with Replicate uploads
     if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      // Check if we're using SDXL (which needs uploaded images)
-      // Note: We can't check the model here since it's determined per-event
-      // So we'll always return the direct URL and let the caller decide if upload is needed
-      console.log(`[ImageGen] Wikimedia image ready: ${finalUrl.substring(0, 80)}...`);
-      // Return direct URL - upload will be handled per-model if needed
-      return finalUrl;
+      console.log(`[ImageGen] Uploading Wikimedia image to Cloudinary for stable hosting...`);
+      const cloudinaryUrl = await persistImageToCloudinary(finalUrl);
+      if (cloudinaryUrl && cloudinaryUrl !== finalUrl) {
+        console.log(`[ImageGen] ✓ Uploaded to Cloudinary: ${cloudinaryUrl.substring(0, 80)}...`);
+        return cloudinaryUrl;
+      } else if (cloudinaryUrl === finalUrl) {
+        // Cloudinary upload failed, falling back to original URL
+        console.warn(`[ImageGen] ⚠️ Cloudinary upload failed, using Wikimedia URL directly: ${finalUrl.substring(0, 80)}...`);
+        return finalUrl;
+      } else {
+        console.warn(`[ImageGen] ✗ Cloudinary upload returned null`);
+        return null;
+      }
     }
     
     // For non-Wikimedia URLs, validate that the URL actually points to an image
@@ -1111,7 +1118,7 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
     console.log(`[ImageGen] Validated and ready to use reference image: ${finalUrl.substring(0, 100)}...`);
     return finalUrl;
   } catch (error: any) {
-    console.error(`[ImageGen] Error preparing reference image for Replicate: ${imageUrl.substring(0, 100)}`, error.message);
+    console.error(`[ImageGen] Error preparing reference image: ${imageUrl.substring(0, 100)}`, error.message);
     return null;
   }
 }
@@ -2337,13 +2344,12 @@ export async function POST(request: NextRequest) {
           referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         }
         
-        // NEW: Style reference takes priority over face reference for IP-Adapter
-        if (styleReferenceUrl) {
-          referenceImageUrl = styleReferenceUrl;
-          console.log(`[ImageGen] ✅ Event "${event.title}" (${index + 1}/${events.length}): Using style reference image`);
-          console.log(`[ImageGen]    Style Reference URL: ${styleReferenceUrl.substring(0, 80)}...`);
-          console.log(`[ImageGen]    Model: ${selectedModel} (will inject style reference)`);
-        }
+        // Style reference can be used if provided, but face reference takes priority
+        // For now, we're testing face references with Cloudinary, so skip style ref
+        // if (styleReferenceUrl && !referenceImageUrl) {
+        //   referenceImageUrl = styleReferenceUrl;
+        //   console.log(`[ImageGen] Using style reference (no face ref available)`);
+        // }
         
         const hasReferenceImage = !!referenceImageUrl;
         
