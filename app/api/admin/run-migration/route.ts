@@ -83,6 +83,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Timelines: add is_featured
+    if (migrationName === 'timelines' || migrationName === 'all' || migrationName === 'is_featured') {
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "is_featured" BOOLEAN NOT NULL DEFAULT false;
+        `);
+        results.push('✅ Added is_featured column to timelines table');
+      } catch (error: any) {
+        errors.push(`❌ Failed to add is_featured column: ${error.message}`);
+      }
+    }
+
     if (migrationName === 'bio' || migrationName === 'all') {
       try {
         await prisma.$executeRawUnsafe(`
@@ -108,7 +120,7 @@ export async function POST(request: NextRequest) {
     // Verify columns exist
     const verifyResults: any = {};
     try {
-      const columns = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(`
+      const userColumns = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(`
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_name = 'users' 
@@ -116,8 +128,17 @@ export async function POST(request: NextRequest) {
         ORDER BY column_name;
       `);
       
-      verifyResults.bio = columns.some(c => c.column_name === 'bio');
-      verifyResults.terms_accepted_at = columns.some(c => c.column_name === 'terms_accepted_at');
+      verifyResults.bio = userColumns.some(c => c.column_name === 'bio');
+      verifyResults.terms_accepted_at = userColumns.some(c => c.column_name === 'terms_accepted_at');
+
+      const timelineColumns = await prisma.$queryRawUnsafe<Array<{ column_name: string }>>(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'timelines'
+        AND column_name IN ('is_featured')
+        ORDER BY column_name;
+      `);
+      verifyResults.is_featured = timelineColumns.some(c => c.column_name === 'is_featured');
     } catch (error: any) {
       errors.push(`❌ Failed to verify columns: ${error.message}`);
     }
