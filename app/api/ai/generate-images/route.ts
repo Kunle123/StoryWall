@@ -2232,6 +2232,13 @@ export async function POST(request: NextRequest) {
             console.log(`[ImageGen] Forcing single-subject reference for "${event.title}" using ${singleSubjectRef.name}`);
           }
 
+          // If still no match but we have prepared references, fall back to the first prepared one
+          // so likeness is used across the timeline even when the name isn't repeated in the event text.
+          if (relevantImageRefs.length === 0 && hasPreparedReferences && finalImageReferences.length > 0) {
+            relevantImageRefs = [finalImageReferences[0]];
+            console.log(`[ImageGen] No explicit name match for "${event.title}" - defaulting to first prepared reference (${finalImageReferences[0].name})`);
+          }
+
           if (relevantImageRefs.length > 0) {
             // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
             let bestMatch = relevantImageRefs[0];
