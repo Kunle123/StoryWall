@@ -1815,17 +1815,32 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await auth();
-    if (!userId) {
+    const allowGuest = request.headers.get('x-abridged-flow') === 'true' || request.nextUrl.searchParams.get('abridged') === 'true';
+
+    // Check authentication (optional for abridged/guest flow)
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult?.userId || null;
+    } catch (authError: any) {
+      console.warn('[ImageGen] Clerk auth error:', authError?.message);
+      if (!allowGuest) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!userId && !allowGuest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    // Get or create user for credit management
-    const user = await getOrCreateUser(userId);
+    // Get or create user for credit management unless guest
+    const user = userId ? await getOrCreateUser(userId) : { id: 'guest', credits: Number.MAX_SAFE_INTEGER };
 
     const body = await request.json();
     const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle } = body;
@@ -1844,22 +1859,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check credits before generation (1 credit per image)
-    const requiredCredits = events.length;
-    const userCredits = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { credits: true },
-    });
+    const allowGuest = request.headers.get('x-abridged-flow') === 'true' || request.nextUrl.searchParams.get('abridged') === 'true';
 
-    if (!userCredits || userCredits.credits < requiredCredits) {
-      return NextResponse.json(
-        { 
-          error: 'Insufficient credits',
-          credits: userCredits?.credits || 0,
-          required: requiredCredits,
-        },
-        { status: 400 }
-      );
+    // Check credits before generation (1 credit per image) unless guest (abridged flow)
+    const requiredCredits = events.length;
+    let userCredits: { credits: number } | null = null;
+    if (!allowGuest) {
+      userCredits = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { credits: true },
+      });
+      
+      if (!userCredits || userCredits.credits < requiredCredits) {
+        return NextResponse.json(
+          { 
+            error: 'Insufficient credits',
+            credits: userCredits?.credits || 0,
+            required: requiredCredits,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const replicateApiKey = process.env.REPLICATE_API_TOKEN;
