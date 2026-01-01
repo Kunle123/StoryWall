@@ -1404,8 +1404,9 @@ function buildImagePrompt(
     // The Anchor contains specific visual instructions (color washes, vignettes, lighting) that MUST be preserved
     // Don't truncate the Anchor - it needs to include all visual consistency instructions
     // The Anchor should be prepended in full to ensure all visual effects are applied
-    
-    prompt = `${normalizedAnchor}. ${eventDescription}`;
+
+    const anchorReminder = 'ANCHOR (FOLLOW EXACTLY — keep palette, composition, camera, props, and setting as described; do NOT replace or downplay these anchor elements)';
+    prompt = `${anchorReminder}: ${normalizedAnchor}. Apply the anchor verbatim, then render this specific event within that anchor: ${eventDescription}`;
     console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${normalizedAnchor.length} chars)`);
     
     // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
