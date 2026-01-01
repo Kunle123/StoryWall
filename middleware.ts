@@ -8,6 +8,7 @@ const publicRoutes = [
   '/sign-in',
   '/sign-up',
   '/legal',
+  '/abridged',
 ];
 
 // Routes that don't require terms acceptance check
