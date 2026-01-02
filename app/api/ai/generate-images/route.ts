@@ -2138,8 +2138,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Decide which model path to use BEFORE preparing images
-    // PRIORITY: For abridged flow with reference images available, use Google Imagen
-    const willUseImagen = allowGuest && validImageReferences.length > 0 && isGoogleCloudConfigured();
+    // DISABLED: Imagen has poor style consistency (mixing cartoon/photorealistic) and generates unwanted text
+    // Keeping SDXL for consistent styling across all events in a timeline
+    const willUseImagen = false; // allowGuest && validImageReferences.length > 0 && isGoogleCloudConfigured();
     
     // Prepare reference images with error handling
     let preparedReferences: (string | null)[] = [];
