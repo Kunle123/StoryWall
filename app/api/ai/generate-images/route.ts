@@ -1648,10 +1648,17 @@ function buildImagePrompt(
   // Add composition guidance (concise)
   prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
   
-  // Add series consistency instructions - images should look like they belong to the same photographic/documentary series
-  // Since the model can't see other images, we need to specify the exact visual style to maintain
-  // Use a consistent, documentary-style approach that works for progression timelines
-  prompt += `. SERIES CONSISTENCY: Use a consistent documentary photography style: soft, even lighting from above (like a medical/scientific photograph), neutral background (white or light gray), centered subject composition, same scale and magnification level, clinical/educational aesthetic. Maintain this exact visual approach across all images in the series - same lighting direction, same background color, same composition style, same level of detail. Images should look like they were photographed in the same scientific documentation session`;
+  // Add series consistency instructions - SIMPLIFIED for Imagen
+  // Imagen struggles with complex, contradictory instructions
+  // Keep it simple: maintain consistent style across all images
+  const styleKeyword = imageStyle.toLowerCase();
+  if (styleKeyword.includes('illustration') || styleKeyword.includes('cartoon') || styleKeyword.includes('watercolor')) {
+    prompt += `. STYLE CONSISTENCY: Maintain consistent ${imageStyle} style across all images - same artistic technique, same level of detail, same visual approach`;
+  } else if (styleKeyword.includes('photo') || styleKeyword.includes('realistic')) {
+    prompt += `. STYLE CONSISTENCY: Maintain consistent photographic style - same lighting, same composition, same visual approach`;
+  } else {
+    prompt += `. STYLE CONSISTENCY: Maintain consistent ${imageStyle} style across all images`;
+  }
   
   // Add person matching instructions when reference images are provided AND timeline includes people
   // These instructions are critical for accurate person matching with Imagen
@@ -1721,16 +1728,13 @@ function buildImagePrompt(
         }
       });
       
-      // Add specific person matching instructions - make them VERY prominent
-      // Explicitly preserve hair color, skin tone, and all physical attributes
+      // Add specific person matching instructions - SIMPLIFIED for Imagen
+      // Imagen works better with concise, clear instructions
       const isMultiplePeople = personNames.length > 1;
       if (isMultiplePeople) {
-        // For multiple people, be VERY explicit about showing all of them in a SINGLE unified scene (not a grid)
-        prompt += `. CRITICAL: Show ${personNames.length} DISTINCT people: ${personNames.join(', ')} together in a SINGLE unified scene. Each person must be clearly visible and recognizable in the same image. Do NOT create grids, panels, or separate images. Do NOT merge or combine their features. Each person must have their own distinct appearance matching their reference image. `;
-        prompt += `CRITICAL PERSON MATCHING FOR EACH PERSON: Match the exact appearance of ${personNames.join(' and ')} from their reference images. For each person, PRESERVE EXACT HAIR COLOR from their reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics for EACH person. DO NOT alter hair color, skin tone, or any physical attributes. Each person must match their facial structure, distinctive features, and recognizable characteristics exactly. Show all ${personNames.length} people together in one unified scene, not in separate panels or grids`;
+        prompt += `. Match the appearance of ${personNames.join(' and ')} from the reference images. Preserve their facial features, hair, and physical characteristics`;
       } else {
-        // Single person - simpler instructions
-        prompt += `. CRITICAL PERSON MATCHING: Match the exact appearance of ${personNames[0]} from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white, NOT brown). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, facial hair, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Match facial structure, distinctive features, and recognizable characteristics exactly. Maintain these exact physical attributes while adapting to the scene context and style`;
+        prompt += `. Match the appearance of ${personNames[0]} from the reference image. Preserve facial features, hair color, and physical characteristics`;
       }
     } else {
       // Generic person matching instruction if names can't be extracted
@@ -1758,13 +1762,13 @@ function buildImagePrompt(
   }
   
   // Add text handling instructions - always minimize text
+  // REMOVED: "No text" instructions - Imagen ignores these and generates text anyway
+  // Better to rely on negative prompts in the model-specific parameters
   if (needsText) {
-    // When text is needed, limit to essential text only (headlines, signs)
-    prompt += `. Minimal text - only essential headlines or signs if needed. Keep text brief and clear`;
-  } else {
-    // For most images, avoid all text
-    prompt += `. No text, no words, no written content, no labels. Pure visual scene without any readable text or letters`;
+    // For images that need text (e.g., newspaper headlines, signs, book covers)
+    prompt += `. Include minimal text - only essential headlines or signs`;
   }
+  // Note: Text prevention is now handled via negative_prompt parameter
   
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
@@ -2138,9 +2142,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Decide which model path to use BEFORE preparing images
-    // DISABLED: Imagen has poor style consistency (mixing cartoon/photorealistic) and generates unwanted text
-    // Keeping SDXL for consistent styling across all events in a timeline
-    const willUseImagen = false; // allowGuest && validImageReferences.length > 0 && isGoogleCloudConfigured();
+    // RE-ENABLED: Test Imagen with simplified, non-contradictory prompts
+    const willUseImagen = allowGuest && validImageReferences.length > 0 && isGoogleCloudConfigured();
     
     // Prepare reference images with error handling
     let preparedReferences: (string | null)[] = [];
