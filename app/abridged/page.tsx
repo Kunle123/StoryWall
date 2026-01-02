@@ -28,8 +28,23 @@ const EVENT_DESCRIPTIONS_ENDPOINT = '/api/ai/generate-descriptions-v2';
 // 4) images
 const IMAGE_ENDPOINT = '/api/ai/generate-images';
 
+// Style options with visual examples
+const ILLUSTRATION_STYLES = [
+  { id: 'Watercolor', name: 'Watercolor', emoji: '🎨', description: 'Soft, flowing watercolor paintings' },
+  { id: 'Line Art', name: 'Line Art', emoji: '✏️', description: 'Clean pen and ink drawings' },
+  { id: 'Comic Book', name: 'Comic Book', emoji: '💥', description: 'Bold comic book style' },
+  { id: 'Vintage Poster', name: 'Vintage Poster', emoji: '📜', description: 'Retro propaganda poster art' },
+  { id: 'Minimalist', name: 'Minimalist', emoji: '⬜', description: 'Simple, clean minimalism' },
+  { id: 'Digital Art', name: 'Digital Art', emoji: '🖥️', description: 'Modern digital illustration' },
+  { id: 'Anime', name: 'Anime', emoji: '🎴', description: 'Japanese anime/manga style' },
+  { id: 'Woodcut', name: 'Woodcut', emoji: '🪓', description: 'Traditional woodcut prints' },
+  { id: 'Pastel', name: 'Pastel', emoji: '🌸', description: 'Soft pastel chalk art' },
+  { id: 'Ink Wash', name: 'Ink Wash', emoji: '🖌️', description: 'Traditional ink wash painting' },
+];
+
 export default function AbridgedFlowPage() {
   const [title, setTitle] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState(ILLUSTRATION_STYLES[0].id); // Default to Watercolor
   const [timelineDescription, setTimelineDescription] = useState('');
   const [events, setEvents] = useState<GeneratedEvent[]>([]);
   const [step, setStep] = useState<Step>('idle');
@@ -108,7 +123,7 @@ export default function AbridgedFlowPage() {
           events: generatedEvents.map(e => ({ title: e.title, year: e.year })),
           timelineDescription: generatedDescription,
           writingStyle: 'narrative', // matches API default
-          imageStyle: 'Illustration',
+          imageStyle: selectedStyle,
         }),
       });
       if (!eventDescRes.ok)
@@ -141,7 +156,7 @@ export default function AbridgedFlowPage() {
         },
         body: JSON.stringify({
           title,
-          style: 'Illustration',
+          style: selectedStyle,
           narrativeStyle: 'Narration',
           events: enrichedEvents.map(e => ({
             title: e.title,
@@ -192,23 +207,59 @@ export default function AbridgedFlowPage() {
     <main className="max-w-3xl mx-auto px-4 py-10 space-y-6">
       <h1 className="text-2xl font-semibold">Abridged Flow Test Page</h1>
       <p className="text-sm text-gray-600">
-        Tests: Title → Description → Events → Prompts → Images (with Google Imagen 4 Fast for face references)
+        Tests: Title → Style Selection → Description → Events → Prompts → Images (with Google Imagen 4 Fast for face references)
       </p>
 
-      <div className="space-y-3">
-        <label className="block text-sm font-medium">Timeline Title</label>
-        <input
-          className="w-full border rounded px-3 py-2"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="e.g., Tom Holland career highlights"
-        />
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium mb-2">Timeline Title</label>
+          <input
+            className="w-full border rounded px-3 py-2"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="e.g., Tom Holland career highlights"
+          />
+        </div>
+
+        {/* Style Selector */}
+        <div>
+          <label className="block text-sm font-medium mb-3">Choose Illustration Style</label>
+          <div className="grid grid-cols-5 gap-3">
+            {ILLUSTRATION_STYLES.map(style => (
+              <button
+                key={style.id}
+                onClick={() => setSelectedStyle(style.id)}
+                disabled={loading}
+                className={`
+                  flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all
+                  ${selectedStyle === style.id
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow'
+                  }
+                  ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+                title={style.description}
+              >
+                <span className="text-3xl mb-1">{style.emoji}</span>
+                <span className={`text-xs font-medium text-center ${
+                  selectedStyle === style.id ? 'text-blue-700' : 'text-gray-700'
+                }`}>
+                  {style.name}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Selected: <span className="font-semibold">{ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.name}</span> - {ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.description}
+          </p>
+        </div>
+
         <button
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-60 hover:bg-blue-700 transition"
+          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg disabled:opacity-60 hover:bg-blue-700 transition font-medium"
           onClick={runFlow}
           disabled={loading}
         >
-          {loading ? '⏳ Running...' : '▶️ Run Flow'}
+          {loading ? '⏳ Running...' : '▶️ Run Flow with ' + ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.name}
         </button>
       </div>
 
