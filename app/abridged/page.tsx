@@ -28,74 +28,74 @@ const EVENT_DESCRIPTIONS_ENDPOINT = '/api/ai/generate-descriptions-v2';
 // 4) images
 const IMAGE_ENDPOINT = '/api/ai/generate-images';
 
-// Illustration sub-styles with visual example thumbnails
-// Using placeholder images that represent actual generated output
-const ILLUSTRATION_STYLES = [
+// 10 Static style examples - these are fixed and never regenerated
+// Replace exampleUrl with your actual pre-generated example images
+const STYLE_OPTIONS = [
   { 
-    id: 'Watercolor illustration', 
+    id: 'watercolor',
     name: 'Watercolor', 
-    description: 'Soft, flowing watercolor with visible brush strokes',
-    thumbnail: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop&q=80' // Watercolor portrait
+    prompt: 'Watercolor illustration style: soft, flowing brush strokes with visible paint blending, ethereal, dreamy, light colors, translucent effects, artistic, painterly',
+    exampleUrl: '/examples/watercolor.jpg' // Replace with actual image
   },
   { 
-    id: 'Line art illustration', 
+    id: 'line-art',
     name: 'Line Art', 
-    description: 'Clean pen and ink line drawings with minimal shading',
-    thumbnail: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=200&h=200&fit=crop&q=80' // Line drawing
+    prompt: 'Line art illustration style: clean pen and ink drawings, precise linework, minimal shading, graphic, crisp, black and white or limited color palette, minimalist',
+    exampleUrl: '/examples/line-art.jpg'
   },
   { 
-    id: 'Comic book illustration', 
+    id: 'comic',
     name: 'Comic Book', 
-    description: 'Bold outlines with halftone dots and vibrant colors',
-    thumbnail: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=200&h=200&fit=crop&q=80' // Comic style
+    prompt: 'Comic book illustration style: bold outlines, vibrant flat colors, dynamic composition, halftone dots, action-packed, graphic novel aesthetic',
+    exampleUrl: '/examples/comic.jpg'
   },
   { 
-    id: 'Vintage poster illustration', 
+    id: 'vintage',
     name: 'Vintage Poster', 
-    description: 'Retro 1940s-50s propaganda poster style',
-    thumbnail: 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop&q=80' // Vintage poster
+    prompt: 'Vintage propaganda poster illustration style: retro 1940s-50s aesthetic, bold typography-inspired composition, limited color palette, grainy texture, patriotic or motivational mood',
+    exampleUrl: '/examples/vintage.jpg'
   },
   { 
-    id: 'Minimalist flat illustration', 
+    id: 'minimalist',
     name: 'Minimalist', 
-    description: 'Simple geometric shapes with flat colors',
-    thumbnail: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop&q=80' // Minimalist art
+    prompt: 'Minimalist flat illustration style: simple geometric shapes, bold flat colors, clean composition, modern, Scandinavian design aesthetic, limited detail',
+    exampleUrl: '/examples/minimalist.jpg'
   },
   { 
-    id: 'Digital painting illustration', 
+    id: 'digital',
     name: 'Digital Painting', 
-    description: 'Modern digital art with painterly textures',
-    thumbnail: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop&q=80' // Digital painting
+    prompt: 'Digital painting illustration style: modern painterly textures, rich colors, sophisticated lighting, contemporary art aesthetic, detailed brush work, professional illustration',
+    exampleUrl: '/examples/digital.jpg'
   },
   { 
-    id: 'Anime style illustration', 
+    id: 'anime',
     name: 'Anime', 
-    description: 'Japanese anime/manga art style',
-    thumbnail: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&h=200&fit=crop&q=80' // Anime style
+    prompt: 'Anime style illustration: Japanese manga art style, expressive large eyes, clean cel-shading, vibrant hair colors, dynamic poses, studio animation quality',
+    exampleUrl: '/examples/anime.jpg'
   },
   { 
-    id: 'Woodcut print illustration', 
+    id: 'woodcut',
     name: 'Woodcut', 
-    description: 'Traditional woodblock print with bold black lines',
-    thumbnail: 'https://images.unsplash.com/photo-1577720643742-2c174d8e479c?w=200&h=200&fit=crop&q=80' // Woodcut style
+    prompt: 'Woodcut print illustration style: traditional woodblock print aesthetic, bold black lines, limited color palette, carved texture, folk art, artisan craftsmanship',
+    exampleUrl: '/examples/woodcut.jpg'
   },
   { 
-    id: 'Soft pastel illustration', 
+    id: 'pastel',
     name: 'Soft Pastel', 
-    description: 'Dreamy pastel chalk art with soft edges',
-    thumbnail: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=200&h=200&fit=crop&q=80' // Pastel art
+    prompt: 'Soft pastel illustration style: dreamy chalk art, soft edges, gentle blending, muted colors, tender mood, delicate texture, romantic atmosphere',
+    exampleUrl: '/examples/pastel.jpg'
   },
   { 
-    id: 'Ink wash illustration', 
+    id: 'ink-wash',
     name: 'Ink Wash', 
-    description: 'Traditional East Asian ink wash painting',
-    thumbnail: 'https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=200&h=200&fit=crop&q=80' // Ink wash
+    prompt: 'Ink wash illustration style: traditional East Asian sumi-e painting, flowing black ink with water dilution, minimalist, zen aesthetic, expressive brush strokes, negative space',
+    exampleUrl: '/examples/ink-wash.jpg'
   },
 ];
 
 export default function AbridgedFlowPage() {
   const [title, setTitle] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState('Watercolor illustration'); // Default to Watercolor illustration
+  const [selectedStyle, setSelectedStyle] = useState(STYLE_OPTIONS[0]); // Default to first style
   const [timelineDescription, setTimelineDescription] = useState('');
   const [events, setEvents] = useState<GeneratedEvent[]>([]);
   const [step, setStep] = useState<Step>('idle');
@@ -119,7 +119,7 @@ export default function AbridgedFlowPage() {
 
     setLoading(true);
     try {
-      appendLog(`Starting flow with "${selectedStyle}" style...`);
+      appendLog(`Starting flow with "${selectedStyle.name}" style...`);
       
       // 1) Description suggestion (pick first)
       setStep('generatingDescription');
@@ -176,7 +176,7 @@ export default function AbridgedFlowPage() {
           events: generatedEvents.map(e => ({ title: e.title, year: e.year })),
           timelineDescription: generatedDescription,
           writingStyle: 'narrative', // matches API default
-          imageStyle: selectedStyle,
+          imageStyle: selectedStyle.prompt,
         }),
       });
       if (!eventDescRes.ok)
@@ -209,7 +209,7 @@ export default function AbridgedFlowPage() {
         },
         body: JSON.stringify({
           title,
-          style: selectedStyle,
+          style: selectedStyle.prompt,
           narrativeStyle: 'Narration',
           events: enrichedEvents.map(e => ({
             title: e.title,
@@ -279,32 +279,39 @@ export default function AbridgedFlowPage() {
 
         {/* Style Selector */}
         <div>
-          <label className="block text-sm font-medium mb-3">Choose Illustration Sub-Style</label>
+          <label className="block text-sm font-medium mb-3">Choose Illustration Style</label>
+          <p className="text-xs text-gray-600 mb-3">
+            Select one of the 10 pre-generated style examples below. All timeline images will use your selected style.
+          </p>
           <div className="grid grid-cols-5 gap-3">
-            {ILLUSTRATION_STYLES.map(style => (
+            {STYLE_OPTIONS.map(style => (
               <button
                 key={style.id}
-                onClick={() => setSelectedStyle(style.id)}
+                onClick={() => setSelectedStyle(style)}
                 disabled={loading}
                 className={`
                   flex flex-col items-center justify-start p-2 rounded-lg border-2 transition-all overflow-hidden
-                  ${selectedStyle === style.id
+                  ${selectedStyle.id === style.id
                     ? 'border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-300'
                     : 'border-gray-200 bg-white hover:border-gray-400 hover:shadow'
                   }
                   ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
-                title={style.description}
+                title={style.prompt}
               >
-                <div className="w-full h-20 mb-2 rounded overflow-hidden bg-gray-50">
+                <div className="w-full h-20 mb-2 rounded overflow-hidden bg-gray-100 flex items-center justify-center">
                   <img 
-                    src={style.thumbnail} 
+                    src={style.exampleUrl} 
                     alt={style.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback if image doesn't exist yet
+                      e.currentTarget.src = `https://via.placeholder.com/200x200/e2e8f0/475569?text=${encodeURIComponent(style.name)}`;
+                    }}
                   />
                 </div>
                 <span className={`text-xs font-medium text-center ${
-                  selectedStyle === style.id ? 'text-blue-700' : 'text-gray-700'
+                  selectedStyle.id === style.id ? 'text-blue-700' : 'text-gray-700'
                 }`}>
                   {style.name}
                 </span>
@@ -312,10 +319,10 @@ export default function AbridgedFlowPage() {
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-3">
-            Selected: <span className="font-semibold">{ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.name}</span> - {ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.description}
+            <span className="font-semibold">Selected:</span> {selectedStyle.name}
           </p>
           <p className="text-xs text-gray-400 mt-1 italic">
-            All timeline images will use the same illustration sub-style for consistency
+            💡 Tip: Replace /examples/*.jpg with your own pre-generated style examples
           </p>
         </div>
 
@@ -324,7 +331,7 @@ export default function AbridgedFlowPage() {
           onClick={runFlow}
           disabled={loading}
         >
-          {loading ? '⏳ Running...' : '▶️ Run Flow with ' + ILLUSTRATION_STYLES.find(s => s.id === selectedStyle)?.name}
+          {loading ? '⏳ Running...' : `▶️ Run Flow with ${selectedStyle.name}`}
         </button>
       </div>
 
