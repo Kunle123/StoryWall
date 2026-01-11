@@ -2241,12 +2241,27 @@ export async function POST(request: NextRequest) {
       console.log(`[ImageGen]    ⚠️ WARNING: Reference images were provided but none were successfully prepared!`);
     }
     
-    // PARALLEL GENERATION: Start all predictions at once for faster processing
-    console.log(`[ImageGen] Starting parallel generation for ${events.length} images...`);
+    // BATCHED GENERATION: Respect Replicate's rate limits (burst of 5 requests when balance < $10)
+    const BATCH_SIZE = 5; // Replicate's burst limit
+    const BATCH_DELAY_MS = 6000; // Wait 6 seconds between batches
+    console.log(`[ImageGen] Starting batched generation for ${events.length} images (batches of ${BATCH_SIZE})...`);
     const totalGenerationStartTime = Date.now();
     
-        // Step 1: Create all predictions in parallel
-    const predictionPromises = eventsWithTextNeeds.map(async ({ event, needsText }, index) => {
+    // Split events into batches
+    const eventBatches: Array<Array<{ event: any; needsText: boolean; index: number }>> = [];
+    for (let i = 0; i < eventsWithTextNeeds.length; i += BATCH_SIZE) {
+      eventBatches.push(
+        eventsWithTextNeeds.slice(i, i + BATCH_SIZE).map(({ event, needsText }, batchIndex) => ({
+          event,
+          needsText,
+          index: i + batchIndex
+        }))
+      );
+    }
+    console.log(`[ImageGen] Split into ${eventBatches.length} batches of ${BATCH_SIZE} (last batch: ${eventBatches[eventBatches.length - 1].length} images)`);
+    
+    // Helper to create a single prediction (extracted from original map)
+    const createPrediction = async ({ event, needsText, index }: { event: any; needsText: boolean; index: number }) => {
       // Define prompt at function scope so it's accessible in catch block
       let prompt: string = '';
       let isFacelessMannequin = false;
@@ -2817,15 +2832,36 @@ export async function POST(request: NextRequest) {
         console.error(`[ImageGen] Error creating prediction for "${event.title}":`, error);
         return { index, error, event, prompt: (typeof prompt === 'string' ? prompt : String(prompt || '')) };
       }
-    });
+    };
 
-    // Wait for all predictions to be created (all in parallel)
+    // Process batches sequentially with delays to respect rate limits
     const startTime = Date.now();
-    const predictionResults = await Promise.all(predictionPromises);
+    const predictionResults: Array<any> = [];
+    
+    for (let batchIndex = 0; batchIndex < eventBatches.length; batchIndex++) {
+      const batch = eventBatches[batchIndex];
+      console.log(`[ImageGen] Processing batch ${batchIndex + 1}/${eventBatches.length} (${batch.length} images)...`);
+      
+      // Process all predictions in this batch in parallel (within rate limit)
+      const batchPromises = batch.map(createPrediction);
+      const batchResults = await Promise.all(batchPromises);
+      predictionResults.push(...batchResults);
+      
+      const batchCreatedCount = batchResults.filter(r => r.predictionId || r.imageUrl).length;
+      const batchFailedCount = batchResults.filter(r => r.error).length;
+      console.log(`[ImageGen] Batch ${batchIndex + 1} complete: ${batchCreatedCount} created, ${batchFailedCount} failed`);
+      
+      // Add delay between batches (except after the last batch)
+      if (batchIndex < eventBatches.length - 1) {
+        console.log(`[ImageGen] Waiting ${BATCH_DELAY_MS / 1000}s before next batch to respect rate limits...`);
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+      }
+    }
+    
     const creationTime = Date.now() - startTime;
-    const createdCount = predictionResults.filter(r => r.predictionId).length;
+    const createdCount = predictionResults.filter(r => r.predictionId || r.imageUrl).length;
     const failedCreationCount = predictionResults.filter(r => r.error).length;
-    console.log(`[ImageGen] Created ${createdCount}/${events.length} predictions successfully in ${(creationTime / 1000).toFixed(1)}s (parallel)`);
+    console.log(`[ImageGen] Created ${createdCount}/${events.length} predictions successfully in ${(creationTime / 1000).toFixed(1)}s (batched, ${eventBatches.length} batches)`);
     
     // Log creation errors
     if (failedCreationCount > 0) {
