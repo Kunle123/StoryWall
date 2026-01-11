@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion } from '@/lib/ai/client';
-import { loadUnifiedPrompts } from '@/lib/prompts/loader';
+import { buildEnrichmentPrompt } from '@/lib/prompts/enrichment-optimized';
 import { testNewsworthiness } from '@/lib/utils/newsworthinessTest';
 import { hashContent, getCached, setCached } from '@/lib/utils/cache';
 import { verifyAndCorrectEvents } from '@/lib/utils/verifyAndCorrect';
 
 /**
- * OPTIMIZED V2: Single unified call for Anchor + Descriptions + Image Prompts
+ * OPTIMIZED V3: Single consolidated prompt for Anchor + Descriptions + Image Prompts
  * 
- * Quick wins implemented:
- * - Collapsed Anchor + Descriptions into 1 model call
- * - Inlined factual mode (conditional in prompt)
- * - Trimmed tokens (anchor preview 60-80 chars, removed duplicates)
- * - Added content-based caching
- * - Optimized newsworthiness test (parallel execution)
+ * Key improvements over V2:
+ * - Replaced verbose two-file system with single optimized prompt
+ * - De-duplicated redundant instructions (faster processing)
+ * - Sequential workflow (anchor first, then reference it)
+ * - Embedded one-shot example for better adherence
+ * - Clear role-based instructions
+ * - Reduced token count = faster API responses
  */
 import { getDebugLogger } from '@/lib/utils/debugLogger';
 
@@ -195,6 +196,7 @@ export async function POST(request: NextRequest) {
     if (events.length > BATCH_SIZE) {
       console.log(`[GenerateDescriptionsV2] Batching ${events.length} events into chunks of ${BATCH_SIZE}`);
       return await generateBatched(client, {
+        timelineName: timelineTitle || 'Timeline',
         events: eventsWithFacts,
         timelineDescription,
         writingStyle,
@@ -209,47 +211,43 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Load unified prompts (single call for everything)
-    const unifiedPrompts = loadUnifiedPrompts({
+    // Build optimized enrichment prompt (single consolidated prompt)
+    const enrichmentPrompt = buildEnrichmentPrompt({
+      timelineName: timelineTitle || 'Timeline',
       timelineDescription,
-      events: eventsWithFacts,
-      writingStyle,
-      imageStyle,
-      themeColor,
-      sourceRestrictions,
-      imageContext,
+      events: eventsWithFacts.map((e, i) => ({
+        eventId: `event_${i + 1}`,
+        year: e.year,
+        title: e.title,
+        facts: e.facts,
+      })),
       eventCount: events.length,
+      themeColor,
       canUseCelebrityLikeness,
       hasFactualDetails: Object.keys(factualDetails).length > 0,
-      // Anchor preview will be generated after first pass, but we'll use a placeholder
-      anchorStylePreview: '', // Will be updated after generation
-      isSocialMedia, // Pass social media flag
+      sourceRestrictions,
     });
 
     // Calculate max tokens (optimized)
     const modelToUse = client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini';
     const baseTokens = 2000; // Base overhead
-    const perEventTokens = 400; // Descriptions + image prompts per event (400 provides comfortable safety margin for 4-sentence descriptions + detailed image prompts)
+    const perEventTokens = 400; // Descriptions + image prompts per event
     const anchorTokens = 300; // Anchor style
     const maxTokens = Math.min(
       client.provider === 'kimi' ? 32000 : 40000,
       baseTokens + (events.length * perEventTokens) + anchorTokens
     );
 
-    console.log(`[GenerateDescriptionsV2] Single unified call: events=${events.length}, maxTokens=${maxTokens}`);
+    console.log(`[GenerateDescriptionsV2] Optimized V3 call: events=${events.length}, maxTokens=${maxTokens}`);
     const generationStartTime = Date.now();
 
-    // SINGLE UNIFIED CALL: Anchor + Descriptions + Image Prompts
+    // SINGLE OPTIMIZED CALL: Anchor + Descriptions + Image Prompts
     const response = await createChatCompletion(client, {
       model: modelToUse,
       messages: [
         {
-          role: 'system',
-          content: unifiedPrompts.system,
-        },
-        {
           role: 'user',
-          content: unifiedPrompts.user,
+          content: enrichmentPrompt,
         },
       ],
       response_format: { type: 'json_object' },
@@ -502,6 +500,7 @@ ${events.map((e: any) => {
 async function generateBatched(
   client: any,
   params: {
+    timelineName: string;
     events: Array<{ year?: number; title: string; facts?: string[] }>;
     timelineDescription: string;
     writingStyle: string;
@@ -529,26 +528,26 @@ async function generateBatched(
   // Generate anchor style first (from first batch)
   let anchorStyle = '';
   try {
-    const firstBatchPrompts = loadUnifiedPrompts({
+    const firstBatchPrompt = buildEnrichmentPrompt({
+      timelineName: params.timelineName,
       timelineDescription: params.timelineDescription,
-      events: batches[0],
-      writingStyle: params.writingStyle,
-      imageStyle: params.imageStyle,
-      themeColor: params.themeColor,
-      sourceRestrictions: params.sourceRestrictions,
-      imageContext: params.imageContext,
+      events: batches[0].map((e, i) => ({
+        eventId: `event_${i + 1}`,
+        year: e.year,
+        title: e.title,
+        facts: e.facts,
+      })),
       eventCount: batches[0].length,
+      themeColor: params.themeColor,
       canUseCelebrityLikeness: params.canUseCelebrityLikeness,
       hasFactualDetails: params.hasFactualDetails,
-      anchorStylePreview: '',
-      isSocialMedia: params.isSocialMedia || false,
+      sourceRestrictions: params.sourceRestrictions,
     });
     
     const anchorResponse = await createChatCompletion(client, {
       model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: firstBatchPrompts.system },
-        { role: 'user', content: firstBatchPrompts.user },
+        { role: 'user', content: firstBatchPrompt },
       ],
       response_format: { type: 'json_object' },
       temperature: 0.7,
@@ -576,26 +575,29 @@ async function generateBatched(
     const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
     
     const batchPromises = concurrentBatches.map(async (batch, batchIdx) => {
-      const batchPrompts = loadUnifiedPrompts({
+      const globalBatchIndex = i + batchIdx;
+      const eventIdOffset = globalBatchIndex * BATCH_SIZE;
+      
+      const batchPrompt = buildEnrichmentPrompt({
+        timelineName: params.timelineName,
         timelineDescription: params.timelineDescription,
-        events: batch,
-        writingStyle: params.writingStyle,
-        imageStyle: params.imageStyle,
-        themeColor: params.themeColor,
-        sourceRestrictions: params.sourceRestrictions,
-        imageContext: params.imageContext,
+        events: batch.map((e, idx) => ({
+          eventId: `event_${eventIdOffset + idx + 1}`,
+          year: e.year,
+          title: e.title,
+          facts: e.facts,
+        })),
         eventCount: batch.length,
+        themeColor: params.themeColor,
         canUseCelebrityLikeness: params.canUseCelebrityLikeness,
         hasFactualDetails: params.hasFactualDetails,
-        anchorStylePreview,
-        isSocialMedia: params.isSocialMedia || false,
+        sourceRestrictions: params.sourceRestrictions,
       });
       
       const response = await createChatCompletion(client, {
         model: client.provider === 'kimi' ? 'kimi-k2-turbo-preview' : 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: batchPrompts.system },
-          { role: 'user', content: batchPrompts.user },
+          { role: 'user', content: batchPrompt },
         ],
         response_format: { type: 'json_object' },
         temperature: 0.7,
