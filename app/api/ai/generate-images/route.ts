@@ -885,6 +885,83 @@ async function getWikimediaDirectImageUrl(pageUrl: string): Promise<string | nul
   }
 }
 
+// Fallback upload using native https module (if fetch fails)
+async function uploadImageToReplicateViaHttps(buffer: Buffer, contentType: string, replicateApiKey: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const FormDataNode = require('form-data');
+    
+    const extension = contentType.includes('png') ? 'png' : 
+                     contentType.includes('webp') ? 'webp' : 
+                     contentType.includes('gif') ? 'gif' : 'jpg';
+    
+    const formData = new FormDataNode();
+    formData.append('content', buffer, {
+      filename: `image.${extension}`,
+      contentType: contentType,
+    });
+    
+    const options = {
+      hostname: 'api.replicate.com',
+      port: 443,
+      path: '/v1/files',
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${replicateApiKey}`,
+        ...formData.getHeaders(),
+      },
+      timeout: 30000,
+    };
+    
+    console.log(`[ImageGen] Attempting https module upload (fallback method)...`);
+    
+    const req = https.request(options, (res: any) => {
+      let data = '';
+      
+      res.on('data', (chunk: any) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        console.log(`[ImageGen] HTTPS upload completed with status: ${res.statusCode}`);
+        
+        if (res.statusCode === 200 || res.statusCode === 201) {
+          try {
+            const response = JSON.parse(data);
+            const fileUrl = response.urls?.get || response.url;
+            if (fileUrl) {
+              console.log(`[ImageGen] ✅ HTTPS upload successful: ${fileUrl.substring(0, 60)}...`);
+              resolve(fileUrl);
+            } else {
+              console.error(`[ImageGen] No file URL in response:`, data);
+              resolve(null);
+            }
+          } catch (parseError: any) {
+            console.error(`[ImageGen] Failed to parse response:`, parseError.message);
+            resolve(null);
+          }
+        } else {
+          console.error(`[ImageGen] HTTPS upload failed (${res.statusCode}): ${data}`);
+          resolve(null);
+        }
+      });
+    });
+    
+    req.on('error', (error: any) => {
+      console.error(`[ImageGen] HTTPS request error:`, error);
+      reject(error);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      console.error(`[ImageGen] HTTPS request timed out`);
+      reject(new Error('HTTPS request timed out'));
+    });
+    
+    formData.pipe(req);
+  });
+}
+
 // Helper to upload image to Replicate's file storage
 async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
   try {
@@ -983,31 +1060,58 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
         // getLengthSync may throw; skip setting Content-Length in that case.
       }
       
-      const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${replicateApiKey}`,
-          ...formHeaders, // Include Content-Type with boundary from form-data
-        },
-        body: formData as any, // form-data package works with fetch in Node.js
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
+      console.log(`[ImageGen] Attempting fetch upload to Replicate API...`);
+      console.log(`[ImageGen] Headers:`, Object.keys(formHeaders).join(', '));
+      console.log(`[ImageGen] Content-Length: ${formHeaders['Content-Length'] || 'not set'}`);
       
-      // For retryable errors, throw to trigger retry
-      if (!uploadResponse.ok) {
-        const status = uploadResponse.status;
-        // 500, 502, 503, 429 are retryable
-        if ([500, 502, 503, 429].includes(status)) {
-          const errorText = await uploadResponse.text().catch(() => 'Unable to read error response');
-          const error: any = new Error(`Replicate upload failed: ${status} - ${errorText}`);
-          error.status = status;
-          throw error;
+      try {
+        const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${replicateApiKey}`,
+            ...formHeaders, // Include Content-Type with boundary from form-data
+          },
+          body: formData as any, // form-data package works with fetch in Node.js
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        });
+        
+        console.log(`[ImageGen] Fetch upload completed with status: ${uploadResponse.status}`);
+        
+        // For retryable errors, throw to trigger retry
+        if (!uploadResponse.ok) {
+          const status = uploadResponse.status;
+          // 500, 502, 503, 429 are retryable
+          if ([500, 502, 503, 429].includes(status)) {
+            const errorText = await uploadResponse.text().catch(() => 'Unable to read error response');
+            const error: any = new Error(`Replicate upload failed: ${status} - ${errorText}`);
+            error.status = status;
+            throw error;
+          }
+          // For non-retryable errors, return the response to handle normally
+          return uploadResponse;
         }
-        // For non-retryable errors, return the response to handle normally
+        
         return uploadResponse;
+      } catch (fetchError: any) {
+        console.error(`[ImageGen] Fetch failed during upload, error details:`);
+        console.error(`[ImageGen] - Error name: ${fetchError.name}`);
+        console.error(`[ImageGen] - Error message: ${fetchError.message}`);
+        console.error(`[ImageGen] - Error code: ${fetchError.code || 'N/A'}`);
+        console.error(`[ImageGen] - Error cause:`, fetchError.cause);
+        
+        // Try to provide more context about the failure
+        if (fetchError.cause?.code === 'ECONNREFUSED') {
+          console.error(`[ImageGen] Connection refused - Replicate API may be unreachable`);
+        } else if (fetchError.cause?.code === 'ETIMEDOUT') {
+          console.error(`[ImageGen] Connection timed out`);
+        } else if (fetchError.cause?.code === 'ENOTFOUND') {
+          console.error(`[ImageGen] DNS resolution failed for api.replicate.com`);
+        } else if (fetchError.cause?.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || fetchError.cause?.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+          console.error(`[ImageGen] SSL certificate verification failed`);
+        }
+        
+        throw fetchError;
       }
-      
-      return uploadResponse;
     };
     
     let uploadResponse: Response;
@@ -1020,6 +1124,33 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
       }
       uploadResponse = result;
     } catch (error: any) {
+      // Enhanced error logging for debugging
+      console.error(`[ImageGen] ===== REPLICATE UPLOAD ERROR DETAILS =====`);
+      console.error(`[ImageGen] Error message: ${error.message}`);
+      console.error(`[ImageGen] Error type: ${error.constructor?.name || typeof error}`);
+      console.error(`[ImageGen] Error code: ${error.code || 'N/A'}`);
+      console.error(`[ImageGen] Error status: ${error.status || 'N/A'}`);
+      console.error(`[ImageGen] Error cause: ${error.cause ? JSON.stringify(error.cause, null, 2) : 'N/A'}`);
+      console.error(`[ImageGen] Stack trace:\n${error.stack || 'No stack trace'}`);
+      console.error(`[ImageGen] Image URL attempted: ${imageUrl.substring(0, 100)}`);
+      console.error(`[ImageGen] Buffer size: ${buffer.length} bytes`);
+      console.error(`[ImageGen] Content type: ${contentType}`);
+      
+      // Check for specific Node.js fetch error patterns
+      if (error.cause) {
+        console.error(`[ImageGen] Cause details:`, error.cause);
+        if (error.cause.code) {
+          console.error(`[ImageGen] System error code: ${error.cause.code}`);
+        }
+        if (error.cause.syscall) {
+          console.error(`[ImageGen] Failed syscall: ${error.cause.syscall}`);
+        }
+        if (error.cause.hostname) {
+          console.error(`[ImageGen] Failed hostname: ${error.cause.hostname}`);
+        }
+      }
+      console.error(`[ImageGen] ==========================================`);
+      
       // If retry failed or non-retryable error, handle it
       if (error.status && ![500, 502, 503, 429].includes(error.status)) {
         // Non-retryable error that was thrown
@@ -1030,11 +1161,24 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
         console.error(`[ImageGen] Failed to upload image to Replicate after retries (${error.status}): ${error.message}`);
         return null;
       } else {
-        // Unexpected error
-        console.error(`[ImageGen] Unexpected error uploading to Replicate: ${error.message}`);
-        console.error(`[ImageGen] Error stack: ${error.stack}`);
-        console.error(`[ImageGen] Error type: ${error.constructor.name}`);
-        return null;
+        // Unexpected error - try HTTPS fallback
+        console.error(`[ImageGen] Unexpected error uploading to Replicate with fetch: ${error.message}`);
+        console.log(`[ImageGen] Attempting fallback upload method using native https module...`);
+        
+        try {
+          const fallbackUrl = await uploadImageToReplicateViaHttps(buffer, contentType, replicateApiKey);
+          if (fallbackUrl) {
+            console.log(`[ImageGen] ✅ Fallback HTTPS upload succeeded!`);
+            return fallbackUrl;
+          } else {
+            console.error(`[ImageGen] ❌ Fallback HTTPS upload also failed`);
+            return null;
+          }
+        } catch (fallbackError: any) {
+          console.error(`[ImageGen] ❌ Fallback HTTPS upload threw error:`, fallbackError.message);
+          console.error(`[ImageGen] Fallback error stack:`, fallbackError.stack);
+          return null;
+        }
       }
     }
 
