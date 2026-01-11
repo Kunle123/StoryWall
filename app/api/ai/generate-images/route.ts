@@ -5,6 +5,7 @@ import { generateImageWithImagen, isGoogleCloudConfigured } from '@/lib/google/i
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
+import { progressStore } from '@/lib/utils/progressStore';
 
 // Helper to extract famous person names from event text using OpenAI
 // Returns array of objects with {name, search_query}
@@ -789,38 +790,38 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
     }
     
     const validateRequest = async (): Promise<boolean> => {
-      // Make HEAD request to check content-type with proper headers to avoid 403
-      const headResponse = await fetch(url, { 
-        method: 'HEAD',
-        redirect: 'follow',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'image/*',
-        },
-        signal: AbortSignal.timeout(5000) // 5 second timeout
-      });
-      
-      if (!headResponse.ok) {
+    // Make HEAD request to check content-type with proper headers to avoid 403
+    const headResponse = await fetch(url, { 
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'image/*',
+      },
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    if (!headResponse.ok) {
         // If rate limited and retry is enabled, throw to trigger retry
         if (headResponse.status === 429 && retryOnRateLimit) {
           const error: any = new Error(`Rate limited: ${headResponse.status}`);
           error.status = headResponse.status;
           throw error;
         }
-        console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
-        return false;
-      }
-      
-      const contentType = headResponse.headers.get('content-type') || '';
-      const isImage = contentType.startsWith('image/');
-      
-      if (!isImage) {
-        console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
-        return false;
-      }
-      
-      console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
-      return true;
+      console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
+      return false;
+    }
+    
+    const contentType = headResponse.headers.get('content-type') || '';
+    const isImage = contentType.startsWith('image/');
+    
+    if (!isImage) {
+      console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
+      return false;
+    }
+    
+    console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
+    return true;
     };
     
     if (retryOnRateLimit && url.includes('wikimedia.org')) {
@@ -833,7 +834,7 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
     if (error.name === 'AbortError') {
       console.warn(`[ImageGen] Timeout validating image URL: ${url.substring(0, 100)}`);
     } else {
-      console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+    console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
     }
     return false;
   }
@@ -974,15 +975,15 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     
     // Download the image with retry logic for rate limits AND timeouts
     const downloadImage = async (): Promise<Response> => {
-      const imageResponse = await fetch(imageUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-          'Accept': 'image/*',
-        },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-      
-      if (!imageResponse.ok) {
+    const imageResponse = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'image/*',
+      },
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
+
+    if (!imageResponse.ok) {
         // If rate limited, throw to trigger retry
         if (imageResponse.status === 429 || imageResponse.status === 503 || imageResponse.status === 502) {
           const error: any = new Error(`Rate limited or server error: ${imageResponse.status}`);
@@ -1065,15 +1066,15 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
       console.log(`[ImageGen] Content-Length: ${formHeaders['Content-Length'] || 'not set'}`);
       
       try {
-        const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Token ${replicateApiKey}`,
+    const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${replicateApiKey}`,
             ...formHeaders, // Include Content-Type with boundary from form-data
-          },
+      },
           body: formData as any, // form-data package works with fetch in Node.js
-          signal: AbortSignal.timeout(30000), // 30 second timeout
-        });
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
         
         console.log(`[ImageGen] Fetch upload completed with status: ${uploadResponse.status}`);
         
@@ -1590,7 +1591,7 @@ function buildImagePrompt(
     // The Anchor contains specific visual instructions (color washes, vignettes, lighting) that MUST be preserved
     // Don't truncate the Anchor - it needs to include all visual consistency instructions
     // The Anchor should be prepended in full to ensure all visual effects are applied
-
+    
     const anchorReminder = 'ANCHOR (FOLLOW EXACTLY — keep palette, composition, camera, props, and setting as described; do NOT replace or downplay these anchor elements)';
     prompt = `${anchorReminder}: ${normalizedAnchor}. Apply the anchor verbatim, then render this specific event within that anchor: ${eventDescription}`;
     console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${normalizedAnchor.length} chars)`);
@@ -2007,6 +2008,7 @@ async function waitForPrediction(predictionId: string, replicateApiKey: string):
 export async function POST(request: NextRequest) {
   try {
     const allowGuest = request.headers.get('x-abridged-flow') === 'true' || request.nextUrl.searchParams.get('abridged') === 'true';
+    const jobId = request.nextUrl.searchParams.get('jobId') || null; // For progress tracking in streaming mode
 
     // Check authentication (optional for abridged/guest flow)
     let userId: string | null = null;
@@ -2016,10 +2018,10 @@ export async function POST(request: NextRequest) {
     } catch (authError: any) {
       console.warn('[ImageGen] Clerk auth error:', authError?.message);
       if (!allowGuest) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
       }
     }
 
@@ -2062,19 +2064,19 @@ export async function POST(request: NextRequest) {
     let userCredits: { credits: number } | null = null;
     if (!allowGuest) {
       userCredits = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { credits: true },
-      });
-      
-      if (!userCredits || userCredits.credits < requiredCredits) {
-        return NextResponse.json(
-          { 
-            error: 'Insufficient credits',
-            credits: userCredits?.credits || 0,
-            required: requiredCredits,
-          },
-          { status: 400 }
-        );
+      where: { id: user.id },
+      select: { credits: true },
+    });
+
+    if (!userCredits || userCredits.credits < requiredCredits) {
+      return NextResponse.json(
+        { 
+          error: 'Insufficient credits',
+          credits: userCredits?.credits || 0,
+          required: requiredCredits,
+        },
+        { status: 400 }
+      );
       }
     }
 
@@ -2307,12 +2309,12 @@ export async function POST(request: NextRequest) {
                 console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
               }
               return preparedBase64;
-            } catch (error: any) {
+          } catch (error: any) {
               console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
-              return null;
-            }
-          });
-          preparedReferences = await Promise.all(referenceImagePromises);
+            return null;
+          }
+        });
+        preparedReferences = await Promise.all(referenceImagePromises);
           const prepTime = Date.now() - prepStartTime;
           const successCount = preparedReferences.filter(r => r !== null).length;
           const failureCount = preparedReferences.length - successCount;
@@ -2323,11 +2325,11 @@ export async function POST(request: NextRequest) {
               .map(ref => ref.name);
             console.warn(`[ImageGen] ⚠️ Failed to prepare for Imagen: ${failedNames.join(', ')}`);
           }
-        } catch (error: any) {
+      } catch (error: any) {
           console.error('[ImageGen] ✗ Fatal error during Imagen reference image preparation:', error.message);
           console.error('[ImageGen] Error stack:', error.stack);
-          preparedReferences = [];
-        }
+        preparedReferences = [];
+      }
       } else {
         // REPLICATE PATH: Upload to Replicate for IP-Adapter
         console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Replicate...`);
@@ -2463,28 +2465,28 @@ export async function POST(request: NextRequest) {
         let modelVersion: string = '';
         
         if (!selectedModel.includes('google-imagen')) {
-          try {
-            modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
-            console.log(`[ImageGen] Fetched version for "${event.title}": ${modelVersion.substring(0, 20)}... (model: ${selectedModel})`);
-            
-            // Validate that we got a proper version ID (hash, typically 64 chars, no slashes)
-            const isValidVersionId = modelVersion && 
-                                     modelVersion.length >= 20 && 
-                                     !modelVersion.includes('/') &&
-                                     !modelVersion.includes('stability-ai') &&
-                                     !modelVersion.includes('black-forest');
-            
-            if (!isValidVersionId) {
-              // If version fetch returned a model name, we need to retry or use a known-good version
-              console.error(`[ImageGen] Invalid version ID format: ${modelVersion} (looks like a model name, not a version ID)`);
-              console.error(`[ImageGen] Replicate API requires a version ID (hash), not a model name`);
-              throw new Error(`Failed to get valid version ID for ${selectedModel}. Got: ${modelVersion}`);
-            }
-          } catch (versionError: any) {
-            console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
-            console.error(`[ImageGen] Version error stack:`, versionError.stack);
-            // Re-throw the error - we cannot proceed without a valid version ID
-            throw new Error(`Cannot generate image for "${event.title}": Failed to get version ID for ${selectedModel}. ${versionError.message}`);
+        try {
+          modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
+          console.log(`[ImageGen] Fetched version for "${event.title}": ${modelVersion.substring(0, 20)}... (model: ${selectedModel})`);
+          
+          // Validate that we got a proper version ID (hash, typically 64 chars, no slashes)
+          const isValidVersionId = modelVersion && 
+                                   modelVersion.length >= 20 && 
+                                   !modelVersion.includes('/') &&
+                                   !modelVersion.includes('stability-ai') &&
+                                   !modelVersion.includes('black-forest');
+          
+          if (!isValidVersionId) {
+            // If version fetch returned a model name, we need to retry or use a known-good version
+            console.error(`[ImageGen] Invalid version ID format: ${modelVersion} (looks like a model name, not a version ID)`);
+            console.error(`[ImageGen] Replicate API requires a version ID (hash), not a model name`);
+            throw new Error(`Failed to get valid version ID for ${selectedModel}. Got: ${modelVersion}`);
+          }
+        } catch (versionError: any) {
+          console.error(`[ImageGen] Error getting model version for ${selectedModel}:`, versionError.message);
+          console.error(`[ImageGen] Version error stack:`, versionError.stack);
+          // Re-throw the error - we cannot proceed without a valid version ID
+          throw new Error(`Cannot generate image for "${event.title}": Failed to get version ID for ${selectedModel}. ${versionError.message}`);
           }
         } else {
           console.log(`[ImageGen] Using Google Imagen for "${event.title}" - skipping Replicate version fetch`);
@@ -2503,7 +2505,7 @@ export async function POST(request: NextRequest) {
         const singleSubjectRef = finalImageReferences && finalImageReferences.length === 1
           ? finalImageReferences[0]
           : null;
-
+        
         if (finalImageReferences && finalImageReferences.length > 0) {
           // Find which reference images are relevant to this event
           // Use precise matching: prefer full name, then aliases/titles, then first+last
@@ -2531,8 +2533,8 @@ export async function POST(request: NextRequest) {
                 if (peopleWithSameLastName.length === 1) return true;
                 const firstNamePattern = new RegExp(`\\b${firstName}\\b`, 'i');
                 if (firstNamePattern.test(eventText)) return true;
+                }
               }
-            }
             return false;
           });
           
@@ -2550,7 +2552,7 @@ export async function POST(request: NextRequest) {
             relevantImageRefs = [finalImageReferences[0]];
             console.log(`[ImageGen] No explicit name match for "${event.title}" - defaulting to first prepared reference (${finalImageReferences[0].name})`);
           }
-
+          
           if (relevantImageRefs.length > 0) {
             // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
             let bestMatch = relevantImageRefs[0];
@@ -3028,6 +3030,12 @@ export async function POST(request: NextRequest) {
       // If Imagen already returned an imageUrl directly, return it immediately
       if (result.imageUrl && !result.error) {
         console.log(`[ImageGen] Image already generated (Imagen) for "${result.event.title}": ${result.imageUrl.substring(0, 100)}...`);
+        
+        // Notify progress store for streaming endpoints
+        if (jobId) {
+          progressStore.notify(jobId, result.imageUrl, result.index, result.event.title, result.index + 1, events.length);
+        }
+        
         return {
           index: result.index,
           imageUrl: result.imageUrl,
@@ -3053,6 +3061,12 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] Polling prediction ${result.predictionId} for "${result.event.title}"...`);
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
         console.log(`[ImageGen] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
+        
+        // Notify progress store for streaming endpoints
+        if (jobId && imageUrl) {
+          progressStore.notify(jobId, imageUrl, result.index, result.event.title, result.index + 1, events.length);
+        }
+        
         return { 
           index: result.index, 
           imageUrl, 

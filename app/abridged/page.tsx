@@ -198,10 +198,16 @@ export default function AbridgedFlowPage() {
       setEvents(enrichedEvents);
       appendLog('Event descriptions/prompts generated.');
 
-      // 4) Images (with face reference from Wikimedia)
+      // 4) Images (with face reference from Wikimedia) - STREAMING
       setStep('generatingImages');
       appendLog('Generating images with face likeness...');
-      const imageRes = await fetch(IMAGE_ENDPOINT + '?abridged=true', {
+      
+      // Initialize events with empty image URLs so we can update them progressively
+      const eventsWithPlaceholders = enrichedEvents.map(e => ({ ...e, imageUrl: null }));
+      setEvents(eventsWithPlaceholders);
+      
+      // Use streaming endpoint for progressive image loading
+      const imageRes = await fetch(IMAGE_ENDPOINT + '-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,18 +224,56 @@ export default function AbridgedFlowPage() {
           })),
         }),
       });
-      if (!imageRes.ok) throw new Error(`Images failed (${imageRes.status})`);
-      const imageData = await imageRes.json();
-      const outputs: string[] =
-        imageData?.images ||
-        imageData?.data?.images ||
-        imageData?.result?.images ||
-        [];
-      const finalEvents = enrichedEvents.map((e, idx) => ({
-        ...e,
-        imageUrl: outputs[idx] || null,
-      }));
-      setEvents(finalEvents);
+
+      if (!imageRes.ok) {
+        throw new Error(`Images failed (${imageRes.status})`);
+      }
+
+      // Read the Server-Sent Events stream
+      const reader = imageRes.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('event:')) {
+              const eventMatch = line.match(/event: (\w+)\ndata: (.+)/s);
+              if (eventMatch) {
+                const [, eventType, data] = eventMatch;
+                const parsed = JSON.parse(data);
+
+                if (eventType === 'status') {
+                  appendLog(parsed.message);
+                } else if (eventType === 'image') {
+                  // Update the specific event with its image as soon as it's ready
+                  setEvents(prev => {
+                    const updated = [...prev];
+                    updated[parsed.index] = {
+                      ...updated[parsed.index],
+                      imageUrl: parsed.imageUrl,
+                    };
+                    return updated;
+                  });
+                  appendLog(`✓ Image ${parsed.completed}/${parsed.total}: ${parsed.eventTitle}`);
+                } else if (eventType === 'complete') {
+                  appendLog('All images complete!');
+                } else if (eventType === 'error') {
+                  throw new Error(parsed.message);
+                }
+              }
+            }
+          }
+        }
+      }
+      
       appendLog('Images generated.');
 
       setStep('done');
