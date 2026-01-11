@@ -1449,6 +1449,22 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
     : isFactual
     ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
 
+CRITICAL FOR POLITICAL FIGURE/LEADER TIMELINES:
+- For timelines about political figures, presidents, prime ministers, or government leaders, you MUST create a DIVERSE, BALANCED timeline covering MULTIPLE aspects of their career, NOT just protests or controversies
+- Include events from ALL of these categories (when applicable):
+  * Early career & rise to power (appointments, elections, political positions held)
+  * Policy decisions & legislation (laws passed, executive orders, major policy changes)
+  * Economic events (currency changes, trade agreements, economic reforms, nationalization)
+  * International relations (summits, treaties, diplomatic incidents, sanctions, alliances)
+  * Domestic controversies & protests (but LIMIT these to 20-30% of total events)
+  * Constitutional changes or power consolidation (referendums, constitutional assemblies, term limit changes)
+  * Major appointments (cabinet changes, key officials, judicial appointments)
+  * Personal milestones relevant to their role (inauguration, oath of office, major speeches)
+- DO NOT generate a timeline where more than 30% of events are protests or controversies
+- For each year in their tenure, try to find at least one non-protest event (policy, appointment, economic decision, international relations)
+- Prioritize governmental actions and policy decisions over reactions to those actions
+- Example: For "Nicolás Maduro", include events like "Appointment as Foreign Minister (2006)", "Election as President (2013)", "Petro Cryptocurrency Launch (2018)", "Oil-for-Gold Program with Turkey (2020)", etc. - NOT just protests every year
+
 CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - For timelines about media controversies, TV show incidents, or public figure controversies, you MUST use web search to find ALL specific incidents, quotes, dates, and controversies
 - Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
