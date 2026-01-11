@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/client';
 import { parseYear } from '@/lib/utils/dateFormat';
 import { getDebugLogger } from '@/lib/utils/debugLogger';
+import { buildTimelinePrompt, getApplicableModules } from '@/lib/prompts/timeline-modules';
 
 /**
  * Attempts to repair common JSON malformation issues
@@ -1444,66 +1445,26 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
     ? `\n\nSOURCE RESTRICTIONS - CRITICAL: You MUST source all information, descriptions, and titles SOLELY from the following specific resources. Do not use any other sources:\n${sourceRestrictions.map((src: string, idx: number) => `  ${idx + 1}. ${src}`).join('\n')}\n\nIf information is not available in these sources, indicate that in the event description.`
     : '';
 
+  // Log which modules will be applied (for debugging)
+  if (isFactual) {
+    const applicableModules = getApplicableModules(timelineName, timelineDescription);
+    console.log(`[GenerateEventsBatch] Applicable modules${batchLabel}:`, applicableModules.length > 0 ? applicableModules.join(', ') : 'Base only');
+  }
+
   const userPrompt = isNumbered
     ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${batchMaxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event", "description": "Brief explanation of the event" }, { "number": 2, "title": "Second event", "description": "Brief explanation of the event" }, ...] }`
     : isFactual
-    ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events. Include major milestones, key dates, and significant events related to this topic.
+    ? buildTimelinePrompt(timelineName, timelineDescription, batchMaxEvents, sourceRestrictionsText) + `\n\n**Additional Legacy Requirements:**
 
-CRITICAL DIVERSITY REQUIREMENT FOR ALL TIMELINES:
-- Create a BALANCED, DIVERSE timeline that covers MULTIPLE aspects of the topic, NOT just controversies or reactions
-- Prioritize ACTIONS, ACHIEVEMENTS, DECISIONS, and MILESTONES over controversies, protests, or criticism
-- Limit controversy/protest/criticism events to approximately 20-30% of the total timeline
-- For biographical timelines: Include career milestones, achievements, appointments, decisions, policies, projects, launches, innovations - not just scandals
-- For organizational timelines: Include product launches, expansions, partnerships, innovations, acquisitions - not just controversies
-- For any topic: Search for what the subject DID or CREATED, not just what was said about them
-- Balance newsworthy controversy with substantive accomplishments and actions
-- If you find yourself generating many similar event types (e.g., multiple "protest" events, multiple "controversy" events), actively search for other event categories
+RECENCY FOR NEWSWORTHY TOPICS:
+- For political, current events, or news-related timelines, search for and include events that occurred TODAY or within the last 24-48 hours
+- If the timeline mentions a time period including today (e.g., "since 2024"), actively find events from TODAY, YESTERDAY, and the last 48 hours
+- Recent events are often the most newsworthy and should be prioritized
 
-CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
-- For timelines about media controversies, TV show incidents, or public figure controversies, you MUST use web search to find ALL specific incidents, quotes, dates, and controversies
-- Each specific incident, controversial quote, interview moment, or documented controversy should be a SEPARATE event
-- CRITICAL: You MUST make MULTIPLE web search queries with different search terms. Do NOT make just one search query. Make at least 5-10 different searches such as:
-  * "[show name] controversy [year]" for each year in the timespan
-  * "[show name] [host name] controversy"
-  * "[show name] complaints [year]"
-  * "[show name] [specific incident keyword]"
-  * "[show name] [guest name] controversy"
-  * "[show name] [topic] criticism"
-  * Search for each year in the timespan separately (e.g., "Good Morning Britain 2020", "Good Morning Britain 2021", etc.)
-- Search for specific dates, quotes, host names, guest names, and specific incidents mentioned in news articles
-- CRITICAL: You MUST find MULTIPLE different incidents - do NOT stop after finding just one incident. Search extensively using multiple search queries to find ALL documented controversies, incidents, and moments
-- If you find only 1 incident, you MUST search more thoroughly with different search terms - there are almost always multiple incidents for media/controversy topics spanning multiple years
-- DO NOT return the same incident multiple times - each event must be a DIFFERENT, UNIQUE incident with a different title, date, or context
-- Include as many unique incidents as you can find - do not consolidate multiple distinct incidents into one event
-- Example: If there are 5 different controversial moments with different dates/quotes/hosts, create 5 separate events, not 1 generic event
-
-CRITICAL: If the timeline description mentions "criticizing the working classes", "talking down to working-class people", "dismissive of working-class communities", or similar themes, you MUST:
-- Focus ONLY on incidents where hosts/guests made dismissive, condescending, or critical comments specifically about working-class people, benefits recipients, or working-class communities
-- Search for specific incidents where hosts were criticized for being "out of touch", "dismissive", "condescending", or "talking down" to working-class people
-- Include specific quotes, moments, or segments where hosts made class-based criticisms
-- DO NOT include general complaints, Ofcom complaint numbers, or incidents unrelated to working-class criticism - ONLY include events that directly relate to hosts criticizing or dismissing working-class people
-- Each event should describe a SPECIFIC incident where a host made dismissive comments about working-class people, benefits recipients, or working-class communities
-- Example search queries: "[show name] working class criticism", "[show name] [host name] benefits recipients", "[show name] dismissive working class", "[show name] condescending [host name]"\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for:\n  * Explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025")\n  * Implicit time periods mentioned (e.g., "past decade", "last 10 years", "recent years")\n  * Topic context that suggests a time period (e.g., "Good Morning Britain" suggests searching from ~2014 when it launched to present, or "past decade" for recent controversies)\n- If a timespan is identified OR can be inferred from the topic, you MUST distribute events across ALL years in that timespan\n- For media/controversy topics: If no explicit timespan is mentioned, infer a reasonable timespan (e.g., "past decade" = 2015-2025, "recent years" = 2020-2025) and search across ALL those years\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
-- Generate UP TO ${batchMaxEvents} events, but ONLY unique, distinct events- Each event must be SEPARATE and UNIQUE - do not create multiple events for the same incident or different aspects of the same event
-- Do NOT create repetitive or similar events - if events are essentially the same, choose the most significant one
-- DO NOT fabricate events to reach ${batchMaxEvents} - if you can only find 5 unique events, return 5
-- Quality over quantity: Better to return fewer unique events than many repetitive ones
-- CRITICAL: You MUST use web search for this topic - do not rely solely on your training data. Actively search for news articles, reports, and documented incidents
-- If web search finds relevant news articles, you MUST use that information to create events - search for specific dates, quotes, incidents, and controversies
-- For media/controversy topics: Search for specific incidents, quotes, dates, host names, guest names, and documented controversies. Each unique incident should be a separate event
-- CRITICAL FOR NEWSWORTHY TOPICS: For political, current events, or news-related timelines, you MUST search for and include events that occurred TODAY or within the last 24-48 hours. If news sources are reporting breaking developments (e.g., political defections, resignations, announcements, election results), you MUST include these recent events in the timeline. Recent events are often the most newsworthy and should be prioritized.
-- CRITICAL FOR RECENT TIMELINES: If the timeline description mentions a time period that includes today (e.g., "since 2024", "since the election", "since [recent date]"), you MUST use web search to actively find events from TODAY, YESTERDAY, and the last 48 hours. Do not rely solely on your training data - you MUST search for the most recent news articles. For example, if creating a timeline about "MPs that defected since 2024 general election", you MUST search for defections that happened today, yesterday, and this week.
-IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results. For newsworthy topics, prioritize including the most recent events being reported in news sources.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
-
-Return as JSON with these keys:
-- "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)
-- "progressionSubject": string (the core subject of the progression, e.g., "a human fetus inside the womb" - only include if isProgression is true, otherwise omit or set to null)
-- "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions - those will be generated separately.
-- "sources": array (optional, only if web search was used) of objects with { name: string, url: string }
-- "image_references": array (optional, only if people are mentioned) of objects with { name: string, url: string }
-
-Example for progression: { "isProgression": true, "progressionSubject": "a human fetus inside the womb", "events": [{ "year": 2025, "title": "Neural Tube Formation", "description": "..." }, ...] }
-Example for non-progression: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title", "description": "..." }, ...], "sources": [...], "image_references": [...] }`
+WORKING-CLASS CRITICISM (if applicable):
+- If the description mentions "criticizing the working classes", "talking down to working-class people", or similar themes:
+  * Focus ONLY on incidents with dismissive/condescending comments about working-class people or benefits recipients
+  * Do NOT include general complaints unrelated to working-class criticism`
     : `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate up to ${batchMaxEvents} creative fictional events that tell an engaging story. Build events that flow chronologically and create an interesting narrative. Use your imagination to create compelling events that fit the theme. Include specific dates when they enhance the narrative. Each event must include a title and a description (1-3 sentences).\n\nCRITICAL TITLE REQUIREMENTS:\n- Each event title MUST directly relate to and incorporate key elements from the timeline description above\n- If the timeline description mentions specific themes (e.g., "horrible happenings"), qualities (e.g., "tragic", "mysterious"), settings (e.g., "in the upside down"), or contexts (e.g., "from Stranger Things"), the titles MUST reflect these elements\n- Titles should be specific and descriptive - avoid generic episode/chapter references like "Season 1 Episode 4" unless the timeline is specifically about episode-by-episode breakdowns\n- Each title should clearly show how the event relates to the timeline's specific focus, setting, theme, or context\n- Example: If timeline is "horrible happenings in Stranger Things that occurred in the upside down", titles should be like "Demogorgon Attack in the Upside Down" or "Will's Terrifying Encounter with the Mind Flayer" - NOT "Season 1 Episode 4" or "Episode 3"\n- Make titles meaningful and specific to what makes this timeline unique\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "year": 2020, "month": 3, "day": 15, "title": "The Discovery", "description": "Brief explanation of the event" }, { "year": 2021, "title": "The First Conflict", "description": "Brief explanation of the event" }, ...] }`;
 
   // Calculate max_tokens for this batch

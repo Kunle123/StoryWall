@@ -1,0 +1,216 @@
+/**
+ * Modular Timeline Generation System
+ * 
+ * This system provides a base prompt and specialized modules that can be
+ * dynamically combined based on the timeline topic to create targeted,
+ * relevant prompts without overwhelming the LLM with irrelevant instructions.
+ */
+
+export interface TimelinePromptModule {
+  name: string;
+  trigger: (timelineName: string, timelineDescription: string) => boolean;
+  content: string;
+}
+
+/**
+ * Base prompt - applies to ALL timeline generation tasks
+ */
+export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual, and chronologically accurate timeline for the topic described below.
+
+**Core Instructions:**
+
+1.  **Analyze the Topic:** Carefully review the timeline name and description to understand the subject matter and any specified timeframes.
+
+2.  **Conduct Comprehensive Research:** You are required to use web search to gather information. Prioritize recency and accuracy by consulting multiple reputable sources. Do not rely solely on your training data.
+
+3.  **Ensure Balanced Representation:** Create a diverse timeline that covers multiple facets of the topic. Focus on a mix of actions, achievements, key decisions, and significant milestones. While controversies can be included, they should not dominate the timeline unless the topic is inherently about a controversy. As a general guideline, limit controversial events to approximately 20-30% of the total timeline.
+
+4.  **Maintain Temporal Distribution:** If a timespan is mentioned or can be inferred, distribute events across the entire period. Avoid clustering all events in a single year unless the topic is specific to that year.
+
+5.  **Prioritize Unique Events:** Each event must be distinct. Do not repeat the same event or create multiple entries for different aspects of a single incident. Quality over quantity is paramount.
+
+6.  **Generate UP TO {maxEvents} events, but ONLY unique, distinct events.** Do NOT fabricate events to reach the maximum - if you can only find 5 unique events, return 5.
+
+7.  **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
+
+/**
+ * Module 1: Controversy & Media
+ * Use for topics centered on public controversies, media incidents, or political scandals
+ */
+export const CONTROVERSY_MEDIA_MODULE: TimelinePromptModule = {
+  name: 'Controversy & Media',
+  trigger: (timelineName: string, timelineDescription: string) => {
+    const combined = `${timelineName} ${timelineDescription}`.toLowerCase();
+    const controversyKeywords = [
+      'controversy', 'scandal', 'incident', 'criticism', 'protest',
+      'complaint', 'backlash', 'outrage', 'condescending', 'dismissive',
+      'working class', 'working-class', 'controversial', 'criticized'
+    ];
+    return controversyKeywords.some(keyword => combined.includes(keyword));
+  },
+  content: `
+**Controversy & Media Instructions:**
+
+-   **Detailed Incident Search:** You must perform multiple, targeted web searches to identify all specific incidents, controversial quotes, and key dates. Use a variety of search terms, including names, years, and keywords related to the controversy.
+-   **Separate Events for Each Incident:** Each distinct controversial moment, quote, or incident should be a separate event in the timeline. Do not consolidate multiple unique incidents into a single generic event.
+-   **Focus on Recency:** For ongoing newsworthy topics, you must search for developments within the last 24-48 hours.
+-   **Multiple Search Queries:** Make at least 5-10 different searches with varying terms (e.g., "[topic] controversy [year]", "[person] [keyword]", "[topic] criticism").`
+};
+
+/**
+ * Module 2: Biography
+ * Use for timelines about the life or career of an individual
+ */
+export const BIOGRAPHY_MODULE: TimelinePromptModule = {
+  name: 'Biography',
+  trigger: (timelineName: string, timelineDescription: string) => {
+    const combined = `${timelineName} ${timelineDescription}`.toLowerCase();
+    
+    // Check for biographical indicators
+    const biographyKeywords = [
+      'life of', 'career of', 'biography', 'biographical',
+      'president', 'prime minister', 'minister', 'leader',
+      'actor', 'actress', 'singer', 'musician', 'artist',
+      'scientist', 'inventor', 'entrepreneur', 'founder',
+      'rise of', 'fall of', 'reign of', 'tenure of'
+    ];
+    
+    // Check if it's about a person (contains common name patterns)
+    const hasPersonName = /\b[A-Z][a-z]+ [A-Z][a-z]+\b/.test(timelineName);
+    
+    return biographyKeywords.some(keyword => combined.includes(keyword)) || hasPersonName;
+  },
+  content: `
+**Biographical Instructions:**
+
+-   **Holistic Life View:** Cover a broad range of life events, including early life, education, career milestones, major achievements, significant decisions, and personal life events if they are publicly documented and relevant.
+-   **Prioritize Actions and Accomplishments:** Focus on what the individual did, created, or influenced. Include:
+    * Career appointments and positions held
+    * Policy decisions and legislation (for political figures)
+    * Creative works, performances, or projects (for artists/entertainers)
+    * Discoveries, inventions, or innovations (for scientists/inventors)
+    * Business ventures and companies founded (for entrepreneurs)
+    * International relations and diplomatic events (for world leaders)
+-   **Balance Controversy:** While public perception and criticism are part of the story, they should be balanced with the subject's substantive contributions. Limit controversy/scandal events to 20-30% of the timeline.`
+};
+
+/**
+ * Module 3: Organization & Product
+ * Use for timelines about companies, organizations, products, or brands
+ */
+export const ORGANIZATION_PRODUCT_MODULE: TimelinePromptModule = {
+  name: 'Organization & Product',
+  trigger: (timelineName: string, timelineDescription: string) => {
+    const combined = `${timelineName} ${timelineDescription}`.toLowerCase();
+    const orgKeywords = [
+      'company', 'corporation', 'organization', 'business',
+      'product', 'brand', 'startup', 'enterprise',
+      'founded', 'founding', 'launch', 'launched',
+      'inc', 'ltd', 'llc', 'corp', 'co.'
+    ];
+    return orgKeywords.some(keyword => combined.includes(keyword));
+  },
+  content: `
+**Organization & Product Instructions:**
+
+-   **Key Business Milestones:** Include events such as:
+    * Founding dates and initial funding rounds
+    * Product launches and major updates
+    * Acquisitions, mergers, and partnerships
+    * Market expansions and new headquarters
+    * Leadership changes and key appointments
+    * Major regulatory events or legal battles
+-   **Innovation and Impact:** Highlight key innovations, technological breakthroughs, and the product's or organization's impact on its industry or the wider culture.
+-   **Balance Success and Struggle:** Include both achievements and challenges (financial difficulties, recalls, lawsuits) to provide a complete picture.`
+};
+
+/**
+ * Module 4: Historical & Technical
+ * Use for timelines about historical events, scientific discoveries, or technology evolution
+ */
+export const HISTORICAL_TECHNICAL_MODULE: TimelinePromptModule = {
+  name: 'Historical & Technical',
+  trigger: (timelineName: string, timelineDescription: string) => {
+    const combined = `${timelineName} ${timelineDescription}`.toLowerCase();
+    const techHistoricalKeywords = [
+      'history of', 'evolution of', 'development of',
+      'invention of', 'discovery of', 'creation of',
+      'technology', 'scientific', 'breakthrough',
+      'innovation', 'advancement', 'progress',
+      'war', 'revolution', 'movement', 'era', 'age',
+      'ancient', 'medieval', 'modern', 'origins of'
+    ];
+    return techHistoricalKeywords.some(keyword => combined.includes(keyword));
+  },
+  content: `
+**Historical & Technical Instructions:**
+
+-   **Trace the Evolution:** Focus on the key stages of development, from early concepts to major breakthroughs and widespread adoption.
+-   **Identify Key Influences:** Include the inventors, pioneers, and key figures who drove the development forward. Also, mention any precursor technologies or prerequisite discoveries.
+-   **Contextualize the Milestones:** For each major milestone, consider the broader historical or scientific context. What was happening in the world that made this development possible or significant?
+-   **Technical Accuracy:** Use precise technical terminology and accurate dates. Verify patent dates, publication dates, and first public demonstrations.`
+};
+
+/**
+ * All available modules
+ */
+export const ALL_MODULES: TimelinePromptModule[] = [
+  CONTROVERSY_MEDIA_MODULE,
+  BIOGRAPHY_MODULE,
+  ORGANIZATION_PRODUCT_MODULE,
+  HISTORICAL_TECHNICAL_MODULE,
+];
+
+/**
+ * Dynamically construct a timeline generation prompt by selecting
+ * relevant modules based on the timeline topic
+ */
+export function buildTimelinePrompt(
+  timelineName: string,
+  timelineDescription: string,
+  maxEvents: number,
+  sourceRestrictions?: string
+): string {
+  // Start with base prompt
+  let prompt = `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictions || ''}\n\n`;
+  prompt += BASE_TIMELINE_PROMPT.replace('{maxEvents}', String(maxEvents));
+  
+  // Select applicable modules
+  const applicableModules = ALL_MODULES.filter(module => 
+    module.trigger(timelineName, timelineDescription)
+  );
+  
+  // Append module content
+  if (applicableModules.length > 0) {
+    prompt += '\n\n**Additional Topic-Specific Instructions:**\n';
+    applicableModules.forEach(module => {
+      prompt += module.content;
+    });
+  }
+  
+  // Add closing instructions
+  prompt += `\n\n**JSON Output Schema:**
+Return as JSON with these keys:
+- "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)
+- "progressionSubject": string (only if isProgression is true)
+- "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions.
+- "sources": array (optional) of objects with { name: string, url: string }
+- "image_references": array (optional) of objects with { name: string, url: string }
+
+Example: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title" }], "sources": [...], "image_references": [...] }`;
+  
+  return prompt;
+}
+
+/**
+ * Get list of modules that would be applied to a given timeline
+ * (useful for debugging/logging)
+ */
+export function getApplicableModules(
+  timelineName: string,
+  timelineDescription: string
+): string[] {
+  return ALL_MODULES
+    .filter(module => module.trigger(timelineName, timelineDescription))
+    .map(module => module.name);
+}
