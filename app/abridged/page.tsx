@@ -8,6 +8,8 @@ type GeneratedEvent = {
   description?: string;
   prompt?: string;
   imageUrl?: string | null;
+  /** Set when the image slot failed (SSE `error` field) */
+  imageError?: string | null;
 };
 
 type Step =
@@ -203,7 +205,11 @@ export default function AbridgedFlowPage() {
       appendLog('Generating images with face likeness...');
       
       // Initialize events with empty image URLs so we can update them progressively
-      const eventsWithPlaceholders = enrichedEvents.map(e => ({ ...e, imageUrl: null }));
+      const eventsWithPlaceholders = enrichedEvents.map(e => ({
+        ...e,
+        imageUrl: null,
+        imageError: null,
+      }));
       setEvents(eventsWithPlaceholders);
       
       // Use streaming endpoint for progressive image loading
@@ -248,25 +254,48 @@ export default function AbridgedFlowPage() {
               const eventMatch = line.match(/event: (\w+)\ndata: (.+)/s);
               if (eventMatch) {
                 const [, eventType, data] = eventMatch;
-                const parsed = JSON.parse(data);
+                let parsed: Record<string, unknown>;
+                try {
+                  parsed = JSON.parse(data) as Record<string, unknown>;
+                } catch (parseErr) {
+                  console.warn('[Abridged] Bad SSE JSON chunk', parseErr);
+                  appendLog('Warning: skipped malformed SSE data');
+                  continue;
+                }
 
                 if (eventType === 'status') {
-                  appendLog(parsed.message);
+                  appendLog(String(parsed.message ?? ''));
                 } else if (eventType === 'image') {
-                  // Update the specific event with its image as soon as it's ready
+                  const idx = parsed.index;
+                  const errMsg =
+                    parsed.error != null && parsed.error !== ''
+                      ? String(parsed.error)
+                      : null;
+                  if (typeof idx !== 'number' || !Number.isFinite(idx)) {
+                    console.warn('[Abridged] Ignoring SSE image event: invalid index', idx);
+                    continue;
+                  }
                   setEvents(prev => {
+                    if (idx < 0 || idx >= prev.length) {
+                      console.warn('[Abridged] Ignoring SSE image for out-of-range index', idx);
+                      return prev;
+                    }
                     const updated = [...prev];
-                    updated[parsed.index] = {
-                      ...updated[parsed.index],
-                      imageUrl: parsed.imageUrl,
+                    updated[idx] = {
+                      ...updated[idx],
+                      imageUrl: (parsed.imageUrl as string | null | undefined) ?? null,
+                      imageError: errMsg,
                     };
                     return updated;
                   });
-                  appendLog(`✓ Image ${parsed.completed}/${parsed.total}: ${parsed.eventTitle}`);
+                  const statusIcon = errMsg ? '✗' : '✓';
+                  appendLog(
+                    `${statusIcon} Image ${String(parsed.completed)}/${String(parsed.total)}: ${String(parsed.eventTitle ?? '')}${errMsg ? ` — ${errMsg}` : ''}`
+                  );
                 } else if (eventType === 'complete') {
                   appendLog('All images complete!');
                 } else if (eventType === 'error') {
-                  throw new Error(parsed.message);
+                  throw new Error(String(parsed.message ?? 'Stream error'));
                 }
               }
             }
@@ -304,7 +333,7 @@ export default function AbridgedFlowPage() {
     <main className="max-w-3xl mx-auto px-4 py-10 space-y-6">
       <h1 className="text-2xl font-semibold">Abridged Flow Test Page</h1>
       <p className="text-sm text-gray-600">
-        Tests: Title → Illustration Sub-Style → Description → Events → Prompts → Images (with Google Imagen 4 Fast for face references)
+        Tests: Title → Illustration Sub-Style → Description → Events → Prompts → Images (model depends on server config; may use reference-based generation when available)
       </p>
       <p className="text-xs text-gray-500 mt-1">
         Choose from 10 illustration sub-styles to ensure visual consistency across all timeline images
@@ -463,10 +492,12 @@ export default function AbridgedFlowPage() {
               <div 
                 key={idx} 
                 className={`border rounded p-4 space-y-2 transition ${
-                  ev.imageUrl 
-                    ? 'bg-green-50 border-green-200' 
-                    : ev.description 
-                    ? 'bg-blue-50 border-blue-200' 
+                  ev.imageError
+                    ? 'bg-amber-50 border-amber-200'
+                    : ev.imageUrl
+                    ? 'bg-green-50 border-green-200'
+                    : ev.description
+                    ? 'bg-blue-50 border-blue-200'
                     : 'bg-gray-50 border-gray-200'
                 }`}
               >
@@ -476,10 +507,15 @@ export default function AbridgedFlowPage() {
                     <div className="font-semibold text-gray-900">{ev.title}</div>
                     {ev.year && <div className="text-xs text-gray-500">{ev.year}</div>}
                   </div>
-                  {ev.imageUrl && (
+                  {ev.imageError && (
+                    <span className="text-amber-600 text-xl" title={ev.imageError}>
+                      ⚠
+                    </span>
+                  )}
+                  {ev.imageUrl && !ev.imageError && (
                     <span className="text-green-600 text-xl">✓</span>
                   )}
-                  {!ev.imageUrl && ev.description && (
+                  {!ev.imageUrl && !ev.imageError && ev.description && (
                     <span className="text-blue-600 text-xl animate-pulse">⏳</span>
                   )}
                 </div>
@@ -501,6 +537,12 @@ export default function AbridgedFlowPage() {
                   </details>
                 )}
                 
+                {ev.imageError && (
+                  <div className="mt-2 pl-8 text-sm text-amber-800 bg-amber-100/80 border border-amber-200 rounded px-3 py-2">
+                    <strong>Image failed:</strong> {ev.imageError}
+                  </div>
+                )}
+
                 {ev.imageUrl && (
                   <div className="mt-2 pl-8">
                     <img
@@ -522,7 +564,13 @@ export default function AbridgedFlowPage() {
           <div className="text-2xl mb-2">🎉</div>
           <div className="font-semibold text-green-900">Flow Complete!</div>
           <div className="text-sm text-green-700 mt-1">
-            Generated {events.filter(e => e.imageUrl).length} images using Google Imagen 4 Fast
+            Generated {events.filter(e => e.imageUrl).length} image
+            {events.filter(e => e.imageUrl).length === 1 ? '' : 's'}
+            {events.some(e => e.imageError) && (
+              <span className="block text-amber-800 mt-1">
+                {events.filter(e => e.imageError).length} slot(s) failed — see messages above.
+              </span>
+            )}
           </div>
         </div>
       )}

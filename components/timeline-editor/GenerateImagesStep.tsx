@@ -302,7 +302,7 @@ export const GenerateImagesStep = ({
     setGeneratingCount(0);
     
     try {
-      // Use streaming API for progressive loading
+      // Inline SSE from generate-images (?stream=true). Abridged test page uses /api/ai/generate-images-stream + jobId instead — see lib/utils/progressStore.ts
       const response = await fetch("/api/ai/generate-images?stream=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

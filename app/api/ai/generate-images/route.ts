@@ -2059,6 +2059,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /** Progress for `/api/ai/generate-images-stream` (`jobId` query). See `progressStore` for scaling limits. */
+    const reportJobProgress = (payload: {
+      index: number;
+      eventTitle: string;
+      imageUrl: string | null;
+      error: string | null;
+    }) => {
+      if (!jobId) return;
+      progressStore.notifyImageFinished(jobId, {
+        ...payload,
+        total: events.length,
+      });
+    };
+
     // Check credits before generation (1 credit per image) unless guest (abridged flow)
     const requiredCredits = events.length;
     let userCredits: { credits: number } | null = null;
@@ -3031,11 +3045,13 @@ export async function POST(request: NextRequest) {
       if (result.imageUrl && !result.error) {
         console.log(`[ImageGen] Image already generated (Imagen) for "${result.event.title}": ${result.imageUrl.substring(0, 100)}...`);
         
-        // Notify progress store for streaming endpoints
-        if (jobId) {
-          progressStore.notify(jobId, result.imageUrl, result.index, result.event.title, result.index + 1, events.length);
-        }
-        
+        reportJobProgress({
+          index: result.index,
+          eventTitle: result.event.title,
+          imageUrl: result.imageUrl,
+          error: null,
+        });
+
         return {
           index: result.index,
           imageUrl: result.imageUrl,
@@ -3048,6 +3064,12 @@ export async function POST(request: NextRequest) {
       if (result.error || !result.predictionId) {
         const errorMsg = result.error?.message || (result.error instanceof Error ? result.error.toString() : String(result.error || 'No prediction ID'));
         console.error(`[ImageGen] Skipping prediction for "${result.event.title}": ${errorMsg}`);
+        reportJobProgress({
+          index: result.index,
+          eventTitle: result.event.title,
+          imageUrl: null,
+          error: errorMsg,
+        });
         return { 
           index: result.index, 
           imageUrl: null, 
@@ -3062,11 +3084,30 @@ export async function POST(request: NextRequest) {
         const imageUrl = await waitForPrediction(result.predictionId, replicateApiKey);
         console.log(`[ImageGen] Completed image ${result.index + 1}/${events.length} for "${result.event.title}": ${imageUrl ? imageUrl.substring(0, 100) + '...' : 'null'}`);
         
-        // Notify progress store for streaming endpoints
-        if (jobId && imageUrl) {
-          progressStore.notify(jobId, imageUrl, result.index, result.event.title, result.index + 1, events.length);
+        if (!imageUrl) {
+          const errMsg = 'Prediction returned no image URL';
+          reportJobProgress({
+            index: result.index,
+            eventTitle: result.event.title,
+            imageUrl: null,
+            error: errMsg,
+          });
+          return {
+            index: result.index,
+            imageUrl: null,
+            error: new Error(errMsg),
+            event: result.event,
+            prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
+          };
         }
-        
+
+        reportJobProgress({
+          index: result.index,
+          eventTitle: result.event.title,
+          imageUrl,
+          error: null,
+        });
+
         return { 
           index: result.index, 
           imageUrl, 
@@ -3218,27 +3259,42 @@ export async function POST(request: NextRequest) {
             return waitForPredictionWithRetry(retryResult, attempt + 1);
           } catch (retryError: any) {
             console.error(`[ImageGen] Retry failed for "${result.event.title}":`, retryError.message);
+            const err =
+              retryError instanceof Error ? retryError : new Error(String(retryError?.message ?? retryError));
+            reportJobProgress({
+              index: result.index,
+              eventTitle: result.event.title,
+              imageUrl: null,
+              error: err.message,
+            });
             return { 
               index: result.index, 
               imageUrl: null, 
-              error: error, 
+              error: err, 
               event: result.event,
               prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
             };
           }
         }
         
+        const finalErr = error instanceof Error ? error : new Error(String(error?.message ?? error));
+        reportJobProgress({
+          index: result.index,
+          eventTitle: result.event.title,
+          imageUrl: null,
+          error: finalErr.message,
+        });
         return { 
           index: result.index, 
           imageUrl: null, 
-          error, 
+          error: finalErr, 
           event: result.event,
           prompt: (typeof result.prompt === 'string' ? result.prompt : String(result.prompt || ''))
         };
       }
     };
     
-    // Check if client wants streaming (progressive loading)
+    // Inline SSE for clients that use `?stream=true` (e.g. GenerateImagesStep). Abridged uses generate-images-stream + jobId instead.
     const stream = request.nextUrl.searchParams.get('stream') === 'true';
     
     // Poll all predictions in parallel (with retry logic built in)
