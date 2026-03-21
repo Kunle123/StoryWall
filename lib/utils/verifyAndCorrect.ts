@@ -1,4 +1,27 @@
-import { getAIClient, createChatCompletion } from '@/lib/ai/client';
+import { getAIClient, createChatCompletion, getKimiTurboModel } from '@/lib/ai/client';
+
+/** Fast model for verify/correct — avoid kimi-k2-thinking here (often 60s+ per call). */
+function verifyModel(provider: 'openai' | 'kimi'): string {
+  return provider === 'kimi' ? getKimiTurboModel() : 'gpt-4o-mini';
+}
+
+/** Run async tasks with max `concurrency` in flight (avoids sequential bottleneck). */
+async function runPool<T, R>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function runWorker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  const n = Math.min(concurrency, Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => runWorker()));
+  return results;
+}
+
+/** Max parallel correction LLM calls per batch (turbo model is fast; avoids long sequential waits). */
+const CORRECTION_CONCURRENCY = 4;
 
 /**
  * Verify events and auto-correct low/medium confidence ones
@@ -115,8 +138,9 @@ CRITICAL VERIFICATION RULES:
 - Be conservative - when in doubt, flag the event`;
 
     try {
+      const fastModel = verifyModel(client.provider);
       const response = await createChatCompletion(client, {
-        model: client.provider === 'kimi' ? 'kimi-k2-thinking' : 'gpt-4o-mini',
+        model: fastModel,
         messages: [
           {
             role: 'system',
@@ -136,24 +160,32 @@ CRITICAL VERIFICATION RULES:
         const verificationResult = JSON.parse(response.choices[0].message.content);
         const verifications = verificationResult.verifications || [];
 
-        // Process each event in the batch
-        for (let idx = 0; idx < batch.length; idx++) {
-          const event = batch[idx];
-          const verification = verifications.find((v: any) => v.eventIndex === idx) || {
-            verified: false,
-            confidence: 'low' as const,
-            issues: ['Verification failed'],
-          };
+        const rows = batch.map((event, idx) => ({ event, idx }));
+        const batchOut = await runPool(
+          rows,
+          CORRECTION_CONCURRENCY,
+          async ({ event, idx }) => {
+            const verification = verifications.find((v: any) => v.eventIndex === idx) || {
+              verified: false,
+              confidence: 'low' as const,
+              issues: ['Verification failed'],
+            };
 
-          let correctedEvent = { ...event };
-          let wasCorrected = false;
+            let correctedEvent = { ...event };
+            let wasCorrected = false;
 
-          // Auto-correct if low/medium confidence and autoCorrect is enabled
-          if (autoCorrect && (!verification.verified || verification.confidence !== 'high') && verification.issues && verification.issues.length > 0) {
-            console.log(`[VerifyAndCorrect] Auto-correcting event ${idx}: ${event.title} (confidence: ${verification.confidence})`);
-            
-            try {
-              const correctionPrompt = `Timeline: "${timelineName}"
+            if (
+              autoCorrect &&
+              (!verification.verified || verification.confidence !== 'high') &&
+              verification.issues &&
+              verification.issues.length > 0
+            ) {
+              console.log(
+                `[VerifyAndCorrect] Auto-correcting event ${idx}: ${event.title} (confidence: ${verification.confidence})`
+              );
+
+              try {
+                const correctionPrompt = `Timeline: "${timelineName}"
 Description: ${timelineDescription}
 
 Correct the following event based on the identified issues. Generate a factually accurate version.
@@ -184,50 +216,52 @@ CRITICAL CORRECTION RULES:
 - Maintain the same writing style and tone as the original
 - Fix all issues identified in the issues list`;
 
-              const correctionResponse = await createChatCompletion(client, {
-                model: client.provider === 'kimi' ? 'kimi-k2-thinking' : 'gpt-4o-mini',
-                messages: [
-                  {
-                    role: 'system',
-                    content: `You are a fact-checker and content corrector. Your task is to correct factual errors in timeline events while preserving accurate information. Return ONLY valid JSON.`,
-                  },
-                  {
-                    role: 'user',
-                    content: correctionPrompt,
-                  },
-                ],
-                response_format: { type: 'json_object' },
-                temperature: 0.3, // Low temperature for factual accuracy
-                max_tokens: 1000,
-              });
+                const correctionResponse = await createChatCompletion(client, {
+                  model: fastModel,
+                  messages: [
+                    {
+                      role: 'system',
+                      content: `You are a fact-checker and content corrector. Your task is to correct factual errors in timeline events while preserving accurate information. Return ONLY valid JSON.`,
+                    },
+                    {
+                      role: 'user',
+                      content: correctionPrompt,
+                    },
+                  ],
+                  response_format: { type: 'json_object' },
+                  temperature: 0.3,
+                  max_tokens: 1000,
+                });
 
-              if (correctionResponse.choices?.[0]?.message?.content) {
-                const corrected = JSON.parse(correctionResponse.choices[0].message.content);
-                correctedEvent = {
-                  ...event,
-                  title: corrected.title || event.title,
-                  description: corrected.description || event.description,
-                  year: corrected.year !== null && corrected.year !== undefined ? corrected.year : event.year,
-                  month: corrected.month !== null && corrected.month !== undefined ? corrected.month : event.month,
-                  day: corrected.day !== null && corrected.day !== undefined ? corrected.day : event.day,
-                };
-                wasCorrected = true;
-                console.log(`[VerifyAndCorrect] Event corrected: ${event.title}`);
+                if (correctionResponse.choices?.[0]?.message?.content) {
+                  const corrected = JSON.parse(correctionResponse.choices[0].message.content);
+                  correctedEvent = {
+                    ...event,
+                    title: corrected.title || event.title,
+                    description: corrected.description || event.description,
+                    year: corrected.year !== null && corrected.year !== undefined ? corrected.year : event.year,
+                    month: corrected.month !== null && corrected.month !== undefined ? corrected.month : event.month,
+                    day: corrected.day !== null && corrected.day !== undefined ? corrected.day : event.day,
+                  };
+                  wasCorrected = true;
+                  console.log(`[VerifyAndCorrect] Event corrected: ${event.title}`);
+                }
+              } catch (correctionError: any) {
+                console.warn(`[VerifyAndCorrect] Correction failed for event ${idx}:`, correctionError.message);
               }
-            } catch (correctionError: any) {
-              console.warn(`[VerifyAndCorrect] Correction failed for event ${idx}:`, correctionError.message);
-              // Continue with original event if correction fails
             }
-          }
 
-          verifiedEvents.push({
-            ...correctedEvent,
-            verified: verification.verified !== false,
-            confidence: verification.confidence || 'low',
-            issues: verification.issues || [],
-            corrected: wasCorrected,
-          });
-        }
+            return {
+              ...correctedEvent,
+              verified: verification.verified !== false,
+              confidence: verification.confidence || 'low',
+              issues: verification.issues || [],
+              corrected: wasCorrected,
+            };
+          }
+        );
+
+        verifiedEvents.push(...batchOut);
       } else {
         // If verification fails, mark all as unverified
         batch.forEach((event) => {
