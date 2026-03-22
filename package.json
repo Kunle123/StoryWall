@@ -19,7 +19,8 @@
     "railway:create-data": "tsx scripts/create-test-data-railway.ts",
     "seed:all": "tsx scripts/seed-all-data.ts",
     "update:transportation": "tsx scripts/update-transportation-timeline.ts",
-    "railway:update-transportation": "tsx scripts/update-transportation-railway.ts"
+    "railway:update-transportation": "tsx scripts/update-transportation-railway.ts",
+    "feature:timeline": "tsx scripts/feature-a-timeline.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.34.1",
