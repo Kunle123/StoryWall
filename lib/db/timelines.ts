@@ -804,49 +804,61 @@ export async function deleteTimeline(
 }
 
 export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline[]> {
+  const featuredInclude = {
+    creator: {
+      select: {
+        id: true,
+        clerkId: true,
+        username: true,
+        email: true,
+        avatarUrl: true,
+        bio: true,
+        credits: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+    events: {
+      take: 3,
+      orderBy: { date: 'asc' as const },
+      select: {
+        id: true,
+        timelineId: true,
+        title: true,
+        description: true,
+        date: true,
+        endDate: true,
+        imageUrl: true,
+      },
+    },
+    _count: {
+      select: { events: true, likes: true },
+    },
+  };
+
   try {
-    const timelines = await prisma.timeline.findMany({
-      where: { 
+    let timelines = await prisma.timeline.findMany({
+      where: {
         isPublic: true,
         isFeatured: true,
       },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            clerkId: true,
-            username: true,
-            email: true,
-            avatarUrl: true,
-            bio: true,
-            credits: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        events: {
-          take: 3,
-          orderBy: { date: 'asc' },
-          select: {
-            id: true,
-            timelineId: true,
-            title: true,
-            description: true,
-            date: true,
-            endDate: true,
-            imageUrl: true,
-          },
-        },
-        _count: {
-          select: { events: true, likes: true },
-        },
-      },
+      include: featuredInclude,
       orderBy: [
         { featuredAt: 'desc' }, // Most recently featured first
         { viewCount: 'desc' }, // Then by views
       ],
       take: limit,
     });
+
+    // No editorial picks — surface one strong public story so the spotlight never stays empty
+    if (timelines.length === 0) {
+      timelines = await prisma.timeline.findMany({
+        where: { isPublic: true },
+        include: featuredInclude,
+        orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+        take: 1,
+      });
+    }
 
     return timelines.map(transformTimeline);
   } catch (error: any) {
