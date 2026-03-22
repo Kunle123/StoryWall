@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, Clock, Eye, Star } from "lucide-react";
+import { Search, TrendingUp, Clock, Star } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
-import { Card } from "@/components/ui/card";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
+import { StorySummaryCard } from "@/components/timeline/StorySummaryCard";
+import { FeaturedStorySpotlight } from "@/components/timeline/FeaturedStorySpotlight";
 
 interface TimelineDisplay {
   id: string;
@@ -20,11 +21,51 @@ interface TimelineDisplay {
   creatorId?: string;
   views: string;
   viewCount: number;
-  category: string;
   avatar: string;
   createdAt: string;
-  previewImage?: string;
+  /** Up to 3 event images for the strip */
+  previewImages: string[];
+  eventCount: number;
+  hashtags: string[];
   isPublic: boolean;
+}
+
+function mapApiTimeline(t: any): TimelineDisplay {
+  const events = t.events || [];
+  const previewImages = events
+    .map((e: { image_url?: string }) => e.image_url)
+    .filter(Boolean) as string[];
+
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    creator: t.creator?.username || "Unknown",
+    creatorId: t.creator_id,
+    views: formatViewsStatic(t.view_count || 0),
+    viewCount: t.view_count || 0,
+    avatar:
+      t.creator?.avatar_url ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.creator?.id || t.id}`,
+    createdAt: t.created_at,
+    previewImages,
+    eventCount: typeof t.event_count === "number" ? t.event_count : events.length,
+    hashtags: Array.isArray(t.hashtags) ? t.hashtags : [],
+    isPublic: t.is_public !== false,
+  };
+}
+
+function formatViewsStatic(count: number): string {
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+  return count.toString();
+}
+
+/** First hashtag as a short topic pill, or undefined */
+function topicLabel(hashtags: string[]): string | undefined {
+  const h = hashtags[0];
+  if (!h || !h.trim()) return undefined;
+  return h.charAt(0).toUpperCase() + h.slice(1).toLowerCase();
 }
 
 const Discover = () => {
@@ -38,234 +79,135 @@ const Discover = () => {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Handle header hide/show on scroll
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
       if (currentScrollY > lastScrollY && currentScrollY > 50) {
-        // Scrolling down
         setShowHeader(false);
       } else if (currentScrollY < lastScrollY) {
-        // Scrolling up
         setShowHeader(true);
       }
-      
       setLastScrollY(currentScrollY);
     };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
   useEffect(() => {
     async function loadTimelines() {
       try {
         setLoading(true);
-        // Fetch public timelines from API
         const result = await fetchTimelines({ limit: 100, is_public: true });
-        
         if (result.data && result.data.length > 0) {
-          // Transform API timelines to display format
-          const transformed = result.data.map((t: any) => {
-            // Get first event's image as preview if available
-            const previewImage = t.events && t.events.length > 0 && t.events[0].image_url 
-              ? t.events[0].image_url 
-              : undefined;
-
-            return {
-              id: t.id,
-              title: t.title,
-              description: t.description,
-              creator: t.creator?.username || 'Unknown',
-              creatorId: t.creator_id,
-              views: formatViews(t.view_count || 0),
-              viewCount: t.view_count || 0,
-              category: 'History', // Default category, could be added to timeline model
-              avatar: t.creator?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.creator?.id || t.id}`,
-              createdAt: t.created_at,
-              previewImage,
-              isPublic: t.is_public !== false,
-            };
-          });
-          setAllTimelines(transformed);
+          setAllTimelines(result.data.map(mapApiTimeline));
         } else {
           setAllTimelines([]);
         }
       } catch (error) {
-        console.error('Failed to load timelines from API:', error);
+        console.error("Failed to load timelines from API:", error);
         setAllTimelines([]);
       } finally {
         setLoading(false);
       }
     }
-    
+
     loadTimelines();
-    
-    // Load featured timelines
-    async function loadFeaturedTimelines() {
+
+    async function loadFeatured() {
       try {
         setFeaturedLoading(true);
         const result = await fetchFeaturedTimelines(6);
-        
         if (result.data && result.data.length > 0) {
-          const transformed = result.data.map((t: any) => {
-            const previewImage = t.events && t.events.length > 0 && t.events[0].image_url 
-              ? t.events[0].image_url 
-              : undefined;
-
-            return {
-              id: t.id,
-              title: t.title,
-              description: t.description,
-              creator: t.creator?.username || 'Unknown',
-              creatorId: t.creator_id,
-              views: formatViews(t.view_count || 0),
-              viewCount: t.view_count || 0,
-              category: 'Featured',
-              avatar: t.creator?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.creator?.id || t.id}`,
-              createdAt: t.created_at,
-              previewImage,
-              isPublic: t.is_public !== false,
-            };
-          });
-          setFeaturedTimelines(transformed);
+          setFeaturedTimelines(result.data.map(mapApiTimeline));
         } else {
           setFeaturedTimelines([]);
         }
       } catch (error) {
-        console.error('Failed to load featured timelines:', error);
+        console.error("Failed to load featured timelines:", error);
         setFeaturedTimelines([]);
       } finally {
         setFeaturedLoading(false);
       }
     }
-    
-    loadFeaturedTimelines();
+
+    loadFeatured();
   }, []);
 
-  function formatViews(count: number): string {
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    }
-    if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}k`;
-    }
-    return count.toString();
-  }
+  const featuredIds = useMemo(
+    () => new Set(featuredTimelines.map((t) => t.id)),
+    [featuredTimelines]
+  );
 
-  function formatTimeAgo(dateString: string): string {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (seconds < 60) return "just now";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-    if (seconds < 2592000) return `${Math.floor(seconds / 604800)}w ago`;
-    return `${Math.floor(seconds / 2592000)}mo ago`;
-  }
-
-
-  // Filter timelines based on search and category
   const filteredTimelines = useMemo(() => {
-    let filtered = allTimelines;
+    let filtered = allTimelines.filter((t) => !featuredIds.has(t.id));
 
-    // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
+      filtered = filtered.filter((t) => {
+        const tagHit = t.hashtags.some((h) => h.toLowerCase().includes(query));
+        return (
+          tagHit ||
           t.title.toLowerCase().includes(query) ||
-          t.description?.toLowerCase().includes(query) ||
-          t.creator.toLowerCase().includes(query) ||
-          t.category.toLowerCase().includes(query)
-      );
+          (t.description?.toLowerCase().includes(query) ?? false) ||
+          t.creator.toLowerCase().includes(query)
+        );
+      });
     }
 
-    // Filter by category
     if (selectedCategory) {
-      filtered = filtered.filter((t) => t.category === selectedCategory);
+      const cat = selectedCategory.toLowerCase();
+      filtered = filtered.filter((t) => {
+        const tagHit = t.hashtags.some(
+          (h) =>
+            h.toLowerCase().includes(cat) ||
+            cat.includes(h.toLowerCase().slice(0, Math.min(4, h.length)))
+        );
+        return (
+          tagHit ||
+          t.title.toLowerCase().includes(cat) ||
+          (t.description?.toLowerCase().includes(cat) ?? false)
+        );
+      });
     }
 
     return filtered;
-  }, [allTimelines, searchQuery, selectedCategory]);
-  
-  // Sort by views (trending = highest views)
+  }, [allTimelines, searchQuery, selectedCategory, featuredIds]);
+
   const trendingTimelines = useMemo(() => {
     return [...filteredTimelines].sort((a, b) => b.viewCount - a.viewCount);
   }, [filteredTimelines]);
 
-  // Recent = sort by created date (newest first)
   const recentTimelines = useMemo(() => {
-    return [...filteredTimelines].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return [...filteredTimelines].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }, [filteredTimelines]);
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
-  const TimelineCard = ({ timeline }: { timeline: TimelineDisplay }) => (
-    <Card
-      className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-      onClick={() => router.push(`/timeline/${timeline.id}`)}
-    >
-      <div className="flex flex-col sm:flex-row">
-        <div className="w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
-          {timeline.previewImage ? (
-            <img
-              src={timeline.previewImage}
-              alt={timeline.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-muted flex items-center justify-center">
-              <Eye className="w-8 h-8 text-muted-foreground" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 p-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-bold text-lg font-display line-clamp-2">{timeline.title}</h3>
-            <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap">
-              {timeline.category}
-            </span>
-          </div>
-          {timeline.description && (
-            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-              {timeline.description}
-            </p>
-          )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{timeline.creator}</span>
-            <span>·</span>
-            <span>{timeline.views} views</span>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
+  const openTimeline = (id: string) => router.push(`/timeline/${id}`);
 
   return (
     <div className="min-h-screen bg-background pb-32 md:pb-40">
       <Header isVisible={showHeader} />
-      <main className={`container mx-auto px-3 max-w-4xl transition-all duration-300 ${
-        showHeader ? 'pt-16' : 'pt-4'
-      }`}>
-        {/* Search Bar - moves up when header hides */}
-        <div 
+      <main
+        className={`container mx-auto px-3 max-w-6xl transition-all duration-300 ${
+          showHeader ? "pt-16" : "pt-4"
+        }`}
+      >
+        <div
           className={`fixed left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/50 transition-all duration-300 ${
-            showHeader ? 'top-12' : 'top-0'
+            showHeader ? "top-12" : "top-0"
           }`}
-          style={{ height: '56px' }}
+          style={{ height: "56px" }}
         >
-          <div className="container mx-auto px-3 h-full flex items-center max-w-4xl">
+          <div className="container mx-auto px-3 h-full flex items-center max-w-6xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                type="text"
-                placeholder="Search timelines..."
+                type="search"
+                placeholder="Search stories, topics, creators…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10"
@@ -274,17 +216,25 @@ const Discover = () => {
           </div>
         </div>
 
-        {/* Spacer for fixed search bar */}
-        <div style={{ height: '56px' }} />
+        <div style={{ height: "56px" }} />
 
-        {/* Featured Section */}
+        {/* Hero */}
+        <div className="px-4 pt-2 pb-6">
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">
+            Stories to explore
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1 max-w-xl">
+            Scan summaries across timelines—open the ones you want to dive into.
+          </p>
+        </div>
+
         {featuredTimelines.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 px-4 mb-4">
-              <Star className="w-5 h-5 text-primary fill-primary" />
-              <h2 className="text-lg font-bold font-display">Featured Stories</h2>
+          <section className="mb-10 px-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <h2 className="text-lg font-bold font-display">Featured stories</h2>
             </div>
-            <div className="grid gap-4 px-4">
+            <div className="grid gap-4">
               {featuredLoading ? (
                 <>
                   <DiscoverCardSkeleton />
@@ -292,54 +242,24 @@ const Discover = () => {
                 </>
               ) : (
                 featuredTimelines.map((timeline) => (
-                  <Card
+                  <FeaturedStorySpotlight
                     key={timeline.id}
-                    className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-primary/20"
-                    onClick={() => router.push(`/timeline/${timeline.id}`)}
-                  >
-                    <div className="flex flex-col sm:flex-row">
-                      <div className="w-full sm:w-48 h-48 sm:h-auto flex-shrink-0">
-                        {timeline.previewImage ? (
-                          <img
-                            src={timeline.previewImage}
-                            alt={timeline.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                            <Eye className="w-8 h-8 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 p-4">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="font-bold text-lg font-display line-clamp-2">{timeline.title}</h3>
-                          <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary whitespace-nowrap flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-primary" />
-                            Featured
-                          </span>
-                        </div>
-                        {timeline.description && (
-                          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                            {timeline.description}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{timeline.creator}</span>
-                          <span>·</span>
-                          <span>{timeline.views} views</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
+                    title={timeline.title}
+                    summary={timeline.description}
+                    creatorName={timeline.creator}
+                    creatorAvatar={timeline.avatar}
+                    viewLabel={timeline.views}
+                    eventCount={timeline.eventCount}
+                    previewImages={timeline.previewImages}
+                    onClick={() => openTimeline(timeline.id)}
+                  />
                 ))
               )}
             </div>
           </section>
         )}
 
-        {/* Categories */}
-        <div className="py-4 border-b border-border/50">
+        <div className="py-4 border-b border-border/50 px-4">
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
@@ -363,9 +283,8 @@ const Discover = () => {
           </div>
         </div>
 
-        {/* Tab Bar */}
-        <Tabs defaultValue="trending" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="trending" className="mt-6 px-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="trending" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Trending
@@ -378,26 +297,36 @@ const Discover = () => {
 
           <TabsContent value="trending" className="mt-6">
             <section>
-              <div className="flex items-center gap-2 px-4 mb-4">
+              <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-bold font-display">Trending Now</h2>
+                <h2 className="text-lg font-bold font-display">Trending now</h2>
               </div>
-              <div className="grid gap-4 px-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {loading ? (
                   <>
-                    <DiscoverCardSkeleton />
-                    <DiscoverCardSkeleton />
-                    <DiscoverCardSkeleton />
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <DiscoverCardSkeleton key={i} />
+                    ))}
                   </>
                 ) : trendingTimelines.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    {searchQuery || selectedCategory 
-                      ? "No timelines match your filters" 
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    {searchQuery || selectedCategory
+                      ? "No timelines match your filters"
                       : "No public timelines yet. Be the first to create one!"}
                   </div>
                 ) : (
                   trendingTimelines.map((timeline) => (
-                    <TimelineCard key={timeline.id} timeline={timeline} />
+                    <StorySummaryCard
+                      key={timeline.id}
+                      title={timeline.title}
+                      summary={timeline.description}
+                      creatorName={timeline.creator}
+                      viewLabel={timeline.views}
+                      eventCount={timeline.eventCount}
+                      previewImages={timeline.previewImages}
+                      topicLabel={topicLabel(timeline.hashtags)}
+                      onClick={() => openTimeline(timeline.id)}
+                    />
                   ))
                 )}
               </div>
@@ -406,26 +335,36 @@ const Discover = () => {
 
           <TabsContent value="recent" className="mt-6">
             <section>
-              <div className="flex items-center gap-2 px-4 mb-4">
+              <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-5 h-5 text-accent" />
-                <h2 className="text-lg font-bold font-display">Recently Added</h2>
+                <h2 className="text-lg font-bold font-display">Recently added</h2>
               </div>
-              <div className="grid gap-4 px-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {loading ? (
                   <>
-                    <DiscoverCardSkeleton />
-                    <DiscoverCardSkeleton />
-                    <DiscoverCardSkeleton />
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <DiscoverCardSkeleton key={i} />
+                    ))}
                   </>
                 ) : recentTimelines.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    {searchQuery || selectedCategory 
-                      ? "No timelines match your filters" 
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    {searchQuery || selectedCategory
+                      ? "No timelines match your filters"
                       : "No public timelines yet. Be the first to create one!"}
                   </div>
                 ) : (
                   recentTimelines.map((timeline) => (
-                    <TimelineCard key={timeline.id} timeline={timeline} />
+                    <StorySummaryCard
+                      key={timeline.id}
+                      title={timeline.title}
+                      summary={timeline.description}
+                      creatorName={timeline.creator}
+                      viewLabel={timeline.views}
+                      eventCount={timeline.eventCount}
+                      previewImages={timeline.previewImages}
+                      topicLabel={topicLabel(timeline.hashtags)}
+                      onClick={() => openTimeline(timeline.id)}
+                    />
                   ))
                 )}
               </div>

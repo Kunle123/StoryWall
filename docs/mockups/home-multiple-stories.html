@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StoryWall — Home (browse many story summaries)</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --surface: #fff;
+      --border: #e8e6e1;
+      --text: #1a1a1c;
+      --muted: #5c5c66;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .logo {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.35rem;
+    }
+    .search {
+      flex: 1;
+      max-width: 420px;
+      margin: 0 1rem;
+    }
+    .search input {
+      width: 100%;
+      padding: 0.55rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font: inherit;
+      background: var(--surface);
+    }
+    .hero {
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.5rem, 3.5vw, 1.85rem);
+      font-weight: 400;
+      margin: 0 0 0.35rem;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 48ch;
+    }
+    .chips {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .chip {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .chip.on {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+    .section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin: 0 0 0.65rem;
+    }
+    /* Dense grid: many stories visible without scrolling too far */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      transform: translateY(-1px);
+    }
+    .visual {
+      height: 96px;
+      background: linear-gradient(135deg, #e8eef8, #f0ebe4);
+      display: flex;
+      padding: 0.5rem;
+      gap: 0.35rem;
+      align-items: flex-end;
+    }
+    .mini {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #cbd5e1;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .body {
+      padding: 0.85rem 1rem 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .body h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 0.4rem;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    /* Summary = the “dip in” decision point */
+    .summary {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 0 0 0.65rem;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .meta {
+      font-size: 0.72rem;
+      color: #888;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.75rem;
+      align-items: center;
+    }
+    .note {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #fff;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .note strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">StoryWall</div>
+      <div class="search">
+        <input type="search" placeholder="Search stories, topics, creators…" aria-label="Search" />
+      </div>
+      <span style="font-size:0.85rem;color:var(--muted)">Sign in</span>
+    </header>
+
+    <div class="hero">
+      <h1>Stories to explore</h1>
+      <p>Scan summaries across timelines—open only the ones you want to dive into.</p>
+    </div>
+
+    <div class="chips" role="tablist" aria-label="Topics">
+      <button type="button" class="chip on">All</button>
+      <button type="button" class="chip">History</button>
+      <button type="button" class="chip">Sports</button>
+      <button type="button" class="chip">Science</button>
+      <button type="button" class="chip">Culture</button>
+    </div>
+
+    <p class="section-title">All public stories</p>
+    <div class="grid">
+      <!-- Repeat pattern: title + 3-line summary + meta = scannable at scale -->
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#94a3b8"></div><div class="mini" style="background:#a8b8c8"></div><div class="mini" style="background:#b8c4d4"></div></div>
+        <div class="body">
+          <h3>The 12-day war — chronology</h3>
+          <p class="summary">Day-by-day military and diplomatic beats: strikes, statements, and ceasefire milestones. Neutral framing; 12 dated events.</p>
+          <div class="meta"><span>Alex C.</span><span>·</span><span>12 events</span><span>·</span><span>2.1k views</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#86a88c"></div><div class="mini" style="background:#9ab89a"></div></div>
+        <div class="body">
+          <h3>Scotland World Cup qualifying</h3>
+          <p class="summary">Key matches and table moments from the campaign—not every friendly, only what shifted qualification.</p>
+          <div class="meta"><span>Sam R.</span><span>·</span><span>19 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#c4a574"></div></div>
+        <div class="body">
+          <h3>Telephone: patents &amp; demos</h3>
+          <p class="summary">Documented filings and public demos—who showed what, when—without picking a single “inventor” without sources.</p>
+          <div class="meta"><span>Jordan K.</span><span>·</span><span>8 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#8b9dc4"></div><div class="mini" style="background:#9aacd4"></div></div>
+        <div class="body">
+          <h3>Startup: first 90 days</h3>
+          <p class="summary">Incorporation to first revenue—milestone-only timeline for founders reviewing their own arc.</p>
+          <div class="meta"><span>Morgan D.</span><span>·</span><span>14 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#b4a0c4"></div></div>
+        <div class="body">
+          <h3>Renaissance Florence — art &amp; power</h3>
+          <p class="summary">Commissions, exiles, and elections that reshaped patronage—each event tied to a date and primary actor.</p>
+          <div class="meta"><span>Elena V.</span><span>·</span><span>22 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#7a9e8e"></div><div class="mini" style="background:#8aae9e"></div></div>
+        <div class="body">
+          <h3>Climate summit timeline</h3>
+          <p class="summary">Negotiation rounds and announced targets—useful if you follow policy, not opinion pieces.</p>
+          <div class="meta"><span>Team SW</span><span>·</span><span>11 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#d4a894"></div></div>
+        <div class="body">
+          <h3>Album rollout: singles to release</h3>
+          <p class="summary">Drops, videos, and tour dates in order—fan-facing without fanfiction.</p>
+          <div class="meta"><span>Riley P.</span><span>·</span><span>9 events</span></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="visual" aria-hidden="true"><div class="mini" style="background:#6b7c99"></div><div class="mini" style="background:#8b9cb9"></div></div>
+        <div class="body">
+          <h3>Moon missions — robotic then crewed</h3>
+          <p class="summary">Program milestones and mission outcomes; science-first labels on each card.</p>
+          <div class="meta"><span>NASA Fan</span><span>·</span><span>16 events</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="note">
+      <strong>Home page intent:</strong> Show <strong>many</strong> timelines at once (dense grid or list), each with a <strong>short summary</strong> (2–3 lines) + event count + creator—so visitors compare at a glance. Featured can sit <strong>above</strong> this fold as a horizontal strip or first row without replacing the wide browse. Optional: separate <code>summary</code> field (deck copy) vs long <code>description</code> used in-editor.
+    </div>
+  </div>
+</body>
+</html>

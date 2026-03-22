@@ -26,6 +26,54 @@ export interface EnrichmentPromptVariables {
   canUseCelebrityLikeness?: boolean;
   hasFactualDetails?: boolean;
   sourceRestrictions?: string[];
+  /** e.g. Neutral, Professional, Narrative — controls description voice */
+  writingStyle?: string;
+}
+
+/**
+ * Voice rules: independent observer / wire-service facts — not editorial or dramatic storytelling.
+ * Matches UI labels (Neutral, Narrative, …) case-insensitively.
+ */
+export function buildEventDescriptionVoiceBlock(writingStyle?: string): string {
+  const ws = (writingStyle || 'neutral').toLowerCase().trim();
+
+  const base = `
+**EVENT DESCRIPTIONS — VOICE (MANDATORY):**
+Write **event descriptions** as an **independent observer** recording documented facts — like a neutral news wire, encyclopedia, or chronology. **Do not** write as a columnist, advocate, or reviewer editorializing the topic.
+
+- **Third person only.** No "we", "you", or first-person.
+- State **who, what, when, where**, and **documented outcomes** (what was reported, decided, signed, measured, or announced). Do not invent dialogue or unattributed inner thoughts.
+- **No loaded or promotional language** — avoid words like: tragically, heroically, shockingly, remarkably, devastating, triumph, brutal, outrageous, game-changer, landmark (unless quoting a named source or official title).
+- **No moral judgment or taking sides.** Do not tell the reader what to think. If views conflict, attribute them ("According to X…", "Y reported that…").
+- **No rhetorical questions** or calls to emotion directed at the reader.
+- Prefer **plain, precise verbs** over hype. One or two sentences of context on *documented* impact is OK; avoid "this reminds us that…" framing.
+`;
+
+  const variants: Record<string, string> = {
+    neutral: `
+**Style preset (Neutral):** Maximum neutrality. Plain, factual sentences only.`,
+    narrative: `
+**Style preset (Narrative):** Clear chronological wording is fine; **still** obey every rule above — no editorial adjectives, moral framing, or drama for effect.`,
+    professional: `
+**Style preset (Professional):** Concise, formal-neutral. Short sentences. No flourish.`,
+    academic: `
+**Style preset (Academic):** Formal and cautious. Where evidence is disputed, attribute or hedge ("reportedly", "according to…"). No speculation presented as fact.`,
+    casual: `
+**Style preset (Casual):** Plain, simple English. **Still** neutral — no slang that implies judgment.`,
+    poetic: `
+**Style preset (Poetic):** Figurative language is allowed **only** in descriptions here; do **not** let metaphor replace facts or invent details.`,
+  };
+
+  const tail = variants[ws] || variants.neutral;
+  return `${base}${tail}`;
+}
+
+/** Lower temperature reduces editorial flair for most presets (not Poetic). */
+export function suggestedEnrichmentTemperature(writingStyle?: string): number {
+  const ws = (writingStyle || 'neutral').toLowerCase();
+  if (ws === 'poetic') return 0.65;
+  if (ws === 'narrative') return 0.5;
+  return 0.35;
 }
 
 /**
@@ -41,7 +89,10 @@ export function buildEnrichmentPrompt(variables: EnrichmentPromptVariables): str
     canUseCelebrityLikeness = false,
     hasFactualDetails = false,
     sourceRestrictions = [],
+    writingStyle,
   } = variables;
+
+  const voiceBlock = buildEventDescriptionVoiceBlock(writingStyle);
 
   // Build source restrictions text
   const sourceRestrictionsText = sourceRestrictions.length > 0

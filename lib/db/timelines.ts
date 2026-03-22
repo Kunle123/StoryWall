@@ -825,7 +825,20 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
           },
         },
         events: {
-          take: 1, // Just to indicate there are events
+          take: 3,
+          orderBy: { date: 'asc' },
+          select: {
+            id: true,
+            timelineId: true,
+            title: true,
+            description: true,
+            date: true,
+            endDate: true,
+            imageUrl: true,
+          },
+        },
+        _count: {
+          select: { events: true },
         },
       },
       orderBy: [
@@ -856,7 +869,20 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
           },
         },
         events: {
-          take: 1,
+          take: 3,
+          orderBy: { date: 'asc' },
+          select: {
+            id: true,
+            timelineId: true,
+            title: true,
+            description: true,
+            date: true,
+            endDate: true,
+            imageUrl: true,
+          },
+        },
+        _count: {
+          select: { events: true },
         },
       },
       orderBy: { viewCount: 'desc' },
@@ -917,7 +943,8 @@ export async function listTimelines(options: {
             },
           },
           events: {
-            take: 1,
+            take: 3,
+            orderBy: { date: 'asc' },
             select: {
               id: true,
               timelineId: true,
@@ -928,6 +955,9 @@ export async function listTimelines(options: {
               imageUrl: true,
               // Don't select image_prompt - it may not exist in production DB
             },
+          },
+          _count: {
+            select: { events: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -1205,6 +1235,10 @@ function transformTimeline(timeline: any): Timeline {
     number_label: timeline.numberLabel || undefined,
     hashtags: timeline.hashtags || [],
     view_count: timeline.viewCount,
+    event_count:
+      typeof timeline._count?.events === 'number'
+        ? timeline._count.events
+        : timeline.events?.length ?? 0,
     created_at: safeToISOString(timeline.createdAt),
     updated_at: safeToISOString(timeline.updatedAt),
     events: timeline.events

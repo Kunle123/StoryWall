@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StoryWall — Feature page mockup (timeline summaries + spotlight)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0c0f;
+      --surface: #16161c;
+      --surface2: #1e1e28;
+      --border: #2a2a36;
+      --text: #f4f4f8;
+      --muted: #9898a8;
+      --accent: #6c9cff;
+      --accent-soft: rgba(108, 156, 255, 0.15);
+      --gold: #e8c547;
+      --gold-soft: rgba(232, 197, 71, 0.12);
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+    .nav {
+      display: flex;
+      gap: 1.25rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 400;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.95rem;
+      max-width: 42ch;
+      margin-bottom: 2rem;
+    }
+    section { margin-bottom: 3rem; }
+    .section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Spotlight — creator feels “featured” */
+    .spotlight {
+      background: linear-gradient(135deg, var(--surface) 0%, #1a1520 50%, var(--surface) 100%);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 4px);
+      padding: 1.75rem 1.75rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .spotlight::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), #ff9f6b, var(--accent));
+    }
+    .spotlight-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--gold);
+      background: var(--gold-soft);
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+    .spotlight-inner {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.25rem 1.75rem;
+      align-items: start;
+    }
+    @media (max-width: 640px) {
+      .spotlight-inner { grid-template-columns: 1fr; text-align: center; }
+      .avatar { margin: 0 auto; }
+    }
+    .avatar {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #3d4a6b, #252830);
+      border: 3px solid var(--gold);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    .spotlight h2 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      margin: 0 0 0.35rem;
+    }
+    .creator-line {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .creator-line strong { color: var(--text); }
+    .why-featured {
+      font-size: 0.88rem;
+      color: var(--muted);
+      font-style: italic;
+      border-left: 2px solid var(--gold);
+      padding-left: 0.85rem;
+      margin: 0 0 1rem;
+      max-width: 52ch;
+    }
+    .spotlight-timeline {
+      grid-column: 1 / -1;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.15rem;
+      border: 1px solid var(--border);
+    }
+    .spotlight-timeline .tl-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+    }
+    .summary {
+      font-size: 0.92rem;
+      color: #c8c8d4;
+      margin: 0 0 0.75rem;
+      max-width: 65ch;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .meta-row span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .pill {
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    /* Grid of timelines */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      border-color: #3d3d50;
+      transform: translateY(-2px);
+    }
+    .card-visual {
+      height: 112px;
+      background: linear-gradient(120deg, #2a2435, #1a2535, #252030);
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      padding: 0.65rem;
+      gap: 0.35rem;
+    }
+    .thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: #333;
+      border: 1px solid rgba(255,255,255,0.12);
+      flex-shrink: 0;
+    }
+    .thumb:nth-child(2) { opacity: 0.85; }
+    .thumb:nth-child(3) { opacity: 0.7; }
+    .card-body { padding: 1rem 1.1rem 1.15rem; flex: 1; display: flex; flex-direction: column; }
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 0.4rem;
+      line-height: 1.3;
+    }
+    .card .blurb {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin: 0 0 0.85rem;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 1rem;
+    }
+    .tag {
+      font-size: 0.68rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      background: var(--surface2);
+      color: var(--muted);
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .byline {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .btn {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: var(--text);
+      color: var(--bg);
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+
+    .note {
+      margin-top: 3rem;
+      padding: 1rem 1.15rem;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      color: var(--muted);
+      border: 1px dashed var(--border);
+    }
+    .note strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">StoryWall</div>
+      <nav class="nav">
+        <span>Discover</span>
+        <span>Featured</span>
+        <span>Sign in</span>
+      </nav>
+    </header>
+
+    <h1>Discover timelines</h1>
+    <p class="sub">Each card uses a short summary so viewers can scan and choose what to open—without spoiling the full story.</p>
+
+    <!-- Spotlight: creator reward -->
+    <section>
+      <div class="section-label">Featured creator</div>
+      <article class="spotlight" aria-label="Creator spotlight">
+        <div class="spotlight-badge">✦ Creator spotlight</div>
+        <div class="spotlight-inner">
+          <div class="avatar" aria-hidden="true">👤</div>
+          <div>
+            <h2>“The 12-day war” — a clear chronology</h2>
+            <p class="creator-line">By <strong>Alex Chen</strong> · Featured this week</p>
+            <p class="why-featured">
+              “We picked this timeline for its careful sequencing and neutral framing—readers can follow what happened day by day.”
+            </p>
+            <div class="spotlight-timeline">
+              <div class="tl-title">Timeline summary</div>
+              <p class="summary">
+                A day-by-day sequence of reported military and diplomatic events across twelve days, with key strikes, statements, and ceasefire milestones—so readers can orient before diving into each event.
+              </p>
+              <div class="meta-row">
+                <span>📅 <time>Oct 2023</time></span>
+                <span>·</span>
+                <span>12 events</span>
+                <span>·</span>
+                <span class="pill">Factual</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Browse grid -->
+    <section>
+      <div class="section-label">More timelines</div>
+      <div class="grid">
+        <article class="card">
+          <div class="card-visual" aria-hidden="true">
+            <div class="thumb" style="background:#4a5568"></div>
+            <div class="thumb" style="background:#5c4033"></div>
+            <div class="thumb" style="background:#2d4a3e"></div>
+          </div>
+          <div class="card-body">
+            <h3>Scotland’s World Cup qualifying</h3>
+            <p class="blurb">
+              Key matches and turning points from the campaign—goals that shifted the table, injuries that changed the XI, and the night qualification was (or wasn’t) decided.
+            </p>
+            <div class="tags">
+              <span class="tag">Football</span>
+              <span class="tag">2020s</span>
+              <span class="tag">National team</span>
+            </div>
+            <div class="card-footer">
+              <span class="byline">Sam R. · 19 events</span>
+              <button type="button" class="btn">Open</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-visual" aria-hidden="true">
+            <div class="thumb" style="background:#3e2d4a"></div>
+            <div class="thumb" style="background:#4a4e68"></div>
+            <div class="thumb" style="background:#5a4a3a"></div>
+          </div>
+          <div class="card-body">
+            <h3>Invention of the telephone</h3>
+            <p class="blurb">
+              Patents, demonstrations, and disputes—who showed what to whom, and when—without claiming a single “hero” unless sourced.
+            </p>
+            <div class="tags">
+              <span class="tag">Science</span>
+              <span class="tag">19th century</span>
+            </div>
+            <div class="card-footer">
+              <span class="byline">Jordan K. · 8 events</span>
+              <button type="button" class="btn">Open</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-visual" aria-hidden="true">
+            <div class="thumb" style="background:#2a3a4a"></div>
+            <div class="thumb" style="background:#3a4a5a"></div>
+          </div>
+          <div class="card-body">
+            <h3>Startup: first 90 days</h3>
+            <p class="blurb">
+              Incorporation to first paying customer—milestones only, so founders see a clean arc at a glance.
+            </p>
+            <div class="tags">
+              <span class="tag">Business</span>
+              <span class="tag">Checklist</span>
+            </div>
+            <div class="card-footer">
+              <span class="byline">Morgan D. · 14 events</span>
+              <button type="button" class="btn">Open</button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <div class="note">
+      <strong>Mockup notes (for product):</strong>
+      <ul style="margin:0.5rem 0 0 1rem; padding:0;">
+        <li><strong>Summary line</strong> — 1–2 sentences + optional AI “deck” (what/when/why open). Clamp to 2–3 lines on cards.</li>
+        <li><strong>Scan metadata</strong> — event count, date range, topic tags, factual vs narrative badge.</li>
+        <li><strong>Visual hint</strong> — strip of 2–3 event thumbnails (not the full timeline).</li>
+        <li><strong>Spotlight</strong> — gold accent, short editorial “why featured,” large avatar, timeline title + summary repeated for context.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -53,6 +53,8 @@ export interface Timeline {
   number_label?: string;
   hashtags?: string[];
   view_count: number;
+  /** Total events (from DB count); may differ from \`events\` array length when preview is limited */
+  event_count?: number;
   created_at: string;
   updated_at: string;
   events?: Event[];
