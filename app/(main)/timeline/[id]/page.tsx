@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Timeline, TimelineEvent } from "@/components/timeline/Timeline";
@@ -13,12 +13,18 @@ import { useToast } from "@/hooks/use-toast";
 import { formatEventDate, formatEventDateShort, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { ViralFooter } from "@/components/sharing/ViralFooter";
+import {
+  tryConsumeAnonymousTimelineView,
+  clearAnonymousBrowseHistory,
+} from "@/lib/utils/anonymousBrowseLimit";
 
 const TimelinePage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded } = useUser();
+  /** Anonymous browse gate: wait until Clerk loads, then enforce 5-timeline limit */
+  const [browseGateOk, setBrowseGateOk] = useState(false);
   const { toast } = useToast();
   const timelineId = params.id as string;
   const isEditMode = searchParams?.get('edit') === 'true';
@@ -51,7 +57,28 @@ const TimelinePage = () => {
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
-  
+
+  // Signed-in: clear anonymous view list; anonymous: allow up to 5 distinct timelines
+  useLayoutEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    clearAnonymousBrowseHistory();
+    setBrowseGateOk(true);
+  }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (!isLoaded || isSignedIn) return;
+    const { allowed } = tryConsumeAnonymousTimelineView(timelineId);
+    if (!allowed) {
+      const next =
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : `/timeline/${timelineId}`;
+      router.replace(`/sign-in?redirect=${encodeURIComponent(next)}`);
+      return;
+    }
+    setBrowseGateOk(true);
+  }, [isLoaded, isSignedIn, timelineId, router]);
+
   // Reset commentsRequested flag after scroll animation completes
   useEffect(() => {
     if (!commentsRequested) return;
@@ -219,10 +246,10 @@ const TimelinePage = () => {
       }
     }
     
-    if (timelineId) {
+    if (timelineId && browseGateOk) {
       loadTimeline();
     }
-  }, [timelineId, isEditMode, isSignedIn, user]);
+  }, [timelineId, isEditMode, isSignedIn, user, browseGateOk]);
 
   // Scroll to comments section if hash is present
   useEffect(() => {
@@ -237,7 +264,7 @@ const TimelinePage = () => {
     }
   }, [loading]);
 
-  if (loading) {
+  if (!isLoaded || !browseGateOk || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header isVisible={showHeader} />

@@ -5,11 +5,16 @@ import { Card } from '@/components/ui/card';
 import { StoryWallIcon } from '@/components/StoryWallIcon';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function SignInPage() {
+function SignInContent() {
   const { theme, resolvedTheme } = useTheme();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
+
+  /** Return here after sign-in (e.g. from anonymous browse limit uses ?redirect=/timeline/...) */
+  const afterAuthUrl = searchParams.get('redirect') || '/legal/accept-terms';
   
   useEffect(() => {
     setMounted(true);
@@ -50,7 +55,8 @@ export default function SignInPage() {
           path="/sign-in"
           signUpUrl="/sign-up"
           fallbackRedirectUrl="/"
-          afterSignInUrl="/legal/accept-terms"
+          forceRedirectUrl={afterAuthUrl}
+          afterSignInUrl={afterAuthUrl}
           appearance={{
             elements: {
               rootBox: 'w-full',
@@ -83,4 +89,19 @@ export default function SignInPage() {
   );
 }
 
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8">
+            <p className="text-center text-muted-foreground text-sm">Loading…</p>
+          </Card>
+        </div>
+      }
+    >
+      <SignInContent />
+    </Suspense>
+  );
+}
 

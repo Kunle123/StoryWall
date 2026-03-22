@@ -1,14 +1,10 @@
 # Railway + Prisma notes
 
-## `share_count` / P2022 (missing column)
+## P2022 (missing column) — `share_count`, `tiktok_*`, etc.
 
-If deploy uses an existing Postgres DB and `prisma migrate deploy` did not run (e.g. **P3005** — schema not empty), the `timelines.share_count` column might be missing while the app schema expects it.
+If deploy uses an existing Postgres DB and `prisma migrate deploy` did not run (e.g. **P3005** — schema not empty), columns added in `schema.prisma` may be missing while Prisma Client expects them (e.g. `timelines.share_count`, `users.tiktok_access_token`).
 
-**Automatic fix:** the `start:with-migrations` script runs `scripts/ensure-production-schema.cjs`, which executes:
-
-`ALTER TABLE timelines ADD COLUMN IF NOT EXISTS share_count …`
-
-so the column is created even when migrations are skipped.
+**Automatic fix:** `start:with-migrations` runs `scripts/ensure-production-schema.cjs`, which executes idempotent `ALTER TABLE … ADD COLUMN IF NOT EXISTS …` for known drift (see `STATEMENTS` in that file). Extend that list when production logs show **P2022** for a new column.
 
 ## P3005 — “database schema is not empty”
 

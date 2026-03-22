@@ -22,11 +22,23 @@ const exemptRoutes = [
 const isPublicRoute = createRouteMatcher(publicRoutes);
 const isExemptRoute = createRouteMatcher(exemptRoutes);
 
+function isAnonymousStoryBrowse(pathname: string): boolean {
+  // Timelines and single-event story pages: client enforces 5-timeline limit via localStorage
+  return (
+    pathname.startsWith('/timeline/') ||
+    pathname.startsWith('/story/')
+  );
+}
+
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
   if (isPublicRoute(request) || pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+
+  if (isAnonymousStoryBrowse(pathname)) {
     return NextResponse.next();
   }
 

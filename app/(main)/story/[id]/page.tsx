@@ -10,7 +10,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById, fetchFollowStatus, followUser, unfollowUser } from "@/lib/api/client";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
+import {
+  tryConsumeAnonymousTimelineView,
+  clearAnonymousBrowseHistory,
+} from "@/lib/utils/anonymousBrowseLimit";
 import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { TimelineEvent } from "@/components/timeline/Timeline";
 import { ViralFooter } from "@/components/sharing/ViralFooter";
@@ -19,7 +23,8 @@ import { ImageWithWatermark } from "@/components/timeline/ImageWithWatermark";
 const Story = () => {
   const params = useParams();
   const router = useRouter();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
+  const [storyBrowseOk, setStoryBrowseOk] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [likes, setLikes] = useState(0);
@@ -38,6 +43,26 @@ const Story = () => {
   const { toast } = useToast();
   
   const minSwipeDistance = 50;
+
+  useLayoutEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    clearAnonymousBrowseHistory();
+    setStoryBrowseOk(true);
+  }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (!isLoaded || isSignedIn || !event?.timeline_id) return;
+    const { allowed } = tryConsumeAnonymousTimelineView(event.timeline_id);
+    if (!allowed) {
+      const next =
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : `/story/${params.id}`;
+      router.replace(`/sign-in?redirect=${encodeURIComponent(next)}`);
+      return;
+    }
+    setStoryBrowseOk(true);
+  }, [isLoaded, isSignedIn, event?.timeline_id, router, params.id]);
   
   useEffect(() => {
     async function loadEvent() {
@@ -324,7 +349,7 @@ const Story = () => {
     }
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
@@ -352,6 +377,18 @@ const Story = () => {
             <h2 className="text-xl font-bold font-display mb-2">Event Not Found</h2>
             <p className="text-sm text-muted-foreground">This timeline event does not exist.</p>
           </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (!storyBrowseOk) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 pt-12 pb-8 max-w-4xl">
+          <div className="flex items-center justify-center py-20">
+            <p className="text-muted-foreground">Loading event...</p>
+          </div>
         </main>
       </div>
     );
