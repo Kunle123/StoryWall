@@ -1,12 +1,18 @@
 import './globals.css';
 import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from '@/components/theme-provider';
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { getSiteOrigin } from '@/lib/utils/siteUrl';
 
-export const metadata = {
-  title: 'Timeline - Interactive Timeline Platform',
-  description: 'A powerful timeline component for visualizing any historical data',
+const site = getSiteOrigin();
+
+export const metadata: Metadata = {
+  metadataBase: site ? new URL(site) : undefined,
+  title: 'StoryWall — Visual timelines with AI',
+  description:
+    'Create and share beautiful visual timelines with AI-generated images. Explore stories or build your own.',
   icons: {
     icon: '/favicon.png',
   },
