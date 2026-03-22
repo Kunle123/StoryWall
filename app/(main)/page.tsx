@@ -321,6 +321,7 @@ const Discover = () => {
                       title={timeline.title}
                       summary={timeline.description}
                       creatorName={timeline.creator}
+                      creatorAvatar={timeline.avatar}
                       viewLabel={timeline.views}
                       eventCount={timeline.eventCount}
                       previewImages={timeline.previewImages}
@@ -359,6 +360,7 @@ const Discover = () => {
                       title={timeline.title}
                       summary={timeline.description}
                       creatorName={timeline.creator}
+                      creatorAvatar={timeline.avatar}
                       viewLabel={timeline.views}
                       eventCount={timeline.eventCount}
                       previewImages={timeline.previewImages}

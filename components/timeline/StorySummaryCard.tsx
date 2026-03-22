@@ -7,6 +7,8 @@ export type StorySummaryCardProps = {
   title: string;
   summary?: string;
   creatorName: string;
+  /** Creator profile image URL (e.g. avatar_url or generated fallback) */
+  creatorAvatar?: string;
   viewLabel: string;
   eventCount: number;
   previewImages: string[];
@@ -21,6 +23,7 @@ export function StorySummaryCard({
   title,
   summary,
   creatorName,
+  creatorAvatar,
   viewLabel,
   eventCount,
   previewImages,
@@ -71,8 +74,27 @@ export function StorySummaryCard({
             {summary}
           </p>
         )}
-        <div className="text-[0.7rem] text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5 mt-auto pt-1 border-t border-border/30">
-          <span className="truncate max-w-[45%]">{creatorName}</span>
+        <div className="text-[0.7rem] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-auto pt-1 border-t border-border/30">
+          <span className="inline-flex items-center gap-1.5 min-w-0 max-w-[min(100%,14rem)]">
+            {creatorAvatar ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={creatorAvatar}
+                alt=""
+                aria-hidden
+                title={creatorName}
+                className="w-6 h-6 rounded-full object-cover border border-border/50 shrink-0 bg-muted"
+              />
+            ) : (
+              <span
+                className="w-6 h-6 rounded-full bg-muted border border-border/50 shrink-0 flex items-center justify-center text-[0.55rem] font-medium text-muted-foreground"
+                aria-hidden
+              >
+                {creatorName.slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span className="truncate">{creatorName}</span>
+          </span>
           <span aria-hidden>·</span>
           <span>
             {eventCount} event{eventCount === 1 ? "" : "s"}
