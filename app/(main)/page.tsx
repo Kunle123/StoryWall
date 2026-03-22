@@ -26,6 +26,8 @@ interface TimelineDisplay {
   /** Up to 3 event images for the strip */
   previewImages: string[];
   eventCount: number;
+  likesCount: number;
+  sharesCount: number;
   hashtags: string[];
   isPublic: boolean;
 }
@@ -50,6 +52,8 @@ function mapApiTimeline(t: any): TimelineDisplay {
     createdAt: t.created_at,
     previewImages,
     eventCount: typeof t.event_count === "number" ? t.event_count : events.length,
+    likesCount: typeof t.likes_count === "number" ? t.likes_count : 0,
+    sharesCount: typeof t.share_count === "number" ? t.share_count : 0,
     hashtags: Array.isArray(t.hashtags) ? t.hashtags : [],
     isPublic: t.is_public !== false,
   };
@@ -250,6 +254,8 @@ const Discover = () => {
                     creatorAvatar={timeline.avatar}
                     viewLabel={timeline.views}
                     eventCount={timeline.eventCount}
+                    likesCount={timeline.likesCount}
+                    sharesCount={timeline.sharesCount}
                     previewImages={timeline.previewImages}
                     onClick={() => openTimeline(timeline.id)}
                   />
@@ -324,6 +330,8 @@ const Discover = () => {
                       creatorAvatar={timeline.avatar}
                       viewLabel={timeline.views}
                       eventCount={timeline.eventCount}
+                      likesCount={timeline.likesCount}
+                      sharesCount={timeline.sharesCount}
                       previewImages={timeline.previewImages}
                       topicLabel={topicLabel(timeline.hashtags)}
                       onClick={() => openTimeline(timeline.id)}
@@ -363,6 +371,8 @@ const Discover = () => {
                       creatorAvatar={timeline.avatar}
                       viewLabel={timeline.views}
                       eventCount={timeline.eventCount}
+                      likesCount={timeline.likesCount}
+                      sharesCount={timeline.sharesCount}
                       previewImages={timeline.previewImages}
                       topicLabel={topicLabel(timeline.hashtags)}
                       onClick={() => openTimeline(timeline.id)}

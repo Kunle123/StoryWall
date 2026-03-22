@@ -58,6 +58,8 @@ model Timeline {
   numberLabel       String?  @default("Day") @map("number_label") @db.VarChar(50)
   hashtags          String[] @default([]) @map("hashtags")
   viewCount         Int      @default(0) @map("view_count")
+  // Best-effort: incremented when users share or copy timeline link
+  shareCount        Int      @default(0) @map("share_count")
   isFeatured        Boolean  @default(false) @map("is_featured")
   featuredAt        DateTime? @map("featured_at")
   createdAt         DateTime @default(now()) @map("created_at")

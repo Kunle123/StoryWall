@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import { Star, Heart, Share2 } from "lucide-react";
 
 export type FeaturedStorySpotlightProps = {
   title: string;
@@ -10,6 +10,8 @@ export type FeaturedStorySpotlightProps = {
   creatorAvatar?: string;
   viewLabel: string;
   eventCount: number;
+  likesCount?: number;
+  sharesCount?: number;
   previewImages: string[];
   onClick: () => void;
 };
@@ -24,6 +26,8 @@ export function FeaturedStorySpotlight({
   creatorAvatar,
   viewLabel,
   eventCount,
+  likesCount = 0,
+  sharesCount = 0,
   previewImages,
   onClick,
 }: FeaturedStorySpotlightProps) {
@@ -81,12 +85,22 @@ export function FeaturedStorySpotlight({
                 {summary}
               </p>
             )}
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
               <span>
                 {eventCount} event{eventCount === 1 ? "" : "s"}
               </span>
-              <span>·</span>
+              <span aria-hidden>·</span>
               <span>{viewLabel} views</span>
+              <span aria-hidden>·</span>
+              <span className="inline-flex items-center gap-0.5" title="Likes">
+                <Heart className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+                {likesCount}
+              </span>
+              <span aria-hidden>·</span>
+              <span className="inline-flex items-center gap-0.5" title="Shares">
+                <Share2 className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+                {sharesCount}
+              </span>
             </div>
           </div>
         </div>

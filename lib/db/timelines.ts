@@ -838,7 +838,7 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
           },
         },
         _count: {
-          select: { events: true },
+          select: { events: true, likes: true },
         },
       },
       orderBy: [
@@ -882,7 +882,7 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
           },
         },
         _count: {
-          select: { events: true },
+          select: { events: true, likes: true },
         },
       },
       orderBy: { viewCount: 'desc' },
@@ -957,7 +957,7 @@ export async function listTimelines(options: {
             },
           },
           _count: {
-            select: { events: true },
+            select: { events: true, likes: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -983,6 +983,9 @@ export async function listTimelines(options: {
             },
           },
           // Don't include events if there's a schema mismatch
+          _count: {
+            select: { events: true, likes: true },
+          },
         },
         orderBy: { createdAt: 'desc' },
         take: options.limit || 20,
@@ -1015,10 +1018,13 @@ export async function listTimelines(options: {
     const limit = options.limit || 20;
     const offset = options.offset || 0;
 
+    const shareCol = await checkColumnExists('timelines', 'share_count');
+    const shareSelect = shareCol ? ', COALESCE(share_count, 0) AS share_count' : '';
+
     const query = `
       SELECT id, title, description, slug, creator_id, 
              visualization_type, is_public, is_collaborative, 
-             view_count, created_at, updated_at
+             view_count${shareSelect}, created_at, updated_at
       FROM timelines
       ${whereClause}
       ORDER BY created_at DESC
@@ -1035,6 +1041,7 @@ export async function listTimelines(options: {
       is_public: boolean;
       is_collaborative: boolean;
       view_count: number;
+      share_count?: number;
       created_at: Date;
       updated_at: Date;
     }>>(query);
@@ -1118,7 +1125,7 @@ export async function listTimelines(options: {
             FROM events
             WHERE timeline_id = $1
             ORDER BY date ASC
-            LIMIT 1
+            LIMIT 3
           `, row.id);
           
           events = eventRows.map((e: any) => ({
@@ -1136,7 +1143,8 @@ export async function listTimelines(options: {
           try {
             events = await prisma.event.findMany({
               where: { timelineId: row.id },
-              take: 1,
+              take: 3,
+              orderBy: { date: 'asc' },
               select: {
                 id: true,
                 timelineId: true,
@@ -1152,6 +1160,24 @@ export async function listTimelines(options: {
           }
         }
 
+        let likeCount = 0;
+        let eventTotal = events.length;
+        try {
+          const lc = await prisma.$queryRawUnsafe<Array<{ c: bigint }>>(
+            `SELECT COUNT(*)::bigint AS c FROM likes WHERE timeline_id = $1`,
+            row.id
+          );
+          likeCount = Number(lc[0]?.c ?? 0);
+          const ec = await prisma.$queryRawUnsafe<Array<{ c: bigint }>>(
+            `SELECT COUNT(*)::bigint AS c FROM events WHERE timeline_id = $1`,
+            row.id
+          );
+          eventTotal = Number(ec[0]?.c ?? 0);
+        } catch (countErr: any) {
+          console.warn('[listTimelines] Failed to fetch like/event counts:', countErr.message);
+          eventTotal = events.length;
+        }
+
         return {
           id: row.id,
           title: row.title,
@@ -1162,10 +1188,15 @@ export async function listTimelines(options: {
           isPublic: row.is_public,
           isCollaborative: row.is_collaborative,
           viewCount: row.view_count,
+          shareCount: typeof row.share_count === 'number' ? row.share_count : 0,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
           creator: creator,
           events: events,
+          _count: {
+            events: eventTotal,
+            likes: likeCount,
+          },
         };
       })
     );
@@ -1235,6 +1266,10 @@ function transformTimeline(timeline: any): Timeline {
     number_label: timeline.numberLabel || undefined,
     hashtags: timeline.hashtags || [],
     view_count: timeline.viewCount,
+    likes_count:
+      typeof timeline._count?.likes === 'number' ? timeline._count.likes : 0,
+    share_count:
+      typeof timeline.shareCount === 'number' ? timeline.shareCount : 0,
     event_count:
       typeof timeline._count?.events === 'number'
         ? timeline._count.events
@@ -1296,6 +1331,32 @@ export async function incrementTimelineViewCount(timelineId: string): Promise<vo
     } catch (sqlError: any) {
       console.error('[incrementTimelineViewCount] Raw SQL also failed:', sqlError.message);
       // Don't throw - view count increment is non-critical
+    }
+  }
+}
+
+/**
+ * Increment share counter (e.g. after native share or copy-link on timeline page).
+ */
+export async function incrementTimelineShareCount(timelineId: string): Promise<void> {
+  try {
+    await prisma.timeline.update({
+      where: { id: timelineId },
+      data: {
+        shareCount: {
+          increment: 1,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.warn('[incrementTimelineShareCount] Prisma update failed, using raw SQL:', error.message);
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE timelines SET share_count = COALESCE(share_count, 0) + 1 WHERE id = $1`,
+        timelineId
+      );
+    } catch (sqlError: any) {
+      console.error('[incrementTimelineShareCount] Raw SQL also failed:', sqlError.message);
     }
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Eye } from "lucide-react";
+import { Eye, Heart, Share2 } from "lucide-react";
 
 export type StorySummaryCardProps = {
   title: string;
@@ -9,6 +9,8 @@ export type StorySummaryCardProps = {
   creatorName: string;
   /** Creator profile image URL (e.g. avatar_url or generated fallback) */
   creatorAvatar?: string;
+  likesCount?: number;
+  sharesCount?: number;
   viewLabel: string;
   eventCount: number;
   previewImages: string[];
@@ -24,6 +26,8 @@ export function StorySummaryCard({
   summary,
   creatorName,
   creatorAvatar,
+  likesCount = 0,
+  sharesCount = 0,
   viewLabel,
   eventCount,
   previewImages,
@@ -101,6 +105,16 @@ export function StorySummaryCard({
           </span>
           <span aria-hidden>·</span>
           <span>{viewLabel} views</span>
+          <span aria-hidden>·</span>
+          <span className="inline-flex items-center gap-0.5" title="Likes">
+            <Heart className="w-3 h-3 shrink-0 opacity-80" aria-hidden />
+            {likesCount}
+          </span>
+          <span aria-hidden>·</span>
+          <span className="inline-flex items-center gap-0.5" title="Shares">
+            <Share2 className="w-3 h-3 shrink-0 opacity-80" aria-hidden />
+            {sharesCount}
+          </span>
         </div>
       </div>
     </Card>

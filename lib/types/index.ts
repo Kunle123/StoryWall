@@ -53,6 +53,10 @@ export interface Timeline {
   number_label?: string;
   hashtags?: string[];
   view_count: number;
+  /** Timeline likes (users who liked this story) */
+  likes_count?: number;
+  /** Share / copy-link completions (best-effort counter) */
+  share_count?: number;
   /** Total events (from DB count); may differ from \`events\` array length when preview is limited */
   event_count?: number;
   created_at: string;

@@ -54,6 +54,17 @@ export async function fetchFeaturedTimelines(limit: number = 10): Promise<ApiRes
   }
 }
 
+/** Best-effort: increments server share counter after user shares or copies timeline link. */
+export async function recordTimelineShare(timelineIdOrSlug: string): Promise<void> {
+  try {
+    await fetch(`/api/timelines/${encodeURIComponent(timelineIdOrSlug)}/share`, {
+      method: 'POST',
+    });
+  } catch {
+    // non-critical
+  }
+}
+
 export async function fetchTimelineById(id: string): Promise<ApiResponse<any>> {
   try {
     const response = await fetch(`/api/timelines/${id}`);

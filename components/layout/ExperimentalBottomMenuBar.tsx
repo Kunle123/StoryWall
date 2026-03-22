@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { TimelineTweetTemplate } from "@/components/timeline/TimelineTweetTemplate";
+import { recordTimelineShare } from "@/lib/api/client";
 
 type SelectedDateFormat = 
   | { type: 'numbered'; value: string }
@@ -187,6 +188,7 @@ export const ExperimentalBottomMenuBar = ({
 
   const handleShare = async () => {
     const url = window.location.href;
+    const timelineSeg = pathname.match(/^\/timeline\/([^/]+)/)?.[1];
     try {
       if (navigator.share) {
         await navigator.share({
@@ -194,12 +196,14 @@ export const ExperimentalBottomMenuBar = ({
           text: "Check out this timeline",
           url: url,
         });
+        if (timelineSeg) void recordTimelineShare(timelineSeg);
       } else {
         await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied!",
           description: "Timeline link copied to clipboard",
         });
+        if (timelineSeg) void recordTimelineShare(timelineSeg);
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
@@ -209,6 +213,7 @@ export const ExperimentalBottomMenuBar = ({
             title: "Link copied!",
             description: "Timeline link copied to clipboard",
           });
+          if (timelineSeg) void recordTimelineShare(timelineSeg);
         } catch (clipboardError) {
           toast({
             title: "Failed to share",
