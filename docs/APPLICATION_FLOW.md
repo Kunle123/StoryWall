@@ -156,6 +156,12 @@ flowchart LR
 
 ---
 
+### Sharing & SEO
+
+Timeline routes use server metadata (`generateMetadata`) and server-fetched data for faster first paint. After deploys, refresh social caches — see **[SHARING_AND_SEO.md](./SHARING_AND_SEO.md)**.
+
+---
+
 ### Notes
 
 - **Auth:** `/editor` expects a signed-in Clerk user (redirects to `/sign-in` if not).

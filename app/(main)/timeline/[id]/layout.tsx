@@ -2,12 +2,7 @@ import type { Metadata } from "next";
 import type { Event } from "@/lib/types";
 import { getTimelineById, getTimelineBySlug } from "@/lib/db/timelines";
 import { absoluteImageUrl } from "@/lib/utils/siteUrl";
-
-function isUUID(str: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    str
-  );
-}
+import { isUuid } from "@/lib/utils/isUuid";
 
 function firstEventImage(events: Event[] | undefined): string | undefined {
   if (!events?.length) return undefined;
@@ -30,7 +25,7 @@ export async function generateMetadata(props: {
 
   let timeline: Awaited<ReturnType<typeof getTimelineById>> = null;
   try {
-    timeline = isUUID(id)
+    timeline = isUuid(id)
       ? await getTimelineById(id)
       : await getTimelineBySlug(id);
   } catch {
