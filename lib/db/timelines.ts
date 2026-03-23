@@ -1373,3 +1373,30 @@ export async function incrementTimelineShareCount(timelineId: string): Promise<v
   }
 }
 
+/** Lightweight list for XML sitemap (public timelines only). */
+const MAX_SITEMAP_TIMELINES = 5000;
+
+export async function listPublicTimelinesForSitemap(): Promise<
+  Array<{ pathSegment: string; lastModified: Date }>
+> {
+  try {
+    const rows = await prisma.timeline.findMany({
+      where: { isPublic: true },
+      select: {
+        id: true,
+        slug: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: MAX_SITEMAP_TIMELINES,
+    });
+    return rows.map((r) => ({
+      pathSegment: (r.slug || r.id).trim(),
+      lastModified: r.updatedAt,
+    }));
+  } catch (e) {
+    console.error('[listPublicTimelinesForSitemap]', e);
+    return [];
+  }
+}
+

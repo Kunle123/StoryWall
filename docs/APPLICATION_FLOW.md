@@ -158,7 +158,7 @@ flowchart LR
 
 ### Sharing & SEO
 
-Timeline routes use server metadata (`generateMetadata`) and server-fetched data for faster first paint. After deploys, refresh social caches — see **[SHARING_AND_SEO.md](./SHARING_AND_SEO.md)**.
+Timeline and **story** (`/story/[id]`) routes use server metadata (`generateMetadata`); timelines also use server-fetched data for faster first paint. **`/sitemap.xml`** and **`/robots.txt`** list public timelines for crawlers — see **[SHARING_AND_SEO.md](./SHARING_AND_SEO.md)**. After deploys, refresh social caches there too.
 
 ---
 

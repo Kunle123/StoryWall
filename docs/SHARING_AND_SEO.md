@@ -10,9 +10,11 @@ Social platforms **cache** link previews. After you change titles, images, or de
 | **X (Twitter)** | [Card Validator](https://cards-dev.twitter.com/validator) (or post a test link; cache clears over time) |
 | **LinkedIn** | [Post Inspector](https://www.linkedin.com/post-inspector/) |
 
-Paste a full timeline URL, e.g. `https://www.storywall.com/timeline/your-slug-or-id`.
+Paste a full URL, e.g. `https://www.storywall.com/timeline/your-slug-or-id` or `https://www.storywall.com/story/<event-id>`.
 
-## What StoryWall emits (timeline pages)
+## What StoryWall emits
+
+### Timeline URLs (`/timeline/...`)
 
 Server-rendered metadata includes:
 
@@ -22,9 +24,24 @@ Server-rendered metadata includes:
 
 Configured in `app/(main)/timeline/[id]/layout.tsx` (`generateMetadata`).
 
+### Single-event story URLs (`/story/...`)
+
+Same pattern for shared event links:
+
+- `og:type` is **`article`**
+- Title combines **event · timeline** when the parent timeline loads
+- Image uses the **event** `image_url`
+
+Configured in `app/(main)/story/[id]/layout.tsx` (`generateMetadata`).
+
+## Sitemap & robots
+
+- **`/sitemap.xml`** — Built by `app/sitemap.ts`: home + up to 5000 **public** timelines (`/timeline/{slug-or-id}`), refreshed every hour (`revalidate = 3600`).
+- **`/robots.txt`** — Built by `app/robots.ts`: allows `/`, disallows `/api/`, points crawlers at the sitemap when **`NEXT_PUBLIC_APP_URL`** is set.
+
 ## Environment
 
-Set **`NEXT_PUBLIC_APP_URL`** to your canonical origin (e.g. `https://www.storywall.com`) so `metadataBase` and absolute image URLs resolve correctly in production.
+Set **`NEXT_PUBLIC_APP_URL`** to your canonical origin (e.g. `https://www.storywall.com`) so `metadataBase`, **sitemap URLs**, **robots sitemap line**, and absolute image URLs resolve correctly in production.
 
 ## Body content & crawlers
 
