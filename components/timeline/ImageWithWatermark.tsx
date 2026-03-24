@@ -42,7 +42,7 @@ export function ImageWithWatermark({
               }}
               className="font-bold text-white hover:text-white/90 underline transition-colors"
             >
-              Storywall.com
+              StoryWall.com
             </Link>
           </p>
         </div>

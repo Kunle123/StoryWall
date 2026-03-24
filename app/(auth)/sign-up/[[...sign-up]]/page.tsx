@@ -39,7 +39,7 @@ export default function SignUpPage() {
               <StoryWallIcon size={48} />
             </div>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to Storywall!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to StoryWall!</h1>
           <p className="text-sm font-semibold text-primary mb-2">
             Your 30 free AI image credits are ready.
           </p>
