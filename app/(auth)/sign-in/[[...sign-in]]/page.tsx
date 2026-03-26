@@ -7,14 +7,17 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { absoluteUrl } from '@/lib/utils/siteUrl';
+import { getSafePostAuthPathFromSearchParams } from '@/lib/utils/safePostAuthRedirect';
 
 function SignInContent() {
   const { theme, resolvedTheme } = useTheme();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
 
-  /** Return here after sign-in (e.g. from anonymous browse limit uses ?redirect=/timeline/...) */
-  const afterAuthUrl = searchParams.get('redirect') || '/legal/accept-terms';
+  /** Same-origin path from ?redirect= or Clerk ?redirect_url=, then absolute URL for Clerk allowlists */
+  const afterAuthPath = getSafePostAuthPathFromSearchParams(searchParams);
+  const afterAuthUrl = absoluteUrl(afterAuthPath);
   
   useEffect(() => {
     setMounted(true);
@@ -56,7 +59,6 @@ function SignInContent() {
           signUpUrl="/sign-up"
           fallbackRedirectUrl="/"
           forceRedirectUrl={afterAuthUrl}
-          afterSignInUrl={afterAuthUrl}
           appearance={{
             elements: {
               rootBox: 'w-full',
