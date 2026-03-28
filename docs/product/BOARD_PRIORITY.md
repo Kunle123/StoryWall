@@ -6,13 +6,16 @@ Use this to **drag cards** into columns or to align your **Priority** / **Status
 
 ## Suggested columns (your board)
 
+Add **Ready for test** in GitHub: **Project → … → Settings → Custom fields → Status → Add option** — name it exactly **`Ready for test`** (matches `./scripts/gh-board-set-status.sh … ready-for-test`).
+
 | Column | Put these issues here |
 |--------|------------------------|
 | **Planning** | Ideas not committed this week; optional future work |
-| **Not Started** | Next up: **#14–#18**, **#7**, **#25** (all P0 / hygiene) |
-| **In Progress** | Whatever you are actively doing **right now** (keep to 1–3) |
-| **Blocked** | Waiting on you, a user, or a third party |
-| **Done** | Closed or shipped |
+| **Not Started** | Next up when you pull from the queue |
+| **In Progress** | Active development (keep to 1–3) |
+| **Ready for test** | **Merged / deployed to an environment you can test** — QA before Done |
+| **Blocked** | Waiting on dependency or decision |
+| **Done** | **Verified** on the agreed environment after testing |
 
 ## Issues by tier (drag Not Started → In Progress in this order)
 

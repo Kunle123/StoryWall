@@ -27,11 +27,12 @@ This repo uses **GitHub Issues + GitHub Projects** as the source of truth for wo
 |---------------|---------|
 | **Planning**  | Ideas, feedback, or work that still needs shaping before it’s ready to build. |
 | **Not Started** | Triaged and ready to pick up next. |
-| **In Progress** | Actively being worked. |
+| **In Progress** | Actively being built (local or branch work). |
+| **Ready for test** | **Merged to `main` / deploy triggered** — verify on the live URL before calling it done. |
 | **Blocked**   | Waiting on a dependency, decision, or external; say what you need in a comment. |
-| **Done**      | **Deployed** to the agreed environment (e.g. production) **and tested** — not merely merged locally. |
+| **Done**      | **Deployed** to the agreed environment **and tested** in prod (or staging if that is your gate). |
 
-Optional: add **Review** between **In Progress** and **Done** for “merged, not yet verified in prod.”
+Use **Ready for test** so “merged” is not confused with “shipped and verified.”
 
 Use **labels** for type (`feature`, `bug`, `growth`, `research`, `infra`, …) and **Priority** / **Area** as project fields—not a separate “Bugs” column mixed with status.
 
@@ -114,8 +115,9 @@ There are **two layers**: (1) **GitHub** = live status; (2) **repo markdown** = 
    - **Blocked:** move card to **Blocked** + comment.
 
 3. **When a PR merges**  
-   - Prefer **`Refs #N`** until **deployed + tested**; use **`Closes #N`** when you’re ready to close the issue (or close manually after verification). If GitHub automations move cards to **Done** on close, consider disabling that or using a **Review** column so “merged” ≠ “Done.”  
-   - After **deploy + test**, move the card to **Done** (`./scripts/gh-board-set-status.sh N done`) and then close the issue if open.  
+   - Move the card to **Ready for test** (`./scripts/gh-board-set-status.sh N ready-for-test`) once **main** is deployed and the build is live for QA.  
+   - Prefer **`Refs #N`** on the PR until verified; use **`Closes #N`** when closing the issue after **Done**.  
+   - After **smoke test on prod** (or agreed env), move to **Done** (`./scripts/gh-board-set-status.sh N done`), then close the issue.  
    - **Agent (in this repo):** update **`docs/product/current-sprint.md`** when the user confirms deploy/test — check off bullets, refresh Notes.
 
 4. **Weekly (or end of milestone)**  
@@ -136,7 +138,7 @@ There are **two layers**: (1) **GitHub** = live status; (2) **repo markdown** = 
 
 **Board helpers (local `gh`):**
 
-- `./scripts/gh-board-set-status.sh ISSUE_NUMBER planning|not-started|in-progress|done|blocked` — use **`done`** only **after deploy + test** (see Definition of done above).
+- `./scripts/gh-board-set-status.sh ISSUE_NUMBER planning|not-started|in-progress|ready-for-test|done|blocked` — use **`ready-for-test`** after merge/deploy is live for QA; **`done`** only **after deploy + test** (see Definition of done). The **Status** field must include an option named exactly **Ready for test** (add it in Project → Settings if missing).
 - `./scripts/gh-board-sync-wip.sh` — optional: sets **In Progress / Not Started** only (never forces **Done**).
 
 **Practical minimum:** Issues + `Closes #N` + a standing ask: *“Sync `current-sprint.md` with what we just shipped.”* That keeps the markdown aligned with reality without duplicating the whole board.
