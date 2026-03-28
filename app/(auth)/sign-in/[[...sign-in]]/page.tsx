@@ -9,6 +9,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { absoluteUrl } from '@/lib/utils/siteUrl';
 import { getSafePostAuthPathFromSearchParams } from '@/lib/utils/safePostAuthRedirect';
+import { storyWallClerkAppearance } from '@/lib/clerkAppearance';
 
 function SignInContent() {
   const { theme, resolvedTheme } = useTheme();
@@ -37,6 +38,8 @@ function SignInContent() {
   }
 
   const isDark = mounted && resolvedTheme === 'dark';
+  const clerkIsDark = resolvedTheme === 'dark';
+  const clerkAppearance = storyWallClerkAppearance(clerkIsDark);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -59,21 +62,7 @@ function SignInContent() {
           signUpUrl="/sign-up"
           fallbackRedirectUrl="/"
           forceRedirectUrl={afterAuthUrl}
-          appearance={{
-            elements: {
-              rootBox: 'w-full',
-              card: 'shadow-none bg-transparent',
-              formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-              formFieldInput: 'bg-background border-input text-foreground',
-              formFieldLabel: 'text-foreground',
-              socialButtonsBlockButton: 'border-border bg-background text-foreground hover:bg-accent',
-              socialButtonsBlockButtonText: 'text-foreground',
-              formFieldInputShowPasswordButton: 'text-muted-foreground hover:text-foreground',
-              footerActionLink: 'text-primary hover:text-primary/80',
-              identityPreviewText: 'text-foreground',
-              identityPreviewEditButton: 'text-primary hover:text-primary/80',
-            },
-          }}
+          appearance={clerkAppearance}
         />
 
         <p className="text-xs text-center text-muted-foreground">

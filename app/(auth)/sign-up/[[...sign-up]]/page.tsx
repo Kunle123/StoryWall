@@ -6,6 +6,7 @@ import { StoryWallIcon } from '@/components/StoryWallIcon';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { storyWallClerkAppearance } from '@/lib/clerkAppearance';
 
 export default function SignUpPage() {
   const { theme, resolvedTheme } = useTheme();
@@ -29,6 +30,15 @@ export default function SignUpPage() {
   }
 
   const isDark = mounted && resolvedTheme === 'dark';
+  const clerkIsDark = resolvedTheme === 'dark';
+  const baseClerk = storyWallClerkAppearance(clerkIsDark);
+  const clerkAppearance = {
+    ...baseClerk,
+    elements: {
+      ...baseClerk.elements,
+      footer: 'hidden',
+    },
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -53,24 +63,7 @@ export default function SignUpPage() {
           path="/sign-up"
           signInUrl="/sign-in"
           fallbackRedirectUrl="/legal/accept-terms"
-          appearance={{
-            elements: {
-              rootBox: 'w-full',
-              card: 'shadow-none bg-transparent',
-              footer: {
-                display: 'none', // Hide Clerk's default footer
-              },
-              formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-              formFieldInput: 'bg-background border-input text-foreground',
-              formFieldLabel: 'text-foreground',
-              socialButtonsBlockButton: 'border-border bg-background text-foreground hover:bg-accent',
-              socialButtonsBlockButtonText: 'text-foreground',
-              formFieldInputShowPasswordButton: 'text-muted-foreground hover:text-foreground',
-              footerActionLink: 'text-primary hover:text-primary/80',
-              identityPreviewText: 'text-foreground',
-              identityPreviewEditButton: 'text-primary hover:text-primary/80',
-            },
-          }}
+          appearance={clerkAppearance}
         />
 
         <p className="text-xs text-center text-muted-foreground">
