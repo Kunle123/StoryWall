@@ -10,6 +10,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  getPostAcceptTermsDestination,
+  toAbsoluteAppUrl,
+} from '@/lib/utils/postAcceptTermsDestination';
 
 export default function AcceptTermsPage() {
   const { user, isLoaded } = useUser();
@@ -41,10 +45,12 @@ export default function AcceptTermsPage() {
     }
 
     setAccepting(true);
+    let didNavigate = false;
     try {
       const response = await fetch('/api/user/accept-terms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -57,21 +63,18 @@ export default function AcceptTermsPage() {
         description: "Thank you for accepting our Terms of Service and Privacy Policy.",
       });
 
-      // Wait a moment for the database update to propagate
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Brief delay so the DB write is visible on next load
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Redirect to home page or return URL
-      const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/';
-      
-      // Use window.location.href for a full page reload to ensure middleware picks up the updated terms status
-      // This ensures the middleware sees the updated termsAcceptedAt value
-      if (returnUrl.startsWith('http://') || returnUrl.startsWith('https://')) {
-        window.location.href = returnUrl;
-      } else {
-        // Ensure the path starts with /
-        const path = returnUrl.startsWith('/') ? returnUrl : `/${returnUrl}`;
-        window.location.href = path;
-      }
+      const path = getPostAcceptTermsDestination(
+        window.location.search,
+        window.location.origin
+      );
+      const absoluteUrl = toAbsoluteAppUrl(path, window.location.origin);
+
+      // Full navigation with an absolute URL; avoid setState in finally so navigation isn't interrupted
+      didNavigate = true;
+      window.location.assign(absoluteUrl);
     } catch (error: any) {
       console.error('Error accepting terms:', error);
       toast({
@@ -80,7 +83,9 @@ export default function AcceptTermsPage() {
         variant: "destructive",
       });
     } finally {
-      setAccepting(false);
+      if (!didNavigate) {
+        setAccepting(false);
+      }
     }
   };
 
