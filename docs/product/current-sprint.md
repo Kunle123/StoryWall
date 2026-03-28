@@ -25,7 +25,7 @@
 | [ ] | [#17](https://github.com/Kunle123/StoryWall/issues/17) | **Analytics** / funnel metrics |
 | [ ] | [#18](https://github.com/Kunle123/StoryWall/issues/18) | **Feedback** capture |
 
-**Related UI:** [#7](https://github.com/Kunle123/StoryWall/issues/7) homepage vs mockup · **Mockup:** `docs/mockups/feature-page-timeline-summary.html`
+**Related UI:** [#7](https://github.com/Kunle123/StoryWall/issues/7) homepage vs mockup · [#26](https://github.com/Kunle123/StoryWall/issues/26) Explore / How it works tabs (first-fold density) · **Mockup:** `docs/mockups/feature-page-timeline-summary.html`
 
 **Technical SEO / marketability** (robots, sitemap, GSC, OG re-scrape): [#25](https://github.com/Kunle123/StoryWall/issues/25) — see `docs/SHARING_AND_SEO.md`.
 
@@ -76,6 +76,7 @@
 - **Perfect story / rubric:** `docs/STORYWALL_PERFECT_STORY_RUBRIC.md`, `docs/PERFECT_STORYWALL.md` — curation ties to [#8](https://github.com/Kunle123/StoryWall/issues/8) and [#16](https://github.com/Kunle123/StoryWall/issues/16).
 - **`docs/QUICK_WINS_IMPLEMENTATION_STATUS.md`:** partially stale; featured + bio shipped — see repo history.
 - **2026-03-28:** P0 batch — wedge copy on home + auth, “How it works” + Feedback on discover, GA funnel events (`docs/product/FUNNEL_EVENTS.md`), gates checklist (`docs/product/LAUNCH_GATES_CHECKLIST.md`). [#16](https://github.com/Kunle123/StoryWall/issues/16) still needs **3 flagship example stories** + **demo video** (content).
+- **2026-03-28 (pm):** Shipped discover **Explore / How it works** tabs ([#26](https://github.com/Kunle123/StoryWall/issues/26)), mockup-aligned spotlight + summary cards ([#7](https://github.com/Kunle123/StoryWall/issues/7)), optional **`NEXT_PUBLIC_FOUNDER_DEMO_URL`** + ops doc for flagship examples ([#16](https://github.com/Kunle123/StoryWall/issues/16) — DB featuring + video still manual). See `docs/product/DISCOVER_UI_MOCKUP_NOTES.md`, `docs/product/FLAGSHIP_EXAMPLES.md`.
 
 ---
 

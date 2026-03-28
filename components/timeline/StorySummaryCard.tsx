@@ -39,10 +39,10 @@ export function StorySummaryCard({
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/25 transition-all group h-full flex flex-col"
+      className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5"
       onClick={onClick}
     >
-      <div className="h-[5.5rem] bg-muted/80 flex items-end gap-1.5 px-2 pb-2 shrink-0 border-b border-border/40">
+      <div className="h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-end gap-1.5 px-2 pb-2 shrink-0 border-b border-border/40">
         {thumbs.map((url, i) => (
           <div
             key={`${url}-${i}`}

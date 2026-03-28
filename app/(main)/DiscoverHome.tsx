@@ -17,6 +17,8 @@ import {
   Share2,
   Crosshair,
   History,
+  BookOpen,
+  Play,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
@@ -94,6 +96,8 @@ export default function DiscoverHome() {
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  /** Explore = timelines first; How it works = onboarding copy without pushing grids below the fold */
+  const [homeSection, setHomeSection] = useState<"explore" | "how">("explore");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -234,327 +238,393 @@ export default function DiscoverHome() {
 
         <div style={{ height: "56px" }} />
 
-        {/* Hero — wedge-first positioning + promise */}
-        <div className="px-4 pt-2 pb-4 space-y-4">
-          <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-              Visual timelines that are easy to understand — and easy to share
-            </h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
-              Turn topics, events, and histories into chronological StoryWalls with AI images or your
-              own photos. Free to start — about{" "}
-              <span className="text-foreground/90 font-medium">30 AI images</span> included (roughly
-              three polished timelines, depending on length).
-            </p>
-          </div>
-          <ul className="flex flex-col gap-2 text-sm">
-            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                <span className="font-medium text-foreground">Create stories free</span>
-                <span className="text-muted-foreground"> — start without a card</span>
-              </span>
-            </li>
-            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                <span className="font-medium text-foreground">
-                  Enough credits for several real stories
-                </span>
-                <span className="text-muted-foreground">
-                  {" "}
-                  — typically ~3 polished timelines, depending on length
-                </span>
-              </span>
-            </li>
-            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
-              <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-              <span>
-                <span className="font-medium text-foreground">Mix AI and your images</span>
-                <span className="text-muted-foreground"> — upload whenever you want</span>
-              </span>
-            </li>
-          </ul>
-          <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-            <span className="text-foreground/90 font-medium">First wedge:</span> current affairs &
-            history explainers. Also strong for teachers, revision, and newsletter-style breakdowns —
-            not “anything goes” creativity.
-          </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-            <Link
-              href="/guide/great-stories"
-              className="inline-flex font-medium text-primary underline-offset-4 hover:underline"
-            >
-              What makes a great StoryWall?
-            </Link>
-            <a
-              href={
-                process.env.NEXT_PUBLIC_FEEDBACK_URL ||
-                "https://github.com/Kunle123/StoryWall/issues/new"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex font-medium text-muted-foreground underline-offset-4 hover:underline hover:text-foreground"
-            >
-              Feedback
-            </a>
-          </div>
-        </div>
-
-        {/* How it works — 3 steps */}
-        <section
-          className="px-4 pb-8"
-          aria-labelledby="how-heading"
+        <Tabs
+          value={homeSection}
+          onValueChange={(v) => setHomeSection(v as "explore" | "how")}
+          className="w-full"
         >
-          <h2
-            id="how-heading"
-            className="font-display text-lg font-semibold tracking-tight mb-3"
-          >
-            How it works
-          </h2>
-          <ol className="grid gap-3 sm:grid-cols-3 text-sm">
-            <li className="rounded-lg border border-border bg-muted/20 p-3">
-              <span className="text-xs font-semibold text-primary">1</span>
-              <p className="mt-1 text-foreground font-medium">Start in the editor</p>
-              <p className="text-muted-foreground mt-0.5">
-                Premise, arc, and beats — guided prompts in each step.
-              </p>
-            </li>
-            <li className="rounded-lg border border-border bg-muted/20 p-3">
-              <span className="text-xs font-semibold text-primary">2</span>
-              <p className="mt-1 text-foreground font-medium">Add visuals</p>
-              <p className="text-muted-foreground mt-0.5">
-                AI images, your uploads, or a mix — tuned to your story.
-              </p>
-            </li>
-            <li className="rounded-lg border border-border bg-muted/20 p-3">
-              <span className="text-xs font-semibold text-primary">3</span>
-              <p className="mt-1 text-foreground font-medium">Publish & share</p>
-              <p className="text-muted-foreground mt-0.5">
-                Public link, social preview, copy or native share from the story.
-              </p>
-            </li>
-          </ol>
-        </section>
-
-        {/* Five pillars — skim + link to full guide */}
-        <section
-          className="px-4 pb-8"
-          aria-labelledby="pillars-heading"
-        >
-          <h2 id="pillars-heading" className="sr-only">
-            What makes a strong StoryWall
-          </h2>
-          <div className="rounded-xl border border-border bg-muted/15 p-4 sm:p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-              Strong StoryWalls usually…
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <Crosshair className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-medium text-foreground">Clear premise</span> — the
-                  point is obvious in seconds
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <History className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-medium text-foreground">Chronological arc</span> —
-                  sequence matters, not random facts
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-medium text-foreground">Tight beats</span> — often 6–12
-                  panels; each earns its place
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-medium text-foreground">Meaningful images</span> —
-                  visuals sharpen the story, not filler
-                </span>
-              </li>
-              <li className="flex gap-2 sm:col-span-2 lg:col-span-1">
-                <Share2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-medium text-foreground">Share impulse</span> —
-                  useful, surprising, or worth passing on
-                </span>
-              </li>
-            </ul>
-            <div className="mt-4 pt-4 border-t border-border/60">
-              <Link
-                href="/guide/great-stories"
-                className="text-sm font-medium text-primary hover:underline underline-offset-4"
-              >
-                Read the full guide →
-              </Link>
-            </div>
+          <div className="px-4 pt-1 pb-2 border-b border-border/40 bg-background/95">
+            <TabsList className="grid w-full max-w-md grid-cols-2 h-10">
+              <TabsTrigger value="explore">Explore</TabsTrigger>
+              <TabsTrigger value="how" className="gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                How it works
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </section>
 
-        <div className="px-4 pb-2">
-          <h2 className="font-display text-lg font-semibold tracking-tight">
-            Stories to explore
-          </h2>
-          <p className="text-muted-foreground text-sm mt-1 max-w-xl">
-            Open a timeline to read the full arc — or start your own from the menu.
-          </p>
-        </div>
-
-        {featuredTimelines.length > 0 && (
-          <section className="mb-10 px-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              <h2 className="text-lg font-bold font-display">Featured stories</h2>
+          <TabsContent value="explore" className="mt-0 focus-visible:outline-none">
+            {/* Compact hero — timelines stay high on the page */}
+            <div className="px-4 pt-3 pb-2">
+              <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight leading-tight">
+                Visual timelines that are easy to understand — and easy to share
+              </h1>
+              <p className="text-muted-foreground text-sm mt-2 max-w-2xl">
+                Explainers, history, current affairs — with AI or your images.{" "}
+                <button
+                  type="button"
+                  onClick={() => setHomeSection("how")}
+                  className="text-primary font-medium underline underline-offset-2 hover:no-underline"
+                >
+                  How it works
+                </button>
+              </p>
             </div>
-            <div className="grid gap-4">
-              {featuredLoading ? (
-                <>
-                  <DiscoverCardSkeleton />
-                  <DiscoverCardSkeleton />
-                </>
-              ) : (
-                featuredTimelines.map((timeline) => (
-                  <FeaturedStorySpotlight
-                    key={timeline.id}
-                    title={timeline.title}
-                    summary={timeline.description}
-                    creatorName={timeline.creator}
-                    creatorAvatar={timeline.avatar}
-                    viewLabel={timeline.views}
-                    eventCount={timeline.eventCount}
-                    likesCount={timeline.likesCount}
-                    sharesCount={timeline.sharesCount}
-                    previewImages={timeline.previewImages}
-                    onClick={() => openTimeline(timeline.id)}
-                  />
-                ))
-              )}
+
+            <div className="px-4 pb-2">
+              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
+                Discover
+              </p>
+              <h2 className="font-display text-lg font-semibold tracking-tight">
+                Stories to explore
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1 max-w-xl">
+                Each card uses a short summary so viewers can scan and choose what to open — without
+                spoiling the full story.
+              </p>
             </div>
-          </section>
-        )}
 
-        <div className="py-4 border-b border-border/50 px-4">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <Button
-              variant={selectedCategory === null ? "default" : "outline"}
-              size="sm"
-              className="whitespace-nowrap h-7 text-xs"
-              onClick={() => setSelectedCategory(null)}
-            >
-              All
-            </Button>
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? "default" : "outline"}
-                size="sm"
-                className="whitespace-nowrap h-7 text-xs"
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </Button>
-            ))}
-          </div>
-        </div>
+            {featuredTimelines.length > 0 && (
+              <section className="mb-10 px-4">
+                <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-3">
+                  Featured creator
+                </p>
+                <div className="grid gap-4">
+                  {featuredLoading ? (
+                    <>
+                      <DiscoverCardSkeleton />
+                      <DiscoverCardSkeleton />
+                    </>
+                  ) : (
+                    featuredTimelines.map((timeline) => (
+                      <FeaturedStorySpotlight
+                        key={timeline.id}
+                        title={timeline.title}
+                        summary={timeline.description}
+                        creatorName={timeline.creator}
+                        creatorAvatar={timeline.avatar}
+                        viewLabel={timeline.views}
+                        eventCount={timeline.eventCount}
+                        likesCount={timeline.likesCount}
+                        sharesCount={timeline.sharesCount}
+                        previewImages={timeline.previewImages}
+                        onClick={() => openTimeline(timeline.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+            )}
 
-        <Tabs defaultValue="trending" className="mt-6 px-4">
-          <TabsList className="grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="trending" className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Trending
-            </TabsTrigger>
-            <TabsTrigger value="recent" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Recent
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="trending" className="mt-6">
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-bold font-display">Trending now</h2>
+            <div className="py-4 border-b border-border/50 px-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <Button
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  size="sm"
+                  className="whitespace-nowrap h-7 text-xs"
+                  onClick={() => setSelectedCategory(null)}
+                >
+                  All
+                </Button>
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    className="whitespace-nowrap h-7 text-xs"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category}
+                  </Button>
+                ))}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {loading ? (
-                  <>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <DiscoverCardSkeleton key={i} />
-                    ))}
-                  </>
-                ) : trendingTimelines.length === 0 ? (
-                  <div className="col-span-full text-center py-12 text-muted-foreground">
-                    {searchQuery || selectedCategory
-                      ? "No timelines match your filters"
-                      : "No public timelines yet. Be the first to create one!"}
+            </div>
+
+            <Tabs defaultValue="trending" className="mt-6 px-4">
+              <TabsList className="grid w-full grid-cols-2 max-w-md">
+                <TabsTrigger value="trending" className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Trending
+                </TabsTrigger>
+                <TabsTrigger value="recent" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Recent
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="trending" className="mt-6">
+                <section>
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                    Browse
+                  </p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    <h2 className="text-lg font-bold font-display">Trending now</h2>
                   </div>
-                ) : (
-                  trendingTimelines.map((timeline) => (
-                    <StorySummaryCard
-                      key={timeline.id}
-                      title={timeline.title}
-                      summary={timeline.description}
-                      creatorName={timeline.creator}
-                      creatorAvatar={timeline.avatar}
-                      viewLabel={timeline.views}
-                      eventCount={timeline.eventCount}
-                      likesCount={timeline.likesCount}
-                      sharesCount={timeline.sharesCount}
-                      previewImages={timeline.previewImages}
-                      topicLabel={topicLabel(timeline.hashtags)}
-                      onClick={() => openTimeline(timeline.id)}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {loading ? (
+                      <>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <DiscoverCardSkeleton key={i} />
+                        ))}
+                      </>
+                    ) : trendingTimelines.length === 0 ? (
+                      <div className="col-span-full text-center py-12 text-muted-foreground">
+                        {searchQuery || selectedCategory
+                          ? "No timelines match your filters"
+                          : "No public timelines yet. Be the first to create one!"}
+                      </div>
+                    ) : (
+                      trendingTimelines.map((timeline) => (
+                        <StorySummaryCard
+                          key={timeline.id}
+                          title={timeline.title}
+                          summary={timeline.description}
+                          creatorName={timeline.creator}
+                          creatorAvatar={timeline.avatar}
+                          viewLabel={timeline.views}
+                          eventCount={timeline.eventCount}
+                          likesCount={timeline.likesCount}
+                          sharesCount={timeline.sharesCount}
+                          previewImages={timeline.previewImages}
+                          topicLabel={topicLabel(timeline.hashtags)}
+                          onClick={() => openTimeline(timeline.id)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </section>
+              </TabsContent>
+
+              <TabsContent value="recent" className="mt-6">
+                <section>
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                    Browse
+                  </p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Clock className="w-5 h-5 text-accent" />
+                    <h2 className="text-lg font-bold font-display">Recently added</h2>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {loading ? (
+                      <>
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <DiscoverCardSkeleton key={i} />
+                        ))}
+                      </>
+                    ) : recentTimelines.length === 0 ? (
+                      <div className="col-span-full text-center py-12 text-muted-foreground">
+                        {searchQuery || selectedCategory
+                          ? "No timelines match your filters"
+                          : "No public timelines yet. Be the first to create one!"}
+                      </div>
+                    ) : (
+                      recentTimelines.map((timeline) => (
+                        <StorySummaryCard
+                          key={timeline.id}
+                          title={timeline.title}
+                          summary={timeline.description}
+                          creatorName={timeline.creator}
+                          creatorAvatar={timeline.avatar}
+                          viewLabel={timeline.views}
+                          eventCount={timeline.eventCount}
+                          likesCount={timeline.likesCount}
+                          sharesCount={timeline.sharesCount}
+                          previewImages={timeline.previewImages}
+                          topicLabel={topicLabel(timeline.hashtags)}
+                          onClick={() => openTimeline(timeline.id)}
+                        />
+                      ))
+                    )}
+                  </div>
+                </section>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="recent" className="mt-6">
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-5 h-5 text-accent" />
-                <h2 className="text-lg font-bold font-display">Recently added</h2>
+          <TabsContent value="how" className="mt-0 pb-8 focus-visible:outline-none">
+            {/* Hero — wedge-first positioning + promise */}
+            <div className="px-4 pt-4 pb-4 space-y-4">
+              <div>
+                <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
+                  Visual timelines that are easy to understand — and easy to share
+                </h1>
+                <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
+                  Turn topics, events, and histories into chronological StoryWalls with AI images or
+                  your own photos. Free to start — about{" "}
+                  <span className="text-foreground/90 font-medium">30 AI images</span> included
+                  (roughly three polished timelines, depending on length).
+                </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {loading ? (
-                  <>
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <DiscoverCardSkeleton key={i} />
-                    ))}
-                  </>
-                ) : recentTimelines.length === 0 ? (
-                  <div className="col-span-full text-center py-12 text-muted-foreground">
-                    {searchQuery || selectedCategory
-                      ? "No timelines match your filters"
-                      : "No public timelines yet. Be the first to create one!"}
-                  </div>
-                ) : (
-                  recentTimelines.map((timeline) => (
-                    <StorySummaryCard
-                      key={timeline.id}
-                      title={timeline.title}
-                      summary={timeline.description}
-                      creatorName={timeline.creator}
-                      creatorAvatar={timeline.avatar}
-                      viewLabel={timeline.views}
-                      eventCount={timeline.eventCount}
-                      likesCount={timeline.likesCount}
-                      sharesCount={timeline.sharesCount}
-                      previewImages={timeline.previewImages}
-                      topicLabel={topicLabel(timeline.hashtags)}
-                      onClick={() => openTimeline(timeline.id)}
-                    />
-                  ))
-                )}
+              <ul className="flex flex-col gap-2 text-sm">
+                <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">Create stories free</span>
+                    <span className="text-muted-foreground"> — start without a card</span>
+                  </span>
+                </li>
+                <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">
+                      Enough credits for several real stories
+                    </span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — typically ~3 polished timelines, depending on length
+                    </span>
+                  </span>
+                </li>
+                <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">Mix AI and your images</span>
+                    <span className="text-muted-foreground"> — upload whenever you want</span>
+                  </span>
+                </li>
+              </ul>
+              <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                <span className="text-foreground/90 font-medium">First wedge:</span> current affairs
+                & history explainers. Also strong for teachers, revision, and newsletter-style
+                breakdowns — not “anything goes” creativity.
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <Link
+                  href="/guide/great-stories"
+                  className="inline-flex font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  What makes a great StoryWall?
+                </Link>
+                <a
+                  href={
+                    process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+                    "https://github.com/Kunle123/StoryWall/issues/new"
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex font-medium text-muted-foreground underline-offset-4 hover:underline hover:text-foreground"
+                >
+                  Feedback
+                </a>
+              </div>
+            </div>
+
+            <section className="px-4 pb-8" aria-labelledby="how-heading">
+              <h2
+                id="how-heading"
+                className="font-display text-lg font-semibold tracking-tight mb-3"
+              >
+                How it works
+              </h2>
+              <ol className="grid gap-3 sm:grid-cols-3 text-sm">
+                <li className="rounded-lg border border-border bg-muted/20 p-3">
+                  <span className="text-xs font-semibold text-primary">1</span>
+                  <p className="mt-1 text-foreground font-medium">Start in the editor</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Premise, arc, and beats — guided prompts in each step.
+                  </p>
+                </li>
+                <li className="rounded-lg border border-border bg-muted/20 p-3">
+                  <span className="text-xs font-semibold text-primary">2</span>
+                  <p className="mt-1 text-foreground font-medium">Add visuals</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    AI images, your uploads, or a mix — tuned to your story.
+                  </p>
+                </li>
+                <li className="rounded-lg border border-border bg-muted/20 p-3">
+                  <span className="text-xs font-semibold text-primary">3</span>
+                  <p className="mt-1 text-foreground font-medium">Publish & share</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Public link, social preview, copy or native share from the story.
+                  </p>
+                </li>
+              </ol>
+            </section>
+
+            <section className="px-4 pb-8" aria-labelledby="pillars-heading">
+              <h2 id="pillars-heading" className="sr-only">
+                What makes a strong StoryWall
+              </h2>
+              <div className="rounded-xl border border-border bg-muted/15 p-4 sm:p-5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                  Strong StoryWalls usually…
+                </p>
+                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-muted-foreground">
+                  <li className="flex gap-2">
+                    <Crosshair className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      <span className="font-medium text-foreground">Clear premise</span> — the
+                      point is obvious in seconds
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <History className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      <span className="font-medium text-foreground">Chronological arc</span> —
+                      sequence matters, not random facts
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      <span className="font-medium text-foreground">Tight beats</span> — often 6–12
+                      panels; each earns its place
+                    </span>
+                  </li>
+                  <li className="flex gap-2">
+                    <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      <span className="font-medium text-foreground">Meaningful images</span> —
+                      visuals sharpen the story, not filler
+                    </span>
+                  </li>
+                  <li className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                    <Share2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <span>
+                      <span className="font-medium text-foreground">Share impulse</span> —
+                      useful, surprising, or worth passing on
+                    </span>
+                  </li>
+                </ul>
+                <div className="mt-4 pt-4 border-t border-border/60">
+                  <Link
+                    href="/guide/great-stories"
+                    className="text-sm font-medium text-primary hover:underline underline-offset-4"
+                  >
+                    Read the full guide →
+                  </Link>
+                </div>
               </div>
             </section>
+
+            {typeof process.env.NEXT_PUBLIC_FOUNDER_DEMO_URL === "string" &&
+              process.env.NEXT_PUBLIC_FOUNDER_DEMO_URL.length > 0 && (
+                <section className="px-4 pb-8" aria-labelledby="founder-demo-heading">
+                  <h2 id="founder-demo-heading" className="sr-only">
+                    Founder demo
+                  </h2>
+                  <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Founder demo
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                        Short walkthrough of building and sharing a StoryWall (Week 1 launch).
+                      </p>
+                    </div>
+                    <a
+                      href={process.env.NEXT_PUBLIC_FOUNDER_DEMO_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      <Play className="w-4 h-4 fill-current" aria-hidden />
+                      Watch demo
+                    </a>
+                  </div>
+                </section>
+              )}
           </TabsContent>
         </Tabs>
       </main>
