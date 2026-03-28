@@ -226,4 +226,4 @@ Verdict: [ ] not ready [ ] good [ ] strong [ ] flagship
 
 ---
 
-See also: [`PERFECT_STORYWALL.md`](./PERFECT_STORYWALL.md) (product copy + editor mapping), [`SHARING_AND_SEO.md`](./SHARING_AND_SEO.md).
+See also: [`PERFECT_STORYWALL.md`](./PERFECT_STORYWALL.md) (product copy + editor mapping), [`PROMPT_RUBRIC_ALIGNMENT.md`](./PROMPT_RUBRIC_ALIGNMENT.md) (how AI prompts map to this rubric), [`SHARING_AND_SEO.md`](./SHARING_AND_SEO.md).

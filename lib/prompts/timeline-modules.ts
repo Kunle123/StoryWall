@@ -31,7 +31,9 @@ export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual
 
 6.  **Generate UP TO {maxEvents} events, but ONLY unique, distinct events.** Do NOT fabricate events to reach the maximum - if you can only find 5 unique events, return 5.
 
-7.  **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
+7.  **StoryWall narrative arc (when not a single-subject progression):** Order events so the sequence reads as a **story** where the topic allows: context → escalation → major turning point(s) → consequence or present day. Prefer fewer strong beats over filler to hit the maximum count.
+
+8.  **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
 
 /**
  * Module 1: Controversy & Media

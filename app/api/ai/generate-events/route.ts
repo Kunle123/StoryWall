@@ -285,6 +285,9 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 - If you find similar events that are clearly the same incident, choose the most significant or representative one and exclude the others
 - Quality over quantity: It is better to return 5 unique events than 20 repetitive ones
 
+STORYWALL — NARRATIVE ARC (when isProgression is false):
+- For topics that are NOT a single cumulative progression, still ORDER events so they read as a coherent story when sources allow: early context → developments → major turning point(s) → outcome or present day. Do not pad with weak beats only to reach the event count.
+
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
 If isProgression is false: Include major milestones, key dates, and significant events related to this topic. Ensure each event is a separate, unique occurrence.
@@ -1434,7 +1437,7 @@ CRITICAL - TITLE REQUIREMENTS:
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
 - Create events that build upon each other to tell a coherent story
-g veracity.
+- Maintain internal consistency and narrative logic
 - Use creative freedom to develop interesting plot points and developments
 - Events should be chronologically ordered and relevant to the timeline description
 - Feel free to include specific dates when they enhance the narrative

@@ -4,6 +4,8 @@ Use this for product copy, onboarding, and future “quality” hints—not as a
 
 **Full scorecard:** [`STORYWALL_PERFECT_STORY_RUBRIC.md`](./STORYWALL_PERFECT_STORY_RUBRIC.md) — six categories × 1–5 (max **30**), bands (**24+** strong, **27+** flagship), fast checklist, flagship bonus, failure patterns, and **one-page evaluator template**.
 
+**AI prompts vs rubric:** [`PROMPT_RUBRIC_ALIGNMENT.md`](./PROMPT_RUBRIC_ALIGNMENT.md)
+
 ## In the product (`/editor`)
 
 The narrative creation flow (steps 1–6) surfaces **CreationFlowCallout** tips that map to this doc: premise & arc (step 1), beats (2–3), visual coherence (4–5), share readiness (6). Code: `components/timeline-editor/CreationFlowCallout.tsx`.

@@ -139,6 +139,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
 
 2.  **Event Descriptions:** For each event, write a 2-4 sentence \`description\`. This text must:
     - Explain **what** the event is and **why** it is significant
+    - Where natural, one sentence may state **how this beat advances the overall story arc** (using only documented facts—no invention)
     - Focus on the event's meaning, impact, and historical/educational context
     - **DO NOT** describe a visual scene - explain the event itself
     - Incorporate key themes from the timeline description
