@@ -1,67 +1,53 @@
 # What makes a great StoryWall (internal)
 
-Use this for product copy, onboarding, and future “quality” hints—not as a gate before publish.
+Use this for product copy, onboarding, and future “quality” hints—not as a hard gate before publish unless you choose to.
+
+**Full scorecard:** [`STORYWALL_PERFECT_STORY_RUBRIC.md`](./STORYWALL_PERFECT_STORY_RUBRIC.md) — six categories × 1–5 (max **30**), bands (**24+** strong, **27+** flagship), fast checklist, flagship bonus, failure patterns, and **one-page evaluator template**.
 
 ## In the product (`/editor`)
 
 The narrative creation flow (steps 1–6) surfaces **CreationFlowCallout** tips that map to this doc: premise & arc (step 1), beats (2–3), visual coherence (4–5), share readiness (6). Code: `components/timeline-editor/CreationFlowCallout.tsx`.
 
-## The five pillars
+## The five pillars (summary)
 
 ### 1. Instantly clear premise
 
 Someone should understand the point in a few seconds. **Clarity beats cleverness.**
 
-Strong titles answer one of: *How did we get here?* *What happened next?* *Why did this matter?* *What changed over time?*
-
 ### 2. Naturally chronological
 
-Sequence must matter: a beginning, turning points, an ending or present-day payoff. The reader should feel: *I need to see this unfold step by step.*
-
-Weak fits: abstract opinions, listicles, topics with no meaningful timeline, pure comparisons with no journey.
+Sequence must matter: beginning, turning points, ending or present-day payoff.
 
 ### 3. Every panel earns its place
 
-Typical length: **6–10 beats** (light) or **8–12** (richer). Each beat does one job (context, turn, surprise, escalation, consequence, resolution). If two panels do the same job, cut one.
+Typical length: **6–10 beats** (light) or **8–12** (richer). Each beat does one job.
 
 ### 4. Images add meaning, not decoration
 
-Each image should establish time/place, memorability, emotional contrast, a turning point, or a coherent visual world. Avoid generic filler and style whiplash.
+Avoid generic filler and style whiplash.
 
 ### 5. Share impulse
 
-Useful, surprising, resonant, identity-signaling, or conversation-starting. Reactions like *I finally understand this* or *Other people need to see this*.
+Useful, surprising, resonant, or conversation-starting.
 
 ## Ideal narrative shape (template)
 
-1. **Hook** — one sentence that makes the reader care  
-2. **Setup** — world before the story  
-3. **Inciting event** — what kicked things off  
-4. **Escalation** — what intensified  
-5. **Turning point** — the most important shift  
-6. **Consequence** — what followed  
-7. **Resolution / today** — why it matters now  
+1. **Hook** → 2. **Setup** → 3. **Inciting event** → 4. **Escalation** → 5. **Turning point** → 6. **Consequence** → 7. **Resolution / today**
 
 ## Strong formats to prioritize
 
-- Explainers with stakes (“why this happened”)  
-- Transformations (“how X changed over time”)  
-- Rise-and-fall  
-- Hidden history with a clear arc  
-- Personal milestones (only if emotionally specific and visual)  
+- Explainers with stakes · Transformations · Rise-and-fall · Hidden history with a clear arc · Personal milestones (if emotionally specific and visual)
 
-## Scoring rubric (1–5 each, max 30)
+## Scoring (aligned with full rubric)
 
-| Criterion | Question |
-|-----------|----------|
-| Premise | Is it obvious in seconds? |
-| Chronology | Does order matter? |
-| Turning points | Are there strong beats? |
-| Images | Will visuals materially improve it? |
-| Payoff | Is there a clear end-state? |
-| Share | Would someone pass it on? |
+Six dimensions, each **1–5**: premise clarity, narrative arc, beat selection & pacing, visual contribution, payoff, shareability → **max 30**.
 
-**~22+/30** is a reasonable bar for flagship examples.
+| Target | Score |
+|--------|--------|
+| Strong StoryWall | **24+** |
+| Flagship / homepage | **27+** (see rubric for featured minimums) |
+
+Older shorthand “~22+/30” is superseded by the bands in **`STORYWALL_PERFECT_STORY_RUBRIC.md`**.
 
 ## What ruins a story
 
@@ -69,12 +55,6 @@ Too broad, too long, visually inconsistent, no arc, all setup and no payoff, inf
 
 ## Beta-stage definition of “perfect”
 
-Not awards—**proof of product**:
-
-- Easy to start  
-- Satisfying to finish  
-- Looks good on mobile  
-- Creator is proud to share  
-- At least some readers click or share  
+**Proof of product:** easy to start, satisfying to finish, looks good on mobile, creator is proud to share, some readers click or share.
 
 **Rule of thumb:** If the creator wouldn’t happily send it to a friend, it isn’t finished enough yet.
