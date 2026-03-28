@@ -5,7 +5,19 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, TrendingUp, Clock, Star } from "lucide-react";
+import Link from "next/link";
+import {
+  Search,
+  TrendingUp,
+  Clock,
+  Star,
+  Sparkles,
+  ImageIcon,
+  ListOrdered,
+  Share2,
+  Crosshair,
+  History,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
@@ -222,13 +234,127 @@ export default function DiscoverHome() {
 
         <div style={{ height: "56px" }} />
 
-        {/* Hero */}
-        <div className="px-4 pt-2 pb-6">
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">
+        {/* Hero — positioning + promise */}
+        <div className="px-4 pt-2 pb-4 space-y-4">
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
+              Visual stories worth sharing — free to start
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
+              Build chronological timelines with AI-generated images or your own photos. No
+              payment to begin — your account includes enough AI credits to finish several
+              polished stories (about{" "}
+              <span className="text-foreground/90 font-medium">30 images</span>
+              ).
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2 text-sm">
+            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium text-foreground">Create stories free</span>
+                <span className="text-muted-foreground"> — start without a card</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium text-foreground">
+                  Enough credits for several real stories
+                </span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  — typically ~3 polished timelines, depending on length
+                </span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+              <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <span>
+                <span className="font-medium text-foreground">Mix AI and your images</span>
+                <span className="text-muted-foreground"> — upload whenever you want</span>
+              </span>
+            </li>
+          </ul>
+          <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+            Strong fits: explainers, histories, how-we-got-here arcs, and anything where{" "}
+            <span className="text-foreground/90">order in time matters</span>. Pay only if you
+            need more AI generations later.
+          </p>
+          <Link
+            href="/guide/great-stories"
+            className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            What makes a great StoryWall?
+          </Link>
+        </div>
+
+        {/* Five pillars — skim + link to full guide */}
+        <section
+          className="px-4 pb-8"
+          aria-labelledby="pillars-heading"
+        >
+          <h2 id="pillars-heading" className="sr-only">
+            What makes a strong StoryWall
+          </h2>
+          <div className="rounded-xl border border-border bg-muted/15 p-4 sm:p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+              Strong StoryWalls usually…
+            </p>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <Crosshair className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Clear premise</span> — the
+                  point is obvious in seconds
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <History className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Chronological arc</span> —
+                  sequence matters, not random facts
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <ListOrdered className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Tight beats</span> — often 6–12
+                  panels; each earns its place
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Meaningful images</span> —
+                  visuals sharpen the story, not filler
+                </span>
+              </li>
+              <li className="flex gap-2 sm:col-span-2 lg:col-span-1">
+                <Share2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-medium text-foreground">Share impulse</span> —
+                  useful, surprising, or worth passing on
+                </span>
+              </li>
+            </ul>
+            <div className="mt-4 pt-4 border-t border-border/60">
+              <Link
+                href="/guide/great-stories"
+                className="text-sm font-medium text-primary hover:underline underline-offset-4"
+              >
+                Read the full guide →
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="px-4 pb-2">
+          <h2 className="font-display text-lg font-semibold tracking-tight">
             Stories to explore
-          </h1>
+          </h2>
           <p className="text-muted-foreground text-sm mt-1 max-w-xl">
-            Scan summaries across timelines—open the ones you want to dive into.
+            Open a timeline to read the full arc — or start your own from the menu.
           </p>
         </div>
 

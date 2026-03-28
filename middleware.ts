@@ -42,6 +42,10 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith('/guide')) {
+    return NextResponse.next();
+  }
+
   // Check authentication
   const { userId } = await auth();
   

@@ -23,6 +23,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 1,
     },
+    {
+      url: `${origin}/guide/great-stories`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
     ...timelines.map((t) => ({
       url: `${origin}/timeline/${encodeURIComponent(t.pathSegment)}`,
       lastModified: t.lastModified,

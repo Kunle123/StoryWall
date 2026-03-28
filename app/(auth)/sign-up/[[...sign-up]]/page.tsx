@@ -51,10 +51,10 @@ export default function SignUpPage() {
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to StoryWall!</h1>
           <p className="text-sm font-semibold text-primary mb-2">
-            Your 30 free AI image credits are ready.
+            Your first ~30 AI image credits are ready.
           </p>
           <p className="text-sm text-muted-foreground">
-            Create stunning visual timelines with AI-generated images
+            Enough for several polished timelines — mix AI art with your own uploads.
           </p>
         </div>
 

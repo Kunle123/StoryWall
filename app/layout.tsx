@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   metadataBase: site ? new URL(site) : undefined,
   title: 'StoryWall — Visual timelines with AI',
   description:
-    'Create and share beautiful visual timelines with AI-generated images. Explore stories or build your own.',
+    'Create and share visual timelines — AI images or your own. Free to start with enough credits for several real stories. Explore or build explainers, histories, and stories worth sharing.',
   icons: {
     icon: '/favicon.png',
   },
