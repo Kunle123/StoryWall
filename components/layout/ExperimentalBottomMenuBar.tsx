@@ -563,9 +563,9 @@ export const ExperimentalBottomMenuBar = ({
       <Dialog open={showCreateMenu} onOpenChange={setShowCreateMenu}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Timeline</DialogTitle>
+            <DialogTitle>Create a StoryWall</DialogTitle>
             <DialogDescription>
-              Choose how you'd like to create your timeline
+              Start a visual timeline—guided tips appear in each step
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
@@ -579,9 +579,9 @@ export const ExperimentalBottomMenuBar = ({
             >
               <FileText className="mr-3 h-5 w-5" />
               <div className="text-left">
-                <div className="font-semibold">Create Timeline</div>
+                <div className="font-semibold">From scratch</div>
                 <div className="text-xs text-muted-foreground">
-                  Build a custom timeline from scratch
+                  Title, arc, events, images—full editor
                 </div>
               </div>
             </Button>

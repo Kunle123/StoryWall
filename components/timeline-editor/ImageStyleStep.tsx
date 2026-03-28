@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
+import { CreationFlowCallout } from "./CreationFlowCallout";
 
 interface ImageStyleStepProps {
   imageStyle: string;
@@ -67,11 +68,14 @@ export const ImageStyleStep = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 4: Select Image Style
+          Step 4: Visual style for every panel
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Choose an art style for all timeline images
+        <p className="text-muted-foreground mb-4">
+          One look across the wall keeps the story coherent when people skim.
         </p>
+        <div className="mb-6">
+          <CreationFlowCallout step={4} />
+        </div>
       </div>
 
       <div className="space-y-6">

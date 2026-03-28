@@ -19,6 +19,7 @@ import { EventDetailsStep } from "@/components/timeline-editor/EventDetailsStep"
 import { ImageStyleStep } from "@/components/timeline-editor/ImageStyleStep";
 import { GenerateImagesStep } from "@/components/timeline-editor/GenerateImagesStep";
 import { EditorErrorBoundary } from "@/components/timeline-editor/EditorErrorBoundary";
+import { CreationFlowCallout } from "@/components/timeline-editor/CreationFlowCallout";
 import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 import { createTimeline, createEvent } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -888,7 +889,11 @@ const TimelineEditor = () => {
         
         <main className="flex-1 container mx-auto px-4 pt-16 pb-32 max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold mb-2">Create a Timeline</h1>
+          <h1 className="text-3xl font-display font-bold mb-2">Create a StoryWall</h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Walk through premise → beats → visuals → publish. Each step includes a short tip
+            aligned with what makes stories clear and shareable.
+          </p>
         </div>
 
         {/* Step Content */}
@@ -898,8 +903,13 @@ const TimelineEditor = () => {
             <div className="mb-6">
               <h2 className="text-2xl font-display font-semibold mb-2">{steps[currentStep - 1]?.title || "Review & Publish"}</h2>
               <p className="text-muted-foreground mb-4">
-                Review your timeline and publish it when ready.
+                Review your timeline and publish when it feels worth sharing.
               </p>
+              {timelineType !== "statistics" && (
+                <div className="mb-6">
+                  <CreationFlowCallout step={6} />
+                </div>
+              )}
             </div>
             <div className="mb-6">
               <h3 className="text-xl font-display font-semibold mb-2">{timelineName}</h3>

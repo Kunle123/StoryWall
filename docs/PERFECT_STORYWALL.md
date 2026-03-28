@@ -2,6 +2,10 @@
 
 Use this for product copy, onboarding, and future “quality” hints—not as a gate before publish.
 
+## In the product (`/editor`)
+
+The narrative creation flow (steps 1–6) surfaces **CreationFlowCallout** tips that map to this doc: premise & arc (step 1), beats (2–3), visual coherence (4–5), share readiness (6). Code: `components/timeline-editor/CreationFlowCallout.tsx`.
+
 ## The five pillars
 
 ### 1. Instantly clear premise

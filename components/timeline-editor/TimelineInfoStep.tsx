@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { HashtagInput } from "./HashtagInput";
+import { CreationFlowCallout } from "./CreationFlowCallout";
 import { SOURCE_TYPE_CONFIGS, SourceType, detectSourceType } from "@/lib/utils/sourceValidation";
 
 interface TimelineInfoStepProps {
@@ -343,21 +344,25 @@ export const TimelineInfoStep = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 1: Timeline Information
+          Step 1: Your story at a glance
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Provide basic information about your timeline
+        <p className="text-muted-foreground mb-4">
+          Give this timeline a sharp title and a description that sets up the arc—AI uses both
+          to generate events.
         </p>
+        <div className="mb-6">
+          <CreationFlowCallout step={1} />
+        </div>
       </div>
 
       <div className="space-y-4">
         <div>
           <Label htmlFor="timeline-name" className="text-base mb-2 block">
-            Timeline Name
+            Story title
           </Label>
           <Input
             id="timeline-name"
-            placeholder="e.g., The Great British Bake Off Winners Journey"
+            placeholder='e.g., "How WeWork went from $47B to bankruptcy"'
             value={timelineName}
             onChange={(e) => setTimelineName(e.target.value)}
             className="h-10"
@@ -366,7 +371,7 @@ export const TimelineInfoStep = ({
 
         <div>
           <Label htmlFor="timeline-description" className="text-base mb-2 block">
-            Description
+            Story description (the arc)
           </Label>
           
           {/* AI-generated suggestions - show when title is entered and suggestions are available */}
@@ -408,14 +413,15 @@ export const TimelineInfoStep = ({
           
           <Textarea
             id="timeline-description"
-            placeholder="e.g., A timeline of all the winners, memorable moments, and show-stopping bakes from the iconic baking competition"
+            placeholder="Set the scene, the inciting moment, escalation, turning point, and where things stand now—enough for a clear beginning → middle → end."
             value={timelineDescription}
             onChange={(e) => setTimelineDescription(e.target.value)}
             className="min-h-[120px] resize-none"
             rows={5}
           />
           <p className="text-sm text-muted-foreground mt-2">
-            AI will generate up to 20 events based on your timeline description
+            AI generates up to your max events from this—clearer descriptions yield tighter,
+            more chronological beats.
           </p>
         </div>
 

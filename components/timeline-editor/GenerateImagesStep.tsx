@@ -15,6 +15,7 @@ import { useCredits } from "@/hooks/use-credits";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 import { containsFamousPerson } from "@/lib/utils/famousPeopleHandler";
 import { updateEvent } from "@/lib/api/client";
+import { CreationFlowCallout } from "./CreationFlowCallout";
 
 const themeColors = [
   { name: "None", value: "" },
@@ -669,11 +670,14 @@ export const GenerateImagesStep = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 5: Images
+          Step 5: Images for each beat
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Upload your own images or generate them with AI
+        <p className="text-muted-foreground mb-4">
+          Generate with AI (uses credits) or upload your own when you have the right shot.
         </p>
+        <div className="mb-6">
+          <CreationFlowCallout step={5} />
+        </div>
       </div>
 
       <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="w-full">

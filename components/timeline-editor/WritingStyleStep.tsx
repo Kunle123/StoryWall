@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { CreationFlowCallout } from "./CreationFlowCallout";
 
 export interface TimelineEvent {
   id: string;
@@ -294,11 +295,14 @@ export const WritingStyleStep = ({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 2: Writing Style & Events
+          Step 2: Voice & events (your beats)
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Select a writing style and generate or add timeline events
+        <p className="text-muted-foreground mb-4">
+          Choose how it reads, then generate events with AI or add them by hand.
         </p>
+        <div className="mb-6">
+          <CreationFlowCallout step={2} />
+        </div>
       </div>
 
       {/* Writing Style Selection */}

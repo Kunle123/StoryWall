@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { TermsViolationDialog } from "./TermsViolationDialog";
 import { VerificationDialog } from "./VerificationDialog";
+import { CreationFlowCallout } from "./CreationFlowCallout";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -241,11 +242,15 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-display font-semibold mb-4">
-          Step 3: Add Event Details
+          Step 3: Flesh out each beat
         </h2>
-        <p className="text-muted-foreground mb-6">
-          Add detailed descriptions for each timeline event
+        <p className="text-muted-foreground mb-4">
+          Descriptions and image prompts for every event—this is where pacing and clarity
+          happen.
         </p>
+        <div className="mb-6">
+          <CreationFlowCallout step={3} />
+        </div>
         <div className="flex gap-2">
           <Button
             id="generate-descriptions-button"
