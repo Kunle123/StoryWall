@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Product roadmap (repo)
+    url: https://github.com/Kunle123/StoryWall/blob/main/docs/product/roadmap.md
+    about: High-level priorities and non-goals
+  - name: Agent workflow (AGENTS.md)
+    url: https://github.com/Kunle123/StoryWall/blob/main/AGENTS.md
+    about: How we track work with GitHub Issues and Projects

@@ -50,9 +50,12 @@ function SignInContent() {
               <StoryWallIcon size={48} />
             </div>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to StoryWall</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+            Sign in to StoryWall
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Share your weird, funny, and strange moments with the world
+            Build visual explainers and timelines — current affairs, history, and stories where{" "}
+            <span className="text-foreground/90">order in time matters</span>.
           </p>
         </div>
 

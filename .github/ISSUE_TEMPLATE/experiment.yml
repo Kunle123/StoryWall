@@ -1,0 +1,66 @@
+name: Growth / experiment
+description: Hypothesis-driven test, rollout, or research task
+title: "[experiment] "
+labels: ["growth"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use for **growth experiments**, landing tests, or measurable bets. For pure research notes, add label `research` after filing.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What are we trying to learn or move?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: Hypothesis and how we’ll decide success.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be true to call this done?
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Success metrics / signals
+      description: Numbers or qualitative signals to watch.
+  - type: textarea
+    id: links
+    attributes:
+      label: Links / screenshots
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (suggested)
+      options:
+        - P2 — normal
+        - P1 — high
+        - P0 — urgent
+        - P3 — backlog
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - growth
+        - marketing
+        - frontend
+        - content
+        - analytics
+        - other
+    validations:
+      required: true

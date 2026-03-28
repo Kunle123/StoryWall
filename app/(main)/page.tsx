@@ -6,16 +6,18 @@ import DiscoverHome from "./DiscoverHome";
  * https://www.storywall.com/ (requires metadataBase from NEXT_PUBLIC_APP_URL).
  */
 export const metadata: Metadata = {
-  title: "StoryWall — Visual stories & timelines, free to start",
+  title:
+    "StoryWall — Visual timelines for explainers, history & stories worth sharing",
   description:
-    "Create chronological visual stories with AI images or your own photos. Free to start — enough AI credits for several polished timelines. Best for explainers, histories, and stories worth sharing.",
+    "Turn topics and events into visual timelines that are easy to understand and easy to share. Free to start — ~30 AI images, enough for several stories. Built for current affairs, history, and explainers where order matters.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "StoryWall — Visual stories & timelines, free to start",
+    title:
+      "StoryWall — Visual timelines for explainers, history & stories worth sharing",
     description:
-      "Visual timelines with AI or your images. Free to start; enough credits to finish real stories.",
+      "Create visual timelines with AI or your images. Free to start; strong for explainers, histories, and shareable arcs.",
     url: "/",
   },
 };

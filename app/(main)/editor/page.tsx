@@ -28,6 +28,10 @@ import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { toTitleCase } from "@/lib/utils/titleCase";
+import {
+  trackFunnelEditorEntered,
+  trackFunnelTimelineSaved,
+} from "@/lib/analytics";
 
 const STORAGE_KEY = 'timeline-editor-state';
 
@@ -93,6 +97,12 @@ const TimelineEditor = () => {
       router.push('/sign-in');
     }
   }, [isSignedIn, isLoaded, router]);
+
+  /** Funnel: signed-in user entered editor (once per session). */
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    trackFunnelEditorEntered("editor_mount");
+  }, [isLoaded, isSignedIn]);
 
   // Warn user before leaving page if they have unsaved changes
   useEffect(() => {
@@ -833,6 +843,12 @@ const TimelineEditor = () => {
 
       // Clear saved state since timeline is saved
       localStorage.removeItem(STORAGE_KEY);
+
+      trackFunnelTimelineSaved({
+        timeline_id: timelineId,
+        is_public: isPublic,
+        event_count: eventsList.length,
+      });
 
       // Navigate to timeline view
       setTimeout(() => {

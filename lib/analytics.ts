@@ -157,3 +157,39 @@ export function trackSearch(query: string, resultCount: number): void {
   });
 }
 
+/** Funnel: user opened the story editor (signed-in). Once per browser session. */
+const SESSION_EDITOR_KEY = 'sw_funnel_editor_tracked';
+
+export function trackFunnelEditorEntered(source: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (sessionStorage.getItem(SESSION_EDITOR_KEY)) return;
+    sessionStorage.setItem(SESSION_EDITOR_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+  trackEvent('sw_funnel_editor_entered', {
+    source,
+  });
+}
+
+/** Funnel: first public (or private) timeline saved from editor. */
+export function trackFunnelTimelineSaved(params: {
+  timeline_id: string;
+  is_public: boolean;
+  event_count: number;
+}): void {
+  trackEvent('sw_funnel_timeline_saved', {
+    timeline_id: params.timeline_id,
+    is_public: params.is_public,
+    event_count: params.event_count,
+  });
+}
+
+/** Funnel: user copied or shared a timeline link from the viewer. */
+export function trackFunnelStoryShared(timelineId: string): void {
+  trackEvent('sw_funnel_story_shared', {
+    timeline_id: timelineId,
+  });
+}
+

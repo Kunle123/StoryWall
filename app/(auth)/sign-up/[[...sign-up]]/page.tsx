@@ -49,12 +49,15 @@ export default function SignUpPage() {
               <StoryWallIcon size={48} />
             </div>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">Welcome to StoryWall!</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-foreground">
+            Create your first StoryWall
+          </h1>
           <p className="text-sm font-semibold text-primary mb-2">
-            Your first ~30 AI image credits are ready.
+            ~30 AI images included — enough for several polished stories.
           </p>
           <p className="text-sm text-muted-foreground">
-            Enough for several polished timelines — mix AI art with your own uploads.
+            Explainers, history, and timelines where chronology matters. Mix AI images with your own
+            uploads.
           </p>
         </div>
 

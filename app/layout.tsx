@@ -10,9 +10,9 @@ const site = getSiteOrigin();
 
 export const metadata: Metadata = {
   metadataBase: site ? new URL(site) : undefined,
-  title: 'StoryWall — Visual timelines with AI',
+  title: 'StoryWall — Visual timelines for explainers & history',
   description:
-    'Create and share visual timelines — AI images or your own. Free to start with enough credits for several real stories. Explore or build explainers, histories, and stories worth sharing.',
+    'Create visual timelines that are easy to understand and easy to share. Free to start (~30 AI images). Best for current affairs, history, and explainers — not generic “anything goes” storytelling.',
   icons: {
     icon: '/favicon.png',
   },

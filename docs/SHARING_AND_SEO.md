@@ -46,3 +46,7 @@ Set **`NEXT_PUBLIC_APP_URL`** to your canonical origin (e.g. `https://www.storyw
 ## Body content & crawlers
 
 The timeline route is hydrated with **server-fetched** timeline + events so the first paint can show title/description quickly. A screen-reader-only block may include the same title/description for accessibility; social crawlers primarily use `<head>` metadata.
+
+## Tracking (ops)
+
+Ongoing **Search Console**, sitemap submission, and post-deploy **OG** checks are tracked in GitHub [#25](https://github.com/Kunle123/StoryWall/issues/25).

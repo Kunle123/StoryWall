@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Copy, Twitter } from "lucide-react";
+import { trackFunnelStoryShared } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,8 @@ import { ReactNode } from "react";
 interface ShareMenuProps {
   /** Trigger element (button) */
   trigger: ReactNode;
+  /** Timeline id for funnel analytics (optional) */
+  timelineId?: string;
   /** URL to share */
   url?: string;
   /** Title for the share */
@@ -26,6 +29,7 @@ interface ShareMenuProps {
 
 export function ShareMenu({
   trigger,
+  timelineId,
   url,
   title,
   showTwitter = false,
@@ -45,8 +49,10 @@ export function ShareMenu({
           text: `Check out this timeline: ${title || ""}`,
           url: shareUrl,
         });
+        if (timelineId) trackFunnelStoryShared(timelineId);
       } else {
         await navigator.clipboard.writeText(shareUrl);
+        if (timelineId) trackFunnelStoryShared(timelineId);
         toast({
           title: "Link copied!",
           description: "Timeline link copied to clipboard",
@@ -58,6 +64,7 @@ export function ShareMenu({
         // Try clipboard as fallback
         try {
           await navigator.clipboard.writeText(shareUrl);
+          if (timelineId) trackFunnelStoryShared(timelineId);
           toast({
             title: "Link copied!",
             description: "Timeline link copied to clipboard",

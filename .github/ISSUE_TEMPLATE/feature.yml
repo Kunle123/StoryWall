@@ -1,0 +1,63 @@
+name: Feature
+description: Propose a feature or meaningful product change
+title: "[feature] "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Track execution on the **StoryWall Launch Board** (GitHub Project). Link this issue from your PR (`Closes #…` / `Refs #…`).
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What outcome do we want?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: User impact, strategy, or problem this solves.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Verifiable checklist (what “done” looks like).
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
+  - type: textarea
+    id: links
+    attributes:
+      label: Links / screenshots / references
+      description: Figma, mocks, URLs, prior issues.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (suggested)
+      options:
+        - P2 — normal
+        - P0 — urgent
+        - P1 — high
+        - P3 — backlog
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - frontend
+        - backend
+        - full-stack
+        - infra
+        - design
+        - content
+        - other
+    validations:
+      required: true

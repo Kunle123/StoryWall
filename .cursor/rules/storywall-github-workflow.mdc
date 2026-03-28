@@ -1,0 +1,18 @@
+---
+description: Issue-first workflow — GitHub is the task system; read AGENTS.md before implementation work
+alwaysApply: true
+---
+
+# StoryWall tracking
+
+Work is tracked in **GitHub Issues** and **GitHub Projects**, not in chat. Before writing or changing code for a task:
+
+1. Read **`AGENTS.md`** at the repo root (board protocol, PR links, definition of done).
+2. Prefer an existing issue; use **`Closes #N`** / **`Refs #N`** in PRs.
+3. Use **`docs/product/roadmap.md`** and **`docs/product/current-sprint.md`** for context only—they are summaries, not the source of truth.
+
+4. After a task ships (merged PR), **update `docs/product/current-sprint.md`** when the user asks or when finishing work tied to a sprint bullet—check items off, adjust “next,” refresh the week/date if needed. See **`AGENTS.md` → “Keeping progress in sync as you build.”**
+
+5. **GitHub Project board:** When work **starts** on issue `#N`, run `./scripts/gh-board-set-status.sh N in-progress`. Move to **`done`** only after the change is **deployed** and **smoke-tested** in the target environment — not on merge alone. Then run `./scripts/gh-board-set-status.sh N done`. Requires **`gh auth refresh -h github.com -s read:project,project`**. If `gh project item-edit` fails here, tell the user to run the script locally.
+
+If no issue exists for non-trivial work, ask to create one (or create it with the repo issue templates) before deep implementation.

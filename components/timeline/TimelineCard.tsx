@@ -259,6 +259,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
             </Button>
           </div>
           <ShareMenu
+            timelineId={timelineId}
             trigger={
               <Button
                 variant="ghost"

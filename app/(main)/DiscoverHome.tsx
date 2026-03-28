@@ -234,18 +234,17 @@ export default function DiscoverHome() {
 
         <div style={{ height: "56px" }} />
 
-        {/* Hero — positioning + promise */}
+        {/* Hero — wedge-first positioning + promise */}
         <div className="px-4 pt-2 pb-4 space-y-4">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-              Visual stories worth sharing — free to start
+              Visual timelines that are easy to understand — and easy to share
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
-              Build chronological timelines with AI-generated images or your own photos. No
-              payment to begin — your account includes enough AI credits to finish several
-              polished stories (about{" "}
-              <span className="text-foreground/90 font-medium">30 images</span>
-              ).
+              Turn topics, events, and histories into chronological StoryWalls with AI images or your
+              own photos. Free to start — about{" "}
+              <span className="text-foreground/90 font-medium">30 AI images</span> included (roughly
+              three polished timelines, depending on length).
             </p>
           </div>
           <ul className="flex flex-col gap-2 text-sm">
@@ -277,17 +276,66 @@ export default function DiscoverHome() {
             </li>
           </ul>
           <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-            Strong fits: explainers, histories, how-we-got-here arcs, and anything where{" "}
-            <span className="text-foreground/90">order in time matters</span>. Pay only if you
-            need more AI generations later.
+            <span className="text-foreground/90 font-medium">First wedge:</span> current affairs &
+            history explainers. Also strong for teachers, revision, and newsletter-style breakdowns —
+            not “anything goes” creativity.
           </p>
-          <Link
-            href="/guide/great-stories"
-            className="inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
-          >
-            What makes a great StoryWall?
-          </Link>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link
+              href="/guide/great-stories"
+              className="inline-flex font-medium text-primary underline-offset-4 hover:underline"
+            >
+              What makes a great StoryWall?
+            </Link>
+            <a
+              href={
+                process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+                "https://github.com/Kunle123/StoryWall/issues/new"
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex font-medium text-muted-foreground underline-offset-4 hover:underline hover:text-foreground"
+            >
+              Feedback
+            </a>
+          </div>
         </div>
+
+        {/* How it works — 3 steps */}
+        <section
+          className="px-4 pb-8"
+          aria-labelledby="how-heading"
+        >
+          <h2
+            id="how-heading"
+            className="font-display text-lg font-semibold tracking-tight mb-3"
+          >
+            How it works
+          </h2>
+          <ol className="grid gap-3 sm:grid-cols-3 text-sm">
+            <li className="rounded-lg border border-border bg-muted/20 p-3">
+              <span className="text-xs font-semibold text-primary">1</span>
+              <p className="mt-1 text-foreground font-medium">Start in the editor</p>
+              <p className="text-muted-foreground mt-0.5">
+                Premise, arc, and beats — guided prompts in each step.
+              </p>
+            </li>
+            <li className="rounded-lg border border-border bg-muted/20 p-3">
+              <span className="text-xs font-semibold text-primary">2</span>
+              <p className="mt-1 text-foreground font-medium">Add visuals</p>
+              <p className="text-muted-foreground mt-0.5">
+                AI images, your uploads, or a mix — tuned to your story.
+              </p>
+            </li>
+            <li className="rounded-lg border border-border bg-muted/20 p-3">
+              <span className="text-xs font-semibold text-primary">3</span>
+              <p className="mt-1 text-foreground font-medium">Publish & share</p>
+              <p className="text-muted-foreground mt-0.5">
+                Public link, social preview, copy or native share from the story.
+              </p>
+            </li>
+          </ol>
+        </section>
 
         {/* Five pillars — skim + link to full guide */}
         <section
