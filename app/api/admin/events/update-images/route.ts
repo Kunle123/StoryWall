@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { requireAdmin } from '@/lib/api/routeAuth';
 
 /**
  * Admin endpoint to update event images in batch
  * POST /api/admin/events/update-images
  * Body: { updates: [{ eventId: string, imageUrl: string }] }
+ *
+ * Auth: Clerk sign-in + email in `lib/utils/admin.ts` (ADMIN_EMAILS).
  */
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check
-    // For now, allow updates (should be restricted in production)
-    
+    const admin = await requireAdmin();
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     const body = await request.json();
     const { updates } = body;
     

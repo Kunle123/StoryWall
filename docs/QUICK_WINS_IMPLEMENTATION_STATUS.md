@@ -23,9 +23,9 @@
 ## 🚧 Pending (engineering)
 
 ### 4. Token Grant on First Story
-- **Status:** ⏳ Pending — GitHub [#4](https://github.com/Kunle123/StoryWall/issues/4)
+- **Status:** ✅ Implemented — GitHub [#4](https://github.com/Kunle123/StoryWall/issues/4)
 - **Database:** ✅ `firstStoryPublishedAt`, `publishedStoryCount` on `User`
-- **Logic:** Grant on publish, tiered incentives
+- **Logic:** `lib/db/publishRewards.ts` — **+30 / +20 / +10** credits on 1st–3rd **public** story (create public, or flip private→public via `PATCH`). Wired in `app/api/timelines/route.ts` (POST) and `app/api/timelines/[id]/route.ts` (PATCH).
 
 ### 5. Basic Leaderboard
 - **Status:** ⏳ Pending — GitHub [#5](https://github.com/Kunle123/StoryWall/issues/5)

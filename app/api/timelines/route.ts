@@ -3,6 +3,7 @@ import { createTimeline, listTimelines } from '@/lib/db/timelines';
 import { slugify } from '@/lib/utils/slugify';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
+import { applyPublicPublishRewards } from '@/lib/db/publishRewards';
 
 export async function POST(request: NextRequest) {
   // Parse request body first so it's accessible in catch block
@@ -70,6 +71,14 @@ export async function POST(request: NextRequest) {
       hashtags: hashtags || [],
     });
 
+    if (is_public !== false) {
+      try {
+        await applyPublicPublishRewards(user.id);
+      } catch (rewardError: unknown) {
+        console.error('[timelines POST] publish rewards failed:', rewardError);
+      }
+    }
+
     return NextResponse.json(timeline, { status: 201 });
   } catch (error: any) {
     console.error('Error creating timeline:', error);
@@ -104,7 +113,15 @@ export async function POST(request: NextRequest) {
           end_date: body.end_date || null,
           hashtags: body.hashtags || [],
         });
-        
+
+        if (body.is_public !== false) {
+          try {
+            await applyPublicPublishRewards(user.id);
+          } catch (rewardError: unknown) {
+            console.error('[timelines POST retry] publish rewards failed:', rewardError);
+          }
+        }
+
         return NextResponse.json(timeline, { status: 201 });
       } catch (retryError: any) {
         return NextResponse.json(

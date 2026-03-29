@@ -3,6 +3,8 @@ import { getTimelineById, getTimelineBySlug, updateTimeline, deleteTimeline, inc
 import { slugify } from '@/lib/utils/slugify';
 import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser, getUserByClerkId } from '@/lib/db/users';
+import { prisma } from '@/lib/db/prisma';
+import { applyPublicPublishRewards } from '@/lib/db/publishRewards';
 
 // Helper to check if a string is a UUID
 function isUUID(str: string): boolean {
@@ -111,6 +113,15 @@ export async function PATCH(
     const body = await request.json();
     const { title, description, visualization_type, is_public, is_collaborative } = body;
 
+    const existing = await prisma.timeline.findUnique({
+      where: { id },
+      select: { isPublic: true, creatorId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Timeline not found' }, { status: 404 });
+    }
+
     const updates: any = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
@@ -119,6 +130,14 @@ export async function PATCH(
     if (is_collaborative !== undefined) updates.is_collaborative = is_collaborative;
 
     const timeline = await updateTimeline(id, user.id, updates, userEmail);
+
+    if (is_public === true && !existing.isPublic) {
+      try {
+        await applyPublicPublishRewards(existing.creatorId);
+      } catch (rewardError: unknown) {
+        console.error('[timelines PATCH] publish rewards failed:', rewardError);
+      }
+    }
 
     return NextResponse.json(timeline);
   } catch (error: any) {

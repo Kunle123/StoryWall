@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { requireAdmin } from '@/lib/api/routeAuth';
 
 /**
  * Admin endpoint to delete timelines with incomplete events
  * POST /api/admin/timelines/delete-incomplete
  * Body: { timelineIds?: string[] } - optional, if not provided, deletes all incomplete timelines
+ *
+ * Auth: Clerk sign-in + email in `lib/utils/admin.ts` (ADMIN_EMAILS).
  */
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Add admin authentication check
-    // For now, allow deletions (should be restricted in production)
-    
+    const admin = await requireAdmin();
+    if (!admin.ok) {
+      return admin.response;
+    }
+
     let timelineIds: string[] | undefined;
     try {
       const body = await request.json();

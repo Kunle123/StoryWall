@@ -1,5 +1,7 @@
 /**
- * Admin email addresses that have full access to edit/delete any timeline
+ * Admin email addresses: timeline edit/delete override + **admin API routes**
+ * (`requireAdmin` in `lib/api/routeAuth.ts` — e.g. `/api/admin/timelines/delete-incomplete`,
+ * `/api/admin/events/update-images`). Add addresses here for additional operators.
  */
 const ADMIN_EMAILS = [
   'kunle2000@gmail.com',

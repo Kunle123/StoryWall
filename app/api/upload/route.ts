@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { Readable } from 'stream';
+import { requireAuthUserId } from '@/lib/api/routeAuth';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -29,11 +30,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // TODO: Add authentication check when Clerk is enabled
-    // const { userId } = auth();
-    // if (!userId) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
+    const authResult = await requireAuthUserId();
+    if (!authResult.ok) {
+      return authResult.response;
+    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
