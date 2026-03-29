@@ -9,9 +9,11 @@
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Example: work in flight
-"$DIR/gh-board-set-status.sh" 7 in-progress
+# Active engineering / growth (adjust when focus shifts)
 "$DIR/gh-board-set-status.sh" 16 in-progress
-"$DIR/gh-board-set-status.sh" 14 not-started
 
-echo "OK. Move to **done** only after deploy + test: ./scripts/gh-board-set-status.sh N done"
+# Strategy / gates — not dev sprint (see issue #14)
+"$DIR/gh-board-set-status.sh" 14 planning
+
+# RFT queue (merge on main): #4 #7 #9 #25 #26 — run \`… N done\` after prod smoke test
+echo "OK. RFT → Done only after deploy + test: ./scripts/gh-board-set-status.sh N done"
