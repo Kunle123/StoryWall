@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="920" viewBox="0 0 720 920">
+  <title>Wireframe - Discover Explore tab</title>
+  <rect x="0" y="0" width="720" height="920" fill="#fafafa" stroke="#e5e5e5"/>
+  <text x="24" y="36" font-family="system-ui,sans-serif" font-size="11" fill="#737373">WIREFRAME - Issue #26 / #7</text>
+  <rect x="24" y="52" width="672" height="40" rx="6" fill="#fff" stroke="#d4d4d4"/>
+  <text x="40" y="77" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#171717">Header + nav</text>
+  <rect x="24" y="104" width="672" height="44" rx="8" fill="#f5f5f5" stroke="#d4d4d4"/>
+  <text x="40" y="132" font-family="system-ui,sans-serif" font-size="12" fill="#737373">Search - fixed</text>
+  <rect x="24" y="164" width="672" height="48" rx="6" fill="#fff" stroke="#d4d4d4"/>
+  <rect x="40" y="176" width="160" height="28" rx="6" fill="#171717"/>
+  <text x="88" y="194" font-family="system-ui,sans-serif" font-size="12" fill="#fff" text-anchor="middle">Explore</text>
+  <rect x="216" y="176" width="180" height="28" rx="6" fill="#f5f5f5" stroke="#d4d4d4"/>
+  <text x="306" y="194" font-family="system-ui,sans-serif" font-size="12" fill="#525252" text-anchor="middle">How it works</text>
+  <rect x="24" y="228" width="672" height="72" rx="6" fill="#fff" stroke="#d4d4d4" stroke-dasharray="4 3"/>
+  <text x="40" y="252" font-family="system-ui,sans-serif" font-size="11" fill="#737373">COMPACT HERO - headline + link to How tab</text>
+  <text x="40" y="276" font-family="system-ui,sans-serif" font-size="12" fill="#a3a3a3">Timelines high on first screen</text>
+  <text x="24" y="328" font-family="system-ui,sans-serif" font-size="10" font-weight="600" letter-spacing="0.12em" fill="#737373">DISCOVER</text>
+  <text x="24" y="352" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="#171717">Stories to explore</text>
+  <rect x="24" y="368" width="672" height="40" rx="4" fill="#fafafa" stroke="#e5e5e5"/>
+  <text x="36" y="392" font-family="system-ui,sans-serif" font-size="11" fill="#737373">Short subcopy</text>
+  <text x="24" y="436" font-family="system-ui,sans-serif" font-size="10" font-weight="600" letter-spacing="0.12em" fill="#737373">FEATURED CREATOR</text>
+  <rect x="24" y="444" width="672" height="200" rx="10" fill="#fff" stroke="#d4d4d4"/>
+  <rect x="24" y="444" width="672" height="4" fill="url(#g)"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="50%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <text x="40" y="476" font-family="system-ui,sans-serif" font-size="11" fill="#737373">Creator spotlight - avatar - summary - thumbs</text>
+  <rect x="40" y="488" width="640" height="140" rx="6" fill="#f5f5f5" stroke="#e5e5e5"/>
+  <rect x="24" y="660" width="672" height="44" rx="6" fill="#fafafa" stroke="#e5e5e5"/>
+  <text x="36" y="686" font-family="system-ui,sans-serif" font-size="11" fill="#737373">Category chips</text>
+  <rect x="24" y="720" width="320" height="36" rx="6" fill="#171717"/>
+  <text x="184" y="742" font-family="system-ui,sans-serif" font-size="12" fill="#fff" text-anchor="middle">Trending</text>
+  <rect x="352" y="720" width="320" height="36" rx="6" fill="#fff" stroke="#d4d4d4"/>
+  <text x="512" y="742" font-family="system-ui,sans-serif" font-size="12" fill="#525252" text-anchor="middle">Recent</text>
+  <text x="24" y="784" font-family="system-ui,sans-serif" font-size="10" font-weight="600" letter-spacing="0.12em" fill="#737373">BROWSE</text>
+  <rect x="24" y="792" width="210" height="100" rx="8" fill="#fff" stroke="#d4d4d4"/>
+  <rect x="24" y="792" width="210" height="36" fill="#e5e5e5"/>
+  <rect x="246" y="792" width="210" height="100" rx="8" fill="#fff" stroke="#d4d4d4"/>
+  <rect x="246" y="792" width="210" height="36" fill="#e5e5e5"/>
+  <rect x="468" y="792" width="210" height="100" rx="8" fill="#fff" stroke="#d4d4d4"/>
+  <rect x="468" y="792" width="210" height="36" fill="#e5e5e5"/>
+  <text x="24" y="912" font-family="system-ui,sans-serif" font-size="10" fill="#a3a3a3">Story summary cards</text>
+</svg>
