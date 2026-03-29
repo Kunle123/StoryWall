@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const DiscoverCardSkeleton = () => {
   return (
     <Card className="overflow-hidden h-full flex flex-col">
-      <Skeleton className="h-[5.5rem] w-full rounded-none shrink-0" />
+      <Skeleton className="h-28 w-full rounded-none shrink-0" />
       <div className="p-3.5 flex flex-col flex-1 space-y-2">
         <div className="flex justify-between gap-2">
           <Skeleton className="h-4 flex-1" />

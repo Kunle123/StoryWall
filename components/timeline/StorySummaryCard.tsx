@@ -42,21 +42,21 @@ export function StorySummaryCard({
       className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5"
       onClick={onClick}
     >
-      <div className="h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-end gap-1.5 px-2 pb-2 shrink-0 border-b border-border/40">
+      <div className="h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-b border-border/40">
         {thumbs.map((url, i) => (
           <div
             key={`${url}-${i}`}
-            className="relative w-12 h-12 rounded-md overflow-hidden border border-border/60 bg-muted shrink-0 shadow-sm"
+            className="relative min-h-0 min-w-0 flex-1 rounded-md overflow-hidden border border-border/60 bg-muted shadow-sm"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" className="w-full h-full object-cover" />
+            <img src={url} alt="" className="h-full w-full object-cover" />
           </div>
         ))}
         {filler > 0 &&
           Array.from({ length: filler }).map((_, i) => (
             <div
               key={`empty-${i}`}
-              className="w-12 h-12 rounded-md border border-dashed border-border/60 bg-background/80 flex items-center justify-center shrink-0"
+              className="min-h-0 min-w-0 flex-1 rounded-md border border-dashed border-border/60 bg-background/80 flex items-center justify-center"
             >
               <Eye className="w-4 h-4 text-muted-foreground/50" />
             </div>
