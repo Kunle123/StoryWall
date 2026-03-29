@@ -36,7 +36,7 @@ Configured in `app/(main)/story/[id]/layout.tsx` (`generateMetadata`).
 
 ## Sitemap & robots
 
-- **`/sitemap.xml`** — Built by `app/sitemap.ts`: home + up to 5000 **public** timelines (`/timeline/{slug-or-id}`), refreshed every hour (`revalidate = 3600`).
+- **`/sitemap.xml`** — Built by `app/sitemap.ts`: home, **`/discover`**, `/guide/great-stories`, and up to 5000 **public** timelines (`/timeline/{slug-or-id}`), refreshed every hour (`revalidate = 3600`).
 - **`/robots.txt`** — Built by `app/robots.ts`: allows `/`, disallows `/api/`, points crawlers at the sitemap when **`NEXT_PUBLIC_APP_URL`** is set.
 
 ## Environment

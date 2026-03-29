@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { User, Coins } from "lucide-react";
+import { User, Coins, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StoryWallIcon } from "@/components/StoryWallIcon";
 import { useCredits } from "@/hooks/use-credits";
@@ -19,7 +19,11 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { credits, fetchCredits } = useCredits();
   const { isSignedIn } = useUser();
-  
+
+  const feedbackUrl =
+    process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+    "https://github.com/Kunle123/StoryWall/issues/new";
+
   // Handle case where Clerk might not be initialized yet
   const isUserSignedIn = isSignedIn ?? false;
 
@@ -74,7 +78,17 @@ export const Header = ({ isVisible: controlledVisibility }: HeaderProps = {}) =>
           <span className="font-display font-bold text-xl text-foreground">StoryWall</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <a
+            href={feedbackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center h-8 rounded-md px-1.5 sm:px-2 text-muted-foreground hover:text-foreground hover:bg-muted/60 text-xs sm:text-sm font-medium transition-colors"
+            aria-label="Send feedback"
+          >
+            <MessageSquare className="w-4 h-4 sm:mr-1.5 shrink-0" aria-hidden />
+            <span className="hidden sm:inline">Feedback</span>
+          </a>
           {isUserSignedIn && (
             <Button
               variant="outline"
