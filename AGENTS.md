@@ -132,7 +132,7 @@ There are **two layers**: (1) **GitHub** = live status; (2) **repo markdown** = 
 | Action | Agent in repo | Needs from you |
 |--------|----------------|----------------|
 | Edit `AGENTS.md`, `current-sprint.md`, `roadmap.md` | Yes | Tell it when something shipped or priorities changed |
-| **Move Project cards** (Status column) | Run `./scripts/gh-board-set-status.sh` **if** `gh` has **`project`** + **`read:project`** scopes | Run **`gh auth refresh -h github.com -s read:project,project`** on your Mac; then scripts work from Terminal |
+| **Move Project cards** (Status column) | **Same session as the work:** `in-progress` when starting; **`ready-for-test` immediately after pushing code to `main`** that addresses the issue; `done` only after prod smoke test. Add missing cards with `gh project item-add 1 --owner Kunle123 --url …/issues/N`. Requires `gh` **`project`** + **`read:project`** | Run **`gh auth refresh -h github.com -s read:project,project`** if scripts fail |
 | Create/update **GitHub Issues** | `gh issue create` with `repo` scope | — |
 | Know what’s “done” | Reads issues/PRs if you link them; else reads sprint file + git | Link `Fixes #N` in PRs; ask agent to sync sprint doc after merge |
 
@@ -141,7 +141,7 @@ There are **two layers**: (1) **GitHub** = live status; (2) **repo markdown** = 
 - `./scripts/gh-board-set-status.sh ISSUE_NUMBER planning|not-started|in-progress|ready-for-test|done|blocked` — use **`ready-for-test`** after merge/deploy is live for QA; **`done`** only **after deploy + test** (see Definition of done). The **Status** field must include an option named exactly **Ready for test** (add it in Project → Settings if missing).
 - `./scripts/gh-board-sync-wip.sh` — optional: sets **In Progress / Not Started** only (never forces **Done**).
 
-**Practical minimum:** Issues + `Closes #N` + a standing ask: *“Sync `current-sprint.md` with what we just shipped.”* That keeps the markdown aligned with reality without duplicating the whole board.
+**Practical minimum:** Issues + `Closes #N` + **update the kanban status when you ship** (see table above) + a standing ask: *“Sync `current-sprint.md` with what we just shipped.”* That keeps the markdown aligned with reality without duplicating the whole board.
 
 ---
 
