@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Star, Heart, Share2 } from "lucide-react";
+import { StoryWallDateBadges } from "@/components/discover/StoryWallDateBadges";
 
 export type FeaturedStorySpotlightProps = {
   title: string;
@@ -13,6 +14,9 @@ export type FeaturedStorySpotlightProps = {
   likesCount?: number;
   sharesCount?: number;
   previewImages: string[];
+  badgeTop?: string;
+  badgeBottom?: string;
+  isExpanded?: boolean;
   onClick: () => void;
 };
 
@@ -29,13 +33,19 @@ export function FeaturedStorySpotlight({
   likesCount = 0,
   sharesCount = 0,
   previewImages,
+  badgeTop,
+  badgeBottom,
+  isExpanded = false,
   onClick,
 }: FeaturedStorySpotlightProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
+  const showBadges = Boolean(badgeTop && badgeBottom);
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03]"
+      className={`overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03] ${
+        isExpanded ? "ring-2 ring-primary/50 shadow-md" : ""
+      }`}
       onClick={onClick}
     >
       <div className="h-1 bg-gradient-to-r from-amber-400/90 via-primary/80 to-violet-500/80" />
@@ -77,7 +87,12 @@ export function FeaturedStorySpotlight({
             )}
           </div>
         </div>
-        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3">
+        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
+          {showBadges && (
+            <div className="absolute left-3 top-3 z-10">
+              <StoryWallDateBadges top={badgeTop!} bottom={badgeBottom!} />
+            </div>
+          )}
           <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end">
             {thumbs.map((url, i) => (
               <div

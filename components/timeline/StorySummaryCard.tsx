@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Eye, Heart, Share2 } from "lucide-react";
+import { StoryWallDateBadges } from "@/components/discover/StoryWallDateBadges";
 
 export type StorySummaryCardProps = {
   title: string;
@@ -15,6 +16,10 @@ export type StorySummaryCardProps = {
   eventCount: number;
   previewImages: string[];
   topicLabel?: string;
+  /** Stacked date/period labels on the image strip (discover feed). */
+  badgeTop?: string;
+  badgeBottom?: string;
+  isExpanded?: boolean;
   onClick: () => void;
 };
 
@@ -32,17 +37,28 @@ export function StorySummaryCard({
   eventCount,
   previewImages,
   topicLabel,
+  badgeTop,
+  badgeBottom,
+  isExpanded = false,
   onClick,
 }: StorySummaryCardProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
   const filler = 3 - thumbs.length;
+  const showBadges = Boolean(badgeTop && badgeBottom);
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5"
+      className={`overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5 ${
+        isExpanded ? "ring-2 ring-primary/45 shadow-md" : ""
+      }`}
       onClick={onClick}
     >
-      <div className="h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-b border-border/40">
+      <div className="relative h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-b border-border/40">
+        {showBadges && (
+          <div className="absolute left-2 top-2 z-10">
+            <StoryWallDateBadges top={badgeTop!} bottom={badgeBottom!} />
+          </div>
+        )}
         {thumbs.map((url, i) => (
           <div
             key={`${url}-${i}`}

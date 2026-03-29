@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, Fragment, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,8 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
+import { deriveStoryDateLabels } from "@/lib/utils/discoverCardLabels";
+import { DiscoverInlineTimeline } from "@/components/discover/DiscoverInlineTimeline";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
 import { StorySummaryCard } from "@/components/timeline/StorySummaryCard";
@@ -44,6 +45,8 @@ interface TimelineDisplay {
   sharesCount: number;
   hashtags: string[];
   isPublic: boolean;
+  dateBadgeTop: string;
+  dateBadgeBottom: string;
 }
 
 function mapApiTimeline(t: any): TimelineDisplay {
@@ -51,6 +54,9 @@ function mapApiTimeline(t: any): TimelineDisplay {
   const previewImages = events
     .map((e: { image_url?: string }) => e.image_url)
     .filter(Boolean) as string[];
+  const previewEvents = events.map((e: { date?: string }) => ({ date: e.date }));
+  const eventCount = typeof t.event_count === "number" ? t.event_count : events.length;
+  const labels = deriveStoryDateLabels(previewEvents, t.title || "", eventCount);
 
   return {
     id: t.id,
@@ -65,11 +71,13 @@ function mapApiTimeline(t: any): TimelineDisplay {
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.creator?.id || t.id}`,
     createdAt: t.created_at,
     previewImages,
-    eventCount: typeof t.event_count === "number" ? t.event_count : events.length,
+    eventCount,
     likesCount: typeof t.likes_count === "number" ? t.likes_count : 0,
     sharesCount: typeof t.share_count === "number" ? t.share_count : 0,
     hashtags: Array.isArray(t.hashtags) ? t.hashtags : [],
     isPublic: t.is_public !== false,
+    dateBadgeTop: labels.top,
+    dateBadgeBottom: labels.bottom,
   };
 }
 
@@ -89,7 +97,8 @@ function topicLabel(hashtags: string[]): string | undefined {
 export default function DiscoverHome() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const router = useRouter();
+  const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null);
+  const inlineTimelineRef = useRef<HTMLDivElement | null>(null);
   const [allTimelines, setAllTimelines] = useState<TimelineDisplay[]>([]);
   const [featuredTimelines, setFeaturedTimelines] = useState<TimelineDisplay[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,7 +215,17 @@ export default function DiscoverHome() {
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
-  const openTimeline = (id: string) => router.push(`/timeline/${id}`);
+  const toggleExpand = (id: string) => {
+    setExpandedTimelineId((prev) => (prev === id ? null : id));
+  };
+
+  useEffect(() => {
+    if (!expandedTimelineId) return;
+    const frame = requestAnimationFrame(() => {
+      inlineTimelineRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [expandedTimelineId]);
 
   return (
     <div className="min-h-screen bg-background pb-32 md:pb-40">
@@ -297,19 +316,31 @@ export default function DiscoverHome() {
                     </>
                   ) : (
                     featuredTimelines.map((timeline) => (
-                      <FeaturedStorySpotlight
-                        key={timeline.id}
-                        title={timeline.title}
-                        summary={timeline.description}
-                        creatorName={timeline.creator}
-                        creatorAvatar={timeline.avatar}
-                        viewLabel={timeline.views}
-                        eventCount={timeline.eventCount}
-                        likesCount={timeline.likesCount}
-                        sharesCount={timeline.sharesCount}
-                        previewImages={timeline.previewImages}
-                        onClick={() => openTimeline(timeline.id)}
-                      />
+                      <Fragment key={timeline.id}>
+                        <FeaturedStorySpotlight
+                          title={timeline.title}
+                          summary={timeline.description}
+                          creatorName={timeline.creator}
+                          creatorAvatar={timeline.avatar}
+                          viewLabel={timeline.views}
+                          eventCount={timeline.eventCount}
+                          likesCount={timeline.likesCount}
+                          sharesCount={timeline.sharesCount}
+                          previewImages={timeline.previewImages}
+                          badgeTop={timeline.dateBadgeTop}
+                          badgeBottom={timeline.dateBadgeBottom}
+                          isExpanded={expandedTimelineId === timeline.id}
+                          onClick={() => toggleExpand(timeline.id)}
+                        />
+                        {expandedTimelineId === timeline.id && (
+                          <div
+                            ref={inlineTimelineRef}
+                            className="w-full mt-3 animate-in fade-in duration-300"
+                          >
+                            <DiscoverInlineTimeline timelineId={timeline.id} />
+                          </div>
+                        )}
+                      </Fragment>
                     ))
                   )}
                 </div>
@@ -376,20 +407,32 @@ export default function DiscoverHome() {
                       </div>
                     ) : (
                       trendingTimelines.map((timeline) => (
-                        <StorySummaryCard
-                          key={timeline.id}
-                          title={timeline.title}
-                          summary={timeline.description}
-                          creatorName={timeline.creator}
-                          creatorAvatar={timeline.avatar}
-                          viewLabel={timeline.views}
-                          eventCount={timeline.eventCount}
-                          likesCount={timeline.likesCount}
-                          sharesCount={timeline.sharesCount}
-                          previewImages={timeline.previewImages}
-                          topicLabel={topicLabel(timeline.hashtags)}
-                          onClick={() => openTimeline(timeline.id)}
-                        />
+                        <Fragment key={timeline.id}>
+                          <StorySummaryCard
+                            title={timeline.title}
+                            summary={timeline.description}
+                            creatorName={timeline.creator}
+                            creatorAvatar={timeline.avatar}
+                            viewLabel={timeline.views}
+                            eventCount={timeline.eventCount}
+                            likesCount={timeline.likesCount}
+                            sharesCount={timeline.sharesCount}
+                            previewImages={timeline.previewImages}
+                            topicLabel={topicLabel(timeline.hashtags)}
+                            badgeTop={timeline.dateBadgeTop}
+                            badgeBottom={timeline.dateBadgeBottom}
+                            isExpanded={expandedTimelineId === timeline.id}
+                            onClick={() => toggleExpand(timeline.id)}
+                          />
+                          {expandedTimelineId === timeline.id && (
+                            <div
+                              ref={inlineTimelineRef}
+                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-1 animate-in fade-in duration-300"
+                            >
+                              <DiscoverInlineTimeline timelineId={timeline.id} />
+                            </div>
+                          )}
+                        </Fragment>
                       ))
                     )}
                   </div>
@@ -420,20 +463,32 @@ export default function DiscoverHome() {
                       </div>
                     ) : (
                       recentTimelines.map((timeline) => (
-                        <StorySummaryCard
-                          key={timeline.id}
-                          title={timeline.title}
-                          summary={timeline.description}
-                          creatorName={timeline.creator}
-                          creatorAvatar={timeline.avatar}
-                          viewLabel={timeline.views}
-                          eventCount={timeline.eventCount}
-                          likesCount={timeline.likesCount}
-                          sharesCount={timeline.sharesCount}
-                          previewImages={timeline.previewImages}
-                          topicLabel={topicLabel(timeline.hashtags)}
-                          onClick={() => openTimeline(timeline.id)}
-                        />
+                        <Fragment key={timeline.id}>
+                          <StorySummaryCard
+                            title={timeline.title}
+                            summary={timeline.description}
+                            creatorName={timeline.creator}
+                            creatorAvatar={timeline.avatar}
+                            viewLabel={timeline.views}
+                            eventCount={timeline.eventCount}
+                            likesCount={timeline.likesCount}
+                            sharesCount={timeline.sharesCount}
+                            previewImages={timeline.previewImages}
+                            topicLabel={topicLabel(timeline.hashtags)}
+                            badgeTop={timeline.dateBadgeTop}
+                            badgeBottom={timeline.dateBadgeBottom}
+                            isExpanded={expandedTimelineId === timeline.id}
+                            onClick={() => toggleExpand(timeline.id)}
+                          />
+                          {expandedTimelineId === timeline.id && (
+                            <div
+                              ref={inlineTimelineRef}
+                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-1 animate-in fade-in duration-300"
+                            >
+                              <DiscoverInlineTimeline timelineId={timeline.id} />
+                            </div>
+                          )}
+                        </Fragment>
                       ))
                     )}
                   </div>
