@@ -1,11 +1,11 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, ChevronDown, X, Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, X, Heart, Layers } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById, fetchFollowStatus, followUser, unfollowUser } from "@/lib/api/client";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
@@ -24,6 +24,9 @@ import { cn } from "@/lib/utils";
 const Story = () => {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromTimeline = searchParams.get("from") === "timeline";
+  const storyTimelineQuery = fromTimeline ? "?from=timeline" : "";
   const { isSignedIn, isLoaded } = useUser();
   const [storyBrowseOk, setStoryBrowseOk] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
@@ -37,6 +40,7 @@ const Story = () => {
   const [commentCount, setCommentCount] = useState(0);
   const [timelineCreator, setTimelineCreator] = useState<{ id?: string; name: string; username?: string; avatar?: string; bio?: string } | null>(null);
   const [timelineIsPublic, setTimelineIsPublic] = useState(false);
+  const [timelineTitle, setTimelineTitle] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -71,6 +75,7 @@ const Story = () => {
     async function loadEvent() {
       try {
         setLoading(true);
+        setTimelineTitle(null);
         // Try API first
         const result = await fetchEventById(params.id as string);
         
@@ -131,6 +136,11 @@ const Story = () => {
             const timelineResult = await fetchTimelineById(result.data.timeline_id);
             if (timelineResult.data) {
               const timeline = timelineResult.data;
+              setTimelineTitle(
+                typeof timeline.title === "string" && timeline.title.trim()
+                  ? timeline.title.trim()
+                  : null
+              );
               // Check if timeline is public for footer display
               setTimelineIsPublic(timeline.is_public !== false);
               // Extract creator info from timeline
@@ -209,24 +219,30 @@ const Story = () => {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
     if (isLeftSwipe && hasNext) {
-      router.push(`/story/${allEvents[currentIndex + 1].id}`);
+      router.push(`/story/${allEvents[currentIndex + 1].id}${storyTimelineQuery}`);
     }
     if (isRightSwipe && hasPrev) {
-      router.push(`/story/${allEvents[currentIndex - 1].id}`);
+      router.push(`/story/${allEvents[currentIndex - 1].id}${storyTimelineQuery}`);
     }
   };
   
   const goToNext = () => {
     if (hasNext) {
       setSlideDirection('left');
-      setTimeout(() => router.push(`/story/${allEvents[currentIndex + 1].id}`), 50);
+      setTimeout(
+        () => router.push(`/story/${allEvents[currentIndex + 1].id}${storyTimelineQuery}`),
+        50
+      );
     }
   };
   
   const goToPrev = () => {
     if (hasPrev) {
       setSlideDirection('right');
-      setTimeout(() => router.push(`/story/${allEvents[currentIndex - 1].id}`), 50);
+      setTimeout(
+        () => router.push(`/story/${allEvents[currentIndex - 1].id}${storyTimelineQuery}`),
+        50
+      );
     }
   };
 
@@ -485,13 +501,64 @@ const Story = () => {
   const timelinePosition = allEvents.length > 1 && currentIndex >= 0 ? currentIndex / (allEvents.length - 1) : 0.5;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className={cn(
+        "min-h-screen",
+        fromTimeline ? "bg-muted/35 dark:bg-muted/20" : "bg-background"
+      )}
+    >
+      {fromTimeline && (
+        <header
+          className="sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-sm"
+          role="banner"
+        >
+          <div className="flex items-stretch gap-3 px-3 py-2.5 max-w-4xl mx-auto">
+            <div
+              className="w-1 self-stretch min-h-[3rem] rounded-full bg-primary shrink-0 shadow-[0_0_14px_-3px_hsl(var(--primary)/0.55)]"
+              aria-hidden
+            />
+            <div className="flex gap-2.5 min-w-0 flex-1 items-start">
+              <Layers className="w-4 h-4 text-primary shrink-0 mt-0.5" aria-hidden />
+              <div className="min-w-0">
+                <p className="text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Inside timeline
+                </p>
+                <p className="font-display text-sm font-semibold leading-snug text-foreground truncate">
+                  {timelineTitle ?? "Story"}
+                </p>
+                <p className="text-[0.7rem] text-muted-foreground mt-0.5 pr-2">
+                  Event detail — scroll is scoped below this story
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
 
-      <main className="container mx-auto px-0 md:px-4 pt-4 pb-32 md:pb-40 max-w-4xl">
-        {/* Single Unified Card */}
+      <main
+        className={cn(
+          "container mx-auto pb-32 md:pb-40 max-w-4xl",
+          fromTimeline ? "px-3 sm:px-4 pt-3" : "px-0 md:px-4 pt-4"
+        )}
+      >
+        <div
+          className={cn(
+            fromTimeline &&
+              "rounded-2xl border border-primary/25 bg-gradient-to-b from-muted/50 to-background p-2 sm:p-3 shadow-inner ring-1 ring-border/60 animate-in fade-in zoom-in-95 duration-300 motion-reduce:animate-none"
+          )}
+        >
+          <div
+            className={cn(
+              "relative",
+              fromTimeline &&
+                "rounded-xl border-l-[5px] border-primary bg-card shadow-md ring-1 ring-border/50 overflow-hidden"
+            )}
+          >
         <Card 
           key={String(Array.isArray(params.id) ? params.id[0] : params.id)}
-          className={`relative p-6 md:p-8 rounded-none md:rounded-lg transition-all duration-300 motion-reduce:transition-none ${
+          className={`relative p-6 md:p-8 rounded-none transition-all duration-300 motion-reduce:transition-none ${
+            fromTimeline ? "md:rounded-lg border-0 shadow-none" : "md:rounded-lg"
+          } ${
             slideDirection === 'left' ? 'animate-slide-out-left' : 
             slideDirection === 'right' ? 'animate-slide-out-right' : 
             'animate-slide-in'
@@ -738,6 +805,8 @@ const Story = () => {
             )}
           </div>
         </Card>
+          </div>
+        </div>
       </main>
 
       {/* Mobile: collapse full view back to summary */}

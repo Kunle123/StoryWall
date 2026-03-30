@@ -114,6 +114,9 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
     }
   };
   
+  /** Deep-link from timeline cards so the story page can show nested “inside timeline” chrome */
+  const storyFromTimelineQuery = pathname?.startsWith("/timeline") ? "?from=timeline" : "";
+
   const formatDate = (event: TimelineEvent) => {
     // For numbered events, use formatNumberedEvent
     if (event.number !== undefined) {
@@ -133,7 +136,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         if (isEditable) {
           setShowEditDialog(true);
         } else {
-          router.push(`/story/${event.id}`);
+          router.push(`/story/${event.id}${storyFromTimelineQuery}`);
         }
       }}
       className={`p-4 transition-all duration-200 cursor-pointer bg-card border-y border-x-0 rounded-none hover:bg-muted/30 relative ${
@@ -239,7 +242,7 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
                 if (pathname?.startsWith('/timeline/')) {
                   window.dispatchEvent(new CustomEvent('show-comments'));
                 } else {
-                  router.push(`/story/${event.id}#comments`);
+                  router.push(`/story/${event.id}${storyFromTimelineQuery}#comments`);
                 }
               }}
             >
