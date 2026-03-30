@@ -2,7 +2,6 @@
 
 import { Card } from "@/components/ui/card";
 import { Star, Heart, Share2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export type FeaturedStorySpotlightProps = {
   title: string;
@@ -13,16 +12,11 @@ export type FeaturedStorySpotlightProps = {
   likesCount?: number;
   sharesCount?: number;
   previewImages: string[];
-  /** Full-timeline date span — overlaid on preview strip */
   badgeTop?: string;
-  /** Truncated title — label above description */
   badgeBottom?: string;
   onClick: () => void;
 };
 
-/**
- * Featured strip — slightly elevated so creators feel spotlighted.
- */
 export function FeaturedStorySpotlight({
   title,
   summary,
@@ -38,10 +32,11 @@ export function FeaturedStorySpotlight({
 }: FeaturedStorySpotlightProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
   const showLabels = Boolean(badgeTop && badgeBottom);
+  const headline = showLabels ? badgeBottom : title;
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03]"
+      className="overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03] rounded-none"
       onClick={onClick}
     >
       <div className="h-1 bg-gradient-to-r from-amber-400/90 via-primary/80 to-violet-500/80" />
@@ -72,18 +67,6 @@ export function FeaturedStorySpotlight({
             )}
           </div>
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            {showLabels ? (
-              <p
-                className={cn(
-                  "text-lg font-semibold leading-tight font-display px-2.5 py-2 line-clamp-3 mb-2 rounded-none",
-                  "bg-primary text-primary-foreground shadow-inner"
-                )}
-              >
-                {badgeBottom}
-              </p>
-            ) : (
-              <h3 className="font-semibold text-xl font-display leading-tight mb-2">{title}</h3>
-            )}
             <p className="text-sm text-muted-foreground mb-2">
               By <strong className="text-foreground font-medium">{creatorName}</strong>
             </p>
@@ -94,7 +77,12 @@ export function FeaturedStorySpotlight({
             )}
           </div>
         </div>
-        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
+
+        <div className="mt-4 w-full border border-border/80 bg-neutral-950 text-neutral-100 dark:bg-zinc-950 dark:text-zinc-50 px-3 py-2.5 sm:py-3">
+          <p className="text-lg font-semibold leading-tight font-display line-clamp-3">{headline}</p>
+        </div>
+
+        <div className="mt-0 rounded-none border border-t-0 border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
           {badgeTop && (
             <div className="absolute left-4 top-4 z-10 pointer-events-none max-w-[min(92%,14rem)]">
               <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
@@ -102,11 +90,11 @@ export function FeaturedStorySpotlight({
               </span>
             </div>
           )}
-          <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end">
+          <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end pt-1">
             {thumbs.map((url, i) => (
               <div
                 key={url + i}
-                className="relative w-[3.25rem] h-[3.25rem] rounded-md overflow-hidden border border-border/80 bg-muted shadow-sm opacity-[calc(1-0.12*i)]"
+                className="relative w-[3.25rem] h-[3.25rem] rounded-none overflow-hidden border border-border/80 bg-muted shadow-sm opacity-[calc(1-0.12*i)]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="w-full h-full object-cover" />

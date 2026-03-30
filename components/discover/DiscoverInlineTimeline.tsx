@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ExternalLink, Loader2, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Timeline, type TimelineEvent } from "@/components/timeline/Timeline";
 import {
   fetchTimelineById,
@@ -24,7 +23,7 @@ type Props = {
 
 /**
  * Full timeline embedded in discover feed (GitHub #29).
- * Single primary title strip: date (optional) + title + close + full page.
+ * Primary strip: date (optional) + title + close. Scroll region has halo border.
  */
 export function DiscoverInlineTimeline({
   timelineId,
@@ -96,7 +95,6 @@ export function DiscoverInlineTimeline({
     title?: string;
     slug?: string;
   };
-  const slugOrId = tl.slug || tl.id;
   const storyTitle = (tl.title && String(tl.title).trim()) || "Story";
   const headline = (titleLine && titleLine.trim()) || storyTitle;
 
@@ -116,37 +114,32 @@ export function DiscoverInlineTimeline({
         <p className="flex-1 min-w-0 text-sm sm:text-[0.95rem] font-semibold leading-snug font-display line-clamp-3">
           {headline}
         </p>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onClose && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon"
-              className="h-8 w-8 rounded-none border border-border bg-background text-foreground shadow-sm hover:bg-muted"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              aria-label="Close timeline"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
+        {onClose && (
           <Button
+            type="button"
             variant="secondary"
-            size="sm"
-            className="h-8 shrink-0 text-xs rounded-none border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
-            asChild
+            size="icon"
+            className="h-8 w-8 rounded-none border border-border bg-background text-foreground shadow-sm hover:bg-muted shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            aria-label="Close timeline"
           >
-            <Link href={`/timeline/${encodeURIComponent(slugOrId)}`}>
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" aria-hidden />
-              Full page
-            </Link>
+            <X className="w-4 h-4" />
           </Button>
-        </div>
+        )}
       </div>
 
-      <div className="max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6">
+      <div
+        className={cn(
+          "max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6 mx-1 my-2 rounded-sm",
+          "border-2 border-primary/50",
+          "ring-2 ring-primary/25 ring-offset-2 ring-offset-background",
+          "shadow-[0_0_22px_hsl(var(--primary)/0.22)]",
+          "bg-background/40 dark:bg-background/20"
+        )}
+      >
         {events.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8 px-2">No events in this story yet.</p>
         ) : (
