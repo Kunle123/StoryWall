@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Calendar, Tag, ChevronLeft, ChevronRight, X, Heart } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, X, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { fetchEventById, fetchEventsByTimelineId, fetchCommentsByTimelineId, fetchEventLikeStatus, likeEvent, unlikeEvent, fetchTimelineById, fetchFollowStatus, followUser, unfollowUser } from "@/lib/api/client";
 import { formatEventDate, formatNumberedEvent } from "@/lib/utils/dateFormat";
@@ -19,6 +19,7 @@ import { CommentsSection } from "@/components/timeline/CommentsSection";
 import { TimelineEvent } from "@/components/timeline/Timeline";
 import { ViralFooter } from "@/components/sharing/ViralFooter";
 import { ImageWithWatermark } from "@/components/timeline/ImageWithWatermark";
+import { cn } from "@/lib/utils";
 
 const Story = () => {
   const params = useParams();
@@ -40,6 +41,8 @@ const Story = () => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  /** Mobile: compact summary first; tap to expand full story with animation */
+  const [detailExpanded, setDetailExpanded] = useState(false);
   const { toast } = useToast();
   
   const minSwipeDistance = 50;
@@ -229,6 +232,7 @@ const Story = () => {
 
   useEffect(() => {
     setSlideDirection(null);
+    setDetailExpanded(false);
   }, [params.id]);
 
   useEffect(() => {
@@ -252,6 +256,27 @@ const Story = () => {
       }, 100);
     }
   }, [event]);
+
+  // Short or empty body: no need for summary mode on mobile
+  useEffect(() => {
+    if (!event?.description?.trim()) {
+      setDetailExpanded(true);
+    }
+  }, [event?.description, event?.id]);
+
+  const expandStoryDetail = () => {
+    setDetailExpanded(true);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
+  const collapseStoryDetail = () => {
+    setDetailExpanded(false);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const handleLike = async () => {
     if (!isSignedIn) {
@@ -466,7 +491,7 @@ const Story = () => {
         {/* Single Unified Card */}
         <Card 
           key={String(Array.isArray(params.id) ? params.id[0] : params.id)}
-          className={`relative p-6 md:p-8 rounded-none md:rounded-lg transition-all duration-300 ${
+          className={`relative p-6 md:p-8 rounded-none md:rounded-lg transition-all duration-300 motion-reduce:transition-none ${
             slideDirection === 'left' ? 'animate-slide-out-left' : 
             slideDirection === 'right' ? 'animate-slide-out-right' : 
             'animate-slide-in'
@@ -588,16 +613,24 @@ const Story = () => {
             </Button>
           </div>
 
-          {/* Multimedia Content */}
+          {/* Multimedia Content — mobile: animates from summary height to full */}
           {(event.image || event.video) && (
-            <div className="mb-3 rounded-lg overflow-hidden border border-border">
+            <div
+              className={cn(
+                "mb-3 rounded-lg overflow-hidden border border-border max-md:origin-top motion-reduce:transition-none",
+                "max-md:transition-[max-height] max-md:duration-500 max-md:ease-out",
+                detailExpanded
+                  ? "max-md:max-h-[min(88vh,560px)]"
+                  : "max-md:max-h-[min(42vh,280px)]"
+              )}
+            >
               {event.image && (
                 <ImageWithWatermark
                   src={event.image}
                   alt={event.title}
                   isFirstOrLast={currentIndex === 0 || currentIndex === allEvents.length - 1}
                   timelineIsPublic={timelineIsPublic}
-                  className="w-full h-auto max-h-[500px] object-cover"
+                  className="w-full h-auto max-h-[500px] object-cover md:max-h-[500px]"
                 />
               )}
               {event.video && (
@@ -615,9 +648,39 @@ const Story = () => {
           <h1 className="text-2xl sm:text-3xl font-bold font-display mb-3">{event.title}</h1>
 
           {event.description && (
-            <p className="text-base mb-3">
-              {event.description}
-            </p>
+            <div className="relative mb-3">
+              <p
+                className={cn(
+                  "text-base whitespace-pre-wrap transition-opacity duration-300 motion-reduce:transition-none",
+                  !detailExpanded && "max-md:line-clamp-4"
+                )}
+              >
+                {event.description}
+              </p>
+              {!detailExpanded && (
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent md:hidden"
+                  aria-hidden
+                />
+              )}
+            </div>
+          )}
+
+          {/* Mobile: expand into full story */}
+          {event.description?.trim() && (
+            <div className="mb-4 md:hidden">
+              {!detailExpanded ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full gap-2 rounded-xl py-6 text-base font-semibold shadow-sm touch-manipulation animate-in fade-in duration-300"
+                  onClick={expandStoryDetail}
+                >
+                  Read full story
+                  <ChevronDown className="w-5 h-5 shrink-0" />
+                </Button>
+              ) : null}
+            </div>
           )}
 
           {/* Date and Category */}
@@ -657,17 +720,39 @@ const Story = () => {
             </Button>
           </div>
 
-          {/* Comments Section */}
-          <div id="comments" className="mt-6 pt-6 pb-32 md:pb-40 border-t border-border scroll-mt-24">
-            <CommentsSection eventId={event.id} />
-          </div>
+          {/* Comments + footer — full view on mobile only after expand */}
+          <div
+            className={cn(
+              !detailExpanded && "max-md:hidden",
+              detailExpanded && "max-md:animate-in max-md:fade-in max-md:duration-300"
+            )}
+          >
+            {/* Comments Section */}
+            <div id="comments" className="mt-6 pt-6 pb-32 md:pb-40 border-t border-border scroll-mt-24 max-md:mt-0 max-md:pt-4">
+              <CommentsSection eventId={event.id} />
+            </div>
 
-          {/* Viral Footer - Only show on public timelines */}
-          {timelineIsPublic && (
-            <ViralFooter timelineTitle={event.title} />
-          )}
+            {/* Viral Footer - Only show on public timelines */}
+            {timelineIsPublic && (
+              <ViralFooter timelineTitle={event.title} />
+            )}
+          </div>
         </Card>
       </main>
+
+      {/* Mobile: collapse full view back to summary */}
+      {detailExpanded && event.description?.trim() && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="fixed bottom-28 right-4 z-[100] h-14 w-14 rounded-full shadow-xl border border-border bg-background/95 backdrop-blur-md md:hidden touch-manipulation animate-in zoom-in-95 fade-in duration-200"
+          onClick={collapseStoryDetail}
+          aria-label="Collapse to summary"
+        >
+          <X className="w-6 h-6" />
+        </Button>
+      )}
       {event && allEvents.length > 0 && (
         <ExperimentalBottomMenuBar
           selectedDate={selectedDate}
