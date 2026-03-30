@@ -78,7 +78,7 @@ export function FeaturedStorySpotlight({
           </div>
         </div>
 
-        <div className="mt-4 w-full border border-border/80 bg-neutral-950 text-neutral-100 dark:bg-zinc-950 dark:text-zinc-50 px-3 py-2.5 sm:py-3">
+        <div className="mt-4 w-full border border-primary/35 bg-primary text-primary-foreground px-3 py-2.5 sm:py-3">
           <p className="text-lg font-semibold leading-tight font-display line-clamp-3">{headline}</p>
         </div>
 

@@ -42,7 +42,7 @@ export function StorySummaryCard({
       className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5 rounded-none"
       onClick={onClick}
     >
-      <div className="w-full shrink-0 border border-border/80 bg-neutral-950 text-neutral-100 dark:bg-zinc-950 dark:text-zinc-50 px-3 py-2.5">
+      <div className="w-full shrink-0 border border-primary/35 bg-primary text-primary-foreground px-3 py-2.5">
         <p className="text-sm font-semibold leading-snug line-clamp-3 font-display">{headline}</p>
       </div>
 

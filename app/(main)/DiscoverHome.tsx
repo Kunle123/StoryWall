@@ -349,7 +349,7 @@ export default function DiscoverHome() {
                               tabIndex={-1}
                               role="region"
                               aria-label="Expanded story timeline"
-                              className="w-full overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                              className="w-full overflow-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
                             >
                               <DiscoverInlineTimeline
                                 timelineId={timeline.id}
@@ -459,7 +459,7 @@ export default function DiscoverHome() {
                                 tabIndex={-1}
                                 role="region"
                                 aria-label="Expanded story timeline"
-                                className="overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                                className="overflow-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
                               >
                                 <DiscoverInlineTimeline
                                   timelineId={timeline.id}
@@ -533,7 +533,7 @@ export default function DiscoverHome() {
                                 tabIndex={-1}
                                 role="region"
                                 aria-label="Expanded story timeline"
-                                className="overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                                className="overflow-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
                               >
                                 <DiscoverInlineTimeline
                                   timelineId={timeline.id}

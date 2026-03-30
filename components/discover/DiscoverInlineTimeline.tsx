@@ -99,7 +99,7 @@ export function DiscoverInlineTimeline({
   const headline = (titleLine && titleLine.trim()) || storyTitle;
 
   return (
-    <div className="rounded-none border-0 bg-card/60 overflow-hidden shadow-inner motion-reduce:animate-none">
+    <div className="rounded-none border-0 bg-transparent overflow-hidden motion-reduce:animate-none">
       <div
         className={cn(
           "flex flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 border-b border-primary/25",
@@ -131,15 +131,7 @@ export function DiscoverInlineTimeline({
         )}
       </div>
 
-      <div
-        className={cn(
-          "max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6 mx-1 my-2 rounded-sm",
-          "border-2 border-primary/50",
-          "ring-2 ring-primary/25 ring-offset-2 ring-offset-background",
-          "shadow-[0_0_22px_hsl(var(--primary)/0.22)]",
-          "bg-background/40 dark:bg-background/20"
-        )}
-      >
+      <div className="max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6 bg-muted/15">
         {events.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8 px-2">No events in this story yet.</p>
         ) : (
