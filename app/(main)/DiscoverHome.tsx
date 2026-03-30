@@ -282,34 +282,13 @@ export default function DiscoverHome() {
           </div>
 
           <TabsContent value="explore" className="mt-0 focus-visible:outline-none">
-            {/* Compact hero — timelines stay high on the page */}
             <div className="px-2 sm:px-4 pt-3 pb-2">
-              <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight leading-tight">
-                Visual timelines that are easy to understand — and easy to share
-              </h1>
-              <p className="text-muted-foreground text-sm mt-2 max-w-2xl">
-                Explainers, history, current affairs — with AI or your images.{" "}
-                <button
-                  type="button"
-                  onClick={() => setHomeSection("how")}
-                  className="text-primary font-medium underline underline-offset-2 hover:no-underline"
-                >
-                  How it works
-                </button>
-              </p>
-            </div>
-
-            <div className="px-2 sm:px-4 pb-2">
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
                 Discover
               </p>
               <h2 className="font-display text-lg font-semibold tracking-tight">
                 Stories to explore
               </h2>
-              <p className="text-muted-foreground text-sm mt-1 max-w-xl">
-                Each card uses a short summary so viewers can scan and choose what to open — without
-                spoiling the full story.
-              </p>
             </div>
 
             {featuredTimelines.length > 0 && (
