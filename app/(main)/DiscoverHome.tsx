@@ -21,7 +21,10 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
-import { deriveStoryDateLabels } from "@/lib/utils/discoverCardLabels";
+import {
+  deriveDiscoverCardLabels,
+  deriveExpandedDiscoverHeadline,
+} from "@/lib/utils/discoverCardLabels";
 import { DiscoverInlineTimeline } from "@/components/discover/DiscoverInlineTimeline";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
@@ -45,8 +48,12 @@ interface TimelineDisplay {
   sharesCount: number;
   hashtags: string[];
   isPublic: boolean;
+  /** Full-timeline date span label (e.g. 1933–1935) */
   dateBadgeTop: string;
+  /** Truncated title for inverted pill (not the long description) */
   dateBadgeBottom: string;
+  /** Expanded inline headline: "N events · title…" */
+  expandedHeadline: string;
 }
 
 function mapApiTimeline(t: any): TimelineDisplay {
@@ -54,9 +61,17 @@ function mapApiTimeline(t: any): TimelineDisplay {
   const previewImages = events
     .map((e: { image_url?: string }) => e.image_url)
     .filter(Boolean) as string[];
-  const previewEvents = events.map((e: { date?: string }) => ({ date: e.date }));
   const eventCount = typeof t.event_count === "number" ? t.event_count : events.length;
-  const labels = deriveStoryDateLabels(previewEvents, t.title || "", eventCount);
+  const fullSpan =
+    t.event_date_min && t.event_date_max
+      ? { min: t.event_date_min as string, max: t.event_date_max as string }
+      : null;
+  const labels = deriveDiscoverCardLabels(t.title || "", eventCount, fullSpan);
+  const expandedHeadline = deriveExpandedDiscoverHeadline(
+    t.title || "",
+    eventCount,
+    labels.titlePill
+  );
 
   return {
     id: t.id,
@@ -76,8 +91,9 @@ function mapApiTimeline(t: any): TimelineDisplay {
     sharesCount: typeof t.share_count === "number" ? t.share_count : 0,
     hashtags: Array.isArray(t.hashtags) ? t.hashtags : [],
     isPublic: t.is_public !== false,
-    dateBadgeTop: labels.top,
-    dateBadgeBottom: labels.bottom,
+    dateBadgeTop: labels.dateSpan,
+    dateBadgeBottom: labels.titlePill,
+    expandedHeadline,
   };
 }
 
@@ -340,7 +356,7 @@ export default function DiscoverHome() {
                             <DiscoverInlineTimeline
                               timelineId={timeline.id}
                               badgePeriod={timeline.dateBadgeTop}
-                              badgeSubtitle={timeline.dateBadgeBottom}
+                              badgeSubtitle={timeline.expandedHeadline}
                               onClose={() => toggleExpand(timeline.id)}
                             />
                           </div>
@@ -437,7 +453,7 @@ export default function DiscoverHome() {
                               <DiscoverInlineTimeline
                                 timelineId={timeline.id}
                                 badgePeriod={timeline.dateBadgeTop}
-                                badgeSubtitle={timeline.dateBadgeBottom}
+                                badgeSubtitle={timeline.expandedHeadline}
                                 onClose={() => toggleExpand(timeline.id)}
                               />
                             </div>
@@ -498,7 +514,7 @@ export default function DiscoverHome() {
                               <DiscoverInlineTimeline
                                 timelineId={timeline.id}
                                 badgePeriod={timeline.dateBadgeTop}
-                                badgeSubtitle={timeline.dateBadgeBottom}
+                                badgeSubtitle={timeline.expandedHeadline}
                                 onClose={() => toggleExpand(timeline.id)}
                               />
                             </div>

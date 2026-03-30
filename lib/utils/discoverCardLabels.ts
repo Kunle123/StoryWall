@@ -1,41 +1,43 @@
 /**
- * Stacked label lines for discover cards (year/topic), from preview events + title.
- * See GitHub #30 — brand styling applied in `StoryWallDateBadges`.
+ * Discover card copy: date span from **full timeline** bounds (API), title pill text.
+ * Image strip no longer shows stacked badges — date + title live above the description.
  */
-export function deriveStoryDateLabels(
-  events: { date?: string }[],
+export function deriveDiscoverCardLabels(
   title: string,
-  eventCount: number
-): { top: string; bottom: string } {
-  const ev = events ?? [];
+  eventCount: number,
+  fullTimelineSpan?: { min?: string; max?: string } | null
+): { dateSpan: string; titlePill: string } {
   const safeTitle = (max: number) =>
     title.length > max ? `${title.slice(0, max - 1)}…` : title;
 
-  if (ev.length === 0) {
-    return {
-      top: "STORY",
-      bottom: safeTitle(40),
-    };
+  let dateSpan: string;
+
+  if (fullTimelineSpan?.min && fullTimelineSpan?.max) {
+    const yMin = parseInt(String(fullTimelineSpan.min).slice(0, 4), 10);
+    const yMax = parseInt(String(fullTimelineSpan.max).slice(0, 4), 10);
+    if (Number.isFinite(yMin) && Number.isFinite(yMax)) {
+      dateSpan = yMin === yMax ? String(yMin) : `${yMin}–${yMax}`;
+    } else {
+      dateSpan = eventCount === 0 ? "STORY" : "TIMELINE";
+    }
+  } else if (eventCount === 0) {
+    dateSpan = "STORY";
+  } else {
+    dateSpan = "TIMELINE";
   }
 
-  const years: number[] = [];
-  for (const e of ev) {
-    if (!e.date) continue;
-    const y = parseInt(String(e.date).split("-")[0], 10);
-    if (Number.isFinite(y)) years.push(y);
-  }
+  return {
+    dateSpan,
+    titlePill: safeTitle(52),
+  };
+}
 
-  if (years.length === 0) {
-    return {
-      top: "TIMELINE",
-      bottom: safeTitle(40),
-    };
-  }
-
-  const minY = Math.min(...years);
-  const maxY = Math.max(...years);
-  const top = minY === maxY ? String(minY) : `${minY}–${maxY}`;
-  const bottom = `${eventCount} event${eventCount === 1 ? "" : "s"} · ${safeTitle(36)}`;
-
-  return { top, bottom };
+/** Headline for expanded inline timeline (matches former badge bottom line) */
+export function deriveExpandedDiscoverHeadline(
+  title: string,
+  eventCount: number,
+  titlePill: string
+): string {
+  const ev = `${eventCount} event${eventCount === 1 ? "" : "s"}`;
+  return `${ev} · ${titlePill}`;
 }

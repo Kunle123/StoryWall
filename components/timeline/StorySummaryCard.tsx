@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Eye, Heart, Share2 } from "lucide-react";
-import { StoryWallDateBadges } from "@/components/discover/StoryWallDateBadges";
+import { cn } from "@/lib/utils";
 
 export type StorySummaryCardProps = {
   title: string;
@@ -16,15 +16,16 @@ export type StorySummaryCardProps = {
   eventCount: number;
   previewImages: string[];
   topicLabel?: string;
-  /** Stacked date/period labels on the image strip (discover feed). */
+  /** Full-timeline date span (e.g. 1933–1935) — not from preview images only */
   badgeTop?: string;
+  /** Truncated story title — shown as inverted label (replaces plain title above description) */
   badgeBottom?: string;
   isExpanded?: boolean;
   onClick: () => void;
 };
 
 /**
- * Compact card for home / discover: scan title + summary + meta before opening timeline.
+ * Compact card for home / discover: image strip, date span + inverted title label, summary.
  */
 export function StorySummaryCard({
   title,
@@ -44,7 +45,7 @@ export function StorySummaryCard({
 }: StorySummaryCardProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
   const filler = 3 - thumbs.length;
-  const showBadges = Boolean(badgeTop && badgeBottom);
+  const showLabels = Boolean(badgeTop && badgeBottom);
 
   return (
     <Card
@@ -54,11 +55,6 @@ export function StorySummaryCard({
       onClick={onClick}
     >
       <div className="relative h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-b border-border/40">
-        {showBadges && (
-          <div className="absolute left-2 top-2 z-10">
-            <StoryWallDateBadges top={badgeTop!} bottom={badgeBottom!} />
-          </div>
-        )}
         {thumbs.map((url, i) => (
           <div
             key={`${url}-${i}`}
@@ -80,13 +76,32 @@ export function StorySummaryCard({
       </div>
       <div className="p-3.5 flex flex-col flex-1 min-h-0">
         <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3
-            className={`font-semibold text-sm leading-snug line-clamp-2 font-display group-hover:text-primary transition-colors ${
-              isExpanded && badgeBottom ? "sr-only" : ""
-            }`}
-          >
-            {title}
-          </h3>
+          <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+            {showLabels ? (
+              <>
+                <span
+                  className={cn(
+                    "inline-flex w-fit max-w-full text-[0.65rem] font-bold uppercase tracking-wide",
+                    "text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shadow-sm"
+                  )}
+                >
+                  {badgeTop}
+                </span>
+                <p
+                  className={cn(
+                    "text-sm font-semibold leading-snug font-display rounded-md px-2.5 py-2 line-clamp-3",
+                    "bg-primary text-primary-foreground shadow-inner"
+                  )}
+                >
+                  {badgeBottom}
+                </p>
+              </>
+            ) : (
+              <h3 className="font-semibold text-sm leading-snug line-clamp-2 font-display group-hover:text-primary transition-colors">
+                {title}
+              </h3>
+            )}
+          </div>
           {topicLabel && (
             <span className="text-[0.65rem] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap shrink-0 max-w-[5.5rem] truncate">
               {topicLabel}

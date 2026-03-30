@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Star, Heart, Share2 } from "lucide-react";
-import { StoryWallDateBadges } from "@/components/discover/StoryWallDateBadges";
+import { cn } from "@/lib/utils";
 
 export type FeaturedStorySpotlightProps = {
   title: string;
@@ -14,7 +14,9 @@ export type FeaturedStorySpotlightProps = {
   likesCount?: number;
   sharesCount?: number;
   previewImages: string[];
+  /** Full-timeline date span (earliest–latest), not from preview images only */
   badgeTop?: string;
+  /** Truncated title — inverted label above description */
   badgeBottom?: string;
   isExpanded?: boolean;
   onClick: () => void;
@@ -39,7 +41,7 @@ export function FeaturedStorySpotlight({
   onClick,
 }: FeaturedStorySpotlightProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
-  const showBadges = Boolean(badgeTop && badgeBottom);
+  const showLabels = Boolean(badgeTop && badgeBottom);
 
   return (
     <Card
@@ -76,13 +78,34 @@ export function FeaturedStorySpotlight({
             )}
           </div>
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h3
-              className={`font-semibold text-xl font-display leading-tight mb-1 ${
-                isExpanded && badgeBottom ? "sr-only" : ""
-              }`}
-            >
-              {title}
-            </h3>
+            {showLabels ? (
+              <div className="flex flex-col gap-1.5 mb-2">
+                <span
+                  className={cn(
+                    "inline-flex w-fit max-w-full mx-auto sm:mx-0 text-[0.65rem] font-bold uppercase tracking-wide",
+                    "text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shadow-sm"
+                  )}
+                >
+                  {badgeTop}
+                </span>
+                <p
+                  className={cn(
+                    "text-lg font-semibold leading-tight font-display rounded-md px-2.5 py-2 line-clamp-3",
+                    "bg-primary text-primary-foreground shadow-inner"
+                  )}
+                >
+                  {badgeBottom}
+                </p>
+              </div>
+            ) : (
+              <h3
+                className={`font-semibold text-xl font-display leading-tight mb-2 ${
+                  isExpanded ? "sr-only" : ""
+                }`}
+              >
+                {title}
+              </h3>
+            )}
             <p className="text-sm text-muted-foreground mb-2">
               By <strong className="text-foreground font-medium">{creatorName}</strong>
             </p>
@@ -93,13 +116,8 @@ export function FeaturedStorySpotlight({
             )}
           </div>
         </div>
-        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
-          {showBadges && (
-            <div className="absolute left-3 top-3 z-10">
-              <StoryWallDateBadges top={badgeTop!} bottom={badgeBottom!} />
-            </div>
-          )}
-          <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end">
+        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3">
+          <div className="flex gap-1.5 justify-center sm:justify-start mb-2">
             {thumbs.map((url, i) => (
               <div
                 key={url + i}

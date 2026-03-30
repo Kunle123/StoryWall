@@ -860,7 +860,15 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
       });
     }
 
-    return timelines.map(transformTimeline);
+    const featIds = timelines.map((t: { id: string }) => t.id);
+    const featBounds = await fetchEventDateBoundsForTimelineIds(featIds);
+    return timelines.map((t: any) =>
+      transformTimeline({
+        ...t,
+        eventDateMin: featBounds.get(t.id)?.min,
+        eventDateMax: featBounds.get(t.id)?.max,
+      })
+    );
   } catch (error: any) {
     // If isFeatured column doesn't exist yet, fall back to view count
     console.warn('[getFeaturedTimelines] Featured query failed, using view count fallback:', error.message);
@@ -901,7 +909,15 @@ export async function getFeaturedTimelines(limit: number = 10): Promise<Timeline
       take: limit,
     });
 
-    return timelines.map(transformTimeline);
+    const featIdsFb = timelines.map((t: { id: string }) => t.id);
+    const featBoundsFb = await fetchEventDateBoundsForTimelineIds(featIdsFb);
+    return timelines.map((t: any) =>
+      transformTimeline({
+        ...t,
+        eventDateMin: featBoundsFb.get(t.id)?.min,
+        eventDateMax: featBoundsFb.get(t.id)?.max,
+      })
+    );
   }
 }
 
@@ -1005,7 +1021,15 @@ export async function listTimelines(options: {
       });
     }
 
-    return timelines.map(transformTimeline);
+    const listIds = timelines.map((t: { id: string }) => t.id);
+    const listBounds = await fetchEventDateBoundsForTimelineIds(listIds);
+    return timelines.map((t: any) =>
+      transformTimeline({
+        ...t,
+        eventDateMin: listBounds.get(t.id)?.min,
+        eventDateMax: listBounds.get(t.id)?.max,
+      })
+    );
   } catch (error: any) {
     // If Prisma fails (e.g., schema mismatch), fall back to raw SQL
     console.error('[listTimelines] Prisma query failed, using raw SQL fallback:', error.message);
@@ -1213,8 +1237,52 @@ export async function listTimelines(options: {
       })
     );
 
-    return timelines.map(transformTimeline);
+    const rawListIds = timelines.map((t: { id: string }) => t.id);
+    const rawBounds = await fetchEventDateBoundsForTimelineIds(rawListIds);
+    return timelines.map((t: any) =>
+      transformTimeline({
+        ...t,
+        eventDateMin: rawBounds.get(t.id)?.min,
+        eventDateMax: rawBounds.get(t.id)?.max,
+      })
+    );
   }
+}
+
+/** Min(start date) and max(end or start) across all events per timeline — for discover cards */
+async function fetchEventDateBoundsForTimelineIds(
+  timelineIds: string[]
+): Promise<Map<string, { min: string; max: string }>> {
+  const map = new Map<string, { min: string; max: string }>();
+  if (timelineIds.length === 0) return map;
+  try {
+    const placeholders = timelineIds.map((_, i) => `$${i + 1}`).join(", ");
+    const rows = await prisma.$queryRawUnsafe<
+      Array<{ timeline_id: string; min_d: Date; max_d: Date }>
+    >(
+      `SELECT timeline_id::text AS timeline_id,
+        (MIN(date))::date AS min_d,
+        (MAX(COALESCE(end_date, date)))::date AS max_d
+       FROM events
+       WHERE timeline_id IN (${placeholders})
+       GROUP BY timeline_id`,
+      ...timelineIds
+    );
+    for (const r of rows) {
+      const minIso =
+        r.min_d instanceof Date
+          ? r.min_d.toISOString().split("T")[0]
+          : String(r.min_d).slice(0, 10);
+      const maxIso =
+        r.max_d instanceof Date
+          ? r.max_d.toISOString().split("T")[0]
+          : String(r.max_d).slice(0, 10);
+      map.set(r.timeline_id, { min: minIso, max: maxIso });
+    }
+  } catch (e) {
+    console.warn("[fetchEventDateBoundsForTimelineIds]", e);
+  }
+  return map;
 }
 
 // Helper function to safely convert dates to ISO strings
@@ -1286,6 +1354,8 @@ function transformTimeline(timeline: any): Timeline {
       typeof timeline._count?.events === 'number'
         ? timeline._count.events
         : timeline.events?.length ?? 0,
+    event_date_min: timeline.eventDateMin ?? undefined,
+    event_date_max: timeline.eventDateMax ?? undefined,
     created_at: safeToISOString(timeline.createdAt),
     updated_at: safeToISOString(timeline.updatedAt),
     events: timeline.events

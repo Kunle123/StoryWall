@@ -59,6 +59,10 @@ export interface Timeline {
   share_count?: number;
   /** Total events (from DB count); may differ from \`events\` array length when preview is limited */
   event_count?: number;
+  /** Earliest event start (YYYY-MM-DD) across all events — discover date span */
+  event_date_min?: string;
+  /** Latest event end (YYYY-MM-DD) across all events — discover date span */
+  event_date_max?: string;
   created_at: string;
   updated_at: string;
   events?: Event[];

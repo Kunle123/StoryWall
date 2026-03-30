@@ -16,7 +16,7 @@ type Props = {
   timelineId: string;
   /** Top badge line (e.g. year range) — matches StoryWallDateBadges */
   badgePeriod?: string;
-  /** Bottom badge line (e.g. "19 events · Title…") — inverted headline in expanded view */
+  /** Expanded headline (e.g. "19 events · Title…") — primary bar below the period chip */
   badgeSubtitle?: string;
   /** Collapse inline timeline (discover feed) */
   onClose?: () => void;
@@ -110,7 +110,7 @@ export function DiscoverInlineTimeline({
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-border/60 bg-muted/30">
         <div className="flex items-center gap-2 min-w-0">
           {badgePeriod && (
-            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-md shrink-0 border border-primary/20">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shrink-0 shadow-sm">
               {badgePeriod}
             </span>
           )}
