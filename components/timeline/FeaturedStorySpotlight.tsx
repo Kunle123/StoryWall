@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { Star, Heart, Share2 } from "lucide-react";
+import { Eye, Heart, Share2 } from "lucide-react";
 
 export type FeaturedStorySpotlightProps = {
   title: string;
@@ -14,9 +14,14 @@ export type FeaturedStorySpotlightProps = {
   previewImages: string[];
   badgeTop?: string;
   badgeBottom?: string;
+  /** Shown in the topic pill position (same as StorySummaryCard topicLabel); defaults to “Featured”. */
+  topicLabel?: string;
   onClick: () => void;
 };
 
+/**
+ * Featured row — same layout and shape as {@link StorySummaryCard} (title strip, image strip, body).
+ */
 export function FeaturedStorySpotlight({
   title,
   summary,
@@ -28,99 +33,97 @@ export function FeaturedStorySpotlight({
   previewImages,
   badgeTop,
   badgeBottom,
+  topicLabel = "Featured",
   onClick,
 }: FeaturedStorySpotlightProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
+  const filler = 3 - thumbs.length;
   const showLabels = Boolean(badgeTop && badgeBottom);
   const headline = showLabels ? badgeBottom : title;
 
   return (
     <Card
-      className={[
-        "overflow-hidden cursor-pointer rounded-none transition-all duration-200",
-        "border-2 border-amber-400/35 dark:border-amber-500/35",
-        "bg-gradient-to-b from-amber-50/90 via-background to-background",
-        "dark:from-amber-950/30 dark:via-card dark:to-card",
-        "shadow-sm shadow-amber-500/10",
-        "hover:border-amber-500/45 hover:shadow-md hover:shadow-amber-500/15",
-      ].join(" ")}
+      className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5 rounded-none"
       onClick={onClick}
     >
-      <div className="h-1.5 bg-gradient-to-r from-amber-300/90 via-primary/75 to-amber-400/70 dark:from-amber-500/50 dark:via-primary/70 dark:to-amber-600/40" />
-      <div className="p-4 sm:p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-500/20 dark:bg-amber-500/15 px-2 py-0.5 rounded-none border border-amber-500/30 dark:border-amber-400/25">
-            <Star className="w-3 h-3 fill-amber-500 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
-            <span>
-              <span aria-hidden>✦ </span>Creator spotlight
+      <div className="w-full shrink-0 border border-primary/35 bg-primary text-primary-foreground px-3 py-2.5">
+        <p className="text-sm font-semibold leading-snug line-clamp-3 font-display">{headline}</p>
+      </div>
+
+      <div className="relative h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-x border-b border-border/40">
+        {badgeTop && (
+          <div className="absolute left-2 top-2 z-10 pointer-events-none max-w-[calc(100%-1rem)]">
+            <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
+              {badgeTop}
             </span>
-          </span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,5.5rem)_1fr] gap-4 sm:gap-5">
-          <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-0 shrink-0">
-            {creatorAvatar ? (
-              <div className="relative w-[5.5rem] h-[5.5rem] rounded-full overflow-hidden border-[3px] border-amber-400/80 dark:border-amber-500/60 shadow-md ring-2 ring-amber-100/80 dark:ring-amber-950/50">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={creatorAvatar}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-amber-50 dark:bg-amber-950/40 border-[3px] border-amber-400/70 dark:border-amber-500/50 flex items-center justify-center text-2xl font-display shadow-md ring-2 ring-amber-100/80 dark:ring-amber-950/50">
-                {creatorName.charAt(0).toUpperCase()}
-              </div>
-            )}
           </div>
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <p className="text-sm text-muted-foreground mb-2">
-              By <strong className="text-foreground font-medium">{creatorName}</strong>
-            </p>
-            {summary && (
-              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 mb-0 border-l-2 border-amber-500/50 dark:border-amber-500/40 pl-3 italic sm:max-w-prose mx-auto sm:mx-0">
-                {summary}
-              </p>
-            )}
+        )}
+        {thumbs.map((url, i) => (
+          <div
+            key={`${url}-${i}`}
+            className="relative min-h-0 min-w-0 flex-1 rounded-none overflow-hidden border border-border/60 bg-muted shadow-sm"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="h-full w-full object-cover" />
           </div>
-        </div>
-
-        <div className="mt-4 w-full border border-primary/35 bg-primary text-primary-foreground px-3 py-2.5 sm:py-3">
-          <p className="text-lg font-semibold leading-tight font-display line-clamp-3">{headline}</p>
-        </div>
-
-        <div className="mt-0 rounded-none border border-t-0 border-amber-200/60 dark:border-amber-800/45 bg-amber-50/60 dark:bg-amber-950/25 p-3 relative">
-          {badgeTop && (
-            <div className="absolute left-4 top-4 z-10 pointer-events-none max-w-[min(92%,14rem)]">
-              <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
-                {badgeTop}
-              </span>
+        ))}
+        {filler > 0 &&
+          Array.from({ length: filler }).map((_, i) => (
+            <div
+              key={`empty-${i}`}
+              className="min-h-0 min-w-0 flex-1 rounded-none border border-dashed border-border/60 bg-background/80 flex items-center justify-center"
+            >
+              <Eye className="w-4 h-4 text-muted-foreground/50" />
             </div>
-          )}
-          <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end pt-1">
-            {thumbs.map((url, i) => (
-              <div
-                key={url + i}
-                className="relative w-[3.25rem] h-[3.25rem] rounded-none overflow-hidden border border-amber-200/80 dark:border-amber-800/50 bg-muted shadow-sm opacity-[calc(1-0.12*i)]"
+          ))}
+      </div>
+
+      <div className="p-3.5 flex flex-col flex-1 min-h-0 border-x border-b border-border/40">
+        {topicLabel && (
+          <div className="flex justify-end mb-1.5">
+            <span className="text-[0.65rem] px-1.5 py-0.5 rounded-none bg-primary/10 text-primary border border-primary/20 whitespace-nowrap max-w-[5.5rem] truncate">
+              {topicLabel}
+            </span>
+          </div>
+        )}
+        {summary && (
+          <p className="text-muted-foreground text-xs leading-relaxed line-clamp-3 mb-3 flex-1">
+            {summary}
+          </p>
+        )}
+        <div className="text-[0.7rem] text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-auto pt-1 border-t border-border/30">
+          <span className="inline-flex items-center gap-1.5 min-w-0 max-w-[min(100%,14rem)]">
+            {creatorAvatar ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={creatorAvatar}
+                alt=""
+                aria-hidden
+                title={creatorName}
+                className="w-6 h-6 rounded-full object-cover border border-border/50 shrink-0 bg-muted"
+              />
+            ) : (
+              <span
+                className="w-6 h-6 rounded-full bg-muted border border-border/50 shrink-0 flex items-center justify-center text-[0.55rem] font-medium text-muted-foreground"
+                aria-hidden
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span>{viewLabel} views</span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-0.5" title="Likes">
-              <Heart className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
-              {likesCount}
-            </span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-0.5" title="Shares">
-              <Share2 className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
-              {sharesCount}
-            </span>
-          </div>
+                {creatorName.slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span className="truncate">{creatorName}</span>
+          </span>
+          <span aria-hidden>·</span>
+          <span>{viewLabel} views</span>
+          <span aria-hidden>·</span>
+          <span className="inline-flex items-center gap-0.5" title="Likes">
+            <Heart className="w-3 h-3 shrink-0 opacity-80" aria-hidden />
+            {likesCount}
+          </span>
+          <span aria-hidden>·</span>
+          <span className="inline-flex items-center gap-0.5" title="Shares">
+            <Share2 className="w-3 h-3 shrink-0 opacity-80" aria-hidden />
+            {sharesCount}
+          </span>
         </div>
       </div>
     </Card>
