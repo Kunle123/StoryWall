@@ -44,7 +44,7 @@ export function FeaturedStorySpotlight({
   return (
     <Card
       className={`overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03] ${
-        isExpanded ? "ring-2 ring-primary/50 shadow-md" : ""
+        isExpanded ? "ring-2 ring-primary/50 shadow-md rounded-b-none border-b-0" : ""
       }`}
       onClick={onClick}
     >
@@ -76,7 +76,13 @@ export function FeaturedStorySpotlight({
             )}
           </div>
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h3 className="font-semibold text-xl font-display leading-tight mb-1">{title}</h3>
+            <h3
+              className={`font-semibold text-xl font-display leading-tight mb-1 ${
+                isExpanded && badgeBottom ? "sr-only" : ""
+              }`}
+            >
+              {title}
+            </h3>
             <p className="text-sm text-muted-foreground mb-2">
               By <strong className="text-foreground font-medium">{creatorName}</strong>
             </p>

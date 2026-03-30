@@ -49,7 +49,7 @@ export function StorySummaryCard({
   return (
     <Card
       className={`overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5 ${
-        isExpanded ? "ring-2 ring-primary/45 shadow-md" : ""
+        isExpanded ? "ring-2 ring-primary/45 shadow-md rounded-b-none border-b-0" : ""
       }`}
       onClick={onClick}
     >
@@ -80,7 +80,11 @@ export function StorySummaryCard({
       </div>
       <div className="p-3.5 flex flex-col flex-1 min-h-0">
         <div className="flex items-start justify-between gap-2 mb-1.5">
-          <h3 className="font-semibold text-sm leading-snug line-clamp-2 font-display group-hover:text-primary transition-colors">
+          <h3
+            className={`font-semibold text-sm leading-snug line-clamp-2 font-display group-hover:text-primary transition-colors ${
+              isExpanded && badgeBottom ? "sr-only" : ""
+            }`}
+          >
             {title}
           </h3>
           {topicLabel && (

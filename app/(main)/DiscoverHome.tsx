@@ -335,9 +335,14 @@ export default function DiscoverHome() {
                         {expandedTimelineId === timeline.id && (
                           <div
                             ref={inlineTimelineRef}
-                            className="w-full mt-3 animate-in fade-in duration-300"
+                            className="w-full mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
                           >
-                            <DiscoverInlineTimeline timelineId={timeline.id} />
+                            <DiscoverInlineTimeline
+                              timelineId={timeline.id}
+                              badgePeriod={timeline.dateBadgeTop}
+                              badgeSubtitle={timeline.dateBadgeBottom}
+                              onClose={() => toggleExpand(timeline.id)}
+                            />
                           </div>
                         )}
                       </Fragment>
@@ -427,9 +432,14 @@ export default function DiscoverHome() {
                           {expandedTimelineId === timeline.id && (
                             <div
                               ref={inlineTimelineRef}
-                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-1 animate-in fade-in duration-300"
+                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
                             >
-                              <DiscoverInlineTimeline timelineId={timeline.id} />
+                              <DiscoverInlineTimeline
+                                timelineId={timeline.id}
+                                badgePeriod={timeline.dateBadgeTop}
+                                badgeSubtitle={timeline.dateBadgeBottom}
+                                onClose={() => toggleExpand(timeline.id)}
+                              />
                             </div>
                           )}
                         </Fragment>
@@ -483,9 +493,14 @@ export default function DiscoverHome() {
                           {expandedTimelineId === timeline.id && (
                             <div
                               ref={inlineTimelineRef}
-                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-1 animate-in fade-in duration-300"
+                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
                             >
-                              <DiscoverInlineTimeline timelineId={timeline.id} />
+                              <DiscoverInlineTimeline
+                                timelineId={timeline.id}
+                                badgePeriod={timeline.dateBadgeTop}
+                                badgeSubtitle={timeline.dateBadgeBottom}
+                                onClose={() => toggleExpand(timeline.id)}
+                              />
                             </div>
                           )}
                         </Fragment>
