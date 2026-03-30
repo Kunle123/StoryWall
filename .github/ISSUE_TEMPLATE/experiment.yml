@@ -1,54 +1,58 @@
-name: Growth / experiment
-description: Hypothesis-driven test, rollout, or research task
-title: "[experiment] "
-labels: ["growth"]
+name: Test or experiment
+description: Try something measurable — hypothesis in plain language
+title: ""
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Use for **growth experiments**, landing tests, or measurable bets. For pure research notes, add label `research` after filing.
+        For **tests, rollouts, or growth ideas**. Use **simple words** so everyone skimming the board understands the bet.
+        Add **screenshots or a one-page sketch** if the change is visual.
   - type: textarea
     id: goal
     attributes:
-      label: Goal
-      description: What are we trying to learn or move?
+      label: What are we trying to learn or improve?
     validations:
       required: true
   - type: textarea
     id: why
     attributes:
-      label: Why it matters
-      description: Hypothesis and how we’ll decide success.
+      label: Our best guess (hypothesis)
+      description: If we change X, we think Y will happen — in everyday language.
     validations:
       required: true
   - type: textarea
+    id: visuals
+    attributes:
+      label: Mockups or screenshots (optional)
+      description: Paste images or links so the card is understandable at a glance.
+  - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance criteria
-      description: What must be true to call this done?
+      label: How we’ll know this round is done
       placeholder: |
-        - [ ] …
-        - [ ] …
+        - [ ] Change is live or behind a flag
+        - [ ] We can read results by …
     validations:
       required: true
   - type: textarea
     id: metrics
     attributes:
-      label: Success metrics / signals
-      description: Numbers or qualitative signals to watch.
+      label: What we’ll measure
+      description: Numbers or simple signals (e.g. “more people finish signup”).
   - type: textarea
     id: links
     attributes:
-      label: Links / screenshots
+      label: Links
   - type: dropdown
     id: priority
     attributes:
-      label: Priority (suggested)
+      label: Priority
       options:
-        - P2 — normal
-        - P1 — high
-        - P0 — urgent
-        - P3 — backlog
+        - Normal
+        - High
+        - Urgent
+        - Later
     validations:
       required: true
   - type: dropdown
@@ -56,11 +60,10 @@ body:
     attributes:
       label: Area
       options:
-        - growth
-        - marketing
-        - frontend
-        - content
-        - analytics
-        - other
+        - Growth / marketing
+        - What people see (frontend)
+        - Content / copy
+        - Analytics
+        - Other
     validations:
       required: true

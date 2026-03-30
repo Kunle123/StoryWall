@@ -1,63 +1,72 @@
-name: Feature
-description: Propose a feature or meaningful product change
-title: "[feature] "
-labels: ["feature"]
+name: New idea or improvement
+description: Propose something we should build or change — written so anyone on the team can understand
+title: ""
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Track execution on the **StoryWall Launch Board** (GitHub Project). Link this issue from your PR (`Closes #…` / `Refs #…`).
+        **Tips for a clear ticket**
+        - Use **everyday words** in the title (for example, add a way to save drafts instead of technical API names).
+        - **Pictures help:** paste screenshots, phone photos of sketches, or a link to Figma. Drag an image into any box below.
+        - This card shows on the **StoryWall Launch Board**; link PRs with Closes or Refs and the issue number.
   - type: textarea
     id: goal
     attributes:
-      label: Goal
-      description: What outcome do we want?
+      label: What do we want to happen?
+      description: In one short paragraph — what should a real user be able to do or see?
+      placeholder: "Example — On a phone, show a short preview first and let them tap to read the rest."
     validations:
       required: true
   - type: textarea
     id: why
     attributes:
-      label: Why it matters
-      description: User impact, strategy, or problem this solves.
+      label: Why does this matter?
+      description: Who benefits, or what problem goes away? No jargon required.
     validations:
       required: true
   - type: textarea
+    id: visuals
+    attributes:
+      label: Screenshots, mockups, or sketches (optional but helpful)
+      description: Drag images into this box, or paste a link. Even a rough sketch helps.
+      placeholder: Paste images here, or write a link to Figma or a doc.
+  - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance criteria
-      description: Verifiable checklist (what “done” looks like).
+      label: How we will know it is done
+      description: Simple checklist anyone can verify.
       placeholder: |
-        - [ ] …
-        - [ ] …
+        - [ ] On a phone, I can …
+        - [ ] Nothing breaks when …
     validations:
       required: true
   - type: textarea
     id: links
     attributes:
-      label: Links / screenshots / references
-      description: Figma, mocks, URLs, prior issues.
+      label: Links (optional)
+      description: Related issues, docs, or pages.
   - type: dropdown
     id: priority
     attributes:
-      label: Priority (suggested)
+      label: How urgent does this feel?
       options:
-        - P2 — normal
-        - P0 — urgent
-        - P1 — high
-        - P3 — backlog
+        - Normal — when we can
+        - Urgent — blocks people
+        - High — soon
+        - Later — backlog
     validations:
       required: true
   - type: dropdown
     id: area
     attributes:
-      label: Area
+      label: Rough area
       options:
-        - frontend
-        - backend
-        - full-stack
-        - infra
-        - design
-        - content
-        - other
+        - What people see in the app (frontend)
+        - Servers / data (backend)
+        - Both
+        - Hosting / tooling (infra)
+        - Design / copy
+        - Other
     validations:
       required: true

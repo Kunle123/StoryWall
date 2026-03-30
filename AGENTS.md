@@ -23,16 +23,25 @@ This repo uses **GitHub Issues + GitHub Projects** as the source of truth for wo
 
 **Board columns (StoryWall Launch Board):**
 
-| Column        | Meaning |
-|---------------|---------|
-| **Planning**  | Ideas, feedback, or work that still needs shaping before it’s ready to build. |
-| **Not Started** | Triaged and ready to pick up next. |
-| **In Progress** | Actively being built (local or branch work). |
-| **Ready for test** | **Merged to `main` / deploy triggered** — verify on the live URL before calling it done. |
-| **Blocked**   | Waiting on a dependency, decision, or external; say what you need in a comment. |
-| **Done**      | **Deployed** to the agreed environment **and tested** in prod (or staging if that is your gate). |
+| Column | Meaning (team) | In plain language (for anyone reading the board) |
+|--------|----------------|---------------------------------------------------|
+| **Planning** | Ideas, feedback, or work that still needs shaping before it’s ready to build. | **Thinking it through** — not ready to build yet. |
+| **Not Started** | Triaged and ready to pick up next. | **Queued** — we agree it should happen; no one is building it yet. |
+| **In Progress** | Actively being built (local or branch work). | **Being built now.** |
+| **Ready for test** | **Merged to `main` / deploy triggered** — verify on the live URL before calling it done. | **Ready for you to try** — code is on the main branch / live for checking. Please click around and confirm it works. |
+| **Blocked** | Waiting on a dependency, decision, or external; say what you need in a comment. | **Stuck** — waiting on someone or something; the card should say what we need. |
+| **Done** | **Deployed** to the agreed environment **and tested** in prod (or staging if that is your gate). | **Shipped and checked** — live for real users and someone verified it. |
 
 Use **Ready for test** so “merged” is not confused with “shipped and verified.”
+
+### Writing issues so non-engineers understand
+
+- **Title:** Describe what a **person sees or gets**, not internal code names (good: “Show story preview on phones”; bad: “Implement detailExpanded state”).
+- **Body:** Short paragraphs, **bullets**, and **“how we’ll know it’s done”** in everyday words.
+- **Pictures:** Encourage **screenshots, screen recordings, photos of sketches**, or links to Figma. GitHub lets you **drag images into the issue** — they display inline and make cards scannable on the board.
+- **Templates:** Use **New idea or improvement**, **Something’s broken**, or **Test or experiment** when filing — they’re worded for lay readers and include room for visuals.
+
+Agents creating issues with `gh issue create` should follow the same rules and add an **Images / screenshots** section when the work is visual.
 
 Use **labels** for type (`feature`, `bug`, `growth`, `research`, `infra`, …) and **Priority** / **Area** as project fields—not a separate “Bugs” column mixed with status.
 
@@ -40,7 +49,7 @@ Use **labels** for type (`feature`, `bug`, `growth`, `research`, `infra`, …) a
 
 1. **Start from an issue**  
    Prefer a GitHub issue number in the branch name or PR description (`Fixes #123` or `Refs #123`).  
-   **If you ship new work and no issue exists yet, create one immediately** (title + short body + label `enhancement` or `bug`), add it to the **StoryWall Launch Board**, set status (**in-progress** while coding, **ready-for-test** after merge to `main`), and link commits/PRs (`Refs #N`). Do not wait for the user to ask for an issue.
+   **If you ship new work and no issue exists yet, create one immediately** (plain-language title + short body + label `enhancement` or `bug`), add it to the **StoryWall Launch Board**, set status (**in-progress** while coding, **ready-for-test** after merge to `main`), and link commits/PRs (`Refs #N`). Do not wait for the user to ask for an issue. Prefer **everyday wording** and add **screenshots or sketch links** when the change is user-visible.
 
 2. **Before coding**  
    Read the issue; restate **acceptance criteria** in the PR description or first commit message when helpful.

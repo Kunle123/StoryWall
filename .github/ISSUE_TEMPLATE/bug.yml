@@ -1,78 +1,88 @@
-name: Bug
-description: Report a defect or broken behavior
-title: "[bug] "
+name: Something’s broken
+description: Report a problem — steps and pictures help us fix it faster
+title: ""
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Prefer **repro steps** and **expected vs actual**. Link PRs with `Fixes #…` when the fix ships.
+        **Tips**
+        - Say **what you expected** vs **what happened** in plain language.
+        - A **screenshot or short screen recording** is worth a lot — paste images below.
+        - Link the fix with `Fixes #…` in the PR when it ships.
   - type: textarea
     id: summary
     attributes:
-      label: What happened?
-      description: Short summary of the bug.
+      label: What went wrong?
+      description: One or two sentences anyone can understand.
     validations:
       required: true
   - type: textarea
     id: why
     attributes:
       label: Why it matters
-      description: User impact, severity, who is blocked.
+      description: Who is stuck, or how bad is it?
     validations:
       required: true
   - type: textarea
+    id: visuals
+    attributes:
+      label: Screenshot or recording (strongly encouraged)
+      description: Drag an image or GIF here, or describe what you see on screen.
+  - type: textarea
     id: repro
     attributes:
-      label: Steps to reproduce
+      label: What did you do before it broke?
+      description: Step by step — like teaching a friend.
       placeholder: |
-        1. …
-        2. …
+        1. I opened …
+        2. I tapped …
+        3. Then …
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: What should have happened?
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
-      label: Actual behavior
+      label: What happened instead?
     validations:
       required: true
   - type: textarea
     id: environment
     attributes:
-      label: Environment
-      description: Browser, OS, device, account type if relevant.
-      placeholder: Safari 17, iOS, …
+      label: Phone, browser, or computer?
+      description: e.g. iPhone Safari, Chrome on Windows, …
+      placeholder: e.g. Safari on iPhone 15, iOS 18
   - type: textarea
     id: links
     attributes:
-      label: Links / screenshots
-      description: Screen recording, URLs, console errors.
+      label: Extra links (optional)
+      description: URL, error message text, or another issue.
   - type: dropdown
     id: priority
     attributes:
-      label: Priority (suggested)
+      label: How urgent?
       options:
-        - P1 — high
-        - P0 — urgent
-        - P2 — normal
-        - P3 — backlog
+        - High — many people hit this
+        - Urgent — site or data at risk
+        - Normal
+        - Low — annoying but workaround exists
     validations:
       required: true
   - type: dropdown
     id: area
     attributes:
-      label: Area
+      label: Rough area
       options:
-        - frontend
-        - backend
-        - auth
-        - infra
-        - other
+        - What people see (frontend)
+        - Sign-in / accounts (auth)
+        - Servers / data (backend)
+        - Hosting / infra
+        - Other
     validations:
       required: true

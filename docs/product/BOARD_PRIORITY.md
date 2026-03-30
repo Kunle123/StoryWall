@@ -1,5 +1,7 @@
 # StoryWall Launch Board — suggested layout
 
+**Reading the board:** Column names are explained in plain language in **`AGENTS.md`** (table: “In plain language”). Issue titles should also be easy for anyone to understand; use templates under **GitHub → New issue** for friendly wording and room for **screenshots**.
+
 Use this to **drag cards** into columns or to align your **Priority** / **Status** fields with the backlog.
 
 **Priority order:** P0 → P1 → P2 → Eng (see [`current-sprint.md`](./current-sprint.md)).
