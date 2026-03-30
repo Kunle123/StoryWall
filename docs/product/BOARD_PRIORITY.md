@@ -31,6 +31,7 @@ Add **Ready for test** in GitHub: **Project → … → Settings → Custom fiel
 | [#7](https://github.com/Kunle123/StoryWall/issues/7) | Homepage UI vs mockup |
 | [#25](https://github.com/Kunle123/StoryWall/issues/25) | GSC + SEO hygiene |
 | [#26](https://github.com/Kunle123/StoryWall/issues/26) | Home: Explore vs How it works tabs (first fold) |
+| [#31](https://github.com/Kunle123/StoryWall/issues/31) | Mobile story page: summary → full view + FAB collapse |
 
 ### P1
 

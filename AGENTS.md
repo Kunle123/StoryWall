@@ -39,7 +39,8 @@ Use **labels** for type (`feature`, `bug`, `growth`, `research`, `infra`, …) a
 ## Rules for every coding task
 
 1. **Start from an issue**  
-   Prefer a GitHub issue number in the branch name or PR description (`Fixes #123` or `Refs #123`).
+   Prefer a GitHub issue number in the branch name or PR description (`Fixes #123` or `Refs #123`).  
+   **If you ship new work and no issue exists yet, create one immediately** (title + short body + label `enhancement` or `bug`), add it to the **StoryWall Launch Board**, set status (**in-progress** while coding, **ready-for-test** after merge to `main`), and link commits/PRs (`Refs #N`). Do not wait for the user to ask for an issue.
 
 2. **Before coding**  
    Read the issue; restate **acceptance criteria** in the PR description or first commit message when helpful.

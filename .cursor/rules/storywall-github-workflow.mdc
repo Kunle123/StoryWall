@@ -20,4 +20,4 @@ Work is tracked in **GitHub Issues** and **GitHub Projects**, not in chat. Befor
    - If the issue is **missing from the project**, run `gh project item-add 1 --owner Kunle123 --url https://github.com/Kunle123/StoryWall/issues/N` first, then set status.
    - Requires **`gh`** with **`read:project`** + **`project`** scopes (`gh auth refresh -h github.com -s read:project,project`). If `item-edit` fails, tell the user to run the script locally.
 
-If no issue exists for non-trivial work, ask to create one (or create it with the repo issue templates) before deep implementation.
+If no issue exists for **new or non-trivial work**, **create the GitHub issue yourself** (do not ask first): `gh issue create` with `enhancement` or `bug`, add to project `gh project item-add 1 --owner Kunle123 --url …/issues/N`, set board status, then implement and link `Refs #N`. Use repo templates if helpful.
