@@ -36,13 +36,20 @@ export function FeaturedStorySpotlight({
 
   return (
     <Card
-      className="overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03] rounded-none"
+      className={[
+        "overflow-hidden cursor-pointer rounded-none transition-all duration-200",
+        "border-2 border-amber-400/35 dark:border-amber-500/35",
+        "bg-gradient-to-b from-amber-50/90 via-background to-background",
+        "dark:from-amber-950/30 dark:via-card dark:to-card",
+        "shadow-sm shadow-amber-500/10",
+        "hover:border-amber-500/45 hover:shadow-md hover:shadow-amber-500/15",
+      ].join(" ")}
       onClick={onClick}
     >
-      <div className="h-1 bg-gradient-to-r from-amber-400/90 via-primary/80 to-violet-500/80" />
+      <div className="h-1.5 bg-gradient-to-r from-amber-300/90 via-primary/75 to-amber-400/70 dark:from-amber-500/50 dark:via-primary/70 dark:to-amber-600/40" />
       <div className="p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-none border border-amber-500/20">
+          <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-500/20 dark:bg-amber-500/15 px-2 py-0.5 rounded-none border border-amber-500/30 dark:border-amber-400/25">
             <Star className="w-3 h-3 fill-amber-500 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
             <span>
               <span aria-hidden>✦ </span>Creator spotlight
@@ -52,7 +59,7 @@ export function FeaturedStorySpotlight({
         <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,5.5rem)_1fr] gap-4 sm:gap-5">
           <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-0 shrink-0">
             {creatorAvatar ? (
-              <div className="relative w-[5.5rem] h-[5.5rem] rounded-full overflow-hidden border-[3px] border-amber-500/70 shadow-lg ring-2 ring-background">
+              <div className="relative w-[5.5rem] h-[5.5rem] rounded-full overflow-hidden border-[3px] border-amber-400/80 dark:border-amber-500/60 shadow-md ring-2 ring-amber-100/80 dark:ring-amber-950/50">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={creatorAvatar}
@@ -61,7 +68,7 @@ export function FeaturedStorySpotlight({
                 />
               </div>
             ) : (
-              <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-muted border-[3px] border-amber-500/50 flex items-center justify-center text-2xl font-display shadow-lg ring-2 ring-background">
+              <div className="w-[5.5rem] h-[5.5rem] rounded-full bg-amber-50 dark:bg-amber-950/40 border-[3px] border-amber-400/70 dark:border-amber-500/50 flex items-center justify-center text-2xl font-display shadow-md ring-2 ring-amber-100/80 dark:ring-amber-950/50">
                 {creatorName.charAt(0).toUpperCase()}
               </div>
             )}
@@ -71,7 +78,7 @@ export function FeaturedStorySpotlight({
               By <strong className="text-foreground font-medium">{creatorName}</strong>
             </p>
             {summary && (
-              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 mb-0 border-l-2 border-amber-500/45 pl-3 italic sm:max-w-prose mx-auto sm:mx-0">
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4 mb-0 border-l-2 border-amber-500/50 dark:border-amber-500/40 pl-3 italic sm:max-w-prose mx-auto sm:mx-0">
                 {summary}
               </p>
             )}
@@ -82,7 +89,7 @@ export function FeaturedStorySpotlight({
           <p className="text-lg font-semibold leading-tight font-display line-clamp-3">{headline}</p>
         </div>
 
-        <div className="mt-0 rounded-none border border-t-0 border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
+        <div className="mt-0 rounded-none border border-t-0 border-amber-200/60 dark:border-amber-800/45 bg-amber-50/60 dark:bg-amber-950/25 p-3 relative">
           {badgeTop && (
             <div className="absolute left-4 top-4 z-10 pointer-events-none max-w-[min(92%,14rem)]">
               <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
@@ -94,7 +101,7 @@ export function FeaturedStorySpotlight({
             {thumbs.map((url, i) => (
               <div
                 key={url + i}
-                className="relative w-[3.25rem] h-[3.25rem] rounded-none overflow-hidden border border-border/80 bg-muted shadow-sm opacity-[calc(1-0.12*i)]"
+                className="relative w-[3.25rem] h-[3.25rem] rounded-none overflow-hidden border border-amber-200/80 dark:border-amber-800/50 bg-muted shadow-sm opacity-[calc(1-0.12*i)]"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="w-full h-full object-cover" />
