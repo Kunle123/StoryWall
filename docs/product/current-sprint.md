@@ -79,7 +79,8 @@
 - **2026-03-28 (pm):** Shipped discover **Explore / How it works** tabs ([#26](https://github.com/Kunle123/StoryWall/issues/26)), mockup-aligned spotlight + summary cards ([#7](https://github.com/Kunle123/StoryWall/issues/7)), optional **`NEXT_PUBLIC_FOUNDER_DEMO_URL`** + ops doc for flagship examples ([#16](https://github.com/Kunle123/StoryWall/issues/16) — DB featuring + video still manual). See `docs/product/DISCOVER_UI_MOCKUP_NOTES.md`, `docs/product/FLAGSHIP_EXAMPLES.md`.
 - **2026-03-29:** **`/discover` in sitemap** ([#25](https://github.com/Kunle123/StoryWall/issues/25)); **global Feedback** in app header ([#18](https://github.com/Kunle123/StoryWall/issues/18)) — still verify GSC + monitoring per issue #25 checklist.
 - **2026-03-29 (pm):** **#9** admin route auth (`requireAdmin`); upload requires sign-in. **#4** tiered publish credits (+30/+20/+10) via `lib/db/publishRewards.ts` on public create / private→public. Verify on staging/prod.
+- **2026-03-30 (board sync):** GitHub Project **Status** set for **#34** → **Ready for test** (was unset: `gh project item-list` defaults to **30** items; #34 was past the page). **`scripts/gh-board-set-status.sh`** fixed: `--limit 200` + `gh -q` filter (avoids jq parse errors on long issue bodies). **#28** (restore-point bookmark) moved **In Progress** → **Planning**. Comments on **#34** / **#30** with ship ref **`90c44f3`**.
 
 ---
 
-*Week of **2026-03-28***
+*Week of **2026-03-28** (notes updated 2026-03-30)*

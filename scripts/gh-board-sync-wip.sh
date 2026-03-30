@@ -15,5 +15,5 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 # Strategy / gates — not dev sprint (see issue #14)
 "$DIR/gh-board-set-status.sh" 14 planning
 
-# RFT queue (merge on main): #4 #7 #9 #25 #26 — run \`… N done\` after prod smoke test
+# RFT queue (merge on main): #4 #7 #9 #25 #26 #29–#34 — run \`… N done\` after prod smoke test
 echo "OK. RFT → Done only after deploy + test: ./scripts/gh-board-set-status.sh N done"

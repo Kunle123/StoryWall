@@ -66,8 +66,11 @@ if [[ -z "$OPTION_ID" || "$OPTION_ID" == "null" ]]; then
   exit 1
 fi
 
-JSON=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json)
-ITEM_ID=$(echo "$JSON" | jq -r --argjson n "$ISSUE_NUM" '.items[] | select(.content.number == $n) | .id' | head -1)
+# Use gh's --jq (not piping raw JSON to jq): issue bodies can contain unescaped
+# newlines/control chars and break jq.parse.
+ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" --owner "$OWNER" --format json \
+  --limit 200 \
+  -q ".items[] | select(.content.number == $ISSUE_NUM) | .id" | head -1)
 
 if [[ -z "$ITEM_ID" || "$ITEM_ID" == "null" ]]; then
   echo "No project item found for issue #$ISSUE_NUM. Add it first:"
