@@ -14,22 +14,22 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   timelineId: string;
-  /** Top badge line (e.g. year range) — matches StoryWallDateBadges */
+  /** Optional date span chip (e.g. year range) — square chip, no event count */
   badgePeriod?: string;
-  /** Expanded headline (e.g. "19 events · Title…") — primary bar below the period chip */
-  badgeSubtitle?: string;
+  /** Title line for the primary strip (truncated title — no event count) */
+  titleLine?: string;
   /** Collapse inline timeline (discover feed) */
   onClose?: () => void;
 };
 
 /**
  * Full timeline embedded in discover feed (GitHub #29).
- * When badgeSubtitle is set, it replaces the default title row with an inverted primary bar.
+ * Single primary title strip: date (optional) + title + close + full page.
  */
 export function DiscoverInlineTimeline({
   timelineId,
   badgePeriod,
-  badgeSubtitle,
+  titleLine,
   onClose,
 }: Props) {
   const [loading, setLoading] = useState(true);
@@ -98,33 +98,31 @@ export function DiscoverInlineTimeline({
   };
   const slugOrId = tl.slug || tl.id;
   const storyTitle = (tl.title && String(tl.title).trim()) || "Story";
-  /** Prefer badge line as main headline when provided (matches summary card lower label) */
-  const headline = badgeSubtitle?.trim() || storyTitle;
-  const showStoryTitleSub =
-    Boolean(badgeSubtitle?.trim()) &&
-    Boolean(storyTitle) &&
-    badgeSubtitle!.trim() !== storyTitle;
+  const headline = (titleLine && titleLine.trim()) || storyTitle;
 
   return (
-    <div className="rounded-xl border border-border bg-card/60 overflow-hidden shadow-inner motion-reduce:animate-none">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-b border-border/60 bg-muted/30">
-        <div className="flex items-center gap-2 min-w-0">
-          {badgePeriod && (
-            <span className="text-[0.65rem] font-bold uppercase tracking-wide text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shrink-0 shadow-sm">
-              {badgePeriod}
-            </span>
-          )}
-          <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-            Full timeline
+    <div className="rounded-none border-0 bg-card/60 overflow-hidden shadow-inner motion-reduce:animate-none">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 border-b border-primary/25",
+          "bg-primary text-primary-foreground"
+        )}
+      >
+        {badgePeriod && (
+          <span className="text-[0.65rem] font-bold uppercase tracking-wide shrink-0 bg-primary-foreground/15 px-2 py-1 border border-primary-foreground/25 rounded-none">
+            {badgePeriod}
           </span>
-        </div>
+        )}
+        <p className="flex-1 min-w-0 text-sm sm:text-[0.95rem] font-semibold leading-snug font-display line-clamp-3">
+          {headline}
+        </p>
         <div className="flex items-center gap-1.5 shrink-0">
           {onClose && (
             <Button
               type="button"
               variant="secondary"
               size="icon"
-              className="h-8 w-8 rounded-full border border-border shadow-sm"
+              className="h-8 w-8 rounded-none border border-border bg-background text-foreground shadow-sm hover:bg-muted"
               onClick={(e) => {
                 e.stopPropagation();
                 onClose();
@@ -134,31 +132,18 @@ export function DiscoverInlineTimeline({
               <X className="w-4 h-4" />
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-8 shrink-0 text-xs" asChild>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 shrink-0 text-xs rounded-none border border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground hover:bg-primary-foreground/20"
+            asChild
+          >
             <Link href={`/timeline/${encodeURIComponent(slugOrId)}`}>
               <ExternalLink className="w-3.5 h-3.5 mr-1.5" aria-hidden />
               Full page
             </Link>
           </Button>
         </div>
-      </div>
-
-      {/* Inverted headline: same copy as badge bottom on summary card — stands out from body */}
-      <div
-        className={cn(
-          "px-3 py-3 sm:py-3.5 border-b border-primary/25",
-          "bg-primary text-primary-foreground",
-          "motion-reduce:transition-none"
-        )}
-      >
-        <p className="text-sm sm:text-[0.95rem] font-semibold leading-snug font-display line-clamp-4">
-          {headline}
-        </p>
-        {showStoryTitleSub && (
-          <p className="text-xs text-primary-foreground/85 mt-1.5 line-clamp-2 font-medium">
-            {storyTitle}
-          </p>
-        )}
       </div>
 
       <div className="max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6">

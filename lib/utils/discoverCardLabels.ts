@@ -1,6 +1,6 @@
 /**
  * Discover card copy: date span from **full timeline** bounds (API), title pill text.
- * Image strip no longer shows stacked badges — date + title live above the description.
+ * Date span overlays the image strip; title pill sits above the description.
  */
 export function deriveDiscoverCardLabels(
   title: string,
@@ -32,12 +32,3 @@ export function deriveDiscoverCardLabels(
   };
 }
 
-/** Headline for expanded inline timeline (matches former badge bottom line) */
-export function deriveExpandedDiscoverHeadline(
-  title: string,
-  eventCount: number,
-  titlePill: string
-): string {
-  const ev = `${eventCount} event${eventCount === 1 ? "" : "s"}`;
-  return `${ev} · ${titlePill}`;
-}

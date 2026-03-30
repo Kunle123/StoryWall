@@ -13,19 +13,17 @@ export type StorySummaryCardProps = {
   likesCount?: number;
   sharesCount?: number;
   viewLabel: string;
-  eventCount: number;
   previewImages: string[];
   topicLabel?: string;
-  /** Full-timeline date span (e.g. 1933–1935) — not from preview images only */
+  /** Full-timeline date span (e.g. 1933–1935) — overlaid on image strip */
   badgeTop?: string;
-  /** Truncated story title — shown as inverted label (replaces plain title above description) */
+  /** Truncated story title — shown as label above description */
   badgeBottom?: string;
-  isExpanded?: boolean;
   onClick: () => void;
 };
 
 /**
- * Compact card for home / discover: image strip, date span + inverted title label, summary.
+ * Compact card for home / discover: date on image strip, title label above summary.
  */
 export function StorySummaryCard({
   title,
@@ -35,12 +33,10 @@ export function StorySummaryCard({
   likesCount = 0,
   sharesCount = 0,
   viewLabel,
-  eventCount,
   previewImages,
   topicLabel,
   badgeTop,
   badgeBottom,
-  isExpanded = false,
   onClick,
 }: StorySummaryCardProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
@@ -49,12 +45,17 @@ export function StorySummaryCard({
 
   return (
     <Card
-      className={`overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5 ${
-        isExpanded ? "ring-2 ring-primary/45 shadow-md rounded-b-none border-b-0" : ""
-      }`}
+      className="overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group h-full flex flex-col hover:-translate-y-0.5"
       onClick={onClick}
     >
       <div className="relative h-28 bg-gradient-to-br from-muted/90 via-muted to-primary/[0.08] dark:from-muted dark:via-primary/[0.06] dark:to-violet-950/30 flex items-stretch gap-1.5 px-2 py-2 shrink-0 border-b border-border/40">
+        {badgeTop && (
+          <div className="absolute left-2 top-2 z-10 pointer-events-none max-w-[calc(100%-1rem)]">
+            <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
+              {badgeTop}
+            </span>
+          </div>
+        )}
         {thumbs.map((url, i) => (
           <div
             key={`${url}-${i}`}
@@ -78,24 +79,14 @@ export function StorySummaryCard({
         <div className="flex items-start justify-between gap-2 mb-1.5">
           <div className="min-w-0 flex-1 flex flex-col gap-1.5">
             {showLabels ? (
-              <>
-                <span
-                  className={cn(
-                    "inline-flex w-fit max-w-full text-[0.65rem] font-bold uppercase tracking-wide",
-                    "text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shadow-sm"
-                  )}
-                >
-                  {badgeTop}
-                </span>
-                <p
-                  className={cn(
-                    "text-sm font-semibold leading-snug font-display rounded-md px-2.5 py-2 line-clamp-3",
-                    "bg-primary text-primary-foreground shadow-inner"
-                  )}
-                >
-                  {badgeBottom}
-                </p>
-              </>
+              <p
+                className={cn(
+                  "text-sm font-semibold leading-snug font-display px-2.5 py-2 line-clamp-3 rounded-none",
+                  "bg-primary text-primary-foreground shadow-sm"
+                )}
+              >
+                {badgeBottom}
+              </p>
             ) : (
               <h3 className="font-semibold text-sm leading-snug line-clamp-2 font-display group-hover:text-primary transition-colors">
                 {title}
@@ -103,7 +94,7 @@ export function StorySummaryCard({
             )}
           </div>
           {topicLabel && (
-            <span className="text-[0.65rem] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary whitespace-nowrap shrink-0 max-w-[5.5rem] truncate">
+            <span className="text-[0.65rem] px-1.5 py-0.5 rounded-none bg-primary/10 text-primary border border-primary/20 whitespace-nowrap shrink-0 max-w-[5.5rem] truncate">
               {topicLabel}
             </span>
           )}
@@ -133,10 +124,6 @@ export function StorySummaryCard({
               </span>
             )}
             <span className="truncate">{creatorName}</span>
-          </span>
-          <span aria-hidden>·</span>
-          <span>
-            {eventCount} event{eventCount === 1 ? "" : "s"}
           </span>
           <span aria-hidden>·</span>
           <span>{viewLabel} views</span>

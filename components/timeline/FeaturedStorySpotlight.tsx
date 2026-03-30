@@ -10,15 +10,13 @@ export type FeaturedStorySpotlightProps = {
   creatorName: string;
   creatorAvatar?: string;
   viewLabel: string;
-  eventCount: number;
   likesCount?: number;
   sharesCount?: number;
   previewImages: string[];
-  /** Full-timeline date span (earliest–latest), not from preview images only */
+  /** Full-timeline date span — overlaid on preview strip */
   badgeTop?: string;
-  /** Truncated title — inverted label above description */
+  /** Truncated title — label above description */
   badgeBottom?: string;
-  isExpanded?: boolean;
   onClick: () => void;
 };
 
@@ -31,13 +29,11 @@ export function FeaturedStorySpotlight({
   creatorName,
   creatorAvatar,
   viewLabel,
-  eventCount,
   likesCount = 0,
   sharesCount = 0,
   previewImages,
   badgeTop,
   badgeBottom,
-  isExpanded = false,
   onClick,
 }: FeaturedStorySpotlightProps) {
   const thumbs = previewImages.filter(Boolean).slice(0, 3);
@@ -45,15 +41,13 @@ export function FeaturedStorySpotlight({
 
   return (
     <Card
-      className={`overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03] ${
-        isExpanded ? "ring-2 ring-primary/50 shadow-md rounded-b-none border-b-0" : ""
-      }`}
+      className="overflow-hidden cursor-pointer border-border/80 bg-gradient-to-br from-card via-muted/25 to-card shadow-sm hover:border-amber-500/35 hover:shadow-lg transition-all relative dark:via-primary/[0.03]"
       onClick={onClick}
     >
       <div className="h-1 bg-gradient-to-r from-amber-400/90 via-primary/80 to-violet-500/80" />
       <div className="p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
-          <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/20">
+          <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-none border border-amber-500/20">
             <Star className="w-3 h-3 fill-amber-500 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden />
             <span>
               <span aria-hidden>✦ </span>Creator spotlight
@@ -79,32 +73,16 @@ export function FeaturedStorySpotlight({
           </div>
           <div className="flex-1 min-w-0 text-center sm:text-left">
             {showLabels ? (
-              <div className="flex flex-col gap-1.5 mb-2">
-                <span
-                  className={cn(
-                    "inline-flex w-fit max-w-full mx-auto sm:mx-0 text-[0.65rem] font-bold uppercase tracking-wide",
-                    "text-primary bg-background border border-primary/35 px-2 py-0.5 rounded-md shadow-sm"
-                  )}
-                >
-                  {badgeTop}
-                </span>
-                <p
-                  className={cn(
-                    "text-lg font-semibold leading-tight font-display rounded-md px-2.5 py-2 line-clamp-3",
-                    "bg-primary text-primary-foreground shadow-inner"
-                  )}
-                >
-                  {badgeBottom}
-                </p>
-              </div>
-            ) : (
-              <h3
-                className={`font-semibold text-xl font-display leading-tight mb-2 ${
-                  isExpanded ? "sr-only" : ""
-                }`}
+              <p
+                className={cn(
+                  "text-lg font-semibold leading-tight font-display px-2.5 py-2 line-clamp-3 mb-2 rounded-none",
+                  "bg-primary text-primary-foreground shadow-inner"
+                )}
               >
-                {title}
-              </h3>
+                {badgeBottom}
+              </p>
+            ) : (
+              <h3 className="font-semibold text-xl font-display leading-tight mb-2">{title}</h3>
             )}
             <p className="text-sm text-muted-foreground mb-2">
               By <strong className="text-foreground font-medium">{creatorName}</strong>
@@ -116,8 +94,15 @@ export function FeaturedStorySpotlight({
             )}
           </div>
         </div>
-        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3">
-          <div className="flex gap-1.5 justify-center sm:justify-start mb-2">
+        <div className="mt-4 rounded-lg border border-border/70 bg-muted/35 dark:bg-muted/25 p-3 relative">
+          {badgeTop && (
+            <div className="absolute left-4 top-4 z-10 pointer-events-none max-w-[min(92%,14rem)]">
+              <span className="inline-block px-2 py-1 bg-primary text-primary-foreground text-[0.62rem] font-bold uppercase tracking-wide leading-tight rounded-none shadow-md">
+                {badgeTop}
+              </span>
+            </div>
+          )}
+          <div className="flex gap-1.5 justify-center sm:justify-start mb-2 min-h-[2.75rem] items-end">
             {thumbs.map((url, i) => (
               <div
                 key={url + i}
@@ -129,10 +114,6 @@ export function FeaturedStorySpotlight({
             ))}
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            <span>
-              {eventCount} event{eventCount === 1 ? "" : "s"}
-            </span>
-            <span aria-hidden>·</span>
             <span>{viewLabel} views</span>
             <span aria-hidden>·</span>
             <span className="inline-flex items-center gap-0.5" title="Likes">

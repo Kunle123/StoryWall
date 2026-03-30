@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, Fragment, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
-import {
-  deriveDiscoverCardLabels,
-  deriveExpandedDiscoverHeadline,
-} from "@/lib/utils/discoverCardLabels";
+import { deriveDiscoverCardLabels } from "@/lib/utils/discoverCardLabels";
 import { DiscoverInlineTimeline } from "@/components/discover/DiscoverInlineTimeline";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
 import { DiscoverCardSkeleton } from "@/components/timeline/DiscoverCardSkeleton";
@@ -52,8 +49,8 @@ interface TimelineDisplay {
   dateBadgeTop: string;
   /** Truncated title for inverted pill (not the long description) */
   dateBadgeBottom: string;
-  /** Expanded inline headline: "N events · title…" */
-  expandedHeadline: string;
+  /** Expanded inline title strip (truncated title — no event count) */
+  expandedTitle: string;
 }
 
 function mapApiTimeline(t: any): TimelineDisplay {
@@ -67,11 +64,6 @@ function mapApiTimeline(t: any): TimelineDisplay {
       ? { min: t.event_date_min as string, max: t.event_date_max as string }
       : null;
   const labels = deriveDiscoverCardLabels(t.title || "", eventCount, fullSpan);
-  const expandedHeadline = deriveExpandedDiscoverHeadline(
-    t.title || "",
-    eventCount,
-    labels.titlePill
-  );
 
   return {
     id: t.id,
@@ -93,7 +85,7 @@ function mapApiTimeline(t: any): TimelineDisplay {
     isPublic: t.is_public !== false,
     dateBadgeTop: labels.dateSpan,
     dateBadgeBottom: labels.titlePill,
-    expandedHeadline,
+    expandedTitle: labels.titlePill,
   };
 }
 
@@ -237,10 +229,11 @@ export default function DiscoverHome() {
 
   useEffect(() => {
     if (!expandedTimelineId) return;
-    const frame = requestAnimationFrame(() => {
-      inlineTimelineRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-    return () => cancelAnimationFrame(frame);
+    const t = window.setTimeout(() => {
+      inlineTimelineRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      inlineTimelineRef.current?.focus({ preventScroll: true });
+    }, 80);
+    return () => window.clearTimeout(t);
   }, [expandedTimelineId]);
 
   return (
@@ -331,38 +324,44 @@ export default function DiscoverHome() {
                       <DiscoverCardSkeleton />
                     </>
                   ) : (
-                    featuredTimelines.map((timeline) => (
-                      <Fragment key={timeline.id}>
-                        <FeaturedStorySpotlight
-                          title={timeline.title}
-                          summary={timeline.description}
-                          creatorName={timeline.creator}
-                          creatorAvatar={timeline.avatar}
-                          viewLabel={timeline.views}
-                          eventCount={timeline.eventCount}
-                          likesCount={timeline.likesCount}
-                          sharesCount={timeline.sharesCount}
-                          previewImages={timeline.previewImages}
-                          badgeTop={timeline.dateBadgeTop}
-                          badgeBottom={timeline.dateBadgeBottom}
-                          isExpanded={expandedTimelineId === timeline.id}
-                          onClick={() => toggleExpand(timeline.id)}
-                        />
-                        {expandedTimelineId === timeline.id && (
-                          <div
-                            ref={inlineTimelineRef}
-                            className="w-full mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
-                          >
-                            <DiscoverInlineTimeline
-                              timelineId={timeline.id}
-                              badgePeriod={timeline.dateBadgeTop}
-                              badgeSubtitle={timeline.expandedHeadline}
-                              onClose={() => toggleExpand(timeline.id)}
+                    featuredTimelines.map((timeline) => {
+                      const isOpen = expandedTimelineId === timeline.id;
+                      return (
+                        <div key={timeline.id} className={isOpen ? "w-full" : undefined}>
+                          {!isOpen && (
+                            <FeaturedStorySpotlight
+                              title={timeline.title}
+                              summary={timeline.description}
+                              creatorName={timeline.creator}
+                              creatorAvatar={timeline.avatar}
+                              viewLabel={timeline.views}
+                              likesCount={timeline.likesCount}
+                              sharesCount={timeline.sharesCount}
+                              previewImages={timeline.previewImages}
+                              badgeTop={timeline.dateBadgeTop}
+                              badgeBottom={timeline.dateBadgeBottom}
+                              onClick={() => toggleExpand(timeline.id)}
                             />
-                          </div>
-                        )}
-                      </Fragment>
-                    ))
+                          )}
+                          {isOpen && (
+                            <div
+                              ref={inlineTimelineRef}
+                              tabIndex={-1}
+                              role="region"
+                              aria-label="Expanded story timeline"
+                              className="w-full overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            >
+                              <DiscoverInlineTimeline
+                                timelineId={timeline.id}
+                                badgePeriod={timeline.dateBadgeTop}
+                                titleLine={timeline.expandedTitle}
+                                onClose={() => toggleExpand(timeline.id)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </section>
@@ -427,39 +426,52 @@ export default function DiscoverHome() {
                           : "No public timelines yet. Be the first to create one!"}
                       </div>
                     ) : (
-                      trendingTimelines.map((timeline) => (
-                        <Fragment key={timeline.id}>
-                          <StorySummaryCard
-                            title={timeline.title}
-                            summary={timeline.description}
-                            creatorName={timeline.creator}
-                            creatorAvatar={timeline.avatar}
-                            viewLabel={timeline.views}
-                            eventCount={timeline.eventCount}
-                            likesCount={timeline.likesCount}
-                            sharesCount={timeline.sharesCount}
-                            previewImages={timeline.previewImages}
-                            topicLabel={topicLabel(timeline.hashtags)}
-                            badgeTop={timeline.dateBadgeTop}
-                            badgeBottom={timeline.dateBadgeBottom}
-                            isExpanded={expandedTimelineId === timeline.id}
-                            onClick={() => toggleExpand(timeline.id)}
-                          />
-                          {expandedTimelineId === timeline.id && (
-                            <div
-                              ref={inlineTimelineRef}
-                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
-                            >
-                              <DiscoverInlineTimeline
-                                timelineId={timeline.id}
-                                badgePeriod={timeline.dateBadgeTop}
-                                badgeSubtitle={timeline.expandedHeadline}
-                                onClose={() => toggleExpand(timeline.id)}
+                      trendingTimelines.map((timeline) => {
+                        const isOpen = expandedTimelineId === timeline.id;
+                        return (
+                          <div
+                            key={timeline.id}
+                            className={
+                              isOpen
+                                ? "col-span-full sm:col-span-2 lg:col-span-3"
+                                : undefined
+                            }
+                          >
+                            {!isOpen && (
+                              <StorySummaryCard
+                                title={timeline.title}
+                                summary={timeline.description}
+                                creatorName={timeline.creator}
+                                creatorAvatar={timeline.avatar}
+                                viewLabel={timeline.views}
+                                likesCount={timeline.likesCount}
+                                sharesCount={timeline.sharesCount}
+                                previewImages={timeline.previewImages}
+                                topicLabel={topicLabel(timeline.hashtags)}
+                                badgeTop={timeline.dateBadgeTop}
+                                badgeBottom={timeline.dateBadgeBottom}
+                                onClick={() => toggleExpand(timeline.id)}
                               />
-                            </div>
-                          )}
-                        </Fragment>
-                      ))
+                            )}
+                            {isOpen && (
+                              <div
+                                ref={inlineTimelineRef}
+                                tabIndex={-1}
+                                role="region"
+                                aria-label="Expanded story timeline"
+                                className="overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                              >
+                                <DiscoverInlineTimeline
+                                  timelineId={timeline.id}
+                                  badgePeriod={timeline.dateBadgeTop}
+                                  titleLine={timeline.expandedTitle}
+                                  onClose={() => toggleExpand(timeline.id)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </section>
@@ -488,39 +500,52 @@ export default function DiscoverHome() {
                           : "No public timelines yet. Be the first to create one!"}
                       </div>
                     ) : (
-                      recentTimelines.map((timeline) => (
-                        <Fragment key={timeline.id}>
-                          <StorySummaryCard
-                            title={timeline.title}
-                            summary={timeline.description}
-                            creatorName={timeline.creator}
-                            creatorAvatar={timeline.avatar}
-                            viewLabel={timeline.views}
-                            eventCount={timeline.eventCount}
-                            likesCount={timeline.likesCount}
-                            sharesCount={timeline.sharesCount}
-                            previewImages={timeline.previewImages}
-                            topicLabel={topicLabel(timeline.hashtags)}
-                            badgeTop={timeline.dateBadgeTop}
-                            badgeBottom={timeline.dateBadgeBottom}
-                            isExpanded={expandedTimelineId === timeline.id}
-                            onClick={() => toggleExpand(timeline.id)}
-                          />
-                          {expandedTimelineId === timeline.id && (
-                            <div
-                              ref={inlineTimelineRef}
-                              className="col-span-full sm:col-span-2 lg:col-span-3 mt-0 overflow-hidden rounded-b-xl border-x border-b border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none"
-                            >
-                              <DiscoverInlineTimeline
-                                timelineId={timeline.id}
-                                badgePeriod={timeline.dateBadgeTop}
-                                badgeSubtitle={timeline.expandedHeadline}
-                                onClose={() => toggleExpand(timeline.id)}
+                      recentTimelines.map((timeline) => {
+                        const isOpen = expandedTimelineId === timeline.id;
+                        return (
+                          <div
+                            key={timeline.id}
+                            className={
+                              isOpen
+                                ? "col-span-full sm:col-span-2 lg:col-span-3"
+                                : undefined
+                            }
+                          >
+                            {!isOpen && (
+                              <StorySummaryCard
+                                title={timeline.title}
+                                summary={timeline.description}
+                                creatorName={timeline.creator}
+                                creatorAvatar={timeline.avatar}
+                                viewLabel={timeline.views}
+                                likesCount={timeline.likesCount}
+                                sharesCount={timeline.sharesCount}
+                                previewImages={timeline.previewImages}
+                                topicLabel={topicLabel(timeline.hashtags)}
+                                badgeTop={timeline.dateBadgeTop}
+                                badgeBottom={timeline.dateBadgeBottom}
+                                onClick={() => toggleExpand(timeline.id)}
                               />
-                            </div>
-                          )}
-                        </Fragment>
-                      ))
+                            )}
+                            {isOpen && (
+                              <div
+                                ref={inlineTimelineRef}
+                                tabIndex={-1}
+                                role="region"
+                                aria-label="Expanded story timeline"
+                                className="overflow-hidden rounded-xl border border-primary/35 bg-muted/25 shadow-lg animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                              >
+                                <DiscoverInlineTimeline
+                                  timelineId={timeline.id}
+                                  badgePeriod={timeline.dateBadgeTop}
+                                  titleLine={timeline.expandedTitle}
+                                  onClose={() => toggleExpand(timeline.id)}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </section>
