@@ -240,7 +240,7 @@ export default function DiscoverHome() {
     <div className="min-h-screen bg-background pb-32 md:pb-40">
       <Header isVisible={showHeader} />
       <main
-        className={`container mx-auto px-3 max-w-6xl transition-all duration-300 ${
+        className={`container mx-auto px-2 sm:px-4 max-w-screen-2xl transition-all duration-300 ${
           showHeader ? "pt-16" : "pt-4"
         }`}
       >
@@ -250,7 +250,7 @@ export default function DiscoverHome() {
           }`}
           style={{ height: "56px" }}
         >
-          <div className="container mx-auto px-3 h-full flex items-center max-w-6xl">
+          <div className="container mx-auto px-2 sm:px-4 h-full flex items-center max-w-screen-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -271,7 +271,7 @@ export default function DiscoverHome() {
           onValueChange={(v) => setHomeSection(v as "explore" | "how")}
           className="w-full"
         >
-          <div className="px-4 pt-1 pb-2 border-b border-border/40 bg-background/95">
+          <div className="px-2 sm:px-4 pt-1 pb-2 border-b border-border/40 bg-background/95">
             <TabsList className="grid w-full max-w-md grid-cols-2 h-10">
               <TabsTrigger value="explore">Explore</TabsTrigger>
               <TabsTrigger value="how" className="gap-1.5">
@@ -283,7 +283,7 @@ export default function DiscoverHome() {
 
           <TabsContent value="explore" className="mt-0 focus-visible:outline-none">
             {/* Compact hero — timelines stay high on the page */}
-            <div className="px-4 pt-3 pb-2">
+            <div className="px-2 sm:px-4 pt-3 pb-2">
               <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight leading-tight">
                 Visual timelines that are easy to understand — and easy to share
               </h1>
@@ -299,7 +299,7 @@ export default function DiscoverHome() {
               </p>
             </div>
 
-            <div className="px-4 pb-2">
+            <div className="px-2 sm:px-4 pb-2">
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1.5">
                 Discover
               </p>
@@ -313,7 +313,7 @@ export default function DiscoverHome() {
             </div>
 
             {featuredTimelines.length > 0 && (
-              <section className="mb-10 px-4">
+              <section className="mb-10 px-2 sm:px-4">
                 <p className="text-[0.72rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-3">
                   Featured creator
                 </p>
@@ -367,7 +367,7 @@ export default function DiscoverHome() {
               </section>
             )}
 
-            <div className="py-4 border-b border-border/50 px-4">
+            <div className="py-4 border-b border-border/50 px-2 sm:px-4">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 <Button
                   variant={selectedCategory === null ? "default" : "outline"}
@@ -391,7 +391,7 @@ export default function DiscoverHome() {
               </div>
             </div>
 
-            <Tabs defaultValue="trending" className="mt-6 px-4">
+            <Tabs defaultValue="trending" className="mt-6 px-2 sm:px-4">
               <TabsList className="grid w-full grid-cols-2 max-w-md">
                 <TabsTrigger value="trending" className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
@@ -555,7 +555,7 @@ export default function DiscoverHome() {
 
           <TabsContent value="how" className="mt-0 pb-8 focus-visible:outline-none">
             {/* Hero — wedge-first positioning + promise */}
-            <div className="px-4 pt-4 pb-4 space-y-4">
+            <div className="px-2 sm:px-4 pt-4 pb-4 space-y-4">
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
                   Visual timelines that are easy to understand — and easy to share
@@ -621,7 +621,7 @@ export default function DiscoverHome() {
               </div>
             </div>
 
-            <section className="px-4 pb-8" aria-labelledby="how-heading">
+            <section className="px-2 sm:px-4 pb-8" aria-labelledby="how-heading">
               <h2
                 id="how-heading"
                 className="font-display text-lg font-semibold tracking-tight mb-3"
@@ -653,7 +653,7 @@ export default function DiscoverHome() {
               </ol>
             </section>
 
-            <section className="px-4 pb-8" aria-labelledby="pillars-heading">
+            <section className="px-2 sm:px-4 pb-8" aria-labelledby="pillars-heading">
               <h2 id="pillars-heading" className="sr-only">
                 What makes a strong StoryWall
               </h2>
@@ -711,7 +711,7 @@ export default function DiscoverHome() {
 
             {typeof process.env.NEXT_PUBLIC_FOUNDER_DEMO_URL === "string" &&
               process.env.NEXT_PUBLIC_FOUNDER_DEMO_URL.length > 0 && (
-                <section className="px-4 pb-8" aria-labelledby="founder-demo-heading">
+                <section className="px-2 sm:px-4 pb-8" aria-labelledby="founder-demo-heading">
                   <h2 id="founder-demo-heading" className="sr-only">
                     Founder demo
                   </h2>
