@@ -13,11 +13,13 @@ Work is tracked in **GitHub Issues** and **GitHub Projects**, not in chat. Befor
 
 4. After a task ships (merged PR), **update `docs/product/current-sprint.md`** when the user asks or when finishing work tied to a sprint bullet—check items off, adjust “next,” refresh the week/date if needed. See **`AGENTS.md` → “Keeping progress in sync as you build.”**
 
-5. **GitHub Project board (kanban) — update in the same session as the work:**
+5. **Ship every change set to GitHub and the board (default):** When you implement code changes in this repo, **do not stop at local commits**—unless the user explicitly asks to wait, **`git push`** to `origin` (usually `main`) **in the same session**, then **update the Project board** for the relevant issue(s) (`ready-for-test` after the push addresses them). Add a short **`gh issue comment`** on the primary issue when useful (commit SHA, what changed).
+
+6. **GitHub Project board (kanban) — update in the same session as the work:**
    - **Pick up / start coding:** `./scripts/gh-board-set-status.sh N in-progress` (if the card is still Not Started / Planning).
    - **Push to `main` (or merge) with code that addresses the issue:** `./scripts/gh-board-set-status.sh N ready-for-test` **before** handing off—do not leave the card in In Progress once the fix is on the default branch.
    - **Done:** `./scripts/gh-board-set-status.sh N done` only after **deploy + smoke test** on the agreed environment (per `AGENTS.md`).
    - If the issue is **missing from the project**, run `gh project item-add 1 --owner Kunle123 --url https://github.com/Kunle123/StoryWall/issues/N` first, then set status.
    - Requires **`gh`** with **`read:project`** + **`project`** scopes (`gh auth refresh -h github.com -s read:project,project`). If `item-edit` fails, tell the user to run the script locally.
 
-6. **New issues:** If none exists for **new or non-trivial work**, **create it yourself** (do not ask first): `gh issue create` with `enhancement` or `bug`, add to project `gh project item-add 1 --owner Kunle123 --url …/issues/N`, set board status, then implement and link `Refs #N`. Use repo templates if helpful. **Write for everyone:** plain-language titles (what users see), short body, and **Screenshots / mockups** when UI changes — see **`AGENTS.md` → “Writing issues so non-engineers understand.”**
+7. **New issues:** If none exists for **new or non-trivial work**, **create it yourself** (do not ask first): `gh issue create` with `enhancement` or `bug`, add to project `gh project item-add 1 --owner Kunle123 --url …/issues/N`, set board status, then implement and link `Refs #N`. Use repo templates if helpful. **Write for everyone:** plain-language titles (what users see), short body, and **Screenshots / mockups** when UI changes — see **`AGENTS.md` → “Writing issues so non-engineers understand.”**
