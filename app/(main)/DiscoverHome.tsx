@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
+import { cn } from "@/lib/utils";
 import { deriveDiscoverCardLabels } from "@/lib/utils/discoverCardLabels";
 import { DiscoverInlineTimeline } from "@/components/discover/DiscoverInlineTimeline";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
@@ -223,6 +224,14 @@ export default function DiscoverHome() {
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
+  /** Fills viewport below fixed header + search; scroll-margin aligns panel top to that chrome */
+  const expandedPanelClass = cn(
+    "w-full min-h-0 flex flex-col overflow-x-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+    showHeader
+      ? "max-h-[calc(100dvh-6.5rem)] scroll-mt-[6.5rem]"
+      : "max-h-[calc(100dvh-3.5rem)] scroll-mt-14"
+  );
+
   const toggleExpand = (id: string) => {
     setExpandedTimelineId((prev) => (prev === id ? null : id));
   };
@@ -232,7 +241,7 @@ export default function DiscoverHome() {
     const t = window.setTimeout(() => {
       inlineTimelineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       inlineTimelineRef.current?.focus({ preventScroll: true });
-    }, 80);
+    }, 120);
     return () => window.clearTimeout(t);
   }, [expandedTimelineId]);
 
@@ -328,7 +337,7 @@ export default function DiscoverHome() {
                               tabIndex={-1}
                               role="region"
                               aria-label="Expanded story timeline"
-                              className="w-full min-h-0 overflow-x-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                              className={expandedPanelClass}
                             >
                               <DiscoverInlineTimeline
                                 timelineId={timeline.id}
@@ -438,7 +447,7 @@ export default function DiscoverHome() {
                                 tabIndex={-1}
                                 role="region"
                                 aria-label="Expanded story timeline"
-                                className="min-h-0 overflow-x-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                                className={expandedPanelClass}
                               >
                                 <DiscoverInlineTimeline
                                   timelineId={timeline.id}
@@ -512,7 +521,7 @@ export default function DiscoverHome() {
                                 tabIndex={-1}
                                 role="region"
                                 aria-label="Expanded story timeline"
-                                className="min-h-0 overflow-x-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 scroll-mt-28"
+                                className={expandedPanelClass}
                               >
                                 <DiscoverInlineTimeline
                                   timelineId={timeline.id}

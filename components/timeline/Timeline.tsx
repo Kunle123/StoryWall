@@ -452,9 +452,9 @@ export const Timeline = ({ events, pixelsPerYear = 50, embedded = false, title, 
     );
   }
 
-  // Vertical View — full page uses viewport height; embedded (discover inline) uses bounded flex + min-h-0 for Safari
+  // Vertical View — full page uses viewport height; embedded fills parent flex (discover inline max-h from page chrome)
   const verticalShellClass = embedded
-    ? "w-full relative flex min-h-[min(42vh,480px)] h-[min(75vh,920px)] max-h-[min(75vh,920px)]"
+    ? "w-full relative flex flex-1 min-h-0 h-full max-h-full"
     : "w-full h-[calc(100vh-3.5rem)] relative flex";
   const verticalScrollClass = embedded
     ? "flex-1 min-h-0 overflow-y-auto h-full scrollbar-hide"
@@ -543,6 +543,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, embedded = false, title, 
                     timeline={timeline}
                     onEventUpdate={onEventUpdate}
                     isFirstOrLast={isFirstOrLast}
+                    fullDescription={embedded}
                   />
                 </div>
                 

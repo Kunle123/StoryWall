@@ -15,7 +15,7 @@ type Props = {
   timelineId: string;
   /** Optional date span chip (e.g. year range) — square chip, no event count */
   badgePeriod?: string;
-  /** Title line for the primary strip (truncated title — no event count) */
+  /** Title line for the primary strip (no event count) */
   titleLine?: string;
   /** Collapse inline timeline (discover feed) */
   onClose?: () => void;
@@ -99,10 +99,10 @@ export function DiscoverInlineTimeline({
   const headline = (titleLine && titleLine.trim()) || storyTitle;
 
   return (
-    <div className="rounded-none border-0 bg-transparent overflow-hidden motion-reduce:animate-none">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent motion-reduce:animate-none">
       <div
         className={cn(
-          "flex flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 border-b border-primary/25",
+          "flex shrink-0 flex-wrap items-center gap-2 px-3 py-2.5 sm:py-3 border-b border-primary/25",
           "bg-primary text-primary-foreground"
         )}
       >
@@ -111,7 +111,7 @@ export function DiscoverInlineTimeline({
             {badgePeriod}
           </span>
         )}
-        <p className="flex-1 min-w-0 text-sm sm:text-[0.95rem] font-semibold leading-snug font-display line-clamp-3">
+        <p className="flex-1 min-w-0 text-sm sm:text-[0.95rem] font-semibold leading-snug font-display whitespace-normal break-words">
           {headline}
         </p>
         {onClose && (
@@ -131,7 +131,7 @@ export function DiscoverInlineTimeline({
         )}
       </div>
 
-      <div className="px-1 pt-2 pb-6 bg-muted/15">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-1 pt-2 pb-4 sm:pb-6 bg-muted/15">
         {events.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8 px-2">No events in this story yet.</p>
         ) : (

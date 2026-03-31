@@ -29,9 +29,11 @@ interface TimelineCardProps {
   timeline?: any;
   onEventUpdate?: (event: TimelineEvent) => void;
   isFirstOrLast?: boolean;
+  /** When true (e.g. discover inline expanded), show full event description — no 240-char cut */
+  fullDescription?: boolean;
 }
 
-export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false, isEditable = false, timelineId, timeline, onEventUpdate, isFirstOrLast = false }: TimelineCardProps) => {
+export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, isHighlighted = false, isSelected = false, isCentered = false, isEditable = false, timelineId, timeline, onEventUpdate, isFirstOrLast = false, fullDescription = false }: TimelineCardProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const { isSignedIn } = useUser();
@@ -171,9 +173,9 @@ export const TimelineCard = ({ event, side, isStacked = false, stackDepth = 0, i
         {/* Description */}
         {event.description && (
           <p className="text-[15px] text-foreground/90 leading-normal font-light break-words whitespace-normal">
-            {event.description.length > 240 
-              ? `${event.description.substring(0, 240)}...` 
-              : event.description}
+            {fullDescription || event.description.length <= 240
+              ? event.description
+              : `${event.description.substring(0, 240)}...`}
           </p>
         )}
 
