@@ -22,6 +22,8 @@ export interface TimelineEvent {
 interface TimelineProps {
   events: TimelineEvent[];
   pixelsPerYear?: number;
+  /** When true (e.g. discover inline), use bounded height + min-h-0 scroll — avoids Safari squashing nested in max-h parents */
+  embedded?: boolean;
   title?: string;
   viewMode?: "vertical" | "hybrid";
   onViewModeChange?: (mode: "vertical" | "hybrid") => void;
@@ -38,7 +40,7 @@ interface TimelineProps {
   onEventUpdate?: (event: TimelineEvent) => void;
 }
 
-export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false, isEditable = false, timelineId, timeline, onEventUpdate }: TimelineProps) => {
+export const Timeline = ({ events, pixelsPerYear = 50, embedded = false, title, viewMode: externalViewMode, onViewModeChange, onSelectedEventChange, onCenteredEventChange, onScroll, isLoading = false, loadMoreRef, isLoadingMore = false, hasMore = false, isEditable = false, timelineId, timeline, onEventUpdate }: TimelineProps) => {
   const [internalViewMode, setInternalViewMode] = useState<"vertical" | "hybrid">("vertical");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -450,11 +452,18 @@ export const Timeline = ({ events, pixelsPerYear = 50, title, viewMode: external
     );
   }
 
-  // Vertical View - Full screen timeline
+  // Vertical View — full page uses viewport height; embedded (discover inline) uses bounded flex + min-h-0 for Safari
+  const verticalShellClass = embedded
+    ? "w-full relative flex min-h-[min(42vh,480px)] h-[min(75vh,920px)] max-h-[min(75vh,920px)]"
+    : "w-full h-[calc(100vh-3.5rem)] relative flex";
+  const verticalScrollClass = embedded
+    ? "flex-1 min-h-0 overflow-y-auto h-full scrollbar-hide"
+    : "flex-1 overflow-y-auto h-full scrollbar-hide";
+
   return (
-    <div ref={containerRef} className="w-full h-[calc(100vh-3.5rem)] relative flex">
+    <div ref={containerRef} className={verticalShellClass}>
       {/* Scrollable cards area - Left side with date margin */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto h-full scrollbar-hide">
+      <div ref={scrollContainerRef} className={verticalScrollClass}>
         <div className="space-y-0.5 pt-0 pb-0 ml-0 md:ml-10 mr-0">
           {isLoading ? (
             <>

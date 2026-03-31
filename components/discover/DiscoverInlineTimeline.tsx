@@ -131,11 +131,12 @@ export function DiscoverInlineTimeline({
         )}
       </div>
 
-      <div className="max-h-[min(75vh,920px)] overflow-y-auto overflow-x-hidden px-1 pt-2 pb-6 bg-muted/15">
+      <div className="px-1 pt-2 pb-6 bg-muted/15">
         {events.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8 px-2">No events in this story yet.</p>
         ) : (
           <Timeline
+            embedded
             events={events}
             pixelsPerYear={30}
             viewMode="vertical"
