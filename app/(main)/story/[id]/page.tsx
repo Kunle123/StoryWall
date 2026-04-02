@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { ExperimentalBottomMenuBar } from "@/components/layout/ExperimentalBottomMenuBar";
@@ -21,7 +22,7 @@ import { ViralFooter } from "@/components/sharing/ViralFooter";
 import { ImageWithWatermark } from "@/components/timeline/ImageWithWatermark";
 import { cn } from "@/lib/utils";
 
-const Story = () => {
+function StoryPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -834,6 +835,20 @@ const Story = () => {
       )}
     </div>
   );
-};
+}
 
-export default Story;
+function StorySuspenseFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-sm text-muted-foreground">Loading…</p>
+    </div>
+  );
+}
+
+export default function StoryPage() {
+  return (
+    <Suspense fallback={<StorySuspenseFallback />}>
+      <StoryPageContent />
+    </Suspense>
+  );
+}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getTimelineById, getTimelineBySlug } from "@/lib/db/timelines";
 import { getEventsByTimelineId } from "@/lib/db/events";
@@ -38,10 +39,18 @@ export default async function TimelinePage({
         <h1>{timeline.title}</h1>
         {desc ? <p>{desc}</p> : null}
       </section>
-      <TimelinePageClient
-        initialTimeline={safeTimeline}
-        initialEvents={initialEvents}
-      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          </div>
+        }
+      >
+        <TimelinePageClient
+          initialTimeline={safeTimeline}
+          initialEvents={initialEvents}
+        />
+      </Suspense>
     </>
   );
 }
