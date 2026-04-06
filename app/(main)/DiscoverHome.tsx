@@ -224,12 +224,12 @@ export default function DiscoverHome() {
 
   const categories = ["Technology", "Science", "Culture", "History", "Art", "Sports"];
 
-  /** Fills viewport below fixed header + search; scroll-margin aligns panel top to that chrome */
+  /** Fixed height below chrome so nested flex + overflow-y-auto can scroll (grid min-h-0 + overflow-hidden) */
   const expandedPanelClass = cn(
-    "w-full min-h-0 flex flex-col overflow-x-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+    "w-full min-h-0 flex flex-col overflow-hidden rounded-xl border-2 border-primary/45 bg-muted/25 shadow-[0_0_28px_hsl(var(--primary)/0.22)] animate-discover-expand-in motion-reduce:animate-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
     showHeader
-      ? "max-h-[calc(100dvh-6.5rem)] scroll-mt-[6.5rem]"
-      : "max-h-[calc(100dvh-3.5rem)] scroll-mt-14"
+      ? "h-[calc(100dvh-6.5rem)] max-h-[calc(100dvh-6.5rem)] scroll-mt-[6.5rem]"
+      : "h-[calc(100dvh-3.5rem)] max-h-[calc(100dvh-3.5rem)] scroll-mt-14"
   );
 
   const toggleExpand = (id: string) => {
@@ -315,7 +315,7 @@ export default function DiscoverHome() {
                     featuredTimelines.map((timeline) => {
                       const isOpen = expandedTimelineId === timeline.id;
                       return (
-                        <div key={timeline.id} className={isOpen ? "w-full" : undefined}>
+                        <div key={timeline.id} className={isOpen ? "w-full min-h-0 flex flex-col" : undefined}>
                           {!isOpen && (
                             <FeaturedStorySpotlight
                               title={timeline.title}
@@ -421,7 +421,7 @@ export default function DiscoverHome() {
                             key={timeline.id}
                             className={
                               isOpen
-                                ? "col-span-full sm:col-span-2 lg:col-span-3"
+                                ? "col-span-full sm:col-span-2 lg:col-span-3 min-h-0 flex flex-col"
                                 : undefined
                             }
                           >
@@ -495,7 +495,7 @@ export default function DiscoverHome() {
                             key={timeline.id}
                             className={
                               isOpen
-                                ? "col-span-full sm:col-span-2 lg:col-span-3"
+                                ? "col-span-full sm:col-span-2 lg:col-span-3 min-h-0 flex flex-col"
                                 : undefined
                             }
                           >
