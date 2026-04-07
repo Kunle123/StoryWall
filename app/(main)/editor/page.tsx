@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Header } from "@/components/layout/Header";
@@ -910,6 +911,18 @@ const TimelineEditor = () => {
             Walk through premise → beats → visuals → publish. Each step includes a short tip
             aligned with what makes stories clear and shareable.
           </p>
+          {process.env.NEXT_PUBLIC_CONVERSATIONAL_EDITOR === "1" && (
+            <p className="text-sm text-muted-foreground max-w-2xl mt-3">
+              <Link
+                href="/editor/chat"
+                className="text-primary font-medium underline-offset-4 hover:underline"
+              >
+                Try conversational builder (beta)
+              </Link>
+              {" — "}
+              agree on factual milestones before full generation.
+            </p>
+          )}
         </div>
 
         {/* Step Content */}
