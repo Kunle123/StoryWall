@@ -63,6 +63,7 @@ Use this table to compare initiatives and to build a **bubble chart**: plot **In
 | 41 | **Embeds** (timeline on external sites) | **oEmbed, iframe, or script** so third-party sites embed a read-only timeline. | M | H | L | 5 | Not implemented | — | Future; see GTM memo |
 | 42 | **Collaboration / team plans** | **Shared workspaces**, roles, and **team billing** for org use. | L | M | L | 5 | Not implemented | — | Future; GTM memo |
 | 43 | **Locality-aligned image generation** (geo + institutions + representation) | **Backlog — not implemented.** Improve prompts and/or pipeline so **illustrations match the story’s real-world context**: correct **country/region** (e.g. UK immigration debates → people and settings that read as **UK**, not US stock defaults); **institution-appropriate architecture** (e.g. **UK High Court** vs generic US courthouse); **geography** that matches named places (e.g. **Strait of Dover** vs fjord-like coastlines). **Representation:** when topics involve immigrants or diverse populations, depict **plausible diversity in that locality** (e.g. UK context → not “Black people only” as a stand-in for diversity). Goal: **generic mechanism** so any timeline’s images align with **requested information and locale**, not one-off fixes. | H | M | M | 4 | Not implemented | — | Targets `enrichment-optimized` / `imagePrompt`; may touch `generate-images` routing, anchor style, or reference retrieval |
+| 44 | **Optional per-beat reference images** (venues, vehicles, objects — not faces) | **Backlog — not implemented.** Allow an **optional direct image URL** (or upload) per event to **condition** generation on a **real landmark, car/livery, trophy, instrument**, etc.—analogous to face refs but for **place/object accuracy** (e.g. Royal Albert Hall vs generic hall; F1 car **season/team livery**). **Failure handling:** treat refs as **optional** with **fallback to text-only** when validation/download fails so net **hard failures** need not increase vs today (new failure *modes* exist; graceful degradation avoids trading one error for another). **Perf:** extra **validate + download + prepare** per ref (network-bound); parallelize/cap concurrency; reuse prepared blob if same URL repeats. **Priority rules** when both person-ref and object-ref exist TBD. | H | L | L | 4 | Not implemented | — | `app/api/ai/generate-images` · prompt-only accuracy today (`enrichment-optimized` named-place/object rules); product discussion: optional refs + fallback |
 
 ---
 
@@ -115,6 +116,7 @@ ID,Feature,Description,Information,Virality,Complexity,Cpx,Status,Issues
 41,Embeds,Embed timelines on third-party sites.,M,H,L,5,Not implemented,
 42,Collaboration team plans,Shared workspaces; roles; billing.,L,M,L,5,Not implemented,
 43,Locality-aligned images,Geo institutions and diverse representation match timeline locale; generic not one-off.,H,M,M,4,Not implemented,
+44,Optional per-beat object or venue refs,Optional URL per event for landmark vehicle object conditioning; fallback on failure; perf validate download prepare.,H,L,L,4,Not implemented,
 ```
 
 ### Bubble chart in Google Sheets (quick path)
@@ -135,4 +137,4 @@ You can swap axes (e.g. Virality on X, Information on Y); bubble size should sta
 - When creating a GitHub issue for a row, add its number to **Issues** and link it here.
 - Keep **Description** in sync when the initiative’s intent changes; **Reference** is for code paths and edge cases.
 
-*Last updated: 2026-04-10 — Row 43 backlog: locality-aligned image generation (geo, institutions, representation).*
+*Last updated: 2026-03-28 — Row 44 backlog: optional per-beat reference images for venues/vehicles/objects (fallback + perf notes).*
