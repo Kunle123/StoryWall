@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | StoryWall',
-  description: 'Privacy Policy for StoryWall',
+  description:
+    'Privacy Policy for StoryWall — UK GDPR, Data Protection Act 2018, UK-based controller.',
 };
 
 export default function PrivacyPage() {
@@ -18,10 +19,10 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
           <p>
-            StoryWall ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, services, and applications (collectively, the "Service").
+            StoryWall ("we," "our," or "us") is committed to protecting your privacy. We are established in the <strong>United Kingdom</strong> and act as the data controller for the personal data described in this Privacy Policy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website, services, and applications (collectively, the "Service").
           </p>
           <p>
-            This Privacy Policy complies with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.
+            This Privacy Policy complies with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018. The UK supervisory authority is the Information Commissioner&apos;s Office (ICO).
           </p>
         </section>
 
@@ -142,7 +143,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-2xl font-semibold mt-8 mb-4">10. Children's Privacy</h2>
           <p>
-            Our Service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you believe we have collected information from a child under 13, please contact us immediately at <a href="mailto:privacy@storywall.com" className="text-primary underline">privacy@storywall.com</a>.
+            Our Service is not directed at children under <strong>13</strong> years of age, consistent with the UK threshold for valid consent to information-society services in the UK GDPR (Article 8). We do not knowingly collect personal information from children under 13 without appropriate parental responsibility or consent. If you believe we have collected information from a child in breach of this Policy, contact us immediately at <a href="mailto:privacy@storywall.com" className="text-primary underline">privacy@storywall.com</a>. Where the ICO Age-appropriate design code applies to your use case, we may apply additional safeguards.
           </p>
         </section>
 

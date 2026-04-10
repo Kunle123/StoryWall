@@ -2,6 +2,8 @@
 
 This guide explains the legal pages, email addresses, and setup requirements for StoryWall.
 
+**UK operations:** StoryWall is intended to comply with **UK** requirements — notably **UK GDPR**, the **Data Protection Act 2018**, **PECR** (cookies and electronic communications), and **English law** for contracts (see Terms). The **ICO** is the UK supervisory authority for data protection. Product copy and processes should be reviewed by **UK-qualified** advisers for your entity structure and risk profile.
+
 ## Policy Pages Created
 
 The following legal pages have been created and are accessible at:
@@ -22,10 +24,10 @@ You need to set up the following email addresses at `storywall.com`:
 - **Used in**: Terms & Conditions, Acceptable Use Policy
 - **Priority**: High
 
-### 2. **copyright@storywall.com** (DMCA/Copyright Takedown)
-- **Purpose**: Copyright infringement claims and takedown requests
+### 2. **copyright@storywall.com** (Copyright / takedown)
+- **Purpose**: Copyright and intellectual-property infringement notices (UK **Copyright, Designs and Patents Act 1988** and related practice; many teams still describe this process informally as “DMCA-style” takedown for international users)
 - **Used in**: Terms & Conditions (Section 8)
-- **Priority**: High - Required for DMCA compliance
+- **Priority**: High — required for a clear, monitored notice-and-takedown path
 
 ### 3. **privacy@storywall.com** (Data Protection)
 - **Purpose**: Privacy inquiries, GDPR requests, data protection

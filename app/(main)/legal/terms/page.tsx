@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms & Conditions | StoryWall',
-  description: 'Terms and Conditions for StoryWall',
+  description:
+    'Terms & Conditions for StoryWall — UK-based service; English law and courts of England and Wales.',
 };
 
 export default function TermsPage() {
@@ -22,6 +23,9 @@ export default function TermsPage() {
           </p>
           <p>
             By accessing or using our Service, you agree to be bound by these Terms. If you disagree with any part of these Terms, you may not access the Service.
+          </p>
+          <p>
+            The Service is operated from the <strong>United Kingdom</strong>. Contractual and non-contractual matters are governed by the law of <strong>England and Wales</strong> and the courts specified in Section 13 below.
           </p>
         </section>
 

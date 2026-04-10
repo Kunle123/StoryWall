@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Acceptable Use Policy | StoryWall',
-  description: 'Acceptable Use Policy for StoryWall',
+  description:
+    'Acceptable Use Policy for StoryWall — UK-based service; comply with UK law and this Policy.',
 };
 
 export default function AcceptableUsePage() {
@@ -18,7 +19,10 @@ export default function AcceptableUsePage() {
         <section>
           <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
           <p>
-            This Acceptable Use Policy ("Policy") sets out the rules and guidelines for using StoryWall's Service. By using our Service, you agree to comply with this Policy. Violations may result in suspension or termination of your account.
+            This Acceptable Use Policy ("Policy") sets out the rules and guidelines for using StoryWall&apos;s Service. By using our Service, you agree to comply with this Policy. Violations may result in suspension or termination of your account.
+          </p>
+          <p>
+            StoryWall is operated from the <strong>United Kingdom</strong>. You must comply with <strong>applicable UK law</strong> (including offences related to harmful and illegal content online, fraud, intellectual property, and data protection) when using the Service. If you access the Service from outside the UK, you are also responsible for complying with local laws where they apply to you.
           </p>
         </section>
 

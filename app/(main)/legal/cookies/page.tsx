@@ -2,7 +2,8 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Cookie Policy | StoryWall',
-  description: 'Cookie Policy for StoryWall',
+  description:
+    'Cookie Policy for StoryWall — UK PECR, UK GDPR, and Data Protection Act 2018.',
 };
 
 export default function CookiesPage() {
@@ -13,6 +14,21 @@ export default function CookiesPage() {
       <div className="prose prose-lg max-w-none space-y-6">
         <p className="text-sm text-muted-foreground">
           Last updated: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+
+        <p className="text-muted-foreground border-l-4 border-primary/30 pl-4 py-2 mb-8">
+          StoryWall is operated from the <strong>United Kingdom</strong>. Our use of cookies and similar technologies is described in line with the{' '}
+          <strong>Privacy and Electronic Communications Regulations (PECR)</strong>, the <strong>UK GDPR</strong>, and the <strong>Data Protection Act 2018</strong>.{' '}
+          Regulator guidance:{' '}
+          <a
+            href="https://ico.org.uk/for-organisations/guide-to-pecr/cookies-and-similar-technologies/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline"
+          >
+            ICO — cookies and similar technologies
+          </a>
+          .
         </p>
 
         <section>
