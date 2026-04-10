@@ -34,6 +34,11 @@ function isAnonymousStoryBrowse(pathname: string): boolean {
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const { pathname } = request.nextUrl;
 
+  // Crawlers must receive XML / plain text — never redirect to HTML sign-in (GSC: "sitemap is HTML")
+  if (pathname === '/sitemap.xml' || pathname === '/robots.txt') {
+    return NextResponse.next();
+  }
+
   // Allow public routes
   if (isPublicRoute(request) || pathname.startsWith('/api')) {
     return NextResponse.next();

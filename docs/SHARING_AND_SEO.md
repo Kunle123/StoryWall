@@ -39,6 +39,8 @@ Configured in `app/(main)/story/[id]/layout.tsx` (`generateMetadata`).
 - **`/sitemap.xml`** — Built by `app/sitemap.ts`: home, **`/discover`**, `/guide/great-stories`, and up to 5000 **public** timelines (`/timeline/{slug-or-id}`), refreshed every hour (`revalidate = 3600`).
 - **`/robots.txt`** — Built by `app/robots.ts`: allows `/`, disallows `/api/`, points crawlers at the sitemap when **`NEXT_PUBLIC_APP_URL`** is set.
 
+**Middleware:** `middleware.ts` must **not** send `/sitemap.xml` or `/robots.txt` through Clerk’s sign-in redirect — crawlers would get HTML and Search Console reports “Sitemap appears to be an HTML page.” Both paths bypass auth before other checks.
+
 ## Environment
 
 Set **`NEXT_PUBLIC_APP_URL`** to your canonical origin (e.g. `https://www.storywall.com`) so `metadataBase`, **sitemap URLs**, **robots sitemap line**, and absolute image URLs resolve correctly in production.
