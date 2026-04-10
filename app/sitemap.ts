@@ -35,6 +35,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.75,
     },
+    ...[
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/cookies",
+      "/legal/acceptable-use",
+    ].map((path) => ({
+      url: `${origin}${path}`,
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.35,
+    })),
     ...timelines.map((t) => ({
       url: `${origin}/timeline/${encodeURIComponent(t.pathSegment)}`,
       lastModified: t.lastModified,

@@ -15,7 +15,7 @@ Run this before scaling invites or opening a wider cohort. Aligns with **communi
 | **Core product path** | Create → publish → public story → share works on the agreed environment (staging/prod). | ☐ |
 | **Discover & spotlight** | `/discover` loads; spotlight is not empty (fallback or featured). Aim for **three** flagship public examples when possible — [`FLAGSHIP_EXAMPLES.md`](./FLAGSHIP_EXAMPLES.md) · [#16](https://github.com/Kunle123/StoryWall/issues/16). | ☐ |
 | **Support / feedback** | Users can report issues: in-app Feedback · [#18](https://github.com/Kunle123/StoryWall/issues/18); channel for beta (email/Discord) documented in welcome message. | ☐ |
-| **Legal baseline** | Privacy + terms appropriate for beta channel; cookie consent if required — [#12](https://github.com/Kunle123/StoryWall/issues/12). | ☐ |
+| **Legal baseline** | Privacy + terms appropriate for beta channel; cookie consent if required — [#12](https://github.com/Kunle123/StoryWall/issues/12) · checklist [`LEGAL_COMPLIANCE_BETA.md`](./LEGAL_COMPLIANCE_BETA.md). | ☐ |
 | **Positioning** | Homepage / Discover copy matches ICP; wedge is **context-first** (see GTM memo). | ☐ |
 | **Cohort norms** | Invite message states beta expectations, free tier during beta, and **community focus** (context storytelling, not only product chat). | ☐ |
 | **Ops** | Someone owns **on-call** for beta window (even lightweight). | ☐ |

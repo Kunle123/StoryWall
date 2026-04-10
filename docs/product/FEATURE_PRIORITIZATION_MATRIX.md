@@ -56,7 +56,7 @@ Canonical **CSV** (same as bubble / Sheets source) is in the [Copy-paste CSV](#c
 | 33 | **Admin API hardening** | Secure admin routes: auth, rate limits, input validation, audit—reduce abuse and data leaks. | 2 | 1 | 3 | Partial | [#9](https://github.com/Kunle123/StoryWall/issues/9) |
 | 34 | **Seed data + discoverability** | Seed scripts and admin tools so Discover has exemplar content and tests aren't empty. | 4 | 7 | 3 | Prioritised | [#10](https://github.com/Kunle123/StoryWall/issues/10) |
 | 35 | **Redis / KV cache** | Edge or server cache (Redis/KV) for hot reads—latency and cost at scale. | 1 | 1 | 4 | Not implemented | [#11](https://github.com/Kunle123/StoryWall/issues/11) |
-| 36 | **Legal / compliance pass** | Terms, privacy, age, content policies appropriate for beta and distribution channels. | 4 | 2 | 3 | Prioritised | [#12](https://github.com/Kunle123/StoryWall/issues/12) |
+| 36 | **Legal / compliance pass** | Terms, privacy, age, content policies appropriate for beta and distribution channels. | 4 | 2 | 3 | Prioritised | [#12](https://github.com/Kunle123/StoryWall/issues/12) · [`LEGAL_COMPLIANCE_BETA.md`](./LEGAL_COMPLIANCE_BETA.md) |
 | 37 | **Twitter API cleanup** | Reduce debt on X/Twitter share integrations (tokens, APIs, error handling). | 2 | 4 | 3 | Partial | [#13](https://github.com/Kunle123/StoryWall/issues/13) |
 | 38 | **Budget guardrails doc** | Documented ceilings for AI spend and tokens per user/session—ops and finance clarity. | 1 | 1 | 1 | Partial | [#22](https://github.com/Kunle123/StoryWall/issues/22) |
 | 39 | **Week 4 small beta** | Structured beta program (e.g. week 4) with captured user stories and outcomes. | 8 | 8 | 3 | Prioritised | [#24](https://github.com/Kunle123/StoryWall/issues/24) |

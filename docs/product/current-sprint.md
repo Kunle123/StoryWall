@@ -25,7 +25,7 @@ These rows are marked **Prioritised** in [`FEATURE_PRIORITIZATION_MATRIX.md`](./
 | **24** | Founder-led distribution | [#20](https://github.com/Kunle123/StoryWall/issues/20) | Context-reply habit + list of target topics — [GTM](GTM-one-page-memo.md#marketing-wedge) |
 | **26** | Private beta gates | [#14](https://github.com/Kunle123/StoryWall/issues/14) | Work through [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) **§1** |
 | **34** | Seed + discoverability | [#10](https://github.com/Kunle123/StoryWall/issues/10) | Dev/staging: `scripts/seed-all-data.ts`; prod: exemplar + featured strategy |
-| **36** | Legal / compliance | [#12](https://github.com/Kunle123/StoryWall/issues/12) | Beta-appropriate terms/privacy + channel requirements |
+| **36** | Legal / compliance | [#12](https://github.com/Kunle123/StoryWall/issues/12) | Work through [`LEGAL_COMPLIANCE_BETA.md`](./LEGAL_COMPLIANCE_BETA.md); counsel review |
 | **39** | Week 4 small beta | [#24](https://github.com/Kunle123/StoryWall/issues/24) | Cohort definition + user-story capture — [GTM — Beta program execution](GTM-one-page-memo.md#beta-program-execution) |
 | **40** | Community / creator beta | [GTM Community](GTM-one-page-memo.md#community-strategy) | Invite norms (70/30); minimal product churn — same **§1** gates |
 
