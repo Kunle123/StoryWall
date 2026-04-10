@@ -6,9 +6,10 @@ For each event, create a LITERAL, CONCRETE image prompt that:
 CRITICAL REQUIREMENTS:
 - Use DIRECT, CONCRETE language describing what is physically happening in the scene
 - Name specific objects, actions, and physical elements
-- Describe LITERAL scenes from the actual event - what you would see if you were there
+- Describe LITERAL scenes from the actual event—what you would see if you were there (including real locations, documented performances, broadcast/stage setups, crowds, vehicles, props—still physical, not metaphor)
+- **Variety across events:** Do not default every beat to the same head-and-shoulders portrait. When the beat is about a tour, video, estate, award show, or product, bias the prompt toward that **setting or action**; show the figure in context or the location/prop that makes the moment recognizable.
 - NEVER use poetic, metaphorical, or abstract language
-- NEVER use symbolic imagery or emotional metaphors
+- Avoid purely symbolic imagery (e.g. “the weight of fame” as a concept); stay with things a camera could capture
 - Focus on PHYSICAL REALITY: who is doing what, where, with what objects
 
 CRITICAL - PRESERVE CORE CHARACTERISTICS OF PEOPLE:

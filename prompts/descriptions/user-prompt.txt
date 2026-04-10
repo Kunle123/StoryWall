@@ -29,9 +29,11 @@ CRITICAL DISTINCTION:
 
 CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZABLE scene:
 
-1. RECOGNIZABLE SCENES: Describe specific, iconic scenes that are instantly recognizable
-2. HYPER-SPECIFIC DETAILS: Name EVERYTHING - locations, objects, actions, body positions, clothing details
-3. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there
+1. RECOGNIZABLE SCENES: Specific moments a viewer could identify—performance, venue exterior, crowd shot, studio or stage detail, era-appropriate wardrobe and setting—not the same tight portrait repeated on every card when the beat is really about a place, video, tour, or object.
+2. HYPER-SPECIFIC DETAILS: Name locations, objects, actions, body positions, clothing where they matter; avoid filler.
+3. DIRECT, CONCRETE LANGUAGE: What you would actually SEE if you were there—still literal (no poetry-as-metaphor).
+
+Across the list of events: **vary** framing and subject emphasis (wide vs detail, person vs location/prop) so the timeline feels like a visual progression, not one stock photo copied to each year.
 
 NEVER use poetic, metaphorical, or abstract language unless specifically instructed otherwise for social media timelines.
 

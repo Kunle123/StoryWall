@@ -101,7 +101,8 @@ export const BIOGRAPHY_MODULE: TimelinePromptModule = {
     * Discoveries, inventions, or innovations (for scientists/inventors)
     * Business ventures and companies founded (for entrepreneurs)
     * International relations and diplomatic events (for world leaders)
--   **Balance Controversy:** While public perception and criticism are part of the story, they should be balanced with the subject's substantive contributions. Limit controversy/scandal events to 20-30% of the timeline.`
+-   **Balance Controversy:** While public perception and criticism are part of the story, they should be balanced with the subject's substantive contributions. Limit controversy/scandal events to 20-30% of the timeline.
+-   **Visual story (downstream images):** Beats should be specific enough that illustrations can vary—performance or broadcast moment, documented location, era/costume, iconic object or setting—not only “another year of the same headshot.” Titles need not name every prop; the description pass will translate beats into literal scenes.`
 };
 
 /**
@@ -205,9 +206,9 @@ Return as JSON with these keys:
 - "progressionSubject": string (only if isProgression is true)
 - "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions.
 - "sources": array (optional) of objects with { name: string, url: string }
-- "image_references": array (optional) of objects with { name: string, url: string } — **name** = person's identifying name only (for likeness lookup), not a photo caption
+- "image_references": array (optional) of { name, url } — **name** = identifying name only (likeness lookup), not a caption. For one central figure, multiple rows may share the same **name** with **different** direct image URLs (different years/contexts) so generation can vary references across beats.
 
-Example: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title" }], "sources": [...], "image_references": [...] }`;
+Example: { "isProgression": false, "events": [...], "sources": [...], "image_references": [...] }`;
   
   return prompt;
 }

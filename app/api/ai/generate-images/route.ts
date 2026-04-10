@@ -2628,6 +2628,27 @@ export async function POST(request: NextRequest) {
             if (referenceImageUrl) {
               console.log(`[ImageGen] ✓ Event "${event.title}" mentions "${relevantRef.name}" - using reference image (match score: ${bestScore})`);
             }
+
+            // Same identifying name across multiple URLs: rotate refs by event so likeness/conditioning varies across beats
+            if (
+              referenceImageUrl &&
+              validImageReferences.length > 1 &&
+              preparedReferences.length > 0
+            ) {
+              const distinctNames = new Set(
+                validImageReferences.map((r: { name: string }) => r.name.toLowerCase().trim())
+              );
+              if (distinctNames.size === 1) {
+                const rotIdx = index % validImageReferences.length;
+                const rotated = preparedReferences[rotIdx];
+                if (rotated) {
+                  referenceImageUrl = rotated;
+                  console.log(
+                    `[ImageGen] Same-subject ref rotation: event ${index + 1} → ref ${rotIdx + 1}/${validImageReferences.length}`
+                  );
+                }
+              }
+            }
           } else {
             console.log(`[ImageGen] Event "${event.title}" does not mention any people from imageReferences - skipping person matching`);
           }

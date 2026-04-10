@@ -321,11 +321,7 @@ CRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:
 
 Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
-Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: **name** must be the person's **identifying name only** (e.g. "Alan Sugar") for face-reference lookup—**not** a photo caption or article title (e.g. not "Alan Sugar at the 2009 BAFTAs"). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
-- Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
-- Official government/press image URLs ending in .jpg/.png
-- News agency photo URLs (Reuters, AP, Getty) - direct image links only
-NEVER use: commons.wikimedia.org/wiki/ URLs (these are pages, not images), Category pages, or article URLs.
+Optional top-level "image_references" when people matter: **2–8** objects with name and url. **url** = direct image file only (e.g. upload.wikimedia.org .jpg/.png/.webp, or press/agency direct links)—never wiki/category/article pages. **name** = identifying person only for likeness (e.g. "Alan Sugar"), never a caption. For **one central subject** (life/career arc), repeat the **same name** on multiple rows with **different** URLs (distinct years/contexts—performance, portrait, documented appearance) so image generation can vary; avoid only one repeated headshot URL. Multi-person topics: one identifying name per person.
 
 If you use web search, you MUST include a top-level "sources" array with 3-5 reputable news or official sources used (objects with { name: string, url: string }).
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
@@ -431,7 +427,7 @@ CRITICAL: Analyze the timeline description to determine if it describes a PROCES
 - Include the most recent 48-hour developments (e.g., election-night result, political defections, breaking news) when relevant
 - Include primary date(s) and result(s) as well
 - Use article-level citations for these items (not just domain homepages)
-- Also include an "image_references" array with high-quality reference image links for any famous people mentioned (official portraits, Wikimedia Commons), if available
+- Include "image_references" when famous people appear (same rules as above—multiple direct URLs per person help visual variety on long arcs)
 
 For political campaigns, elections, or public figures: include ALL major events such as:
 - Announcement of candidacy (with specific date if known)
@@ -451,7 +447,7 @@ Return as JSON with these keys:
 - "progressionSubject": string (the core subject of the progression, e.g., "a human fetus inside the womb" - only include if isProgression is true, otherwise omit or set to null)
 - "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions - those will be generated separately.
 - "sources": array (optional, only if web search was used) of objects with { name: string, url: string }
-- "image_references": array (optional, only if people are mentioned) of objects with { name: string, url: string }
+- "image_references": optional array (name + url per entry) as above when people are mentioned
 
 Example for progression: { "isProgression": true, "progressionSubject": "a human fetus inside the womb", "events": [{ "year": 2025, "title": "Neural Tube Formation", "description": "..." }, ...] }
 Example for non-progression: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title", "description": "..." }, ...], "sources": [...], "image_references": [...] }`
@@ -1411,11 +1407,7 @@ CRITICAL - DATE FORMAT REQUIREMENTS:
 - The year field can be a string (with BC/AD notation) or a number (for AD dates only)
 - DO NOT use positive numbers for BC dates - always include "BC" or "BCE" notation
 
-Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: **name** must be the person's **identifying name only** (e.g. "Alan Sugar") for face-reference lookup—**not** a photo caption or article title (e.g. not "Alan Sugar at the 2009 BAFTAs"). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
-- Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
-- Official government/press image URLs ending in .jpg/.png
-- News agency photo URLs (Reuters, AP, Getty) - direct image links only
-NEVER use: commons.wikimedia.org/wiki/ URLs (these are pages, not images), Category pages, or article URLs.
+Optional top-level "image_references" when people matter: **2–8** objects with name and url. **url** = direct image file only (e.g. upload.wikimedia.org .jpg/.png/.webp, or press/agency direct links)—never wiki/category/article pages. **name** = identifying person only for likeness (e.g. "Alan Sugar"), never a caption. For **one central subject** (life/career arc), repeat the **same name** on multiple rows with **different** URLs (distinct years/contexts—performance, portrait, documented appearance) so image generation can vary; avoid only one repeated headshot URL. Multi-person topics: one identifying name per person.
 
 If you use web search, you MUST include a top-level "sources" array with 3-5 reputable news or official sources used (objects with { name: string, url: string }).
 - Cite the specific article URLs you relied on (NOT just homepages). Article URLs MUST contain a path beyond the domain, e.g. https://apnews.com/article/... or https://www.nytimes.com/2025/11/04/... 
