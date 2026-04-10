@@ -18,6 +18,7 @@ import {
   History,
   BookOpen,
   Play,
+  GitFork,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTimelines, fetchFeaturedTimelines } from "@/lib/api/client";
@@ -546,11 +547,16 @@ export default function DiscoverHome() {
             <div className="px-2 sm:px-4 pt-4 pb-4 space-y-4">
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-                  Visual timelines that are easy to understand — and easy to share
+                  Read the full arc — then publish your take
                 </h1>
                 <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
-                  Turn topics, events, and histories into chronological StoryWalls with AI images or
-                  your own photos. Free to start — about{" "}
+                  StoryWall maps explainers and histories into chronological timelines with AI
+                  images or your own photos. Explore public walls here, then open the editor when
+                  you want your own angle.{" "}
+                  <span className="text-foreground/90 font-medium">Remix</span> — fork a public
+                  story into your own editable timeline — is the creation loop we are building next
+                  so you can start from a story you discover, not only from scratch. Free to start —
+                  about{" "}
                   <span className="text-foreground/90 font-medium">30 AI images</span> included
                   (roughly three polished timelines, depending on length).
                 </p>
@@ -582,11 +588,23 @@ export default function DiscoverHome() {
                     <span className="text-muted-foreground"> — upload whenever you want</span>
                   </span>
                 </li>
+                <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                  <GitFork className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <span>
+                    <span className="font-medium text-foreground">Remix (on the way)</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — fork a public StoryWall into your own editable timeline; today you recreate
+                      the arc in the editor from a premise you care about
+                    </span>
+                  </span>
+                </li>
               </ul>
               <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-                <span className="text-foreground/90 font-medium">First wedge:</span> current affairs
-                & history explainers. Also strong for teachers, revision, and newsletter-style
-                breakdowns — not “anything goes” creativity.
+                <span className="text-foreground/90 font-medium">Wedge:</span> context-first
+                explainers — current affairs, history, and anything where order and evidence matter.
+                Teachers, revision, and newsletter-style breakdowns fit here; not “anything goes”
+                creativity.
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 <Link
@@ -621,7 +639,8 @@ export default function DiscoverHome() {
                   <span className="text-xs font-semibold text-primary">1</span>
                   <p className="mt-1 text-foreground font-medium">Start in the editor</p>
                   <p className="text-muted-foreground mt-0.5">
-                    Premise, arc, and beats — guided prompts in each step.
+                    Premise, arc, and beats — guided prompts in each step. (Remix from a public wall
+                    will land here as fork-to-edit.)
                   </p>
                 </li>
                 <li className="rounded-lg border border-border bg-muted/20 p-3">
@@ -635,7 +654,8 @@ export default function DiscoverHome() {
                   <span className="text-xs font-semibold text-primary">3</span>
                   <p className="mt-1 text-foreground font-medium">Publish & share</p>
                   <p className="text-muted-foreground mt-0.5">
-                    Public link, social preview, copy or native share from the story.
+                    Public link, social preview, copy or native share — so someone else can read
+                    the arc and (soon) remix it into their own draft.
                   </p>
                 </li>
               </ol>

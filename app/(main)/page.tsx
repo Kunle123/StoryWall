@@ -7,17 +7,17 @@ import DiscoverHome from "./DiscoverHome";
  */
 export const metadata: Metadata = {
   title:
-    "StoryWall — Visual timelines for explainers, history & stories worth sharing",
+    "StoryWall — Read the arc, share it, build your take",
   description:
-    "Turn topics and events into visual timelines that are easy to understand and easy to share. Free to start — ~30 AI images, enough for several stories. Built for current affairs, history, and explainers where order matters.",
+    "Context-first timelines with AI images for explainers and histories. Explore public StoryWalls, create yours in the editor; fork-to-edit remix is next. Free to start — ~30 AI images for several stories.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title:
-      "StoryWall — Visual timelines for explainers, history & stories worth sharing",
+      "StoryWall — Read the arc, share it, build your take",
     description:
-      "Create visual timelines with AI or your images. Free to start; strong for explainers, histories, and shareable arcs.",
+      "Chronological StoryWalls with AI images. Discover public stories, publish your angle; remix from any public wall is on the way.",
     url: "/",
   },
 };
