@@ -8,6 +8,9 @@ const { PrismaClient } = require("@prisma/client");
 const STATEMENTS = [
   // timelines
   `ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "share_count" INTEGER NOT NULL DEFAULT 0`,
+  // users — publish rewards / first public story (see prisma User model + lib/db/publishRewards.ts)
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "published_story_count" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "first_story_published_at" TIMESTAMP(3)`,
   // users — OAuth / TikTok (see prisma User model)
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "twitter_oauth1_token" TEXT`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "twitter_oauth1_token_secret" TEXT`,
@@ -25,7 +28,7 @@ async function main() {
     console.log(
       "[ensure-production-schema] OK:",
       STATEMENTS.length,
-      "statements (timelines.share_count, users OAuth/TikTok columns)"
+      "statements (timelines.share_count, users publish counts + OAuth/TikTok columns)"
     );
   } catch (e) {
     console.error("[ensure-production-schema]", e && e.message ? e.message : e);

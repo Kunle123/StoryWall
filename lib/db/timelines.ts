@@ -553,30 +553,34 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
 
 export async function getTimelineBySlug(slug: string): Promise<Timeline | null> {
   // Use raw SQL as primary method to avoid is_numbered column issues (same as getTimelineById)
+  const trimmedSlug = slug.trim();
   try {
-    console.log('[getTimelineBySlug] Using raw SQL for slug:', slug);
-    
-    // Use raw SQL to fetch timeline by slug
-    const query = `SELECT id, title, description, slug, creator_id, 
-             visualization_type, is_public, is_collaborative, 
+    // Parameterized query (safe; exact match). Empty result is normal during POST /timelines slug reservation.
+    console.log('[getTimelineBySlug] Raw SQL for slug:', trimmedSlug);
+
+    const timelineRows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        slug: string;
+        creator_id: string;
+        visualization_type: string;
+        is_public: boolean;
+        is_collaborative: boolean;
+        view_count: number;
+        created_at: Date;
+        updated_at: Date;
+      }>
+    >`
+      SELECT id, title, description, slug, creator_id,
+             visualization_type, is_public, is_collaborative,
              view_count, created_at, updated_at
       FROM timelines
-      WHERE slug = '${slug.replace(/'/g, "''")}'`;
-    const timelineRows = await prisma.$queryRawUnsafe<Array<{
-      id: string;
-      title: string;
-      description: string | null;
-      slug: string;
-      creator_id: string;
-      visualization_type: string;
-      is_public: boolean;
-      is_collaborative: boolean;
-      view_count: number;
-      created_at: Date;
-      updated_at: Date;
-    }>>(query);
-    
-    console.log('[getTimelineBySlug] Raw SQL found', timelineRows.length, 'rows');
+      WHERE slug = ${trimmedSlug}
+    `;
+
+    console.log('[getTimelineBySlug] Raw SQL found', timelineRows.length, 'rows (0 = slug free or unknown slug)');
     if (timelineRows.length === 0) return null;
     
     const timelineRow = timelineRows[0];
@@ -595,13 +599,14 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
     });
     
     // Sort by date - BC dates stored as negative years will sort correctly
-    const eventsQuery = `SELECT id, timeline_id, title, description, date, end_date, 
-             image_url, location_lat, location_lng, location_name, 
+    const eventRows = await prisma.$queryRaw<Array<any>>`
+      SELECT id, timeline_id, title, description, date, end_date,
+             image_url, location_lat, location_lng, location_name,
              category, links, created_by, created_at, updated_at
       FROM events
-      WHERE timeline_id = '${timelineRow.id.replace(/'/g, "''")}'
-      ORDER BY date ASC`;
-    const eventRows = await prisma.$queryRawUnsafe<Array<any>>(eventsQuery);
+      WHERE timeline_id = ${timelineRow.id}
+      ORDER BY date ASC
+    `;
     
     const events = eventRows.map((row: any) => ({
       id: row.id,
