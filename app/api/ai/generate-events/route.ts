@@ -296,6 +296,12 @@ STORYWALL — BEAT LINKAGE & PACING:
 STORYWALL — TARGET LENGTH (vs max ${maxEvents}):
 - **~8–12 strong beats** is the default readability target for most topics. **${maxEvents}** is a **ceiling**, not a quota—do **not** pad toward it with weak or redundant incidents. Fewer excellent beats beat a long padded list.
 
+STORYWALL — THESIS, ENDING, AND PRODUCT FIT:
+- **One through-line:** Broad topics (whole policy domains, whole decades) risk covering **many unrelated arcs** at once. Prefer **one** clear interpretive spine (e.g. free movement → selective migration; integration → deterrence; asylum + legal routes tightened over the period) unless the description explicitly demands exhaustive multi-track coverage.
+- **Ending:** Avoid **stacking** several beats in the **same year** or days apart that are the same reform wave or theme split artificially—**merge** or drop so the reader lands on **one** strong conclusion. Each late beat must add a **distinct** new development.
+- **Names:** Timeline name + description should signal **what exact story** the reader gets, not only the category. Event titles reinforce that same spine.
+- **Where this ships:** Optimize for the **full on-site StoryWall** (canonical, context-first, chronological). Do **not** tune this list for a pasted X thread—a **shorter** social version (~6–8 beats) would be a **separate** pass.
+
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
 If isProgression is false: Include major milestones, key dates, and significant events related to this topic. Ensure each event is a separate, unique occurrence.
@@ -309,7 +315,7 @@ CRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:
 - Prioritize finding unique events from each year in the timespan when significant unique events exist
 - Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year
 - Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years
-- **StoryWall:** Spreading across years must **not** override the **TARGET LENGTH** guidance—do **not** invent or downgrade incidents just to “cover” each year. Sparse years are fine if the overall list stays high-signal.
+- **StoryWall:** Spreading across years must **not** override the **TARGET LENGTH** guidance—do **not** invent or downgrade incidents just to “cover” each year. Sparse years are fine if the overall list stays high-signal. Do **not** split one policy moment into multiple same-year beats unless each is **verifiably** a separate development for the reader.
 
 Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
@@ -377,8 +383,10 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate **up to ${maxEvents}** factual events (hard ceiling—not a quota to fill) using your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events.
 
 STORYWALL — TARGET BEAT COUNT (readability):
-- **Default aim:** ~**8–12** distinct, high-signal beats for typical news, geopolitics, and narrative timelines—setup → escalation → turning points → outcome. **Do not** enumerate every minor incident unless the description explicitly asks for an exhaustive list.
+- **Default aim:** ~**8–12** distinct, high-signal beats for typical news, geopolitics, and narrative timelines—**context → linked developments → turning points → outcome** (one recognizable spine, not disconnected facts). **Do not** enumerate every minor incident unless the description explicitly asks for an exhaustive list.
 - **Ceiling:** Return **at most ${maxEvents}** events; never exceed. Returning **fewer** strong beats (e.g. 8 when the ceiling is 12 or 20) is **correct** if extra incidents would be padding or redundant.
+- **Thesis / breadth:** If the topic is naturally wide (e.g. whole-of-government policy over years), **tighten** to one interpretive line in the beat choice—avoid parallel unrelated policy arcs in one timeline unless the user asked for that breadth.
+- **Late beats:** Do not end with multiple same-year (or same-week) beats that repeat the same theme—merge or cut so the close feels **earned**. This JSON is the **full on-site** explainer; a **~6–8 beat** social thread would be compressed **separately**, not by padding this list.
 - **Progression / regional stories:** Merge or skip marginal beats that do not each change the reader’s understanding; prefer a tight arc over a long list.
 - **Dense controversy / incident lists:** More beats may be warranted if each is a **separate documented incident**—still avoid near-duplicate titles.
 

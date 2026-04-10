@@ -142,6 +142,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
     - Include **at least one concrete documented detail** per beat when facts allow (specific actor, place, date, decision, or measured outcome)—not vague summary alone (aligns with editorial “one clear point + one concrete detail” per card)
     - Where natural, one sentence may state **how this beat advances the overall story arc** (using only documented facts—no invention)
     - **Sequential reading:** Events are listed in chronological order. Where sources support a causal or sequential tie to the **immediately preceding** event, you may add **at most one short bridging clause** (e.g. "Following …", "After …", "In response to …")—do **not** rehash the prior card in full; avoid vague filler ("Tensions continued") with no factual content
+    - **Same-era / late beats:** When consecutive events sit in the **same year** or the same reform wave, each description must add **new** documented facts—do not paraphrase the previous card with only minor wording changes (avoids a "stacked" ending on the page)
     - Focus on the event's meaning, impact, and historical/educational context
     - **DO NOT** describe a visual scene - explain the event itself
     - Incorporate key themes from the timeline description
