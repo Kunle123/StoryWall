@@ -139,6 +139,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
 
 2.  **Event Descriptions:** For each event, write a 2-4 sentence \`description\`. This text must:
     - Explain **what** the event is and **why** it is significant
+    - Include **at least one concrete documented detail** per beat when facts allow (specific actor, place, date, decision, or measured outcome)—not vague summary alone (aligns with editorial “one clear point + one concrete detail” per card)
     - Where natural, one sentence may state **how this beat advances the overall story arc** (using only documented facts—no invention)
     - **Sequential reading:** Events are listed in chronological order. Where sources support a causal or sequential tie to the **immediately preceding** event, you may add **at most one short bridging clause** (e.g. "Following …", "After …", "In response to …")—do **not** rehash the prior card in full; avoid vague filler ("Tensions continued") with no factual content
     - Focus on the event's meaning, impact, and historical/educational context

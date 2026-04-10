@@ -31,11 +31,20 @@ const TimelinePageClient = ({
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, isSignedIn, isLoaded } = useUser();
-  /** Anonymous browse gate: wait until Clerk loads, then enforce 5-timeline limit */
-  const [browseGateOk, setBrowseGateOk] = useState(false);
+  /**
+   * Anonymous browse gate (5 distinct timelines) — still enforced after Clerk loads.
+   * Public read with server data does not wait on Clerk: avoids long "Preparing timeline…"
+   * when Clerk is slow or blocked. Edit mode and client-only fetch still wait.
+   */
+  const [browseGateOk, setBrowseGateOk] = useState(() => {
+    if (!initialTimeline) return false;
+    return searchParams?.get("edit") !== "true";
+  });
   const { toast } = useToast();
   const timelineId = params.id as string;
   const isEditMode = searchParams?.get('edit') === 'true';
+  /** Server-rendered public view: show timeline immediately; gate runs in background */
+  const publicReadWithServerData = Boolean(initialTimeline && !isEditMode);
   
   // Check for same token detection flag (prevents infinite reconnection loop)
   useEffect(() => {
@@ -53,6 +62,11 @@ const TimelinePageClient = ({
       router.replace(newUrl);
     }
   }, [searchParams, router, toast]);
+
+  useEffect(() => {
+    if (!initialTimeline) return;
+    setBrowseGateOk(!isEditMode);
+  }, [isEditMode, initialTimeline?.id]);
 
   const [timeline, setTimeline] = useState<any>(initialTimeline);
   const [events, setEvents] = useState<TimelineEvent[]>(initialEvents);
@@ -200,7 +214,8 @@ const TimelinePageClient = ({
   }, [timelineId, initialTimeline, initialEvents]);
 
   useEffect(() => {
-    if (!browseGateOk || !timelineId) return;
+    if (!timelineId) return;
+    if (!initialTimeline && !browseGateOk) return;
 
     async function hydrateFromServerOrFetch() {
       // Server Component already loaded timeline + events for the common case
@@ -317,7 +332,11 @@ const TimelinePageClient = ({
     }
   }, [loading]);
 
-  if (!isLoaded || !browseGateOk || loading) {
+  const showBlockingLoader =
+    loading ||
+    (!publicReadWithServerData && (!isLoaded || !browseGateOk));
+
+  if (showBlockingLoader) {
     return (
       <div className="min-h-screen bg-background">
         <Header isVisible={showHeader} />

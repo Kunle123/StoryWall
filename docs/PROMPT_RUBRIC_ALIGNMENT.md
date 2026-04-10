@@ -36,14 +36,24 @@ This document records how **API prompts** and the **editor UI** line up with [`S
 
 | Status | Notes |
 |--------|--------|
-| **Aligned** | Strong **uniqueness** rules; “quality over quantity”; progression stages. **Beat linkage** is explicit in `BASE_TIMELINE_PROMPT`, `generate-events`, **enrichment** (optional one-clause bridge to the prior beat when facts support it), and **chat-skeleton** (ordered milestones with forward pull). |
-| **Tension** | User-facing **max events** defaults (e.g. 20) and some branches say “MUST generate N events,” which can **fight** the rubric’s **6–12** ideal. The prompts also say not to fabricate to reach N—those instructions are in tension. **Mitigation:** narrative-arc + uniqueness + beat-linkage language; product default / UX is a separate knob. |
+| **Aligned** | Strong **uniqueness** rules; “quality over quantity”; progression stages. **Beat linkage** is explicit in `BASE_TIMELINE_PROMPT`, `generate-events`, **enrichment** (optional one-clause bridge to the prior beat when facts support it; **concrete detail** per description where possible), and **chat-skeleton** (ordered milestones with forward pull). **Target length:** prompts center **~8–12 strong beats** with `maxEvents` as **ceiling not quota**; editor/API default **`maxEvents` = 12** (see [`GTM-one-page-memo.md`](./product/GTM-one-page-memo.md) editorial rules). |
+| **Residual** | GTM also suggests **6–8** beats for “fast social context”—achieved by the creator **lowering max events** in the editor, not a separate preset yet. **12–15 when warranted** is still user-driven via a higher cap. |
+
+### 3b. GTM editorial & writing rules (memo crosswalk)
+
+| Memo rule | Prompt / product coverage |
+|-----------|---------------------------|
+| **6–12 beats**, 8–12 standard explainers; **each beat earns its place** | `generate-events` + `timeline-modules`: target beat count + beat linkage; combine/remove redundant beats. Default cap **12**. |
+| **Momentum into next card**; **cause → consequence** | Beat linkage blocks; enrichment **sequential reading** bridge (optional, factual). |
+| **One clear point; concrete detail; forward-pull** | Titles: specific; descriptions: **concrete documented detail** + significance; voice: neutral/factual (not hype). |
+| **Avoid vague transitions, stacked facts without linkage** | Explicit in titles + descriptions + image prompt rules. |
+| **Factual, cumulative, clean** | Anti-hallucination + wire-service voice; chronological order. |
 
 ### 4. Visual contribution
 
 | Status | Notes |
 |--------|--------|
-| **Aligned** | Enrichment builds **anchorStyle**, literal **imagePrompt** per event, theme coherence. |
+| **Aligned** | Enrichment builds **anchorStyle**, literal **imagePrompt** per event, theme coherence; image prompts include **one focal moment per beat** and arc-appropriate framing (GTM **pacing / layout** is partly product UI; **recognizable house style** is still partial—see matrix row 19). |
 | **Gap** | Event-generation step does not score “visuals”—that is **by design** (step 5). |
 
 ### 5. Emotional or intellectual payoff
@@ -74,7 +84,7 @@ This document records how **API prompts** and the **editor UI** line up with [`S
 |-----------|-------------------------------------------|
 | Premise | User + title rules; not a full “visitor test” |
 | Arc | Progression + fiction strong; general factual: arc + beat-linkage prompts |
-| Beats | Uniqueness + beat linkage; count pressure from maxEvents |
+| Beats | Uniqueness + beat linkage; default cap 12 + ~8–12 target (GTM-aligned); user can raise for 12–15 cases |
 | Visuals | Strong in enrichment |
 | Payoff | OK via significance; voice may limit punch |
 | Share | Editor UX + rubric doc; not in generation prompts |

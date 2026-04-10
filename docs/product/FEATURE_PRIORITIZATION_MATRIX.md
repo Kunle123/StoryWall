@@ -28,7 +28,7 @@ Use this table to compare initiatives and to build a **bubble chart**: plot **In
 | 6 | **Single default narrative tone** (conversational path) | Pick **one default writing preset** for the conversational flow so tone is consistent without extra toggles. | H | M | M | 3 | Not implemented | [#41](https://github.com/Kunle123/StoryWall/issues/41) | Editor presets exist elsewhere; this row is conv-path default |
 | 7 | **Prompt: objective verifiability** (replace controversy % caps in base prompts) | Replace legacy **“20–30% controversy”**-style caps with **verifiable-headline** rules everywhere (`timeline-modules`, `generate-events`). | H | L | M | 3 | Partial | — | `chat-skeleton` stricter; base prompts still mixed—see `PROMPT_RUBRIC_ALIGNMENT.md` |
 | 8 | **Prompt: beat linkage & pacing** (one beat = one shift; forward-pull) | Prompts require **one meaningful shift per beat**, **causal ordering** where facts allow, and **specific titles**; enrichment may add a **short bridge** to the prior beat. | H | M | M | 3 | Implemented | — | `BASE_TIMELINE_PROMPT` · `generate-events` · `enrichment-optimized` · `chat-skeleton` |
-| 9 | **Default / recommended beat count** (8–12 UX + guardrails vs 19) | Product **defaults and copy** nudging **8–12 beats** (rubric-aligned) instead of maxing `maxEvents` (e.g. 19). | H | H | S | 2 | Not implemented | — | GTM + rubric; UI `maxEvents` not retuned |
+| 9 | **Default / recommended beat count** (8–12 UX + guardrails vs 19) | **Prompts + API/editor default `maxEvents` = 12** with **~8–12** target and ceiling-not-quota copy; helper text explains readability aim. **6–8 fast social** still via user lowering the cap; no separate preset. | H | H | S | 2 | Partial | — | Matches GTM memo default ranges; “19 too long” addressed by default + prompts, not hard block |
 | 10 | **Classic editor** (multi-step: premise → events → details → images) | Primary **wizard** create flow: premise → AI events → details → images—the main shipped editor experience. | H | M | L | 4 | Implemented | — | Core product paths under `components/timeline-editor` |
 | 11 | **AI generate events** (`generate-events`) | **`/api/ai/generate-events`**: produces dated **titles** from a description (factual vs creative branches, progression detection, recency). | H | M | L | 4 | Implemented | — | `app/api/ai/generate-events/route.ts` |
 | 12 | **AI descriptions + images** (`generate-descriptions-v2`, Imagen) | **Step 3 enrichment**: neutral descriptions, **imagePrompt** per beat, **anchorStyle**; Vertex/Imagen integration. | H | H | L | 5 | Implemented | — | `app/api/ai/generate-descriptions-v2` · `lib/prompts/enrichment-optimized.ts` |
@@ -62,6 +62,7 @@ Use this table to compare initiatives and to build a **bubble chart**: plot **In
 | 40 | **Community / creator beta** (context storytelling, 70/30 craft vs product) | **Invite-only cohort** with norms (context storytelling, craft vs product balance)—GTM + community, minimal product. | H | H | M | 3 | Not implemented | — | GTM plan; no umbrella issue yet |
 | 41 | **Embeds** (timeline on external sites) | **oEmbed, iframe, or script** so third-party sites embed a read-only timeline. | M | H | L | 5 | Not implemented | — | Future; see GTM memo |
 | 42 | **Collaboration / team plans** | **Shared workspaces**, roles, and **team billing** for org use. | L | M | L | 5 | Not implemented | — | Future; GTM memo |
+| 43 | **Locality-aligned image generation** (geo + institutions + representation) | **Backlog — not implemented.** Improve prompts and/or pipeline so **illustrations match the story’s real-world context**: correct **country/region** (e.g. UK immigration debates → people and settings that read as **UK**, not US stock defaults); **institution-appropriate architecture** (e.g. **UK High Court** vs generic US courthouse); **geography** that matches named places (e.g. **Strait of Dover** vs fjord-like coastlines). **Representation:** when topics involve immigrants or diverse populations, depict **plausible diversity in that locality** (e.g. UK context → not “Black people only” as a stand-in for diversity). Goal: **generic mechanism** so any timeline’s images align with **requested information and locale**, not one-off fixes. | H | M | M | 4 | Not implemented | — | Targets `enrichment-optimized` / `imagePrompt`; may touch `generate-images` routing, anchor style, or reference retrieval |
 
 ---
 
@@ -79,7 +80,7 @@ ID,Feature,Description,Information,Virality,Complexity,Cpx,Status,Issues
 6,Single narrative tone,One default writing preset for conversational path.,H,M,M,3,Not implemented,41
 7,Prompt objective verifiability,Replace legacy controversy caps with verifiable-headline rules in all base prompts.,H,L,M,3,Partial,
 8,Prompt beat linkage and pacing,One shift per beat; causal ordering; optional bridge in enrichment.,H,M,M,3,Implemented,
-9,Default beat count 8-12,Product defaults nudging rubric-aligned beat count vs maxEvents.,H,H,S,2,Not implemented,
+9,Default beat count 8-12,Default maxEvents 12 prompts target 8-12 ceiling not quota.,H,H,S,2,Partial,
 10,Classic editor,Wizard: premise to events to details to images.,H,M,L,4,Implemented,
 11,AI generate events,API produces dated titles; factual and creative branches.,H,M,L,4,Implemented,
 12,AI descriptions and images,Enrichment: descriptions; imagePrompt; anchorStyle; Imagen.,H,H,L,5,Implemented,
@@ -113,6 +114,7 @@ ID,Feature,Description,Information,Virality,Complexity,Cpx,Status,Issues
 40,Community creator beta,Invite cohort; GTM plus community.,H,H,M,3,Not implemented,
 41,Embeds,Embed timelines on third-party sites.,M,H,L,5,Not implemented,
 42,Collaboration team plans,Shared workspaces; roles; billing.,L,M,L,5,Not implemented,
+43,Locality-aligned images,Geo institutions and diverse representation match timeline locale; generic not one-off.,H,M,M,4,Not implemented,
 ```
 
 ### Bubble chart in Google Sheets (quick path)
@@ -133,4 +135,4 @@ You can swap axes (e.g. Virality on X, Information on Y); bubble size should sta
 - When creating a GitHub issue for a row, add its number to **Issues** and link it here.
 - Keep **Description** in sync when the initiative’s intent changes; **Reference** is for code paths and edge cases.
 
-*Last updated: 2026-03-28 — Added Description and Issues columns; CSV includes matching fields.*
+*Last updated: 2026-04-10 — Row 43 backlog: locality-aligned image generation (geo, institutions, representation).*

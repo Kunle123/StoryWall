@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { TimelineCard } from "./TimelineCard";
 import { TimelineCardSkeleton } from "./TimelineCardSkeleton";
 import { StatisticsTimelineView } from "./StatisticsTimelineView";
+import { sortTimelineEvents as sortTimelineEventsForDisplay } from "@/lib/utils/sortTimelineEvents";
 
 export interface TimelineEvent {
   id: string;
@@ -52,32 +53,7 @@ export const Timeline = ({ events, pixelsPerYear = 50, embedded = false, title, 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
 
-  // Sort events by date or number
-  const sortedEvents = [...events].sort((a, b) => {
-    // If both are numbered events, sort by number
-    if (a.number && b.number) {
-      return a.number - b.number;
-    }
-    // If one is numbered and one is dated, numbered come first (or handle as needed)
-    if (a.number && !b.number) return -1;
-    if (!a.number && b.number) return 1;
-    // Both are dated events, sort by date
-    if (a.year && b.year) {
-      // For BC dates (negative years), compare directly
-      // For AD dates, use Date objects
-      if (a.year < 0 || b.year < 0) {
-        // At least one is BC - compare years directly (negative years are earlier)
-        return a.year - b.year;
-      } else {
-        // Both are AD - use Date objects for accurate comparison
-        const dateA = new Date(a.year, a.month || 0, a.day || 1);
-        const dateB = new Date(b.year, b.month || 0, b.day || 1);
-        return dateA.getTime() - dateB.getTime();
-      }
-    }
-    // Fallback: keep original order
-    return 0;
-  });
+  const sortedEvents = sortTimelineEventsForDisplay(events);
 
   // Check if timeline is a statistics timeline
   const isStatisticsTimeline = sortedEvents.some(event => 
