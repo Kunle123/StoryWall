@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server';
 // Public routes that don't require authentication
 const publicRoutes = [
   '/',
+  '/discover(.*)', // listed in sitemap; must be crawlable without sign-in (SEO)
   '/sign-in',
   '/sign-up',
   '/legal',
