@@ -13,6 +13,22 @@
 | **P2** | After signals — budget discipline, remix, public beta slice |
 | **Eng** | Product/engineering backlog (parallel when capacity) |
 
+### Prioritised (feature matrix)
+
+These rows are marked **Prioritised** in [`FEATURE_PRIORITIZATION_MATRIX.md`](./FEATURE_PRIORITIZATION_MATRIX.md) — high attention across product and GTM.
+
+| Row | Topic | Driver | Next action |
+|-----|--------|--------|-------------|
+| **14** | How it works + flagship examples | [#16](https://github.com/Kunle123/StoryWall/issues/16) | Feature **3** strong public timelines; optional demo URL — [`FLAGSHIP_EXAMPLES.md`](./FLAGSHIP_EXAMPLES.md) |
+| **19** | Visual house style | [GTM — Visual identity](GTM-one-page-memo.md#visual-identity-rules) | Align Discover/cards with mockup notes — [`DISCOVER_UI_MOCKUP_NOTES.md`](./DISCOVER_UI_MOCKUP_NOTES.md) |
+| **23** | User research | [#19](https://github.com/Kunle123/StoryWall/issues/19) | Run recruitment + moderated sessions; log learnings in issues |
+| **24** | Founder-led distribution | [#20](https://github.com/Kunle123/StoryWall/issues/20) | Context-reply habit + list of target topics — [GTM](GTM-one-page-memo.md#marketing-wedge) |
+| **26** | Private beta gates | [#14](https://github.com/Kunle123/StoryWall/issues/14) | Work through [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) **§1** |
+| **34** | Seed + discoverability | [#10](https://github.com/Kunle123/StoryWall/issues/10) | Dev/staging: `scripts/seed-all-data.ts`; prod: exemplar + featured strategy |
+| **36** | Legal / compliance | [#12](https://github.com/Kunle123/StoryWall/issues/12) | Beta-appropriate terms/privacy + channel requirements |
+| **39** | Week 4 small beta | [#24](https://github.com/Kunle123/StoryWall/issues/24) | Cohort definition + user-story capture — [GTM — Beta program execution](GTM-one-page-memo.md#beta-program-execution) |
+| **40** | Community / creator beta | [GTM Community](GTM-one-page-memo.md#community-strategy) | Invite norms (70/30); minimal product churn — same **§1** gates |
+
 ---
 
 ## P0 — Validation & Week 1 (do now)
@@ -80,7 +96,8 @@
 - **2026-03-29:** **`/discover` in sitemap** ([#25](https://github.com/Kunle123/StoryWall/issues/25)); **global Feedback** in app header ([#18](https://github.com/Kunle123/StoryWall/issues/18)) — still verify GSC + monitoring per issue #25 checklist.
 - **2026-03-29 (pm):** **#9** admin route auth (`requireAdmin`); upload requires sign-in. **#4** tiered publish credits (+30/+20/+10) via `lib/db/publishRewards.ts` on public create / private→public. Verify on staging/prod.
 - **2026-03-30 (board sync):** GitHub Project **Status** set for **#34** → **Ready for test** (was unset: `gh project item-list` defaults to **30** items; #34 was past the page). **`scripts/gh-board-set-status.sh`** fixed: `--limit 200` + `gh -q` filter (avoids jq parse errors on long issue bodies). **#28** (restore-point bookmark) moved **In Progress** → **Planning**. Comments on **#34** / **#30** with ship ref **`90c44f3`**.
+- **2026-03-28 (prioritised matrix):** Added **§1 Private beta** gates to [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md); **Beta program execution** section in [`GTM-one-page-memo.md`](./GTM-one-page-memo.md); Prioritised table in this file; flagship doc ties to matrix row **14**.
 
 ---
 
-*Week of **2026-03-28** (notes updated 2026-03-30)*
+*Week of **2026-03-28** (notes updated 2026-03-28)*

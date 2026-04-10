@@ -2,7 +2,7 @@
 
 **Purpose:** Single reference for **positioning**, **private beta gates**, **one-month execution**, **metrics**, **budget**, and **growth messaging**. **Tasks** live in **GitHub Issues**; this doc is the narrative.
 
-**Related:** [`roadmap.md`](./roadmap.md) (goals & metrics table) · [`current-sprint.md`](./current-sprint.md) (weekly focus) · [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) (broad launch gates) · [`FUNNEL_EVENTS.md`](./FUNNEL_EVENTS.md) (GA events) · [`AGENTS.md`](../../AGENTS.md) (workflow)
+**Related:** [`roadmap.md`](./roadmap.md) (goals & metrics table) · [`current-sprint.md`](./current-sprint.md) (weekly focus) · [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) (private beta §1 + broad launch §2) · [`FUNNEL_EVENTS.md`](./FUNNEL_EVENTS.md) (GA events) · [`AGENTS.md`](../../AGENTS.md) (workflow)
 
 ---
 

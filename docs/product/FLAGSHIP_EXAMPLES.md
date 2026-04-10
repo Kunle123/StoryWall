@@ -1,6 +1,8 @@
 # Flagship example StoryWalls (ops checklist)
 
-Tracks **[#16](https://github.com/Kunle123/StoryWall/issues/16)** — three polished public examples on the home discover feed.
+**Feature matrix [row 14](./FEATURE_PRIORITIZATION_MATRIX.md)** — *How it works + examples* (Prioritised).
+
+Tracks **[#16](https://github.com/Kunle123/StoryWall/issues/16)** — three polished public examples on the home discover feed (spotlight can show up to six; **three** is the flagship bar).
 
 ## Quality bar
 

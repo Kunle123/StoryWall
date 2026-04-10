@@ -234,6 +234,21 @@ The strongest message is:
 
 **Storywall helps creators turn isolated posts and events into understandable visual stories.**
 
+## Beta program execution
+
+Matrix rows **23** (research), **24** (distribution), **39** (week-4 small beta), **40** (community / creator beta).
+
+Ties **[#19](https://github.com/Kunle123/StoryWall/issues/19)** (research), **[#20](https://github.com/Kunle123/StoryWall/issues/20)** (distribution), **[#24](https://github.com/Kunle123/StoryWall/issues/24)** (week-4 small beta), and **community / creator beta** (row **40** — invite-only cohort, same norms as [Community strategy](#community-strategy)).
+
+| Workstream | Intent | Practical next step |
+|------------|--------|---------------------|
+| **Moderated research (#19)** | Learn where workflows break and what “great” looks like | Recruit a first batch (e.g. 5–10); run sessions; file findings in GitHub |
+| **Founder-led distribution (#20)** | Repeatable **context** replies, not spam | Keep a short list of topics/posts where a StoryWall adds clarity; ship 1–2 quality replies/week |
+| **Week-4 small beta (#24)** | Structured cohort + **user stories** (outcomes, not only bugs) | Define “done” for the slice (e.g. N published stories, N interviews); weekly retro |
+| **Community / creator beta (40)** | GTM + norms; **minimal product** changes | Welcome message + channel rules (70% craft / 30% product); coordinate with [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) §1 |
+
+**Visual house style (matrix row 19)** stays aligned with [Visual identity rules](#visual-identity-rules) and product polish issues; track UI debt in [`DISCOVER_UI_MOCKUP_NOTES.md`](./DISCOVER_UI_MOCKUP_NOTES.md) where Discover is involved.
+
 ## Immediate next steps
 
 1. Choose one positioning line and use it everywhere.
