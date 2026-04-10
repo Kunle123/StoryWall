@@ -26,7 +26,7 @@ Use this for **private beta** and **wider testing** before treating legal work a
 
 ## Ops & contacts (not automated)
 
-See **[`docs/LEGAL_SETUP.md`](../LEGAL_SETUP.md)** for **email** inboxes (`privacy@`, `copyright@`, `legal@`, …), forwarding, and DMCA expectations. Beta is **not** complete until someone monitors **privacy@** / support paths you publish.
+See **[`docs/LEGAL_SETUP.md`](../LEGAL_SETUP.md)** — section **Email setup instructions** (Cloudflare Email Routing recommended) and the **Verification checklist**. Beta is **not** complete until someone monitors **privacy@** / **copyright@** / **support@** daily.
 
 ## Checklist before “beta-ready” legal
 

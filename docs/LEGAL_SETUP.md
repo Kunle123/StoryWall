@@ -49,33 +49,75 @@ You need to set up the following email addresses at `storywall.com`:
 - **Used in**: Terms & Conditions (account termination)
 - **Priority**: Medium
 
-## Email Setup Instructions
+## Email setup instructions
 
-### Option 1: Using Your Domain Provider (Recommended)
+You need **incoming** mail to each published address (legal, copyright, privacy, moderation, appeals, support). The app only shows `mailto:` links — delivery is entirely on your **DNS / email host**.
 
-1. **Log in to your domain registrar** (where you purchased `storywall.com`)
-2. **Navigate to Email/DNS settings**
-3. **Create email forwarding rules** for each address:
-   - `legal@storywall.com` → Your personal/business email
-   - `copyright@storywall.com` → Your personal/business email
-   - `privacy@storywall.com` → Your personal/business email
-   - `moderation@storywall.com` → Your personal/business email
-   - `appeals@storywall.com` → Your personal/business email
-   - `support@storywall.com` → Your personal/business email
+### Option A — Cloudflare Email Routing (recommended for forwarding)
 
-### Option 2: Using Google Workspace / Microsoft 365
+**Best for:** Delivering all `@storywall.com` aliases to **one or two real inboxes** (e.g. Gmail) with no extra mailbox cost. Suitable for UK beta if you monitor the destination inbox daily.
 
-1. **Set up Google Workspace or Microsoft 365** for `storywall.com`
-2. **Create mailboxes** for each address
-3. **Set up forwarding** if you want emails to go to a central inbox
-4. **Configure auto-responders** if needed (e.g., "We received your request and will respond within 48 hours")
+**Requirements:** Domain uses **Cloudflare DNS** (nameservers pointed to Cloudflare). If the domain lives only at a registrar, either move DNS to Cloudflare or use Option B/C.
 
-### Option 3: Using a Service Like Zoho Mail (Free Tier Available)
+1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com) → select **storywall.com** → **Email** → **Email Routing**.
+2. **Enable** Email Routing. Cloudflare will add the required **MX** records (do not mix with another incoming-mail provider on the same zone — one system “owns” inbound mail).
+3. Under **Destination addresses**, add the inbox(es) that will receive mail (you’ll verify each with a confirmation link).
+4. Under **Routing rules**, create a rule for **each** address the policies advertise:
 
-1. **Sign up for Zoho Mail** (free for up to 5 users)
-2. **Add your domain** `storywall.com`
-3. **Create mailboxes** for each address
-4. **Set up forwarding** to your main email
+   | Custom address | Action |
+   |----------------|--------|
+   | `legal@storywall.com` | Send to your verified destination |
+   | `copyright@storywall.com` | Same (or a dedicated inbox if you prefer) |
+   | `privacy@storywall.com` | Same — **must** be monitored for UK GDPR / data requests |
+   | `moderation@storywall.com` | Same |
+   | `appeals@storywall.com` | Same |
+   | `support@storywall.com` | Same |
+
+   You can use **one destination** for all six at first; split later if volume grows.
+
+5. **Catch-all** (optional): A catch-all to one inbox is convenient for typos; ensure that inbox is checked or you risk missing `privacy@` / `copyright@` traffic.
+
+6. **Test:** From an **external** account (not the destination), send one message to each of `privacy@`, `copyright@`, `support@`. Confirm arrival within a few minutes.
+
+7. **Replying as @storywall.com:** Email Routing delivers **to** you; **sending** from `support@storywall.com` usually needs **Google Workspace**, **Microsoft 365**, or an SMTP provider. For beta, replying from your normal address and signing “StoryWall Support” is often enough until you add Workspace.
+
+**UK note:** ICO and users expect **privacy@** (and other published contacts) to reach a **person who can act** — forwarding to an unmonitored mailbox is not compliant.
+
+---
+
+### Option B — Registrar or host “email forwarding”
+
+1. Log in to where **DNS or email** for `storywall.com` is managed (registrar, Plesk, cPanel, etc.).
+2. Find **forwarding**, **aliases**, or **catch-all** and map each address to your working inbox (same list as above).
+3. Confirm **MX** records match what that provider requires (only one inbound email system per domain).
+
+---
+
+### Option C — Google Workspace / Microsoft 365 (full mailboxes)
+
+1. Verify the domain and add **MX** records as instructed by Google or Microsoft.
+2. Create **users** or **groups** for `legal@`, `copyright@`, etc., or use **shared mailboxes / groups** that forward to founders.
+3. Configure **DKIM** / **SPF** as the provider recommends (important for deliverability when **sending** mail).
+
+---
+
+### Option D — Zoho Mail (free/low-cost mailboxes)
+
+1. Add `storywall.com` in Zoho and complete DNS verification.
+2. Create mailboxes or aliases for each address; forward to a main inbox if desired.
+
+---
+
+### Verification checklist (do before calling mail “live”)
+
+- [ ] `legal@storywall.com` — test received
+- [ ] `copyright@storywall.com` — test received
+- [ ] `privacy@storywall.com` — test received
+- [ ] `moderation@storywall.com` — test received
+- [ ] `appeals@storywall.com` — test received
+- [ ] `support@storywall.com` — test received
+- [ ] Someone is **responsible** for checking the destination inbox at least **daily** during beta (especially **privacy@** and **copyright@**)
+- [ ] Optional: vacation/auto-reply acknowledging receipt within **48 hours** for legal/privacy (matches expectations in internal docs)
 
 ## Terms & Conditions Acceptance
 
@@ -126,27 +168,22 @@ The footer component has been updated to include links to all policy pages. The 
 - ✅ Data Protection Officer contact (privacy@storywall.com)
 - ✅ ICO complaint information included
 - ✅ User rights clearly explained
-- ⚠️ **TODO**: Set up email addresses
+- ⚠️ **TODO**: Set up email addresses — follow **Option A** (or B/C/D) in [Email setup instructions](#email-setup-instructions) and complete the **Verification checklist**
 - ⚠️ **TODO**: Implement T&Cs acceptance tracking
 - ⚠️ **TODO**: Add cookie consent banner (if using analytics cookies)
 
-## DMCA Compliance
+## Copyright / takedown process (UK)
 
-For DMCA/copyright takedown requests:
+For notices sent to `copyright@storywall.com`:
 
-1. **Email address**: `copyright@storywall.com` (must be set up)
-2. **Response time**: Aim to respond within 48 hours
-3. **Process**: 
-   - Receive takedown request
-   - Verify it meets DMCA requirements
-   - Remove or disable access to infringing content
-   - Notify the user who posted the content
-   - Provide counter-notification process if applicable
+1. **Mailbox** must be set up and monitored (see [Email setup instructions](#email-setup-instructions)).
+2. **Response time:** Aim to acknowledge within **48 hours** (internal target; your lawyer may suggest different SLAs).
+3. **Process (high level):** receive notice → assess validity under **UK** law and your Terms → remove or restrict content where appropriate → notify the affected user where required → document decisions. Use **UK-qualified** advice for procedure and record-keeping.
 
 ## Next Steps
 
-1. **Set up email addresses** (see Email Setup Instructions above)
-2. **Test email addresses** by sending test emails to each
+1. **Set up email addresses** (see [Email setup instructions](#email-setup-instructions); complete the **Verification checklist**)
+2. **Test** each address from an external mail account
 3. **Implement T&Cs acceptance tracking** (Option A recommended)
 4. **Add cookie consent banner** if using analytics cookies
 5. **Review and customise** policy pages with your specific business details
@@ -156,7 +193,7 @@ For DMCA/copyright takedown requests:
 ## Important Notes
 
 - **Email addresses must be functional** before going live
-- **Copyright email is critical** - DMCA requires a designated agent
+- **Copyright email is critical** — a working **copyright@** path is expected for takedown-style notices (UK CDPA / practice; US “DMCA agent” rules apply only if you operate under US law)
 - **Privacy email is required** for UK GDPR compliance
 - **Response times matter** - aim for 48-hour response to legal inquiries
 - **Keep policy pages updated** - review quarterly or when laws change
