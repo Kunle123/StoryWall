@@ -2,6 +2,11 @@ import { prisma } from './prisma';
 import { Timeline, CreateTimelineInput } from '@/lib/types';
 import { isAdminEmail } from '@/lib/utils/admin';
 
+/** For Postgres `~` when resolving `baseSlug` → `baseSlug-2` uniqueness collisions. */
+function escapeForPostgresRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function createTimeline(
   input: CreateTimelineInput & { slug: string; creator_id: string }
 ): Promise<Timeline> {
@@ -554,31 +559,76 @@ export async function getTimelineById(id: string): Promise<Timeline | null> {
 export async function getTimelineBySlug(slug: string): Promise<Timeline | null> {
   // Use raw SQL as primary method to avoid is_numbered column issues (same as getTimelineById)
   const trimmedSlug = slug.trim();
+  if (!trimmedSlug) return null;
+
+  type TimelineRow = {
+    id: string;
+    title: string;
+    description: string | null;
+    slug: string;
+    creator_id: string;
+    visualization_type: string;
+    is_public: boolean;
+    is_collaborative: boolean;
+    view_count: number;
+    created_at: Date;
+    updated_at: Date;
+  };
+
   try {
     // Parameterized query (safe; exact match). Empty result is normal during POST /timelines slug reservation.
     console.log('[getTimelineBySlug] Raw SQL for slug:', trimmedSlug);
 
-    const timelineRows = await prisma.$queryRaw<
-      Array<{
-        id: string;
-        title: string;
-        description: string | null;
-        slug: string;
-        creator_id: string;
-        visualization_type: string;
-        is_public: boolean;
-        is_collaborative: boolean;
-        view_count: number;
-        created_at: Date;
-        updated_at: Date;
-      }>
-    >`
+    let timelineRows = await prisma.$queryRaw<TimelineRow[]>`
       SELECT id, title, description, slug, creator_id,
              visualization_type, is_public, is_collaborative,
              view_count, created_at, updated_at
       FROM timelines
       WHERE slug = ${trimmedSlug}
     `;
+
+    if (timelineRows.length === 0) {
+      const ciRows = await prisma.$queryRaw<TimelineRow[]>`
+        SELECT id, title, description, slug, creator_id,
+               visualization_type, is_public, is_collaborative,
+               view_count, created_at, updated_at
+        FROM timelines
+        WHERE LOWER(TRIM(BOTH FROM slug)) = LOWER(${trimmedSlug})
+        ORDER BY id ASC
+        LIMIT 1
+      `;
+      if (ciRows.length > 0) {
+        console.log(
+          '[getTimelineBySlug] Matched via case-insensitive slug:',
+          trimmedSlug,
+          '→ stored:',
+          ciRows[0].slug
+        );
+        timelineRows = ciRows;
+      }
+    }
+
+    if (timelineRows.length === 0) {
+      const suffixPattern = `^${escapeForPostgresRegex(trimmedSlug)}-[0-9]+$`;
+      const suffixedRows = await prisma.$queryRaw<TimelineRow[]>`
+        SELECT id, title, description, slug, creator_id,
+               visualization_type, is_public, is_collaborative,
+               view_count, created_at, updated_at
+        FROM timelines
+        WHERE slug ~ ${suffixPattern}
+        ORDER BY slug ASC
+        LIMIT 1
+      `;
+      if (suffixedRows.length > 0) {
+        console.log(
+          '[getTimelineBySlug] Matched via numeric suffix (slug collision fallback):',
+          trimmedSlug,
+          '→ stored:',
+          suffixedRows[0].slug
+        );
+        timelineRows = suffixedRows;
+      }
+    }
 
     console.log('[getTimelineBySlug] Raw SQL found', timelineRows.length, 'rows (0 = slug free or unknown slug)');
     if (timelineRows.length === 0) return null;
@@ -672,7 +722,7 @@ export async function getTimelineBySlug(slug: string): Promise<Timeline | null> 
     try {
       console.log('[getTimelineBySlug] Falling back to Prisma findUnique...');
       const timeline = await prisma.timeline.findUnique({
-        where: { slug },
+        where: { slug: trimmedSlug },
         include: {
           creator: {
             select: {
