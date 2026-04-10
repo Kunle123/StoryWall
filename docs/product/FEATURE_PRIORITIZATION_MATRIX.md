@@ -134,7 +134,7 @@ You can swap axes (e.g. Virality on X, Information on Y); bubble size should sta
 ## Maintenance
 
 - Re-score after shipping or when scope changes.
-- When creating a GitHub issue for a row, add its number to **Issues** and link it here.
+- When creating a GitHub issue for a row, add its number to **Issues** and link it here, then set the project’s **Matrix #** field (see `scripts/gh-board-set-matrix.sh` in [`BOARD_PRIORITY.md`](./BOARD_PRIORITY.md)).
 - Keep **Description** in sync when the initiative’s intent changes; **Reference** is for code paths and edge cases.
 
 *Last updated: 2026-03-28 — Row 44 backlog: optional per-beat reference images for venues/vehicles/objects (fallback + perf notes).*

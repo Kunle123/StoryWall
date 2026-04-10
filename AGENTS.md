@@ -7,6 +7,7 @@ This repo uses **GitHub Issues + GitHub Projects** as the source of truth for wo
 - **Board name:** StoryWall Launch Board (or your chosen name in GitHub Projects).
 - **View:** Use GitHub Projects’ **Board** view as the main kanban (columns = status). Add **Table** or **Roadmap** views if you want filters or timeline; the Board stays the default for day-to-day execution.
 - **Board URL:** After you create the project: **GitHub → Projects → open the board → copy URL** and paste it here. Example shape: `https://github.com/users/Kunle123/projects/1` (your ID will differ).
+- **Matrix #:** The project has a **number** field **Matrix #** (1–44) aligned with [`docs/product/FEATURE_PRIORITIZATION_MATRIX.md`](docs/product/FEATURE_PRIORITIZATION_MATRIX.md). **Table** view: sort or filter by **Matrix #** to match roadmap rows. After adding a new card, run `./scripts/gh-board-set-matrix.sh ISSUE MATRIX_ROW` or `./scripts/gh-board-set-matrix.sh --sync-all` (see [`docs/product/BOARD_PRIORITY.md`](docs/product/BOARD_PRIORITY.md)).
 
 ### Recommended labels (create in the repo if missing)
 
