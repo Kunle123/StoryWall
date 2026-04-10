@@ -2,7 +2,7 @@
 
 Use this table to compare initiatives and to build a **bubble chart**: plot **Information** on one axis, **Virality** on the other, and set **bubble size** from **Complexity** (1–5 — larger = more effort/risk).
 
-**Scale (subjective — adjust as a team):**
+**Scoring (subjective — adjust as a team):** We use **numeric scores only**, not Low / Medium / High labels, so axes stay comparable across updates and tools (Sheets, Manus, etc.).
 
 | Column | Values |
 |--------|--------|
@@ -137,4 +137,4 @@ You can swap axes (e.g. Virality on X, Information on Y); bubble size should sta
 - When you update the bubble chart in Manus/Sheets, **paste the revised CSV** into the block above and align the **Matrix** table (or edit the table and regenerate CSV).
 - When creating a GitHub issue for a row, add its number to **Ref** and link it here, then set the project’s **Matrix #** field (see `scripts/gh-board-set-matrix.sh` in [`BOARD_PRIORITY.md`](./BOARD_PRIORITY.md)).
 
-*Last updated: 2026-03-28 — Synced to numeric-scale CSV (Information / Virality 1–10, Complexity 1–5); **Prioritised** status and Ref column aligned with Manus export.*
+*Last updated: 2026-03-28 — Scoring is numeric (not L/M/H); CSV + **Prioritised** / Ref aligned with Manus export.*

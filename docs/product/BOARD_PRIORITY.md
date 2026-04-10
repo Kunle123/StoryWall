@@ -4,7 +4,7 @@
 
 Use this to **drag cards** into columns or to align your **Priority** / **Status** fields with the backlog.
 
-**Matrix # (aligned with [`FEATURE_PRIORITIZATION_MATRIX.md`](./FEATURE_PRIORITIZATION_MATRIX.md)):** The board includes a **Matrix #** number field (rows **1–44**). In GitHub Projects, open **Table** view to sort or filter by **Matrix #** so cards line up with the matrix (not with GitHub issue numbers, which are unrelated). **Set values:** `./scripts/gh-board-set-matrix.sh ISSUE MATRIX_ROW` or bulk `./scripts/gh-board-set-matrix.sh --sync-all` (mapping lives in that script). **No matrix row yet** (leave blank or set manually): e.g. **#28** restore bookmark, **#33** kanban/templates meta, **#35** back button, **#36** conversational epic (spans rows 1–6).
+**Matrix # (aligned with [`FEATURE_PRIORITIZATION_MATRIX.md`](./FEATURE_PRIORITIZATION_MATRIX.md)):** Roadmap rows use **numeric scoring** (Information / Virality / Complexity)—not L/M/H. The board includes a **Matrix #** number field (rows **1–44**). In GitHub Projects, open **Table** view to sort or filter by **Matrix #** so cards line up with the matrix (not with GitHub issue numbers, which are unrelated). **Set values:** `./scripts/gh-board-set-matrix.sh ISSUE MATRIX_ROW` or bulk `./scripts/gh-board-set-matrix.sh --sync-all` (mapping lives in that script). **No matrix row yet** (leave blank or set manually): e.g. **#28** restore bookmark, **#33** kanban/templates meta, **#35** back button, **#36** conversational epic (spans rows 1–6).
 
 **Priority order:** P0 → P1 → P2 → Eng (see [`current-sprint.md`](./current-sprint.md)).
 
