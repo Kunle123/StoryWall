@@ -12,110 +12,112 @@ Use this table to compare initiatives and to build a **bubble chart**: plot **In
 | **Cpx (1–5)** | **1** = smallest bubble · **5** = largest (maps to S=2, M=3, L=5; tweak as you like) |
 | **Status** | **Implemented** = live in `main` / production path · **Partial** = shipped slice, docs/checklist only, or materially incomplete vs intent · **Not implemented** = not built, or process/GTM only with no product artifact yet |
 
-**GitHub issues** are referenced where they exist; some rows are **strategy-only** (GTM memo, prompt work). **Status** reflects the repo + app as of the last update below—revisit after each release.
+**Description** explains what each initiative is for. **Issues** lists [Kunle123/StoryWall](https://github.com/Kunle123/StoryWall/issues) tickets when they exist; **—** means no tracked issue yet (strategy, prompt-only, or core product without a single umbrella ticket). **Reference** points to code, docs, or nuance not captured in the issue title. **Status** reflects the repo + app as of the last update below—revisit after each release.
 
 ---
 
 ## Matrix
 
-| # | Feature / initiative | Information | Virality | Complexity | Cpx (1–5) | Status | Reference |
-|---|------------------------|-------------|----------|------------|-----------|--------|-----------|
-| 1 | **Conversational skeleton API** (`/api/ai/timeline-skeleton`) | H | M | M | 3 | Implemented | [#37](https://github.com/Kunle123/StoryWall/issues/37) |
-| 2 | **`/editor/chat` beta page** (propose milestones) | H | M | S | 2 | Partial | [#39](https://github.com/Kunle123/StoryWall/issues/39) — list view; no checklist edits / handoff yet |
-| 3 | **Generate-from-skeleton handoff** (skip event LLM → descriptions/images) | H | M | L | 5 | Not implemented | [#38](https://github.com/Kunle123/StoryWall/issues/38) |
-| 4 | **Skeleton checklist** (add/remove/edit beats in UI) | H | L | M | 3 | Not implemented | [#39](https://github.com/Kunle123/StoryWall/issues/39) |
-| 5 | **Multi-turn chat planner API** | H | M | L | 5 | Not implemented | [#40](https://github.com/Kunle123/StoryWall/issues/40) |
-| 6 | **Single default narrative tone** (conversational path) | H | M | M | 3 | Not implemented | [#41](https://github.com/Kunle123/StoryWall/issues/41) |
-| 7 | **Prompt: objective verifiability** (replace controversy % caps in base prompts) | H | L | M | 3 | Partial | `chat-skeleton` uses stricter rules; `timeline-modules` / main `generate-events` still carry legacy controversy guidance |
-| 8 | **Prompt: beat linkage & pacing** (one beat = one shift; forward-pull) | H | M | M | 3 | Implemented | `BASE_TIMELINE_PROMPT` (beat linkage item); `generate-events` (factual + creative); enrichment descriptions (`enrichment-optimized`); `chat-skeleton` ordering |
-| 9 | **Default / recommended beat count** (8–12 UX + guardrails vs 19) | H | H | S | 2 | Not implemented | GTM guidance in docs; editor defaults e.g. `maxEvents` not retuned to 8–12 in UI |
-| 10 | **Classic editor** (multi-step: premise → events → details → images) | H | M | L | 4 | Implemented | Core product |
-| 11 | **AI generate events** (`generate-events`) | H | M | L | 4 | Implemented | Core product |
-| 12 | **AI descriptions + images** (`generate-descriptions-v2`, Imagen) | H | H | L | 5 | Implemented | Core product |
-| 13 | **Discover / Explore** (feed, spotlight, expandable inline timeline) | M | H | L | 4 | Implemented | [#7](https://github.com/Kunle123/StoryWall/issues/7) [#26](https://github.com/Kunle123/StoryWall/issues/26) |
-| 14 | **How it works + flagship examples** on Discover | M | H | M | 3 | Partial | Tabs + copy shipped; “3 flagship” examples / demo video still tracked under [#16](https://github.com/Kunle123/StoryWall/issues/16) |
-| 15 | **Timeline & story public pages** (readable, OG, share) | M | H | L | 4 | Implemented | Core product |
-| 16 | **Share flows** (Twitter thread, TikTok, copy link, menus) | L | H | M | 3 | Implemented | Core product |
-| 17 | **Comments on timelines** | M | M | M | 3 | Implemented | Core product |
-| 18 | **Statistics timeline mode** | M | M | L | 4 | Implemented | Core product |
-| 19 | **Visual house style** (consistent grammar: dial, cards, crop rules) | L | H | L | 5 | Partial | Shared UI patterns; full GTM “one glance = Storywall” bar not closed |
-| 20 | **Homepage / wedge copy** (context-first positioning) | M | H | S | 2 | Partial | Wedge + discover work shipped; full “context-first” headline swap optional per [#15](https://github.com/Kunle123/StoryWall/issues/15) / GTM |
-| 21 | **Funnel analytics (GA)** | M | H | M | 3 | Implemented | `lib/analytics` + GA ID when configured · [#17](https://github.com/Kunle123/StoryWall/issues/17) |
-| 22 | **In-app feedback capture** | M | M | S | 2 | Implemented | Feedback entry points (e.g. header / discover) · [#18](https://github.com/Kunle123/StoryWall/issues/18) |
-| 23 | **User research / moderated tests** | H | M | M | 3 | Not implemented | Process / [#19](https://github.com/Kunle123/StoryWall/issues/19) — not a shipped feature |
-| 24 | **Founder-led distribution** (“context reply” playbook) | M | H | S | 2 | Partial | [GTM memo](./GTM-one-page-memo.md) describes it; execution is ops, not code |
-| 25 | **Free tier messaging** (no monetisation sprint) | L | M | S | 2 | Partial | Copy scattered; full treatment under [#21](https://github.com/Kunle123/StoryWall/issues/21) |
-| 26 | **Private beta gates checklist** | M | M | S | 2 | Partial | [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) etc. — living checklist, not automated |
-| 27 | **Technical SEO** (sitemap, GSC, OG hygiene) | L | H | M | 3 | Implemented | [#25](https://github.com/Kunle123/StoryWall/issues/25) closed — code/docs + crawl fixes shipped; **ongoing ops:** GSC monitoring + re-scrape after metadata changes ([`SHARING_AND_SEO.md`](../SHARING_AND_SEO.md)) |
-| 28 | **Remix / create-your-own from a story** | M | H | L | 5 | Not implemented | [#23](https://github.com/Kunle123/StoryWall/issues/23) |
-| 29 | **Token grants on publish** | L | M | M | 3 | Not implemented | [#4](https://github.com/Kunle123/StoryWall/issues/4) |
-| 30 | **Leaderboard** | L | H | M | 3 | Not implemented | [#5](https://github.com/Kunle123/StoryWall/issues/5) |
-| 31 | **Collection pages** | M | H | L | 4 | Not implemented | [#6](https://github.com/Kunle123/StoryWall/issues/6) |
-| 32 | **Optional publish score / rubric** | H | M | L | 4 | Partial | Rubric docs exist; in-product score under [#8](https://github.com/Kunle123/StoryWall/issues/8) not shipped |
-| 33 | **Admin API hardening** | L | L | M | 3 | Partial | Admin routes exist; hardening scope open · [#9](https://github.com/Kunle123/StoryWall/issues/9) |
-| 34 | **Seed data + discoverability** | M | H | M | 3 | Partial | Seed scripts / admin seed; not “done” as a product surface · [#10](https://github.com/Kunle123/StoryWall/issues/10) |
-| 35 | **Redis / KV cache** | L | L | L | 4 | Not implemented | [#11](https://github.com/Kunle123/StoryWall/issues/11) |
-| 36 | **Legal / compliance pass** | M | L | M | 3 | Partial | Legal pages / terms flows; ongoing · [#12](https://github.com/Kunle123/StoryWall/issues/12) |
-| 37 | **Twitter API cleanup** | L | M | M | 3 | Partial | Share integrations exist; cleanup ticket open · [#13](https://github.com/Kunle123/StoryWall/issues/13) |
-| 38 | **Budget guardrails doc** | L | L | S | 1 | Partial | Strategy docs · [#22](https://github.com/Kunle123/StoryWall/issues/22) |
-| 39 | **Week 4 small beta + user stories** | H | H | M | 3 | Not implemented | Program under [#24](https://github.com/Kunle123/StoryWall/issues/24) |
-| 40 | **Community / creator beta** (context storytelling, 70/30 craft vs product) | H | H | M | 3 | Not implemented | GTM plan; no dedicated community product row yet |
-| 41 | **Embeds** (timeline on external sites) | M | H | L | 5 | Not implemented | Future · GTM memo |
-| 42 | **Collaboration / team plans** | L | M | L | 5 | Not implemented | Future · GTM memo |
+| # | Feature / initiative | Description | Information | Virality | Complexity | Cpx (1–5) | Status | Issues | Reference |
+|---|----------------------|-------------|-------------|----------|------------|-----------|--------|--------|-----------|
+| 1 | **Conversational skeleton API** (`/api/ai/timeline-skeleton`) | Server route that returns a **skeleton only**: dated milestone titles (and optional sources) from user context—no full event LLM pass yet. Powers chat-driven planning before enrichment. | H | M | M | 3 | Implemented | [#37](https://github.com/Kunle123/StoryWall/issues/37) | `app/api/ai/timeline-skeleton` · `lib/prompts/chat-skeleton.ts` |
+| 2 | **`/editor/chat` beta page** (propose milestones) | In-app **chat UI** to propose beats with the model; today **list-style** output. Missing: checklist edits, generate-from-skeleton handoff. | H | M | S | 2 | Partial | [#39](https://github.com/Kunle123/StoryWall/issues/39) | Feature-flagged editor entry; see row 3–4 for follow-ons |
+| 3 | **Generate-from-skeleton handoff** (skip event LLM → descriptions/images) | Once a skeleton exists, **skip** the heavy `generate-events` step and pipe milestones straight into **descriptions + images** to save cost and avoid duplicate generation. | H | M | L | 5 | Not implemented | [#38](https://github.com/Kunle123/StoryWall/issues/38) | Depends on stable skeleton schema + UI handoff |
+| 4 | **Skeleton checklist** (add/remove/edit beats in UI) | **CRUD + reorder** for skeleton rows before committing—so creators curate beats without regenerating from scratch. | H | L | M | 3 | Not implemented | [#39](https://github.com/Kunle123/StoryWall/issues/39) | Overlaps chat page scope; may split into sub-issues later |
+| 5 | **Multi-turn chat planner API** | Backend that supports **back-and-forth refinement** of scope, timeframe, and beat list before any generation—beyond single-shot skeleton. | H | M | L | 5 | Not implemented | [#40](https://github.com/Kunle123/StoryWall/issues/40) | Distinct from one-shot `timeline-skeleton` |
+| 6 | **Single default narrative tone** (conversational path) | Pick **one default writing preset** for the conversational flow so tone is consistent without extra toggles. | H | M | M | 3 | Not implemented | [#41](https://github.com/Kunle123/StoryWall/issues/41) | Editor presets exist elsewhere; this row is conv-path default |
+| 7 | **Prompt: objective verifiability** (replace controversy % caps in base prompts) | Replace legacy **“20–30% controversy”**-style caps with **verifiable-headline** rules everywhere (`timeline-modules`, `generate-events`). | H | L | M | 3 | Partial | — | `chat-skeleton` stricter; base prompts still mixed—see `PROMPT_RUBRIC_ALIGNMENT.md` |
+| 8 | **Prompt: beat linkage & pacing** (one beat = one shift; forward-pull) | Prompts require **one meaningful shift per beat**, **causal ordering** where facts allow, and **specific titles**; enrichment may add a **short bridge** to the prior beat. | H | M | M | 3 | Implemented | — | `BASE_TIMELINE_PROMPT` · `generate-events` · `enrichment-optimized` · `chat-skeleton` |
+| 9 | **Default / recommended beat count** (8–12 UX + guardrails vs 19) | Product **defaults and copy** nudging **8–12 beats** (rubric-aligned) instead of maxing `maxEvents` (e.g. 19). | H | H | S | 2 | Not implemented | — | GTM + rubric; UI `maxEvents` not retuned |
+| 10 | **Classic editor** (multi-step: premise → events → details → images) | Primary **wizard** create flow: premise → AI events → details → images—the main shipped editor experience. | H | M | L | 4 | Implemented | — | Core product paths under `components/timeline-editor` |
+| 11 | **AI generate events** (`generate-events`) | **`/api/ai/generate-events`**: produces dated **titles** from a description (factual vs creative branches, progression detection, recency). | H | M | L | 4 | Implemented | — | `app/api/ai/generate-events/route.ts` |
+| 12 | **AI descriptions + images** (`generate-descriptions-v2`, Imagen) | **Step 3 enrichment**: neutral descriptions, **imagePrompt** per beat, **anchorStyle**; Vertex/Imagen integration. | H | H | L | 5 | Implemented | — | `app/api/ai/generate-descriptions-v2` · `lib/prompts/enrichment-optimized.ts` |
+| 13 | **Discover / Explore** (feed, spotlight, expandable inline timeline) | **Discovery surface**: feeds, spotlight, **inline expandable** timelines for browsing without full navigation. | M | H | L | 4 | Implemented | [#7](https://github.com/Kunle123/StoryWall/issues/7) [#26](https://github.com/Kunle123/StoryWall/issues/26) | Ongoing UX polish may file new issues |
+| 14 | **How it works + flagship examples** on Discover | **Onboarding copy** (tabs, how-it-works) plus **flagship examples** and optional demo assets on Discover. | M | H | M | 3 | Partial | [#16](https://github.com/Kunle123/StoryWall/issues/16) | Partially shipped; flagship set / video tracked on #16 |
+| 15 | **Timeline & story public pages** (readable, OG, share) | **Public slug pages** for stories: readable layout, **Open Graph**, share metadata. | M | H | L | 4 | Implemented | — | App router public timeline routes + metadata |
+| 16 | **Share flows** (Twitter thread, TikTok, copy link, menus) | **Export/share UX**: thread generator, short-form hooks, copy link, overflow menus. | L | H | M | 3 | Implemented | — | Share components + menus |
+| 17 | **Comments on timelines** | **Discussion** attached to public (or eligible) timelines—engagement loop. | M | M | M | 3 | Implemented | — | Comments API + UI |
+| 18 | **Statistics timeline mode** | **Data-forward** timeline variant: emphasis on **stats, charts, or quantitative beats** vs purely narrative cards. | M | M | L | 4 | Implemented | — | Mode flag + UI branch |
+| 19 | **Visual house style** (consistent grammar: dial, cards, crop rules) | **Brand-consistent UI grammar**: dials, cards, crops, motion—so StoryWall is recognizable at a glance. | L | H | L | 5 | Partial | — | Shared components; GTM “one glance” bar not fully closed |
+| 20 | **Homepage / wedge copy** (context-first positioning) | **Marketing homepage** copy emphasizing **context-first** storytelling vs hot-take feeds (wedge positioning). | M | H | S | 2 | Partial | [#15](https://github.com/Kunle123/StoryWall/issues/15) | Discover wedge shipped; headline swap optional |
+| 21 | **Funnel analytics (GA)** | **Google Analytics** (or configured ID) for funnel steps and key events—measure acquisition and activation. | M | H | M | 3 | Implemented | [#17](https://github.com/Kunle123/StoryWall/issues/17) | `lib/analytics` |
+| 22 | **In-app feedback capture** | **Feedback entry points** (header, discover, etc.) to capture qualitative product input. | M | M | S | 2 | Implemented | [#18](https://github.com/Kunle123/StoryWall/issues/18) | May link to external form or inbox |
+| 23 | **User research / moderated tests** | **Process**: moderated sessions, not a shipped UI—track program and learnings in issues. | H | M | M | 3 | Not implemented | [#19](https://github.com/Kunle123/StoryWall/issues/19) | Not a codebase feature by itself |
+| 24 | **Founder-led distribution** (“context reply” playbook) | **GTM ops playbook**: reply/join conversations with **context-card** style posts—distribution without new product surface. | M | H | S | 2 | Partial | — | [GTM memo](./GTM-one-page-memo.md) |
+| 25 | **Free tier messaging** (no monetisation sprint) | **Clear free-tier limits** and expectations across marketing and product (no full monetisation build). | L | M | S | 2 | Partial | [#21](https://github.com/Kunle123/StoryWall/issues/21) | Copy scattered until consolidated |
+| 26 | **Private beta gates checklist** | **Launch checklist** before private beta (quality, legal, support)—living doc, not automated CI. | M | M | S | 2 | Partial | — | [`LAUNCH_GATES_CHECKLIST.md`](./LAUNCH_GATES_CHECKLIST.md) |
+| 27 | **Technical SEO** (sitemap, GSC, OG hygiene) | **Sitemap**, canonical URLs, **OG** tags, Search Console hygiene; ongoing re-scrape after metadata changes. | L | H | M | 3 | Implemented | [#25](https://github.com/Kunle123/StoryWall/issues/25) | Closed; ops: [`SHARING_AND_SEO.md`](../SHARING_AND_SEO.md) |
+| 28 | **Remix / create-your-own from a story** | **Fork** a public story into your own editable timeline—viral loop for creation. | M | H | L | 5 | Not implemented | [#23](https://github.com/Kunle123/StoryWall/issues/23) | |
+| 29 | **Token grants on publish** | **Economics experiment**: grant API credits or tokens when publishing to reward shipping stories. | L | M | M | 3 | Not implemented | [#4](https://github.com/Kunle123/StoryWall/issues/4) | |
+| 30 | **Leaderboard** | **Public ranking** of creators or stories (scope TBD)—engagement and competition. | L | H | M | 3 | Not implemented | [#5](https://github.com/Kunle123/StoryWall/issues/5) | |
+| 31 | **Collection pages** | **Curated group pages** listing multiple related timelines (topics, series, editors). | M | H | L | 4 | Not implemented | [#6](https://github.com/Kunle123/StoryWall/issues/6) | |
+| 32 | **Optional publish score / rubric** | **Optional score** at publish time against the perfect-story **rubric**—coaching without blocking ship. | H | M | L | 4 | Partial | [#8](https://github.com/Kunle123/StoryWall/issues/8) | Docs: `STORYWALL_PERFECT_STORY_RUBRIC.md`; in-product score not shipped |
+| 33 | **Admin API hardening** | **Secure admin routes**: auth, rate limits, input validation, audit—reduce abuse and data leaks. | L | L | M | 3 | Partial | [#9](https://github.com/Kunle123/StoryWall/issues/9) | Admin exists; hardening scope open |
+| 34 | **Seed data + discoverability** | **Seed scripts** and admin tools so **Discover** has exemplar content and tests aren’t empty. | M | H | M | 3 | Partial | [#10](https://github.com/Kunle123/StoryWall/issues/10) | “Done” as product surface still open |
+| 35 | **Redis / KV cache** | **Edge or server cache** (Redis/KV) for hot reads—latency and cost at scale. | L | L | L | 4 | Not implemented | [#11](https://github.com/Kunle123/StoryWall/issues/11) | |
+| 36 | **Legal / compliance pass** | **Terms, privacy, age, content** policies appropriate for beta and distribution channels. | M | L | M | 3 | Partial | [#12](https://github.com/Kunle123/StoryWall/issues/12) | Ongoing with counsel |
+| 37 | **Twitter API cleanup** | **Reduce debt** on X/Twitter share integrations (tokens, APIs, error handling). | L | M | M | 3 | Partial | [#13](https://github.com/Kunle123/StoryWall/issues/13) | Share flows work; cleanup ticket open |
+| 38 | **Budget guardrails doc** | **Documented ceilings** for AI spend and tokens per user/session—ops and finance clarity. | L | L | S | 1 | Partial | [#22](https://github.com/Kunle123/StoryWall/issues/22) | Strategy/docs |
+| 39 | **Week 4 small beta + user stories** | **Structured beta program** (e.g. week 4) with captured **user stories** and outcomes. | H | H | M | 3 | Not implemented | [#24](https://github.com/Kunle123/StoryWall/issues/24) | Program tracking |
+| 40 | **Community / creator beta** (context storytelling, 70/30 craft vs product) | **Invite-only cohort** with norms (context storytelling, craft vs product balance)—GTM + community, minimal product. | H | H | M | 3 | Not implemented | — | GTM plan; no umbrella issue yet |
+| 41 | **Embeds** (timeline on external sites) | **oEmbed, iframe, or script** so third-party sites embed a read-only timeline. | M | H | L | 5 | Not implemented | — | Future; see GTM memo |
+| 42 | **Collaboration / team plans** | **Shared workspaces**, roles, and **team billing** for org use. | L | M | L | 5 | Not implemented | — | Future; GTM memo |
 
 ---
 
 ## Copy-paste CSV (for Sheets / Excel bubble chart)
 
+`Description` and `Issues` are included for filtering and joining to GitHub. **Issues** uses issue numbers only; multiple issues are separated by `|`. Empty **Issues** means no umbrella ticket.
+
 ```csv
-ID,Feature,Information,Virality,Complexity,Cpx,Status
-1,Conversational skeleton API,H,M,M,3,Implemented
-2,Editor chat page,H,M,S,2,Partial
-3,Generate-from-skeleton,H,M,L,5,Not implemented
-4,Skeleton checklist UI,H,M,M,3,Not implemented
-5,Multi-turn planner,H,M,L,5,Not implemented
-6,Single narrative tone,H,M,M,3,Not implemented
-7,Prompt objective verifiability,H,L,M,3,Partial
-8,Prompt beat linkage,H,M,M,3,Implemented
-9,Default beat count 8-12,H,H,S,2,Not implemented
-10,Classic editor,H,M,L,4,Implemented
-11,AI generate events,H,M,L,4,Implemented
-12,AI descriptions + images,H,H,L,5,Implemented
-13,Discover Explore,M,H,L,4,Implemented
-14,How it works + examples,M,H,M,3,Partial
-15,Timeline story pages,M,H,L,4,Implemented
-16,Share flows,L,H,M,3,Implemented
-17,Comments,M,M,M,3,Implemented
-18,Statistics timelines,M,M,L,4,Implemented
-19,Visual house style,L,H,L,5,Partial
-20,Homepage wedge copy,M,H,S,2,Partial
-21,Funnel analytics,M,H,M,3,Implemented
-22,Feedback capture,M,M,S,2,Implemented
-23,User research,H,M,M,3,Not implemented
-24,Founder distribution,M,H,S,2,Partial
-25,Free tier messaging,L,M,S,2,Partial
-26,Beta gates,M,M,S,2,Partial
-27,Technical SEO,L,H,M,3,Implemented
-28,Remix,M,H,L,5,Not implemented
-29,Token grants,L,M,M,3,Not implemented
-30,Leaderboard,L,H,M,3,Not implemented
-31,Collections,M,H,L,4,Not implemented
-32,Publish rubric,H,M,L,4,Partial
-33,Admin hardening,L,L,M,3,Partial
-34,Seed discoverability,M,H,M,3,Partial
-35,Redis cache,L,L,L,4,Not implemented
-36,Legal compliance,M,L,M,3,Partial
-37,Twitter API cleanup,L,M,M,3,Partial
-38,Budget guardrails,L,L,S,1,Partial
-39,Small beta,H,H,M,3,Not implemented
-40,Creator community,H,H,M,3,Not implemented
-41,Embeds,M,H,L,5,Not implemented
-42,Collaboration,L,M,L,5,Not implemented
+ID,Feature,Description,Information,Virality,Complexity,Cpx,Status,Issues
+1,Conversational skeleton API,Server route: skeleton-only dated milestone titles from user context; powers chat planning before enrichment.,H,M,M,3,Implemented,37
+2,Editor chat page,In-app chat UI to propose beats; list-style today; checklist and handoff missing.,H,M,S,2,Partial,39
+3,Generate-from-skeleton handoff,Skip generate-events and pipe skeleton into descriptions plus images.,H,M,L,5,Not implemented,38
+4,Skeleton checklist UI,CRUD and reorder skeleton rows before committing.,H,L,M,3,Not implemented,39
+5,Multi-turn planner API,Back-and-forth refinement of scope and beats before generation.,H,M,L,5,Not implemented,40
+6,Single narrative tone,One default writing preset for conversational path.,H,M,M,3,Not implemented,41
+7,Prompt objective verifiability,Replace legacy controversy caps with verifiable-headline rules in all base prompts.,H,L,M,3,Partial,
+8,Prompt beat linkage and pacing,One shift per beat; causal ordering; optional bridge in enrichment.,H,M,M,3,Implemented,
+9,Default beat count 8-12,Product defaults nudging rubric-aligned beat count vs maxEvents.,H,H,S,2,Not implemented,
+10,Classic editor,Wizard: premise to events to details to images.,H,M,L,4,Implemented,
+11,AI generate events,API produces dated titles; factual and creative branches.,H,M,L,4,Implemented,
+12,AI descriptions and images,Enrichment: descriptions; imagePrompt; anchorStyle; Imagen.,H,H,L,5,Implemented,
+13,Discover Explore,Feeds; spotlight; inline expandable timelines.,M,H,L,4,Implemented,7|26
+14,How it works and flagship examples,Onboarding copy and curated examples on Discover.,M,H,M,3,Partial,16
+15,Timeline story pages,Public slug pages; readable layout; OG metadata.,M,H,L,4,Implemented,
+16,Share flows,Thread; short-form; copy link; menus.,L,H,M,3,Implemented,
+17,Comments,Discussion on public timelines.,M,M,M,3,Implemented,
+18,Statistics timeline mode,Data-forward variant; stats and charts emphasis.,M,M,L,4,Implemented,
+19,Visual house style,Unified UI grammar: dials; cards; crops.,L,H,L,5,Partial,
+20,Homepage wedge copy,Context-first marketing homepage.,M,H,S,2,Partial,15
+21,Funnel analytics,Google Analytics for funnel and key events.,M,H,M,3,Implemented,17
+22,Feedback capture,In-product feedback entry points.,M,M,S,2,Implemented,18
+23,User research,Moderated tests program; process not shipped UI.,H,M,M,3,Not implemented,19
+24,Founder distribution,GTM playbook for context-style replies.,M,H,S,2,Partial,
+25,Free tier messaging,Clear free-tier limits across surfaces.,L,M,S,2,Partial,21
+26,Private beta gates checklist,Launch checklist before private beta.,M,M,S,2,Partial,
+27,Technical SEO,Sitemap; canonical; OG; GSC hygiene.,L,H,M,3,Implemented,25
+28,Remix from story,Fork public story into editable timeline.,M,H,L,5,Not implemented,23
+29,Token grants on publish,Grant credits or tokens when publishing.,L,M,M,3,Not implemented,4
+30,Leaderboard,Public ranking of creators or stories.,L,H,M,3,Not implemented,5
+31,Collection pages,Curated pages listing multiple timelines.,M,H,L,4,Not implemented,6
+32,Optional publish score,Score against rubric at publish time.,H,M,L,4,Partial,8
+33,Admin API hardening,Secure admin routes and validation.,L,L,M,3,Partial,9
+34,Seed data and discoverability,Seed scripts and exemplar content for Discover.,M,H,M,3,Partial,10
+35,Redis KV cache,Edge or server cache for hot reads.,L,L,L,4,Not implemented,11
+36,Legal compliance pass,Terms; privacy; age; content policies.,M,L,M,3,Partial,12
+37,Twitter API cleanup,Debt on X or Twitter share integrations.,L,M,M,3,Partial,13
+38,Budget guardrails doc,AI spend and token ceilings documented.,L,L,S,1,Partial,22
+39,Week 4 small beta,Structured beta program with user stories.,H,H,M,3,Not implemented,24
+40,Community creator beta,Invite cohort; GTM plus community.,H,H,M,3,Not implemented,
+41,Embeds,Embed timelines on third-party sites.,M,H,L,5,Not implemented,
+42,Collaboration team plans,Shared workspaces; roles; billing.,L,M,L,5,Not implemented,
 ```
 
 ### Bubble chart in Google Sheets (quick path)
 
-1. Import the CSV or paste the table.
+1. Import the CSV or paste the table. Columns are: `ID`, `Feature`, `Description`, `Information`, `Virality`, `Complexity`, `Cpx`, `Status`, `Issues`.
 2. Add numeric columns for plotting, e.g. **Info_n**: H=3, M=2, L=1 · **Vir_n**: same · keep **Cpx** as bubble size.
 3. Insert → Chart → **Bubble chart** · X = Info_n, Y = Vir_n, **Size = Cpx** (or `Cpx^2` if you want stronger size contrast).
 
@@ -128,6 +130,7 @@ You can swap axes (e.g. Virality on X, Information on Y); bubble size should sta
 ## Maintenance
 
 - Re-score after shipping or when scope changes.
-- Link new GitHub issues as rows here or in a follow-on table.
+- When creating a GitHub issue for a row, add its number to **Issues** and link it here.
+- Keep **Description** in sync when the initiative’s intent changes; **Reference** is for code paths and edge cases.
 
-*Last updated: 2026-04-04 — #25 Technical SEO closed; matrix row 27 marked Implemented (ongoing ops: GSC + preview refresh).*
+*Last updated: 2026-03-28 — Added Description and Issues columns; CSV includes matching fields.*

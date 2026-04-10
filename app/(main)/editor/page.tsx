@@ -49,7 +49,7 @@ const TimelineEditor = () => {
   const [isFactual, setIsFactual] = useState(true); // Default to factual timelines
   const [isNumbered, setIsNumbered] = useState(false); // Default to dated events
   const [numberLabel, setNumberLabel] = useState("Day"); // Default label for numbered events
-  const [maxEvents, setMaxEvents] = useState(20); // Default to 20 events
+  const [maxEvents, setMaxEvents] = useState(12); // Default: readable arc (~8–12 beats); ceiling for AI
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [writingStyle, setWritingStyle] = useState("narrative");
@@ -171,7 +171,7 @@ const TimelineEditor = () => {
         setIsFactual(state.isFactual !== undefined ? state.isFactual : true);
         setIsNumbered(state.isNumbered !== undefined ? state.isNumbered : false);
         setNumberLabel(state.numberLabel || "Day");
-        setMaxEvents(state.maxEvents !== undefined ? state.maxEvents : 20);
+        setMaxEvents(state.maxEvents !== undefined ? state.maxEvents : 12);
         setStartDate(parsedStartDate);
         setEndDate(parsedEndDate);
         setWritingStyle(state.writingStyle || "");

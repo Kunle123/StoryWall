@@ -146,6 +146,8 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
     - Incorporate key themes from the timeline description
 
 3.  **Image Prompts:** For each event, create a literal, concrete \`imagePrompt\` that:
+    - Describes a visual scene representing **this beat only**—**one clear focal moment** per image (aligned with one meaningful shift per card). Do not cram unrelated story beats into a single composition.
+    - **Pacing / linkage (visual):** Events are in chronological order. Let framing, setting, or emotional weight **reflect this beat’s place in the arc** when facts support it (e.g. escalation, aftermath, resolution)—without inventing people, props, or outcomes not grounded in the title and known facts. Do **not** illustrate the previous event inside this image; each prompt must stand alone for generation.
     - Describes a visual scene representing that event
     - Begins with "ANCHOR: [60-80 char preview of your anchorStyle]. [scene description]"
     - Is literal, recognizable, and concrete - NO poetry or metaphors

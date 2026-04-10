@@ -46,7 +46,7 @@ function repairJSON(jsonString: string): string {
  * {
  *   timelineDescription: string
  *   timelineName: string
- *   maxEvents: number (default: 20)
+ *   maxEvents: number (default: 12)
  *   isFactual: boolean (default: true) - true for factual/historical events, false for fictional/creative timelines
  * }
  * 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    let { timelineDescription, timelineName, maxEvents = 20, isFactual = true, isNumbered = false, numberLabel = "Day", sourceRestrictions } = body;
+    let { timelineDescription, timelineName, maxEvents = 12, isFactual = true, isNumbered = false, numberLabel = "Day", sourceRestrictions } = body;
     
     // Initialize debug logger
     debugLogger.init(timelineName, timelineDescription);
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     });
     
     // Validate and clamp maxEvents to 1-100
-    maxEvents = Math.max(1, Math.min(100, parseInt(String(maxEvents), 10) || 20));
+    maxEvents = Math.max(1, Math.min(100, parseInt(String(maxEvents), 10) || 12));
     
     console.log('[GenerateEvents API] Request received:', {
       timelineName,
@@ -293,6 +293,9 @@ STORYWALL — BEAT LINKAGE & PACING:
 - **Sequential logic:** when sources allow, order events so each step **follows** from the chronology (cause → consequence, escalation, official response, new actor, or changed constraint). Neighboring beats should not be **interchangeable**—if removing one event and the through-line still reads the same, that beat may be redundant.
 - **Titles:** make titles **specific** (concrete actor, action, or outcome). Avoid empty transitions ("Things escalated") with no factual anchor.
 
+STORYWALL — TARGET LENGTH (vs max ${maxEvents}):
+- **~8–12 strong beats** is the default readability target for most topics. **${maxEvents}** is a **ceiling**, not a quota—do **not** pad toward it with weak or redundant incidents. Fewer excellent beats beat a long padded list.
+
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
 If isProgression is false: Include major milestones, key dates, and significant events related to this topic. Ensure each event is a separate, unique occurrence.
@@ -306,6 +309,7 @@ CRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:
 - Prioritize finding unique events from each year in the timespan when significant unique events exist
 - Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year
 - Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years
+- **StoryWall:** Spreading across years must **not** override the **TARGET LENGTH** guidance—do **not** invent or downgrade incidents just to “cover” each year. Sparse years are fine if the overall list stays high-signal.
 
 Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
@@ -336,7 +340,7 @@ ACCURACY REQUIREMENTS:
 - If web search returns relevant information, you MUST use it to generate events - do not return an empty array
 - Only return an empty events array if the topic is completely unknown or impossible to research
 - DO NOT fabricate events to reach ${maxEvents} - only include events you can verify
-- If you can only find 8 unique events, return 8. If you can find ${maxEvents} unique events, return ${maxEvents}. Do not force the count.
+- Prefer ~8–12 strong beats when that completes the arc; return **at most** ${maxEvents}. Do **not** approach ${maxEvents} unless the topic truly needs that many distinct verified incidents.
 
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
 
@@ -370,7 +374,13 @@ IMPORTANT: Only include month and day when they add narrative significance. For 
     const userPrompt = isNumbered
       ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate ${maxEvents} sequential events numbered 1, 2, 3, etc. Each event should be labeled as "${numberLabel} 1", "${numberLabel} 2", "${numberLabel} 3", etc. Events should be ordered sequentially and tell a coherent story or sequence based on the timeline description. Each event must include only a number and title - descriptions will be generated separately.\n\nCRITICAL TITLE REQUIREMENTS:\n- Each event title MUST directly relate to and incorporate key elements from the timeline description above\n- If the timeline description mentions specific themes, qualities, settings, or contexts, the titles MUST reflect these elements\n- Titles should be specific and descriptive - avoid generic references unless the timeline is specifically about generic breakdowns\n- Each title should clearly show how the event relates to the timeline's specific focus, setting, theme, or context\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. Return as JSON: { "events": [{ "number": 1, "title": "First event" }, { "number": 2, "title": "Second event" }, ...] }`
       : isFactual
-      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nYou MUST generate ${maxEvents} factual events based on your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events.
+      ? `Timeline Name: "${timelineName}"\n\nDescription: ${timelineDescription}${sourceRestrictionsText}\n\nGenerate **up to ${maxEvents}** factual events (hard ceiling—not a quota to fill) using your knowledge of this topic and web search results. Use your training data and web search tools (required for recency) to provide accurate events.
+
+STORYWALL — TARGET BEAT COUNT (readability):
+- **Default aim:** ~**8–12** distinct, high-signal beats for typical news, geopolitics, and narrative timelines—setup → escalation → turning points → outcome. **Do not** enumerate every minor incident unless the description explicitly asks for an exhaustive list.
+- **Ceiling:** Return **at most ${maxEvents}** events; never exceed. Returning **fewer** strong beats (e.g. 8 when the ceiling is 12 or 20) is **correct** if extra incidents would be padding or redundant.
+- **Progression / regional stories:** Merge or skip marginal beats that do not each change the reader’s understanding; prefer a tight arc over a long list.
+- **Dense controversy / incident lists:** More beats may be warranted if each is a **separate documented incident**—still avoid near-duplicate titles.
 
 CRITICAL FOR MEDIA/CONTROVERSY TIMELINES:
 - For timelines about media controversies, TV show incidents, or public figure controversies, you MUST use web search to find ALL specific incidents, quotes, dates, and controversies
@@ -401,8 +411,8 @@ CRITICAL: Analyze the timeline description to identify the SPECIFIC THEME, TOPIC
 - Each event should describe a SPECIFIC incident that matches the timeline's theme/topic
 
 CRITICAL: Analyze the timeline description to determine if it describes a PROCESS, PROGRESSION, or DEVELOPMENT with clear stages. Examples:\n- Fetal development → Generate events showing developmental stages (conception, implantation, neural tube formation, heart beating, limb buds, etc.)\n- Construction of a building → Generate events showing construction phases (planning, foundation, framing, completion, etc.)\n- A disease progression → Generate events showing disease stages (onset, symptoms, treatment, recovery, etc.)\n- A scientific process → Generate events showing process steps (hypothesis, experiment, results, conclusion, etc.)\n\nWhen a clear progression exists, generate events that tell that story through its stages. Each event should represent a distinct stage or milestone in the progression. The events should allow the user to see how the subject progresses through time.\n\nFor topics WITHOUT a clear progression (e.g., political campaigns, historical events), include major milestones, key dates, and significant events related to this topic.\n\nCRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:\n- FIRST: Identify the timespan from the timeline description. Look for:\n  * Explicit date ranges (e.g., "2020 to 2025", "from 2015-2020", "between 2020 and 2025", "since 2020", "during 2020-2025")\n  * Implicit time periods mentioned (e.g., "past decade", "last 10 years", "recent years")\n  * Topic context that suggests a time period (e.g., "Good Morning Britain" suggests searching from ~2014 when it launched to present, or "past decade" for recent controversies)\n- If a timespan is identified OR can be inferred from the topic, you MUST distribute events across ALL years in that timespan\n- For media/controversy topics: If no explicit timespan is mentioned, infer a reasonable timespan (e.g., "past decade" = 2015-2025, "recent years" = 2020-2025) and search across ALL those years\n- DO NOT cluster all events in a single year - ensure events are spread across the full timespan\n- CRITICAL: Each event MUST be UNIQUE - DO NOT repeat the same event title in different years. If you find "Event X" happened in 2022, do NOT create another event with the same title for 2023, 2024, or 2025\n- If the timespan is 2020-2025, find DIFFERENT, UNIQUE events for each year (e.g., unique events from 2020, 2021, 2022, 2023, 2024, 2025) if significant unique events exist in those years\n- If you can only find 2 unique events total, return those 2 events (even if they're in the same year) rather than repeating them across multiple years\n- Prioritize finding unique events from each year in the timespan when significant unique events exist\n- Only cluster events in one year if the timeline description specifically focuses on a single year or if events genuinely only occurred in that year\n- Example: For a timeline "2020 to 2025", if you find 10 unique events, distribute them across multiple years (e.g., 2-3 unique events from 2020, 1-2 unique events from 2021, 2 unique events from 2022, etc.) rather than putting all 10 events in 2020 OR repeating the same 2 events across all years\n\nCRITICAL REQUIREMENTS:
-- You MUST generate ${maxEvents} events - do not return fewer unless absolutely impossible
-- If the topic has a clear progression/story, generate events that show that progression through its stages
+- Return **between 1 and ${maxEvents}** events (inclusive). Prefer **fewer strong beats** over more weak ones when in doubt.
+- If the topic has a clear progression/story, generate events that show that progression through its stages—**stage clarity beats raw count**
 - CRITICAL: You MUST use web search for this topic - do not rely solely on your training data. Actively search for news articles, reports, and documented incidents
 - If web search finds relevant news articles, you MUST use that information to create events - search for specific dates, quotes, incidents, and controversies
 - For media/controversy topics: Search for specific incidents, quotes, dates, host names, guest names, and documented controversies. Each unique incident should be a separate event
@@ -422,9 +432,9 @@ For political campaigns, elections, or public figures: include ALL major events 
 - Election results and victory announcements
 - Inauguration or assumption of office dates
 
-Include as many significant events as you can. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
+Include the **most significant** events that fit the arc; avoid marginal incidents when you already have a readable story. If you know the specific date (month and day), include it. If you only know the year, include only the year. Do not guess dates you're uncertain about.
 
-IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. Generate a comprehensive timeline with all major events you know about this topic, using both your training data and web search results.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
+IMPORTANT: If web search returns news articles about this topic, you MUST create events from that information. Do not return an empty events array if news sources are reporting on the topic. **Cover major beats** using both your training data and web search—**signal over completeness** unless the user asked for exhaustive coverage.\n\nCRITICAL: You MUST return ONLY valid JSON. Do not include any explanatory text, comments, or other content. Start your response with { and end with }. 
 
 Return as JSON with these keys:
 - "isProgression": boolean (true if the timeline describes a sequential process/progression, false otherwise)

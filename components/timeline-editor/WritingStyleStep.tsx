@@ -58,7 +58,7 @@ export const WritingStyleStep = ({
   isFactual = true,
   isNumbered = false,
   numberLabel = "Day",
-  maxEvents = 20,
+  maxEvents = 12,
   setImageReferences,
   sourceRestrictions = [],
 }: WritingStyleStepProps) => {
@@ -91,7 +91,7 @@ export const WritingStyleStep = ({
       const requestBody = {
         timelineDescription: String(timelineDescription || '').trim(),
         timelineName: String(timelineName || '').trim(),
-        maxEvents: Math.max(1, Math.min(100, parseInt(String(maxEvents || 20), 10) || 20)),
+        maxEvents: Math.max(1, Math.min(100, parseInt(String(maxEvents || 12), 10) || 12)),
         isFactual: Boolean(isFactual),
         isNumbered: Boolean(isNumbered),
         numberLabel: String(numberLabel || 'Day').trim(),

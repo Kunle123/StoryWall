@@ -29,7 +29,7 @@ export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual
 
 5.  **Prioritize Unique Events:** Each event must be distinct. Do not repeat the same event or create multiple entries for different aspects of a single incident. Quality over quantity is paramount.
 
-6.  **Generate UP TO {maxEvents} events, but ONLY unique, distinct events.** Do NOT fabricate events to reach the maximum - if you can only find 5 unique events, return 5.
+6.  **Generate UP TO {maxEvents} events (ceiling—not a quota), but ONLY unique, distinct events.** For most topics, **aim for roughly 8–12 strong beats** that complete the arc; do **not** pad toward {maxEvents} with marginal incidents. Do NOT fabricate events to reach any count—if you can only find 6 unique events, return 6.
 
 7.  **StoryWall narrative arc (when not a single-subject progression):** Order events so the sequence reads as a **story** where the topic allows: context → escalation → major turning point(s) → consequence or present day. Prefer fewer strong beats over filler to hit the maximum count.
 

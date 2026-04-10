@@ -72,7 +72,7 @@ export const TimelineInfoStep = ({
   setIsNumbered,
   numberLabel = "Day",
   setNumberLabel,
-  maxEvents = 20,
+  maxEvents = 12,
   setMaxEvents,
   sourceRestrictions = [],
   setSourceRestrictions,
@@ -563,7 +563,7 @@ export const TimelineInfoStep = ({
                 <div className="mt-2 space-y-2">
                   {maxEvents <= 20 ? (
                     <p className="text-sm text-muted-foreground">
-                      AI will generate up to 20 events based on your timeline description
+                      AI will return at most {maxEvents} events; prompts aim for ~8–12 strong beats unless you raise the cap or ask for exhaustive coverage
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">
