@@ -43,6 +43,8 @@ Configured in `app/(main)/story/[id]/layout.tsx` (`generateMetadata`).
 
 Set **`NEXT_PUBLIC_APP_URL`** to your canonical origin (e.g. `https://www.storywall.com`) so `metadataBase`, **sitemap URLs**, **robots sitemap line**, and absolute image URLs resolve correctly in production.
 
+**Production choice:** canonical host is **`https://www.storywall.com`**. Apex `https://storywall.com` should **301** to `www` (see [`docs/DNS_SETUP.md`](./DNS_SETUP.md)). **Google Search Console** and **Clerk** allowed URLs should use the `www` host consistently.
+
 ## Body content & crawlers
 
 The timeline route is hydrated with **server-fetched** timeline + events so the first paint can show title/description quickly. A screen-reader-only block may include the same title/description for accessibility; social crawlers primarily use `<head>` metadata.
