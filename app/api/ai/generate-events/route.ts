@@ -3,6 +3,7 @@ import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/clie
 import { parseYear } from '@/lib/utils/dateFormat';
 import { getDebugLogger } from '@/lib/utils/debugLogger';
 import { buildTimelinePrompt, getApplicableModules } from '@/lib/prompts/timeline-modules';
+import { getPersonLookupNameForImageRef } from '@/lib/utils/imageReferenceLookupName';
 
 /**
  * Attempts to repair common JSON malformation issues
@@ -320,7 +321,7 @@ CRITICAL TIMESPAN DISTRIBUTION REQUIREMENT:
 
 Return events as a JSON object with an "events" array. Each event must have: year (required, number), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.
 
-Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
+Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: **name** must be the person's **identifying name only** (e.g. "Alan Sugar") for face-reference lookup—**not** a photo caption or article title (e.g. not "Alan Sugar at the 2009 BAFTAs"). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
 - Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
 - Official government/press image URLs ending in .jpg/.png
 - News agency photo URLs (Reuters, AP, Getty) - direct image links only
@@ -1221,8 +1222,14 @@ Example for non-progression: { "isProgression": false, "events": [{ "year": 2020
       const isUrl = (url: string) => /^https?:\/\//.test(url);
       normalizedImageRefs = content.image_references
         .map((s: any) => {
-          if (typeof s === 'string') return { name: '', url: s };
-          return { name: String(s?.name || ''), url: String(s?.url || '') };
+          if (typeof s === 'string') {
+            const url = String(s);
+            return { name: getPersonLookupNameForImageRef({ name: '', url }), url };
+          }
+          const name = String(s?.name || '');
+          const url = String(s?.url || '');
+          const ref = { name, url };
+          return { name: getPersonLookupNameForImageRef(ref), url };
         })
         .filter((s: any) => s.url && isUrl(s.url))
         .slice(0, 12);
@@ -1404,7 +1411,7 @@ CRITICAL - DATE FORMAT REQUIREMENTS:
 - The year field can be a string (with BC/AD notation) or a number (for AD dates only)
 - DO NOT use positive numbers for BC dates - always include "BC" or "BCE" notation
 
-Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
+Additionally, when people are mentioned (e.g., candidates, public officials, celebrities), include an optional top-level "image_references" array with 2-5 DIRECT image URLs (objects with { name: string, url: string }). CRITICAL: **name** must be the person's **identifying name only** (e.g. "Alan Sugar") for face-reference lookup—**not** a photo caption or article title (e.g. not "Alan Sugar at the 2009 BAFTAs"). CRITICAL: URLs must be DIRECT links to image files (.jpg, .png, .webp), NOT wiki pages or article pages. Prefer:
 - Direct URLs from upload.wikimedia.org (e.g., https://upload.wikimedia.org/wikipedia/commons/5/56/filename.jpg)
 - Official government/press image URLs ending in .jpg/.png
 - News agency photo URLs (Reuters, AP, Getty) - direct image links only
@@ -1741,8 +1748,14 @@ WORKING-CLASS CRITICISM (if applicable):
     const isUrl = (url: string) => /^https?:\/\//.test(url);
     normalizedImageRefs.push(...content.image_references
       .map((s: any) => {
-        if (typeof s === 'string') return { name: '', url: s };
-        return { name: String(s?.name || ''), url: String(s?.url || '') };
+        if (typeof s === 'string') {
+          const url = String(s);
+          return { name: getPersonLookupNameForImageRef({ name: '', url }), url };
+        }
+        const name = String(s?.name || '');
+        const url = String(s?.url || '');
+        const ref = { name, url };
+        return { name: getPersonLookupNameForImageRef(ref), url };
       })
       .filter((s: any) => s.url && isUrl(s.url))
       .slice(0, 12));

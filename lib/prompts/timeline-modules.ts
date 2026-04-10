@@ -205,7 +205,7 @@ Return as JSON with these keys:
 - "progressionSubject": string (only if isProgression is true)
 - "events": array of event objects, each with: year (required, number), title (required, string). Do NOT include descriptions.
 - "sources": array (optional) of objects with { name: string, url: string }
-- "image_references": array (optional) of objects with { name: string, url: string }
+- "image_references": array (optional) of objects with { name: string, url: string } — **name** = person's identifying name only (for likeness lookup), not a photo caption
 
 Example: { "isProgression": false, "events": [{ "year": 2020, "title": "Event title" }], "sources": [...], "image_references": [...] }`;
   

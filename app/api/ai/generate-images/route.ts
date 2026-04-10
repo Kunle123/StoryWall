@@ -6,6 +6,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
 import { progressStore } from '@/lib/utils/progressStore';
+import { getPersonLookupNameForImageRef } from '@/lib/utils/imageReferenceLookupName';
 
 // Helper to extract famous person names from event text using OpenAI
 // Returns array of objects with {name, search_query}
@@ -2138,6 +2139,16 @@ export async function POST(request: NextRequest) {
         url: referencePhoto.url,
       });
     }
+
+    if (finalImageReferences.length > 0) {
+      finalImageReferences = finalImageReferences.map((ref: { name: string; url: string }) => {
+        const nextName = getPersonLookupNameForImageRef(ref);
+        if (nextName !== ref.name) {
+          console.log(`[ImageGen] Normalized reference name "${ref.name}" → "${nextName}"`);
+        }
+        return { ...ref, name: nextName };
+      });
+    }
     
     if (finalImageReferences.length === 0 && includesPeople) {
       console.log(`[ImageGen] ✓ includesPeople=true and no reference images provided - will fetch reference images from events`);
@@ -2285,15 +2296,18 @@ export async function POST(request: NextRequest) {
         // For invalid refs, try to fetch real image URLs using the person's name
         const fetchPromises = invalidRefs.map(async (ref: { name: string; url: string }) => {
           try {
-            console.log(`[ImageGen] Searching for replacement image for ${ref.name}...`);
-            // Extract person name and search for real image
-            const realUrl = await findImageUrlWithGPT4o(ref.name, ref.name) || 
-                           await searchWikimediaForPerson(ref.name, ref.name);
+            const lookupName = getPersonLookupNameForImageRef(ref);
+            console.log(
+              `[ImageGen] Searching for replacement image (lookup "${lookupName}"${lookupName !== ref.name ? `, was "${ref.name}"` : ''})...`
+            );
+            const realUrl =
+              (await findImageUrlWithGPT4o(lookupName, lookupName)) ||
+              (await searchWikimediaForPerson(lookupName, lookupName));
             if (realUrl) {
-              console.log(`[ImageGen] ✓ Found replacement for ${ref.name}: ${realUrl.substring(0, 80)}...`);
-              return { name: ref.name, url: realUrl };
+              console.log(`[ImageGen] ✓ Found replacement for ${lookupName}: ${realUrl.substring(0, 80)}...`);
+              return { name: lookupName, url: realUrl };
             } else {
-              console.warn(`[ImageGen] ✗ No replacement found for ${ref.name}`);
+              console.warn(`[ImageGen] ✗ No replacement found for ${lookupName}`);
             }
           } catch (error: any) {
             console.error(`[ImageGen] Error fetching replacement for ${ref.name}:`, error.message);
