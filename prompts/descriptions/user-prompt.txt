@@ -37,5 +37,7 @@ Across the list of events: **vary** framing and subject emphasis (wide vs detail
 
 When using the consolidated JSON schema that includes **omitLikenessReference** per event: set it **true** only for beats that should render **without** a face-reference image (landmark exterior, prop, crowd-atmosphere, empty stage)—**false** when a specific person is clearly the main subject.
 
+For **real landmarks, venues, and objects** (e.g. a named hall, a specific season’s race car): image prompts should use **identifying specifics**—proper names, year/season, team or manufacturer, and known colors/livery—so the generator is not left to guess a generic building or wrong car era. Omit a detail if it cannot be stated correctly.
+
 NEVER use poetic, metaphorical, or abstract language unless specifically instructed otherwise for social media timelines.
 

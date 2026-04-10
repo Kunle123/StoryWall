@@ -23,5 +23,7 @@ These characteristics are CORE to accurate representation and must be preserved 
 
 MANDATORY: When an event involves a specific named person, the image prompt MUST explicitly state their race/ethnicity. Do not rely on the person's name alone - always include their race/ethnicity descriptor (e.g., "Black", "White", "Asian", etc.) in the prompt.
 
+**Named venues, vehicles, and era-specific objects:** Use the **specific** real-world identity when it matters for recognition—proper building or venue name, not “a concert hall”; for **race cars, team kit, or equipment**, tie the scene to the **correct season/year and team/manufacturer** and **documented livery or colors** when known. Do not blend details from different years (e.g. wrong team colors or car generation). If uncertain, describe the scene more generally rather than inventing wrong identifiers.
+
 Keep prompts concise - the event-specific details should be the focus. The Anchor provides visual consistency but shouldn't dominate the prompt.
 

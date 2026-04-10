@@ -158,6 +158,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
     - When depicting a specific named person, **MUST** explicitly state their race/ethnicity and gender
       * Examples: "a Black man", "a White woman", "an Asian musician", "a Latino leader"
       * This is REQUIRED for accurate visual representation
+    - **Named real places & objects (accuracy):** When the beat concerns a **specific** landmark, venue, vehicle, or prop, the \`imagePrompt\` must **anchor generation to that identity and era**—not a generic substitute. Use the **recognizable proper name** where it helps (e.g. Royal Albert Hall, a named circuit). For **vehicles, team equipment, or liveries** tied to a year/season, name **season/year**, **manufacturer/team**, and **documented colors/livery** (e.g. a specific F1 season’s car and team colors vs another year). If you are not sure of exact livery or model year, **omit** that detail rather than inventing a different car or wrong colors.
 
 4.  **Hashtags:** Provide 5-10 relevant, lowercase hashtags (without # symbol) covering:
     - Subject-specific tags (e.g., 'formula1', 'renaissance', 'coldwar')
@@ -170,7 +171,8 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
 - NEVER make up, invent, or fabricate facts, dates, or details
 - ONLY use information from the provided events and your verified knowledge
 - If unsure about a fact, omit it rather than inventing it
-- Stick to what is known and documented${celebrityInstruction}${factualDetailsSection}
+- Stick to what is known and documented
+- For **locations and objects** (buildings, race cars, trophies): tie details to **named** and **time-bound** facts only; never invent wrong venue architecture, car generation, or team livery${celebrityInstruction}${factualDetailsSection}
 
 ---
 
