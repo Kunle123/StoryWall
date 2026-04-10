@@ -33,7 +33,9 @@ export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual
 
 7.  **StoryWall narrative arc (when not a single-subject progression):** Order events so the sequence reads as a **story** where the topic allows: context → escalation → major turning point(s) → consequence or present day. Prefer fewer strong beats over filler to hit the maximum count.
 
-8.  **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
+8.  **Beat linkage & pacing:** Treat each event as **one meaningful shift**—a single distinct development, not several unrelated facts bundled into one beat. Order events so that, where sources support it, the sequence reads as **linked steps** (e.g. cause → consequence, escalation, reaction, or new constraint)—not an interchangeable list of facts. **Titles** should be specific enough to show *what changed* (who/what/when), not vague labels like "Tensions rise" without substance. If two adjacent beats would not change a reader's understanding, merge or omit one.
+
+9.  **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
 
 /**
  * Module 1: Controversy & Media

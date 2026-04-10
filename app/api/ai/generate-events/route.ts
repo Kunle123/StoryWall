@@ -288,6 +288,11 @@ CRITICAL UNIQUENESS REQUIREMENTS:
 STORYWALL — NARRATIVE ARC (when isProgression is false):
 - For topics that are NOT a single cumulative progression, still ORDER events so they read as a coherent story when sources allow: early context → developments → major turning point(s) → outcome or present day. Do not pad with weak beats only to reach the event count.
 
+STORYWALL — BEAT LINKAGE & PACING:
+- **One beat = one meaningful shift:** each event title must represent a **single distinct development**—not multiple unrelated facts crammed into one row, nor a vague summary of a period.
+- **Sequential logic:** when sources allow, order events so each step **follows** from the chronology (cause → consequence, escalation, official response, new actor, or changed constraint). Neighboring beats should not be **interchangeable**—if removing one event and the through-line still reads the same, that beat may be redundant.
+- **Titles:** make titles **specific** (concrete actor, action, or outcome). Avoid empty transitions ("Things escalated") with no factual anchor.
+
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
 If isProgression is false: Include major milestones, key dates, and significant events related to this topic. Ensure each event is a separate, unique occurrence.
@@ -349,7 +354,8 @@ CRITICAL - TITLE REQUIREMENTS:
 
 CREATIVE GUIDELINES:
 - Generate imaginative, compelling events that fit the narrative theme
-- Create events that build upon each other to tell a coherent story
+- Create events that build upon each other to tell a coherent story—**each beat should advance plot or stakes**; avoid filler beats that could be deleted without changing the arc
+- **Pacing:** order events so later beats **follow** from earlier ones (cause → effect, reveal → consequence). Titles should be specific, not generic placeholders
 - Use creative freedom to develop interesting plot points and developments
 - Events should be chronologically ordered and relevant to the timeline description
 - Feel free to include specific dates when they enhance the narrative

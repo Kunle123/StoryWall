@@ -140,6 +140,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
 2.  **Event Descriptions:** For each event, write a 2-4 sentence \`description\`. This text must:
     - Explain **what** the event is and **why** it is significant
     - Where natural, one sentence may state **how this beat advances the overall story arc** (using only documented facts—no invention)
+    - **Sequential reading:** Events are listed in chronological order. Where sources support a causal or sequential tie to the **immediately preceding** event, you may add **at most one short bridging clause** (e.g. "Following …", "After …", "In response to …")—do **not** rehash the prior card in full; avoid vague filler ("Tensions continued") with no factual content
     - Focus on the event's meaning, impact, and historical/educational context
     - **DO NOT** describe a visual scene - explain the event itself
     - Incorporate key themes from the timeline description

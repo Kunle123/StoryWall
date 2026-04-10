@@ -27,7 +27,7 @@ Use this table to compare initiatives and to build a **bubble chart**: plot **In
 | 5 | **Multi-turn chat planner API** | H | M | L | 5 | Not implemented | [#40](https://github.com/Kunle123/StoryWall/issues/40) |
 | 6 | **Single default narrative tone** (conversational path) | H | M | M | 3 | Not implemented | [#41](https://github.com/Kunle123/StoryWall/issues/41) |
 | 7 | **Prompt: objective verifiability** (replace controversy % caps in base prompts) | H | L | M | 3 | Partial | `chat-skeleton` uses stricter rules; `timeline-modules` / main `generate-events` still carry legacy controversy guidance |
-| 8 | **Prompt: beat linkage & pacing** (one beat = one shift; forward-pull) | H | M | M | 3 | Partial | Narrative-arc lines in `BASE_TIMELINE_PROMPT` / `generate-events`; not fully aligned with GTM card-level rules |
+| 8 | **Prompt: beat linkage & pacing** (one beat = one shift; forward-pull) | H | M | M | 3 | Implemented | `BASE_TIMELINE_PROMPT` (beat linkage item); `generate-events` (factual + creative); enrichment descriptions (`enrichment-optimized`); `chat-skeleton` ordering |
 | 9 | **Default / recommended beat count** (8–12 UX + guardrails vs 19) | H | H | S | 2 | Not implemented | GTM guidance in docs; editor defaults e.g. `maxEvents` not retuned to 8–12 in UI |
 | 10 | **Classic editor** (multi-step: premise → events → details → images) | H | M | L | 4 | Implemented | Core product |
 | 11 | **AI generate events** (`generate-events`) | H | M | L | 4 | Implemented | Core product |
@@ -76,7 +76,7 @@ ID,Feature,Information,Virality,Complexity,Cpx,Status
 5,Multi-turn planner,H,M,L,5,Not implemented
 6,Single narrative tone,H,M,M,3,Not implemented
 7,Prompt objective verifiability,H,L,M,3,Partial
-8,Prompt beat linkage,H,M,M,3,Partial
+8,Prompt beat linkage,H,M,M,3,Implemented
 9,Default beat count 8-12,H,H,S,2,Not implemented
 10,Classic editor,H,M,L,4,Implemented
 11,AI generate events,H,M,L,4,Implemented

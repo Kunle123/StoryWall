@@ -10,6 +10,7 @@ This document records how **API prompts** and the **editor UI** line up with [`S
 | Modular factual user prompt | `lib/prompts/timeline-modules.ts` (`BASE_TIMELINE_PROMPT`, topic modules, `buildTimelinePrompt`) |
 | Descriptions + image prompts + anchor | `lib/prompts/enrichment-optimized.ts` (`buildEnrichmentPrompt`, `buildEventDescriptionVoiceBlock`) |
 | Route wrapper | `app/api/ai/generate-descriptions-v2/route.ts` (batching, newsworthiness, progression) |
+| Chat skeleton milestones | `lib/prompts/chat-skeleton.ts` (`SKELETON_SYSTEM_PROMPT`, `buildSkeletonUserPrompt`) |
 | Editor coaching | `components/timeline-editor/CreationFlowCallout.tsx` |
 
 ---
@@ -29,14 +30,14 @@ This document records how **API prompts** and the **editor UI** line up with [`S
 |--------|--------|
 | **Strong for** | **Progression** topics (fetal dev, construction, etc.): dedicated instructions. **Fictional** path: “coherent story,” “build upon each other.” |
 | **Weaker for** | General **factual** timelines: prompts emphasize milestones, recency, distribution across years, and uniqueness—but historically did not always ask for **story-shaped** ordering (setup → turn → payoff). |
-| **Change made** | `BASE_TIMELINE_PROMPT` + factual blocks now include a **StoryWall narrative arc** line: prefer a readable arc when the topic supports it, avoid padding. |
+| **Change made** | `BASE_TIMELINE_PROMPT` + factual blocks include a **StoryWall narrative arc** line and a **beat linkage & pacing** block (one beat = one shift; sequential logic; specific titles). `generate-events` mirrors this for the main factual and creative paths. |
 
 ### 3. Beat selection and pacing
 
 | Status | Notes |
 |--------|--------|
-| **Aligned** | Strong **uniqueness** rules; “quality over quantity”; progression stages. |
-| **Tension** | User-facing **max events** defaults (e.g. 20) and some branches say “MUST generate N events,” which can **fight** the rubric’s **6–12** ideal. The prompts also say not to fabricate to reach N—those instructions are in tension. **Mitigation:** narrative-arc + uniqueness language; product default / UX is a separate knob. |
+| **Aligned** | Strong **uniqueness** rules; “quality over quantity”; progression stages. **Beat linkage** is explicit in `BASE_TIMELINE_PROMPT`, `generate-events`, **enrichment** (optional one-clause bridge to the prior beat when facts support it), and **chat-skeleton** (ordered milestones with forward pull). |
+| **Tension** | User-facing **max events** defaults (e.g. 20) and some branches say “MUST generate N events,” which can **fight** the rubric’s **6–12** ideal. The prompts also say not to fabricate to reach N—those instructions are in tension. **Mitigation:** narrative-arc + uniqueness + beat-linkage language; product default / UX is a separate knob. |
 
 ### 4. Visual contribution
 
@@ -69,13 +70,13 @@ This document records how **API prompts** and the **editor UI** line up with [`S
 
 ## Summary
 
-| Dimension | Prompt alignment (before follow-up edits) |
+| Dimension | Prompt alignment (high level) |
 |-----------|-------------------------------------------|
 | Premise | User + title rules; not a full “visitor test” |
-| Arc | Progression + fiction strong; general factual improved via arc snippet |
-| Beats | Uniqueness strong; count pressure from maxEvents |
+| Arc | Progression + fiction strong; general factual: arc + beat-linkage prompts |
+| Beats | Uniqueness + beat linkage; count pressure from maxEvents |
 | Visuals | Strong in enrichment |
 | Payoff | OK via significance; voice may limit punch |
 | Share | Editor UX + rubric doc; not in generation prompts |
 
-**Bottom line:** The stack was already **strong on chronology, uniqueness, and visual prompts**. It was **not fully explicit** on **story-shaped factual arcs** or **share-ready tone**—addressed in part by prompt snippets + ongoing UX. Use this doc when changing `generate-events`, `timeline-modules`, or `enrichment-optimized.ts`.
+**Bottom line:** The stack is **strong on chronology, uniqueness, visual prompts, and beat linkage/pacing** (see matrix row 8 in [`product/FEATURE_PRIORITIZATION_MATRIX.md`](./product/FEATURE_PRIORITIZATION_MATRIX.md)). **Share-ready tone** remains mostly a human/editor layer. Use this doc when changing `generate-events`, `timeline-modules`, `enrichment-optimized.ts`, or `chat-skeleton.ts`.
