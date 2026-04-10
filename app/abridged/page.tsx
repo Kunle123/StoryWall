@@ -7,6 +7,8 @@ type GeneratedEvent = {
   year?: number;
   description?: string;
   prompt?: string;
+  /** Skip face/likeness reference when generating this card */
+  omitLikenessReference?: boolean;
   imageUrl?: string | null;
   /** Set when the image slot failed (SSE `error` field) */
   imageError?: string | null;
@@ -184,6 +186,9 @@ export default function AbridgedFlowPage() {
       if (!eventDescRes.ok)
         throw new Error(`Event descriptions failed (${eventDescRes.status})`);
       const eventDescData = await eventDescRes.json();
+      const omitArr =
+        eventDescData?.omitLikenessReferences ||
+        eventDescData?.data?.omitLikenessReferences;
       const enrichedEvents: GeneratedEvent[] = generatedEvents.map((e, idx) => ({
         ...e,
         description:
@@ -196,6 +201,7 @@ export default function AbridgedFlowPage() {
           eventDescData?.data?.imagePrompts?.[idx] ||
           eventDescData?.data?.prompts?.[idx] ||
           e.prompt,
+        omitLikenessReference: Array.isArray(omitArr) && omitArr[idx] === true,
       }));
       setEvents(enrichedEvents);
       appendLog('Event descriptions/prompts generated.');
@@ -227,7 +233,9 @@ export default function AbridgedFlowPage() {
             title: e.title,
             description: e.description,
             imagePrompt: e.prompt,
+            omitLikenessReference: e.omitLikenessReference === true,
           })),
+          omitLikenessReferences: enrichedEvents.map((e) => e.omitLikenessReference === true),
         }),
       });
 

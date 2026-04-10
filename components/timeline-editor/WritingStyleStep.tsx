@@ -18,6 +18,8 @@ export interface TimelineEvent {
   description?: string;
   imageUrl?: string;
   imagePrompt?: string; // AI-generated prompt optimized for image generation
+  /** When true, image generation skips face/likeness reference for this beat */
+  omitLikenessReference?: boolean;
   hasFamousPeople?: boolean; // Detected if event mentions famous people
 }
 

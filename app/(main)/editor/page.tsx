@@ -770,6 +770,10 @@ const TimelineEditor = () => {
             imagePrompt = regularEvent.imagePrompt || undefined;
           }
 
+          const omitLikenessRef =
+            timelineType !== 'statistics' &&
+            (event as TimelineEvent).omitLikenessReference === true;
+
           const eventResult = await createEvent(timelineId, {
             title: eventTitle,
             description: eventDescription,
@@ -778,6 +782,7 @@ const TimelineEditor = () => {
             number_label: eventNumberLabel,
             image_url: imageUrl,
             image_prompt: imagePrompt,
+            omit_likeness_reference: omitLikenessRef,
           });
 
           // Log if image/chart is missing

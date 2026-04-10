@@ -91,6 +91,8 @@ model Event {
   numberLabel  String?   @map("number_label") @db.VarChar(50) // Label for numbered events (e.g., "Day", "Event")
   imageUrl     String?   @map("image_url")
   imagePrompt  String?   @map("image_prompt") @db.Text // The AI-generated prompt used to create the image
+  /// When true, image generation skips face/likeness reference (place, prop, crowd, exterior-only beats).
+  omitLikenessReference Boolean @default(false) @map("omit_likeness_reference")
   locationLat  Decimal?  @map("location_lat") @db.Decimal(10, 8)
   locationLng  Decimal?  @map("location_lng") @db.Decimal(11, 8)
   locationName String?   @map("location_name") @db.VarChar(255)

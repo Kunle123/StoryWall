@@ -2048,7 +2048,17 @@ export async function POST(request: NextRequest) {
     const user = userId ? await getOrCreateUser(userId) : { id: 'guest', credits: Number.MAX_SAFE_INTEGER };
 
     const body = await request.json();
-    const { events, imageStyle = 'photorealistic', themeColor = '#3B82F6', imageReferences = [], referencePhoto, includesPeople = true, anchorStyle, styleReferenceUrl } = body;
+    const {
+      events,
+      imageStyle = 'photorealistic',
+      themeColor = '#3B82F6',
+      imageReferences = [],
+      referencePhoto,
+      includesPeople = true,
+      anchorStyle,
+      styleReferenceUrl,
+      omitLikenessReferences: omitLikenessRefsBody,
+    } = body;
     
     // Log Anchor status for debugging
     if (anchorStyle) {
@@ -2656,7 +2666,18 @@ export async function POST(request: NextRequest) {
           // Fallback: use first available reference if no specific matching (for backwards compatibility)
           referenceImageUrl = preparedReferences[index] || preparedReferences[0] || null;
         }
-        
+
+        const omitLikeness =
+          (Array.isArray(omitLikenessRefsBody) && omitLikenessRefsBody[index] === true) ||
+          (events[index] as { omitLikenessReference?: boolean })?.omitLikenessReference === true;
+        if (omitLikeness) {
+          referenceImageUrl = null;
+          relevantImageRefs.length = 0;
+          console.log(
+            `[ImageGen] omitLikenessReference for event ${index + 1}: "${event.title}" (scene/prop/location only — no face ref)`
+          );
+        }
+
         // Style reference can be used if provided, but face reference takes priority
         // For now, we're testing face references with Cloudinary, so skip style ref
         // if (styleReferenceUrl && !referenceImageUrl) {
@@ -3208,15 +3229,22 @@ export async function POST(request: NextRequest) {
                 })
               : [];
             
-            const referenceImageUrl = relevantImageRefs.length > 0
+            let referenceImageUrl = relevantImageRefs.length > 0
               ? (() => {
                   const relevantRef = relevantImageRefs[0];
                   const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
                   return preparedReferences[refIndex] || null;
                 })()
               : (preparedReferences[result.index] || preparedReferences[0] || null);
+            const omitRetry =
+              (Array.isArray(omitLikenessRefsBody) && omitLikenessRefsBody[result.index] === true) ||
+              (result.event as { omitLikenessReference?: boolean }).omitLikenessReference === true;
+            if (omitRetry) {
+              referenceImageUrl = null;
+            }
             const hasReferenceImage = !!referenceImageUrl;
-            
+            const relevantForPrompt = omitRetry ? [] : relevantImageRefs;
+
             // Rebuild prompt with only relevant image references
             const prompt = buildImagePrompt(
               result.event,
@@ -3226,9 +3254,9 @@ export async function POST(request: NextRequest) {
               needsText,
               finalImageReferences, // Pass all references for context
               hasReferenceImage,
-              includesPeople && relevantImageRefs.length > 0,
+              includesPeople && relevantForPrompt.length > 0,
               anchorStyle,
-              relevantImageRefs.length > 0 ? relevantImageRefs : undefined // Only process relevant people
+              relevantForPrompt.length > 0 ? relevantForPrompt : undefined // Only process relevant people
             );
             
             // Build input (simplified - reuse same logic as original)

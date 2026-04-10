@@ -101,6 +101,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
           ...updatedEvents[eventIndex],
           description: data.descriptions[0] || "",
           imagePrompt: data.imagePrompts?.[0] || updatedEvents[eventIndex].imagePrompt,
+          omitLikenessReference: data.omitLikenessReferences?.[0] === true,
         };
         setEvents(updatedEvents);
       } else {
@@ -198,6 +199,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
           ...e,
           description: data.descriptions[idx] || e.description,
           imagePrompt: data.imagePrompts?.[idx] || e.imagePrompt, // Store AI-generated image prompts
+          omitLikenessReference: data.omitLikenessReferences?.[idx] === true,
         }))
       );
       

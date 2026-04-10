@@ -149,6 +149,7 @@ ${events.map((e, i) => `${i + 1}. ${e.year ? `${e.year}: ` : ''}${e.title}${e.fa
 
 3.  **Image Prompts:** For each event, create a literal, concrete \`imagePrompt\` that:
     - Describes a visual scene representing **this beat only**—**one clear focal moment** per image (aligned with one meaningful shift per card). Do not cram unrelated story beats into a single composition.
+    - Set \`omitLikenessReference\` to \`true\` when the beat is best shown **without** a face-reference portrait (exterior of a landmark, aerial of an estate, venue empty before a show, iconic prop or costume detail, crowd-from-below, album art as object, broadcast **control room** with monitors—no central identifiable public figure as the subject). Use \`false\` when a specific person’s face/body is the clear subject of the shot.
     - **Pacing / linkage (visual):** Events are in chronological order. Let framing, setting, or emotional weight **reflect this beat’s place in the arc** when facts support it (e.g. escalation, aftermath, resolution)—without inventing people, props, or outcomes not grounded in the title and known facts. Do **not** illustrate the previous event inside this image; each prompt must stand alone for generation.
     - Describes a visual scene representing that event
     - Begins with "ANCHOR: [60-80 char preview of your anchorStyle]. [scene description]"
@@ -192,7 +193,8 @@ ${events.map((e, i) => `    ${i + 1}. **Event ID:** ${e.eventId} | **Year:** ${e
     {
       "eventId": "event_1",
       "description": "The global network outage of 2077, known as 'The Great Silence,' severed all digital communications worldwide. This event marked the end of the interconnected era and forced humanity to rediscover analog methods of survival and governance.",
-      "imagePrompt": "ANCHOR: Muted earth tones, deep shadows, neon-lit cityscapes, suspenseful tone. A panoramic view of a massive dark city at night, with all lights and screens extinguished except for the faint glow of fires in the streets below."
+      "imagePrompt": "ANCHOR: Muted earth tones, deep shadows, neon-lit cityscapes, suspenseful tone. A panoramic view of a massive dark city at night, with all lights and screens extinguished except for the faint glow of fires in the streets below.",
+      "omitLikenessReference": true
     }
   ]
 }
@@ -208,7 +210,8 @@ ${events.map((e, i) => `    ${i + 1}. **Event ID:** ${e.eventId} | **Year:** ${e
     {
       "eventId": "string (must match event ID from input)",
       "description": "string (2-4 sentences explaining the event)",
-      "imagePrompt": "string (literal visual scene with ANCHOR prefix)"
+      "imagePrompt": "string (literal visual scene with ANCHOR prefix)",
+      "omitLikenessReference": "boolean — true if no face/likeness ref should be used for this beat (place/prop/crowd/exterior-only); false otherwise"
     }
   ]
 }

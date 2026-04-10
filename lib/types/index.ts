@@ -21,6 +21,8 @@ export interface Event {
   number_label?: string; // Label for numbered events (e.g., "Day", "Event")
   image_url?: string;
   image_prompt?: string; // The AI-generated prompt used to create the image
+  /** Skip face reference for scene/prop/location-only illustrations */
+  omit_likeness_reference?: boolean;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;
@@ -101,6 +103,7 @@ export interface CreateEventInput {
   number_label?: string;
   image_url?: string;
   image_prompt?: string;
+  omit_likeness_reference?: boolean;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;

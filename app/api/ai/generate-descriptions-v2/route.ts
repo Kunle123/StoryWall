@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
       imageStyle,
       themeColor,
       sourceRestrictions,
+      descPromptVersion: 'v2-omitLikeness', // bump when description output schema changes
     });
     
     const cached = getCached<any>(cacheKey);
@@ -299,6 +300,7 @@ export async function POST(request: NextRequest) {
     const items = content.items || [];
     const descriptions: string[] = [];
     const imagePrompts: string[] = [];
+    const omitLikenessReferences: boolean[] = [];
 
     items.forEach((item: any, idx: number) => {
       descriptions.push(item.description || 'Description not generated.');
@@ -309,6 +311,7 @@ export async function POST(request: NextRequest) {
         imagePrompt = `ANCHOR: ${anchorStylePreview}. ${imagePrompt}`;
       }
       imagePrompts.push(imagePrompt);
+      omitLikenessReferences.push(Boolean(item.omitLikenessReference));
     });
 
     // Ensure we have the right number of items
@@ -317,6 +320,9 @@ export async function POST(request: NextRequest) {
     }
     while (imagePrompts.length < events.length) {
       imagePrompts.push('');
+    }
+    while (omitLikenessReferences.length < events.length) {
+      omitLikenessReferences.push(false);
     }
 
     // Verify and auto-correct events (if requested)
@@ -362,6 +368,7 @@ export async function POST(request: NextRequest) {
     const responseData: any = {
       descriptions: descriptions.slice(0, events.length),
       imagePrompts: imagePrompts.slice(0, events.length),
+      omitLikenessReferences: omitLikenessReferences.slice(0, events.length),
       anchorStyle: anchorStyle || null,
       hashtags: hashtags.length > 0 ? hashtags : undefined,
     };
@@ -380,6 +387,7 @@ export async function POST(request: NextRequest) {
     const cacheData = {
       descriptions: responseData.descriptions,
       imagePrompts: responseData.imagePrompts,
+      omitLikenessReferences: responseData.omitLikenessReferences,
       anchorStyle: responseData.anchorStyle,
       hashtags: responseData.hashtags,
     };
@@ -569,6 +577,7 @@ async function generateBatched(
   // Process batches in parallel (with concurrency limit)
   const allDescriptions: string[] = [];
   const allImagePrompts: string[] = [];
+  const allOmitLikeness: boolean[] = [];
   
   // Process batches with concurrency control
   for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
@@ -620,6 +629,7 @@ async function generateBatched(
           }
           return prompt;
         }),
+        omitLikenessReferences: items.map((item: any) => Boolean(item.omitLikenessReference)),
       };
     });
     
@@ -629,12 +639,19 @@ async function generateBatched(
       if (result.status === 'fulfilled') {
         allDescriptions.push(...result.value.descriptions);
         allImagePrompts.push(...result.value.imagePrompts);
+        const om = result.value.omitLikenessReferences;
+        if (Array.isArray(om) && om.length > 0) {
+          allOmitLikeness.push(...om);
+        } else {
+          allOmitLikeness.push(...Array(result.value.descriptions.length).fill(false));
+        }
       } else {
         console.error(`[GenerateDescriptionsV2] Batch ${i + idx} failed:`, result.reason);
         // Fill with placeholders for failed batches
         const batchSize = concurrentBatches[idx].length;
         allDescriptions.push(...Array(batchSize).fill('Description not generated.'));
         allImagePrompts.push(...Array(batchSize).fill(''));
+        allOmitLikeness.push(...Array(batchSize).fill(false));
       }
     });
   }
@@ -646,10 +663,14 @@ async function generateBatched(
   while (allImagePrompts.length < params.events.length) {
     allImagePrompts.push('');
   }
+  while (allOmitLikeness.length < params.events.length) {
+    allOmitLikeness.push(false);
+  }
   
   const responseData: any = {
     descriptions: allDescriptions.slice(0, params.events.length),
     imagePrompts: allImagePrompts.slice(0, params.events.length),
+    omitLikenessReferences: allOmitLikeness.slice(0, params.events.length),
     anchorStyle: anchorStyle || null,
   };
   

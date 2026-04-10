@@ -18,6 +18,8 @@ export interface TimelineEvent {
   category?: string;
   image?: string;
   video?: string;
+  imagePrompt?: string;
+  omitLikenessReference?: boolean;
 }
 
 interface TimelineProps {

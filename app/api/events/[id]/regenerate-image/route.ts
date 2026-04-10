@@ -100,6 +100,7 @@ export async function POST(
           day: event.date ? new Date(event.date).getDate() : undefined,
           number: event.number,
           imagePrompt: imagePrompt, // Use stored prompt if available
+          omitLikenessReference: event.omit_likeness_reference === true,
         }],
         imageStyle,
         themeColor,

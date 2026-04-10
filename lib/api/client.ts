@@ -217,6 +217,7 @@ export async function createEvent(timelineId: string, eventData: {
   number_label?: string;
   image_url?: string;
   image_prompt?: string;
+  omit_likeness_reference?: boolean;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;
@@ -249,6 +250,7 @@ export async function updateEvent(id: string, eventData: Partial<{
   end_date?: string;
   image_url?: string;
   image_prompt?: string;
+  omit_likeness_reference?: boolean;
   location_lat?: number;
   location_lng?: number;
   location_name?: string;
@@ -337,6 +339,8 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
       category: apiEvent.category,
       image: apiEvent.image_url,
       video: undefined,
+      imagePrompt: apiEvent.image_prompt,
+      omitLikenessReference: apiEvent.omit_likeness_reference === true,
     };
   }
   
@@ -406,6 +410,8 @@ export function transformApiEventToTimelineEvent(apiEvent: any) {
     category: apiEvent.category,
     image: apiEvent.image_url,
     video: undefined, // Not in API yet
+    imagePrompt: apiEvent.image_prompt,
+    omitLikenessReference: apiEvent.omit_likeness_reference === true,
   };
 }
 

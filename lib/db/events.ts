@@ -163,6 +163,7 @@ export async function createEvent(input: CreateEventInput & { created_by?: strin
         // Don't include number/numberLabel if columns don't exist
         imageUrl: input.image_url,
         imagePrompt: input.image_prompt,
+        omitLikenessReference: !!input.omit_likeness_reference,
         locationLat: input.location_lat ? input.location_lat : undefined,
         locationLng: input.location_lng ? input.location_lng : undefined,
         locationName: input.location_name,
@@ -566,6 +567,9 @@ export async function updateEvent(
       ...(updates.number !== undefined && { number: updates.number }),
       ...(updates.image_url !== undefined && { imageUrl: updates.image_url }),
       ...(updates.image_prompt !== undefined && { imagePrompt: updates.image_prompt }),
+      ...(updates.omit_likeness_reference !== undefined && {
+        omitLikenessReference: updates.omit_likeness_reference,
+      }),
       ...(updates.location_lat !== undefined && { locationLat: updates.location_lat }),
       ...(updates.location_lng !== undefined && { locationLng: updates.location_lng }),
       ...(updates.location_name !== undefined && { locationName: updates.location_name }),
@@ -664,6 +668,7 @@ function transformEvent(event: any): Event {
     number_label: event.numberLabel || undefined,
     image_url: event.imageUrl || undefined,
     image_prompt: event.imagePrompt || undefined,
+    omit_likeness_reference: Boolean(event.omitLikenessReference),
     location_lat: event.locationLat ? parseFloat(event.locationLat.toString()) : undefined,
     location_lng: event.locationLng ? parseFloat(event.locationLng.toString()) : undefined,
     location_name: event.locationName || undefined,

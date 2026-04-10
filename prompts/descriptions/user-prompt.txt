@@ -35,5 +35,7 @@ CRITICAL FOR IMAGE PROMPTS: Each image prompt must describe a LITERAL, RECOGNIZA
 
 Across the list of events: **vary** framing and subject emphasis (wide vs detail, person vs location/prop) so the timeline feels like a visual progression, not one stock photo copied to each year.
 
+When using the consolidated JSON schema that includes **omitLikenessReference** per event: set it **true** only for beats that should render **without** a face-reference image (landmark exterior, prop, crowd-atmosphere, empty stage)—**false** when a specific person is clearly the main subject.
+
 NEVER use poetic, metaphorical, or abstract language unless specifically instructed otherwise for social media timelines.
 

@@ -50,6 +50,7 @@ export async function PATCH(
       number,
       image_url,
       image_prompt,
+      omit_likeness_reference,
       location_lat,
       location_lng,
       location_name,
@@ -87,6 +88,9 @@ export async function PATCH(
     if (number !== undefined) updates.number = number;
     if (image_url !== undefined) updates.image_url = image_url;
     if (image_prompt !== undefined) updates.image_prompt = image_prompt;
+    if (omit_likeness_reference !== undefined) {
+      updates.omit_likeness_reference = Boolean(omit_likeness_reference);
+    }
     if (location_lat !== undefined) updates.location_lat = location_lat;
     if (location_lng !== undefined) updates.location_lng = location_lng;
     if (location_name !== undefined) updates.location_name = location_name;
