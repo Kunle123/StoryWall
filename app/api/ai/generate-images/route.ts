@@ -171,6 +171,11 @@ function generateNameVariations(name: string): string[] {
   return [...new Set(variations)]; // Remove duplicates
 }
 
+/** Escape strings interpolated into `new RegExp(...)` — unescaped metacharacters (e.g. () . +) throw SyntaxError and break image gen. */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Helper to check if a filename/title matches a person's name
 // Strict name matching to avoid false positives
 // Since AI-provided names are likely correct, we require strict matching
@@ -182,7 +187,7 @@ function scorePersonNameMatch(filename: string, personName: string): number {
   
   // For single-part names, require exact match
   if (nameParts.length === 1) {
-    const isExactWord = new RegExp(`\\b${nameParts[0]}\\b`).test(filenameLower);
+    const isExactWord = new RegExp(`\\b${escapeRegExp(nameParts[0])}\\b`).test(filenameLower);
     return isExactWord ? 10 : 0;
   }
   
@@ -192,7 +197,7 @@ function scorePersonNameMatch(filename: string, personName: string): number {
   let totalScore = 0;
   
   for (const part of nameParts) {
-    const isExactWord = new RegExp(`\\b${part}\\b`).test(filenameLower);
+    const isExactWord = new RegExp(`\\b${escapeRegExp(part)}\\b`).test(filenameLower);
     if (!isExactWord) {
       allPartsMatch = false;
       break;
@@ -213,7 +218,10 @@ function scorePersonNameMatch(filename: string, personName: string): number {
   const andPattern = /[A-Z][a-z]+\s+and\s+[A-Z][a-z]+/;
   if (andPattern.test(filename)) {
     // Check if the person's name appears AFTER "and" (less ideal - group photo)
-    const nameAfterAnd = new RegExp(`and\\s+.*${nameParts.join('.*')}`, 'i').test(filenameLower);
+    const nameAfterAnd = new RegExp(
+      `and\\s+.*${nameParts.map((p) => escapeRegExp(p)).join('.*')}`,
+      'i'
+    ).test(filenameLower);
     if (nameAfterAnd) {
       // Person appears after "and" - likely a group photo, reduce score significantly
       totalScore *= 0.4;
@@ -1837,8 +1845,11 @@ function buildImagePrompt(
           // This handles cases like "Wonder on stage" -> "Stevie Wonder on stage"
           // IMPORTANT: Use a more specific regex that doesn't match if the full name is already nearby
           // e.g., don't replace "Wonder" in "Stevie Wonder" but do replace standalone "Wonder"
-          const fullNameRegex = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, 'gi');
-          const lastNameRegex = new RegExp(`\\b${lastName}\\b`, 'gi');
+          const fullNameRegex = new RegExp(
+            `\\b${escapeRegExp(firstName)}\\s+${escapeRegExp(lastName)}\\b`,
+            'gi'
+          );
+          const lastNameRegex = new RegExp(`\\b${escapeRegExp(lastName)}\\b`, 'gi');
           
           // Only replace if full name isn't already present nearby
           if (!prompt.match(fullNameRegex)) {
@@ -1849,7 +1860,7 @@ function buildImagePrompt(
           }
           
           // Also check for first name only and replace with full name
-          const firstNameRegex = new RegExp(`\\b${firstName}\\b`, 'gi');
+          const firstNameRegex = new RegExp(`\\b${escapeRegExp(firstName)}\\b`, 'gi');
           if (prompt.match(firstNameRegex) && !promptLower.includes(personNameLower)) {
             prompt = prompt.replace(firstNameRegex, personName);
             console.log(`[ImageGen] Replaced "${firstName}" with "${personName}" in prompt`);
@@ -2545,7 +2556,7 @@ export async function POST(request: NextRequest) {
                   return rNameParts.length >= 2 && rNameParts[rNameParts.length - 1] === lastName;
                 });
                 if (peopleWithSameLastName.length === 1) return true;
-                const firstNamePattern = new RegExp(`\\b${firstName}\\b`, 'i');
+                const firstNamePattern = new RegExp(`\\b${escapeRegExp(firstName)}\\b`, 'i');
                 if (firstNamePattern.test(eventText)) return true;
                 }
               }
@@ -3326,10 +3337,19 @@ export async function POST(request: NextRequest) {
             imagePromises.forEach((promise, promiseIndex) => {
               promise.then(async (result) => {
                 try {
-                  // Persist image to Cloudinary immediately
-                  const persistedImage = result.imageUrl 
-                    ? (await persistImagesToCloudinary([result.imageUrl]))[0]
-                    : null;
+                  // Persist image to Cloudinary immediately (never throw — broken persist should not kill the SSE stream)
+                  let persistedImage: string | null = null;
+                  if (result.imageUrl) {
+                    try {
+                      persistedImage = (await persistImagesToCloudinary([result.imageUrl]))[0];
+                    } catch (persistErr: any) {
+                      console.error(
+                        `[ImageGen] [Streaming] Cloudinary persist failed for "${result.event.title}":`,
+                        persistErr?.message
+                      );
+                      persistedImage = result.imageUrl;
+                    }
+                  }
                   
                   images[result.index] = persistedImage;
                   prompts[result.index] = typeof result.prompt === 'string' 

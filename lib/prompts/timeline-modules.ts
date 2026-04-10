@@ -33,11 +33,13 @@ export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual
 
 7.  **StoryWall narrative arc (when not a single-subject progression):** Order events so the sequence reads as a **recognizable spine** where the topic allows: **context** (why it matters) → developments → major turning point(s) → consequence or present framing—**backstory behind a current or focused issue** when that matches the description. The middle should carry the strongest causal chain; the ending should not feel **stacked** with redundant late beats. Prefer fewer strong beats over filler to hit the maximum count.
 
-8.  **Beat linkage & pacing:** Treat each event as **one meaningful shift**—a single distinct development, not several unrelated facts bundled into one beat. Order events so that, where sources support it, the sequence reads as **linked steps** (e.g. cause → consequence, escalation, reaction, or new constraint)—not an interchangeable list of facts. **Titles** should be specific enough to show *what changed* (who/what/when), not vague labels like "Tensions rise" without substance. **Each late-stage beat** must add a **new** development for the reader—not a near-duplicate of the previous card. If two adjacent beats would not change a reader's understanding, merge or omit one.
+8.  **Biography / single protagonist vs issue explainer:** **Life or career timelines** should center **one protagonist** (or one organization treated as the “subject”) with **phase changes**—founding, breakthrough, expansion, pivot, public role, etc.—so each beat feels like a **turning point** in that arc, not a reference list. **Avoid weak “milestone” beats** that only restate status (e.g. net-worth estimates, “continues in role” year-stamps) unless they are **the** documented pivot the description demands—prefer to **merge or omit** them so the close stays dynamic. **Policy / issue explainers** still use **one thesis** (instruction 1)—that is StoryWall’s **contextual wedge** (“help me understand this issue”)—but apply the **same narrative discipline**: each beat should advance the reader’s model of the issue, not parallel encyclopedia entries.
 
-9.  **Timeline name alignment:** When the name is broad, still choose event titles so the **sequence** reflects a deliberate thesis (as in instruction 1). Ideal names read like a promise to the reader (e.g. how X shifted from A to B over [years]); if the given name stays broad, the **beat order and specificity** must still make the implied story obvious.
+9.  **Beat linkage & pacing:** Treat each event as **one meaningful shift**—a single distinct development, not several unrelated facts bundled into one beat. Order events so that, where sources support it, the sequence reads as **linked steps** (e.g. cause → consequence, escalation, reaction, or new constraint)—not an interchangeable list of facts. **Titles** should be specific enough to show *what changed* (who/what/when), not vague labels like "Tensions rise" without substance. **Each late-stage beat** must add a **new** development for the reader—not a near-duplicate of the previous card. If two adjacent beats would not change a reader's understanding, merge or omit one.
 
-10. **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
+10. **Timeline name & headline tone:** When the name is broad, still choose event titles so the **sequence** reflects a deliberate thesis (as in instruction 1). Ideal timeline **names** read like a clear promise (e.g. how X shifted from A to B over [years])—**confident and specific**, not tabloid melodrama; the story should not need an overblown headline. If the given name stays broad, the **beat order and specificity** must still make the implied story obvious.
+
+11. **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
 
 /**
  * Module 1: Controversy & Media
@@ -89,7 +91,9 @@ export const BIOGRAPHY_MODULE: TimelinePromptModule = {
   content: `
 **Biographical Instructions:**
 
--   **Holistic Life View:** Cover a broad range of life events, including early life, education, career milestones, major achievements, significant decisions, and personal life events if they are publicly documented and relevant.
+-   **Single arc:** Treat the timeline as **one coherent rise/change arc** (or rise-and-fall) for the subject—each beat should be a **phase change or turning point** the reader can follow in order, not a grab-bag of trivia.
+-   **Turning points over status checks:** Prefer beats where something **new** happened (launch, acquisition, role change, breakthrough work) over beats that only **confirm** ongoing status (e.g. wealth estimates, “still serves as…”) unless the description makes that beat essential.
+-   **Holistic Life View:** Cover early life, education, career milestones, major achievements, and significant decisions when publicly documented and relevant to that arc.
 -   **Prioritize Actions and Accomplishments:** Focus on what the individual did, created, or influenced. Include:
     * Career appointments and positions held
     * Policy decisions and legislation (for political figures)
