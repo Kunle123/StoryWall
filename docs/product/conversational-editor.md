@@ -2,6 +2,8 @@
 
 Product direction: **co-research** on factual beats before descriptions and images. The classic `/editor` flow stays unchanged.
 
+Related positioning: [GTM one-page memo](./GTM-one-page-memo.md).
+
 ## GitHub tracking
 
 - Epic: [#36](https://github.com/Kunle123/StoryWall/issues/36)
