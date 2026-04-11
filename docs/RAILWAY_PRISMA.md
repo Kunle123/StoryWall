@@ -2,7 +2,7 @@
 
 ## P2022 (missing column) — `share_count`, `tiktok_*`, etc.
 
-If deploy uses an existing Postgres DB and `prisma migrate deploy` did not run (e.g. **P3005** — schema not empty), columns added in `schema.prisma` may be missing while Prisma Client expects them (e.g. `timelines.share_count`, `users.tiktok_access_token`).
+If deploy uses an existing Postgres DB and `prisma migrate deploy` did not run (e.g. **P3005** — schema not empty), columns added in `schema.prisma` may be missing while Prisma Client expects them (e.g. `timelines.share_count`, `events.omit_likeness_reference`, `users.tiktok_access_token`). Missing columns surface as **P2022**; Next.js may surface that as a generic app error whose **digest** matches the Prisma failure.
 
 **Automatic fix:** `start:with-migrations` runs `scripts/ensure-production-schema.cjs`, which executes idempotent `ALTER TABLE … ADD COLUMN IF NOT EXISTS …` for known drift (see `STATEMENTS` in that file). Extend that list when production logs show **P2022** for a new column.
 

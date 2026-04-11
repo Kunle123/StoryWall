@@ -17,6 +17,8 @@ const STATEMENTS = [
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "tiktok_access_token" TEXT`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "tiktok_refresh_token" TEXT`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "tiktok_open_id" TEXT`,
+  // events — likeness reference toggle for image generation (see prisma Event model)
+  `ALTER TABLE "events" ADD COLUMN IF NOT EXISTS "omit_likeness_reference" BOOLEAN NOT NULL DEFAULT false`,
 ];
 
 async function main() {
@@ -28,7 +30,7 @@ async function main() {
     console.log(
       "[ensure-production-schema] OK:",
       STATEMENTS.length,
-      "statements (timelines.share_count, users publish counts + OAuth/TikTok columns)"
+      "statements (timelines, users, events omit_likeness_reference, OAuth/TikTok)"
     );
   } catch (e) {
     console.error("[ensure-production-schema]", e && e.message ? e.message : e);
