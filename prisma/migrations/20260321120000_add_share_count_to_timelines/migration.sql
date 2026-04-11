@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "timelines" ADD COLUMN IF NOT EXISTS "share_count" INTEGER NOT NULL DEFAULT 0;

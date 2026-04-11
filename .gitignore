@@ -23,7 +23,5 @@ pnpm-debug.log*
 # Typescript
 *.tsbuildinfo
 
-# Prisma (local migration history; see docs/RAILWAY_PRISMA.md)
-prisma/migrations/
-
+# Prisma: commit prisma/migrations/ (see docs/RAILWAY_PRISMA.md)
 
