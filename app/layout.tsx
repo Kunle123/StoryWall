@@ -4,12 +4,10 @@ import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from '@/components/theme-provider';
 import { GoogleAnalytics } from '@next/third-parties/google';
-import { getSiteOrigin } from '@/lib/utils/siteUrl';
-
-const site = getSiteOrigin();
+import { getMetadataBase } from '@/lib/utils/siteUrl';
 
 export const metadata: Metadata = {
-  metadataBase: site ? new URL(site) : undefined,
+  metadataBase: getMetadataBase(),
   title: 'StoryWall — Visual timelines for explainers & history',
   description:
     'Create visual timelines that are easy to understand and easy to share. Free to start (~30 AI images). Best for current affairs, history, and explainers — not generic “anything goes” storytelling.',

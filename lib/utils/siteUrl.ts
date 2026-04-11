@@ -1,17 +1,38 @@
 /**
  * Canonical site origin for metadata, OG URLs, and sitemaps.
- * Set NEXT_PUBLIC_APP_URL in production (e.g. https://storywall.app).
+ * Set NEXT_PUBLIC_APP_URL in production (e.g. https://www.storywall.com).
+ *
+ * If the env value has no scheme, `https://` is assumed — otherwise `new URL()` in
+ * `app/layout.tsx` can throw and take down every page (Invalid URL).
  */
 export function getSiteOrigin(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (explicit) {
-    return explicit.replace(/\/$/, "");
+    const trimmed = explicit.replace(/\/$/, "");
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return `https://${trimmed.replace(/^\/+/, "")}`;
   }
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) {
     return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
   }
   return "";
+}
+
+/**
+ * Safe `metadataBase` for root `layout` — never throws; bad env → `undefined`.
+ */
+export function getMetadataBase(): URL | undefined {
+  const site = getSiteOrigin();
+  if (!site) return undefined;
+  try {
+    return new URL(site);
+  } catch {
+    console.warn("[siteUrl] Invalid NEXT_PUBLIC_APP_URL / origin:", site);
+    return undefined;
+  }
 }
 
 /** Absolute URL for a path (e.g. `/timeline/abc`). */
