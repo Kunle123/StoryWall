@@ -341,7 +341,14 @@ export const GenerateImagesStep = ({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `HTTP ${response.status}: ${response.statusText}`);
+        let message = errorText || `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const j = JSON.parse(errorText) as { error?: string };
+          if (j?.error) message = j.error;
+        } catch {
+          /* plain text */
+        }
+        throw new Error(message);
       }
 
       // Handle streaming response

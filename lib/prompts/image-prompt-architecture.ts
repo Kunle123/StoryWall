@@ -41,13 +41,186 @@ export const STORYWALL_EDITORIAL_STYLE =
   'Storywall house style: editorial illustration, not propaganda poster; clear focal hierarchy; rich texture; strong sense of place; visually readable at small size; consistent linework and treatment across the series; documentary realism with restrained stylization — not decorative storybook prettiness';
 
 /**
- * Layer 1 — prepended once per image API call (not repeated in Step 3 per-beat JSON).
- * ~80–120 words: house rules + exclusions so enrichment can omit duplicated boilerplate.
+ * Universal model-facing base (any subject, any era). Event-specific copy lives in {@link assembleUniversalModelFacingPrompt}.
+ * @deprecated Prefer {@link UNIVERSAL_IMAGE_BASE_PROMPT} + assembled layers; kept for older callers / logs.
  */
-export const STORYWALL_GLOBAL_IMAGE_BLOCK = `STORYWALL GLOBAL (same for every image in this timeline):
-Single-image editorial illustration for a visual timeline. Editorial, documentary-feeling, rich texture, restrained stylization, readable at small size; clear focal hierarchy; strong sense of place; not a propaganda poster or decorative storybook look.
+export const STORYWALL_GLOBAL_IMAGE_BLOCK = `STORYWALL GLOBAL (house rules — one full-bleed image per beat, not a layout brief):
+Single rectangular editorial illustration — one continuous scene, one implied camera, like a single documentary still or frame. Editorial, documentary-feeling, rich texture, restrained stylization, readable at small size; clear focal hierarchy; strong sense of place; not a propaganda poster or decorative storybook look.
 No text, logos, labels, captions, watermarks, or UI. No collage, split-screen, multi-panel, infographic layout, or image grid. No invented readable headlines or documents. Avoid anachronistic props for the stated period and place. Prefer natural asymmetry, depth, and scene tension unless the beat is ceremonial or iconic.
 Do not invent specific campaign banners, bill names, legislation titles, joint-branding, or ceremonial details unless grounded in the event. Prefer documentary restraint over vivid fiction.`;
+
+/** Framework-level base: generic for Mamdani, Napoleon, labs, sports — no city or campaign baked in. */
+export const UNIVERSAL_IMAGE_BASE_PROMPT = `Create one single continuous editorial illustration of a specific story event.
+Show one coherent scene with a clear focal subject and plausible period/place detail.
+No collage, no panels, no montage, no grid, no storyboard, no infographic layout.`;
+
+/** Default editorial style line (not location-specific). */
+export const UNIVERSAL_EDITORIAL_STYLE_LINE =
+  'Style: editorial illustration with restrained stylization, strong sense of place, natural depth, clear focal subject, visually readable at small size.';
+
+export type LikenessMode = 'ref_available' | 'ref_unavailable' | 'not_required';
+
+export function buildGenericLikenessLine(mode: LikenessMode, subjectName?: string): string {
+  const name = (subjectName || 'the subject').trim();
+  switch (mode) {
+    case 'ref_available':
+      return `Likeness: Depict a recognizable likeness of ${name} based on the supplied reference or known public appearance appropriate to this period.`;
+    case 'ref_unavailable':
+      return `Likeness: Do not rely on exact facial likeness. Prioritize a historically or publicly plausible figure, correct setting, clothing, and scene details.`;
+    case 'not_required':
+    default:
+      return `Likeness: Do not prioritize exact facial resemblance. Prioritize scene accuracy, atmosphere, and the narrative point of the event.`;
+  }
+}
+
+/** Generic SDXL/Replicate negative — not geography-specific. */
+export const UNIVERSAL_SDXL_NEGATIVE_PROMPT =
+  'text, words, letters, typography, captions, labels, logos, watermarks, collage, montage, split screen, multiple panels, image grid, storyboard, map, infographic, unrelated symbolic inserts, anachronistic objects, generic fantasy scene, unrelated animals, decorative parchment layout, manuscript page, atlas page';
+
+export interface UniversalEventBriefFields {
+  visibleScene: string;
+  primarySubject: string;
+  secondaryDetails: string;
+  mood: string;
+  periodPlaceLine: string;
+}
+
+const lineField = (label: string) =>
+  new RegExp(
+    `(?:^|\\n)\\s*[-*]?\\s*\\*\\*?${label}\\*\\*?\\s*:\\s*([^\\n]+)`,
+    'i'
+  );
+
+/**
+ * Pull Show / Primary subject / … from Step 3 structured text, or derive from title + description.
+ */
+export function extractUniversalEventBriefFromEvent(event: {
+  title: string;
+  description?: string;
+  year?: number;
+  imagePrompt?: string;
+}): UniversalEventBriefFields {
+  const text = (event.imagePrompt || '').trim();
+  const g = (re: RegExp): string | null => {
+    const m = text.match(re);
+    return m?.[1]?.trim() || null;
+  };
+
+  let visibleScene =
+    g(/\*\*Show:\*\*\s*([^\n]+)/i) ||
+    g(lineField('Show')) ||
+    g(/Show:\s*([^\n]+)/i) ||
+    null;
+
+  let primarySubject =
+    g(/\*\*Primary subject:\*\*\s*([^\n]+)/i) ||
+    g(lineField('Primary subject')) ||
+    g(/Primary subject:\s*([^\n]+)/i) ||
+    null;
+
+  let secondaryDetails =
+    g(/\*\*Include:\*\*\s*([^\n]+)/i) ||
+    g(lineField('Include')) ||
+    g(/Include:\s*([^\n]+)/i) ||
+    null;
+
+  let mood =
+    g(/\*\*Mood:\*\*\s*([^\n]+)/i) ||
+    g(lineField('Mood')) ||
+    g(/Mood:\s*([^\n]+)/i) ||
+    null;
+
+  let periodPlaceLine =
+    g(/\*\*Period\/place:\*\*\s*([^\n]+)/i) ||
+    g(/\*\*Period and place:\*\*\s*([^\n]+)/i) ||
+    g(lineField('Period/place')) ||
+    g(/Period and place:\s*([^\n]+)/i) ||
+    null;
+
+  const desc = event.description?.trim();
+  if (!visibleScene) {
+    if (desc) {
+      visibleScene = desc.split(/\s+/).slice(0, 48).join(' ');
+    } else {
+      visibleScene = `Scene depicting the moment: ${event.title}`;
+    }
+  }
+  if (!primarySubject) primarySubject = event.title;
+  if (!secondaryDetails) {
+    secondaryDetails = desc
+      ? desc.split(/\s+/).slice(0, 28).join(' ')
+      : 'Concrete props, setting, and action supporting the focal subject.';
+  }
+  if (!mood) mood = 'Grounded, clear, appropriate to the event';
+  if (!periodPlaceLine) {
+    periodPlaceLine =
+      event.year != null && !Number.isNaN(Number(event.year))
+        ? periodAccuracyClause(Number(event.year))
+        : 'Period and setting plausible for this event as described.';
+  }
+
+  return {
+    visibleScene: visibleScene.slice(0, 900),
+    primarySubject: primarySubject.slice(0, 300),
+    secondaryDetails: secondaryDetails.slice(0, 500),
+    mood: mood.slice(0, 200),
+    periodPlaceLine: periodPlaceLine.slice(0, 500),
+  };
+}
+
+/**
+ * Optional consistency across one Storywall (anchor + continuity). No location or era baked in.
+ */
+export function buildOptionalSeriesStyleNote(
+  anchorStyle?: string | null,
+  imageSeriesContinuity?: string | null,
+  fallbackContinuity?: string | null
+): string | null {
+  const a = anchorStyle?.replace(/^Anchor:\s*/i, '').trim();
+  const c = imageSeriesContinuity?.trim() || fallbackContinuity?.trim();
+  const parts: string[] = [];
+  if (a) parts.push(a);
+  if (c) parts.push(c);
+  if (parts.length === 0) return null;
+  return `Series style note: ${parts.join(' ')}`;
+}
+
+export function assembleUniversalModelFacingPrompt(params: {
+  eventTitle: string;
+  eventDateOrPeriod: string;
+  brief: UniversalEventBriefFields;
+  seriesStyleNote?: string | null;
+  /** e.g. "Illustration" + short visual language from {@link STYLE_VISUAL_LANGUAGE} pattern */
+  visualTreatmentLine?: string | null;
+  /** Subtle theme accent, e.g. from timeline color picker */
+  subtleColorAccent?: string | null;
+  likenessLine: string;
+}): string {
+  const parts: string[] = [
+    UNIVERSAL_IMAGE_BASE_PROMPT,
+    UNIVERSAL_EDITORIAL_STYLE_LINE,
+  ];
+  if (params.visualTreatmentLine?.trim()) {
+    parts.push(`Visual treatment: ${params.visualTreatmentLine.trim()}`);
+  }
+  if (params.seriesStyleNote?.trim()) {
+    parts.push(params.seriesStyleNote.trim());
+  }
+  if (params.subtleColorAccent?.trim()) {
+    parts.push(`Subtle color accent (not dominant): ${params.subtleColorAccent.trim()}`);
+  }
+  parts.push(
+    `Event: ${params.eventTitle} (${params.eventDateOrPeriod})`,
+    `Show: ${params.brief.visibleScene}`,
+    `Primary subject: ${params.brief.primarySubject}`,
+    `Include: ${params.brief.secondaryDetails}`,
+    `Mood: ${params.brief.mood}`,
+    `Period and place: ${params.brief.periodPlaceLine}`,
+    params.likenessLine,
+    `Important: show one single scene only; one camera/viewpoint only; no map-like composition; no unrelated symbolic cutaways; no generic concept-art landscape unless the event itself is a landscape scene; keep objects, clothing, architecture, environment, lighting, and atmosphere plausible for the stated period and place; prioritize the event itself over decorative style; do not invent specific documents, banners, laws, slogans, signage, or ceremonial details unless grounded in the event brief; prefer natural asymmetry and depth unless the beat is ceremonial or iconic.`
+  );
+  return parts.filter(Boolean).join('\n\n');
+}
 
 /** Layer 3 — optional continuity; sent once per request alongside global + anchor + beat brief. */
 export const DEFAULT_IMAGE_SERIES_CONTINUITY =
@@ -79,7 +252,7 @@ export const HARD_EXCLUSIONS_IMAGE = `DO NOT INCLUDE:
 
 /**
  * Core instructions for Step 3 enrichment: **compact** per-beat `imagePrompt` only.
- * Full house style + exclusions are **not** repeated per event — the image API prepends {@link STORYWALL_GLOBAL_IMAGE_BLOCK} once per generation call.
+ * Universal rules + series note are **not** repeated per event — the image API assembles {@link UNIVERSAL_IMAGE_BASE_PROMPT} + optional series + brief.
  */
 export function buildEnrichmentImagePromptInstructions(canUseCelebrityLikeness: boolean): string {
   const modeList = BEAT_IMAGE_MODES.join(' | ');
@@ -91,13 +264,13 @@ export function buildEnrichmentImagePromptInstructions(canUseCelebrityLikeness: 
   return `
 3. **Image prompts (\`imagePrompt\`) — compact beat brief (mandatory)**
 
-**Production split:** Do **not** paste the long Storywall style manifest, repeated exclusion lists, or the full mode cheat-sheet into every item. The server prepends a fixed **global** block at image generation time. You output **only this beat’s drawable content** (target **60–120 words**, max ~900 characters).
+**Production split:** Do **not** paste long universal rules in every item — the server assembles a **universal base + optional series style note + this event brief** at image generation time. You output **only this beat’s drawable content** (target **60–120 words**, max ~900 characters).
 
 **Also output** at the JSON root: \`imageSeriesContinuity\` — **one short sentence** (optional override of default continuity). Example: "Shift from wide institutional shots to tighter, more personal frames as the arc progresses." If nothing special, use: \`"Keep the same illustration treatment across the series, but vary composition and mood by beat."\`
 
 **Each \`imagePrompt\` must follow this shape** (plain text; newlines OK). Start with the opening line exactly:
 
-Single-image editorial illustration for a visual timeline.
+Single full-bleed editorial illustration (one scene, one frame — not a layout or series board).
 
 Then fill:
 - **Event:** (title) ((year or N/A))
@@ -136,6 +309,51 @@ export function periodAccuracyClause(year?: number): string {
 /**
  * Light cleanup before sending prompts to image models: quotes, blank lines, duplicate lines, length cap.
  */
+/** Prepended to Replicate SDXL / IP-Adapter prompts so positives outweigh negatives on collage/panel drift. */
+export const SDXL_SINGLE_SCENE_POSITIVE =
+  'One single continuous scene in one camera view — one full-bleed rectangular image only. Not a storyboard, comic page, panel grid, triptych, map sheet, atlas page, split layout, or montage. ';
+
+/**
+ * Strip layered Storywall headers that SDXL interprets as multi-panel / “visual series” layout cues.
+ * Keeps scene content; adds {@link SDXL_SINGLE_SCENE_POSITIVE} and optional short mood line from anchor.
+ */
+export function compressPromptForSdxl(
+  raw: string,
+  opts?: { anchorOneLiner?: string | null }
+): string {
+  let s = (raw || '').trim();
+  // Already assembled with {@link assembleUniversalModelFacingPrompt} — only trim length for SDXL token limits
+  if (/^Create one single continuous editorial illustration/i.test(s)) {
+    return sanitizeImagePromptAssembly(s, 1200);
+  }
+  // Legacy layered prompts: drop headers SDXL reads as layout / “series board” cues
+  if (/^STORYWALL GLOBAL/i.test(s)) {
+    const parts = s.split(/\nSERIES VISUAL LANGUAGE \(this timeline\):/i);
+    if (parts.length > 1) {
+      s = parts[parts.length - 1].trim();
+    } else {
+      const cut = s.match(/^STORYWALL GLOBAL[\s\S]*?\n\n/);
+      if (cut?.[0]) s = s.slice(cut[0].length).trim();
+    }
+  }
+  s = s.replace(
+    /^SERIES VISUAL LANGUAGE \(this timeline\):\s*[\s\S]*?(?=\n\nCONTINUITY:|\nCONTINUITY:|\nTHIS EVENT|$)/i,
+    ''
+  ).trim();
+  s = s.replace(/\nCONTINUITY:\s*[^\n]+/gi, '').trim();
+  s = s.replace(/\n?THIS EVENT \(beat-specific\):\s*/i, '').trim();
+  s = s.replace(/^ANCHOR \(FOLLOW EXACTLY[^:]*:\s*/i, '').trim();
+  s = s.replace(/\bvisual timeline\b/gi, 'scene');
+  s = s.replace(/\bsame for every image in this timeline\b/gi, '');
+  s = s.replace(/\bseries visual language\b/gi, 'style');
+  s = s.replace(/\n{3,}/g, '\n\n');
+  const anchorBit =
+    opts?.anchorOneLiner?.trim().length ?
+      `Mood and place (keep consistent): ${opts.anchorOneLiner!.trim().slice(0, 320)}. ` : '';
+  const merged = `${SDXL_SINGLE_SCENE_POSITIVE}${anchorBit}${s}`;
+  return sanitizeImagePromptAssembly(merged, 1100);
+}
+
 export function sanitizeImagePromptAssembly(s: string, maxLen: number = 1200): string {
   if (!s || typeof s !== 'string') return '';
   let t = s.trim();
@@ -160,7 +378,8 @@ export function sanitizeImagePromptAssembly(s: string, maxLen: number = 1200): s
 export function isStructuredEditorialImagePrompt(prompt: string): boolean {
   return (
     /VISUAL PURPOSE/i.test(prompt) ||
-    /Single-image editorial illustration for a visual timeline/i.test(prompt) ||
+    /Single full-bleed editorial illustration/i.test(prompt) ||
+    /\*\*Show:\*\*/i.test(prompt) ||
     /Contrast from previous beat/i.test(prompt)
   );
 }

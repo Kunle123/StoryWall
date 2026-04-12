@@ -8,10 +8,15 @@ import { prisma } from '@/lib/db/prisma';
 import { progressStore } from '@/lib/utils/progressStore';
 import { getPersonLookupNameForImageRef } from '@/lib/utils/imageReferenceLookupName';
 import {
-  STORYWALL_GLOBAL_IMAGE_BLOCK,
   DEFAULT_IMAGE_SERIES_CONTINUITY,
   shouldLayerStorywallGlobal,
-  COMPOSITION_GUIDANCE_FOR_MODELS,
+  compressPromptForSdxl,
+  extractUniversalEventBriefFromEvent,
+  assembleUniversalModelFacingPrompt,
+  buildGenericLikenessLine,
+  buildOptionalSeriesStyleNote,
+  sanitizeImagePromptAssembly,
+  UNIVERSAL_SDXL_NEGATIVE_PROMPT,
 } from '@/lib/prompts/image-prompt-architecture';
 import { getImageGuardrailClause } from '@/lib/utils/imageBeatHeuristics';
 
@@ -701,6 +706,20 @@ const MODELS = {
   // IP-Adapter for artistic styles with reference images (much cheaper than Flux Kontext Pro)
   ARTISTIC_WITH_REF: "chigozienri/ip_adapter-sdxl", // $0.028/image - SDXL + IP-Adapter for reference images
 };
+
+/** Replicate SDXL + IP-Adapter — long layered prompts confuse the stack; {@link compressPromptForSdxl} applies. */
+function usesSdxlFamilyModel(model: string): boolean {
+  if (!model) return false;
+  const m = model.toLowerCase();
+  return (
+    m === MODELS.ARTISTIC.toLowerCase() ||
+    m === MODELS.PHOTOREALISTIC.toLowerCase() ||
+    m === MODELS.ARTISTIC_WITH_REF.toLowerCase() ||
+    m.includes('sdxl') ||
+    m.includes('ip_adapter') ||
+    m.includes('ip-adapter')
+  );
+}
 
 // Map image styles to models
 const STYLE_TO_MODEL: Record<string, string> = {
@@ -1512,7 +1531,7 @@ function getNameAliases(name: string): string[] {
   return Array.from(new Set(aliases));
 }
 
-// Build enhanced image prompt with style, color, and cohesion
+// Universal base + optional series note + per-event brief (framework-level; specifics only in event fields)
 function buildImagePrompt(
   event: { title: string; description?: string; year?: number; imagePrompt?: string },
   imageStyle: string,
@@ -1523,472 +1542,126 @@ function buildImagePrompt(
   hasReferenceImage: boolean = false,
   includesPeople: boolean = true,
   anchorStyle?: string | null,
-  relevantImageRefs?: Array<{ name: string; url: string }>, // Only people relevant to this specific event
-  imageSeriesContinuity?: string | null
+  relevantImageRefs?: Array<{ name: string; url: string }>,
+  imageSeriesContinuity?: string | null,
+  omitLikeness: boolean = false
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
   const layerGlobal = shouldLayerStorywallGlobal(imageStyle, anchorStyle);
-  const continuityLine =
-    (imageSeriesContinuity && imageSeriesContinuity.trim()) ||
-    (layerGlobal ? DEFAULT_IMAGE_SERIES_CONTINUITY : '');
 
-  // STEP 4: If Anchor is provided (for progression timelines), use it as the base
-  // The Anchor defines the consistent visual style for the entire series
-  let prompt = '';
-  
-  if (anchorStyle && anchorStyle.trim()) {
-    // For progression timelines with Anchor: ALWAYS use it for consistency
-    // We don't rely on the AI to include it - we enforce it here
-    console.log(`[ImageGen] Using Anchor style for progression timeline (enforcing consistency)`);
-    
-    // Normalize Anchor text (remove "Anchor:" prefix if AI added it)
-    let normalizedAnchor = anchorStyle.replace(/^Anchor:\s*/i, '').trim();
-    
-    // CRITICAL: Remove event titles and brand names from Anchor to prevent repetition
-    // Extract event titles from the current event to avoid removing them from the event description
-    const eventTitleWords = event.title.split(/\s+/).filter(w => w.length > 2);
-    const eventTitlePattern = new RegExp(`\\b(${eventTitleWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`, 'gi');
-    
-    // Remove common brand names and service names that might have been included
-    const brandPatterns = [
-      /\bNetflix\b/gi,
-      /\bM\*A\*S\*H\b/gi,
-      /\bApollo\s+11\b/gi,
-      /\bThe\s+Beatles\s+on\s+The\s+Ed\s+Sullivan\s+Show\b/gi,
-      /\bJohn\s+Logie\s+Baird\b/gi,
-      /\bSuper\s+Bowl\s+LIX\b/gi,
-      /\bKansas\s+City\s+Chiefs\b/gi,
-      /\bPhiladelphia\s+Eagles\b/gi,
-    ];
-    
-    // Remove brand names and repeated event titles from anchor
-    brandPatterns.forEach(pattern => {
-      normalizedAnchor = normalizedAnchor.replace(pattern, '');
-    });
-    
-    // Clean up multiple spaces and trim
-    normalizedAnchor = normalizedAnchor.replace(/\s+/g, ' ').trim();
-    
-    // Extract event-specific description from the AI-generated prompt (if available)
-    // or build it from title + description
-    let eventDescription = event.title;
-    
-    if (event.imagePrompt && event.imagePrompt.trim()) {
-      // Try to extract the event-specific part from the existing prompt
-      // Remove style prefixes and generic phrases
-      let eventSpecificPart = event.imagePrompt
-        .replace(/^(?:Anchor:\s*)?/i, '') // Remove "Anchor:" prefix if present
-        .replace(/^(?:Illustration|Minimalist|Watercolor|Photorealistic|Vintage|3D Render|Sketch|Abstract)\s+style:\s*/i, '')
-        .replace(/^A detailed image of\s*/i, '')
-        .replace(/^The scene shows\s*/i, '')
-        .trim();
-      
-      // Check if this part contains the Anchor (if so, extract just the event-specific part)
-      const anchorLower = normalizedAnchor.toLowerCase();
-      const partLower = eventSpecificPart.toLowerCase();
-      
-      // If the prompt starts with the Anchor, extract what comes after
-      if (partLower.startsWith(anchorLower.substring(0, 50))) {
-        eventSpecificPart = eventSpecificPart.substring(normalizedAnchor.length).trim();
-        // Remove leading "The scene shows" or similar phrases
-        eventSpecificPart = eventSpecificPart.replace(/^(?:The scene shows|\.|,)\s*/i, '').trim();
-      }
-      
-      // If we have meaningful event-specific content (not just generic), use it
-      if (eventSpecificPart.length > 15 && 
-          !eventSpecificPart.toLowerCase().startsWith('illustration style') &&
-          !eventSpecificPart.toLowerCase().startsWith('hand-drawn')) {
-        eventDescription = eventSpecificPart;
-      } else {
-        // Fall back to building from title + description
-        if (event.description) {
-          const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|stages?|phases?))/i);
-          if (stageMatch) {
-            eventDescription = `${event.title} at ${stageMatch[1]}`;
-          } else {
-            eventDescription = `${event.title}: ${event.description.split(' ').slice(0, 20).join(' ')}`;
-          }
-        }
-      }
-    } else {
-      // No imagePrompt - build from title + description
-      if (event.description) {
-        const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|stages?|phases?))/i);
-        if (stageMatch) {
-          eventDescription = `${event.title} at ${stageMatch[1]}`;
-        } else {
-          eventDescription = `${event.title}: ${event.description.split(' ').slice(0, 20).join(' ')}`;
-        }
-      }
-    }
-    
-    // Storywall editorial: global rules + series anchor + beat brief (avoid repeating boilerplate in Step 3 JSON)
-    if (layerGlobal) {
-      prompt = `${STORYWALL_GLOBAL_IMAGE_BLOCK}
+  const brief = extractUniversalEventBriefFromEvent(event);
+  const eventDateOrPeriod =
+    event.year != null && !Number.isNaN(Number(event.year))
+      ? String(event.year)
+      : 'period as described';
 
-SERIES VISUAL LANGUAGE (this timeline):
-${normalizedAnchor}
+  const likenessMode = omitLikeness
+    ? 'not_required'
+    : hasReferenceImage
+      ? 'ref_available'
+      : 'ref_unavailable';
 
-CONTINUITY: ${continuityLine}
+  const subjectName =
+    (relevantImageRefs && relevantImageRefs[0]?.name) ||
+    (imageReferences && imageReferences[0]?.name) ||
+    event.title.split(/\s+/).slice(0, 6).join(' ');
 
-THIS EVENT (beat-specific):
-${eventDescription}`;
-    } else {
-      const anchorReminder =
-        'ANCHOR (FOLLOW EXACTLY — keep palette, composition, camera, props, and setting as described; do NOT replace or downplay these anchor elements)';
-      prompt = `${anchorReminder}: ${normalizedAnchor}. Apply the anchor verbatim, then render this specific event within that anchor: ${eventDescription}`;
-    }
-    console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${normalizedAnchor.length} chars)`);
-    
-    // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
-    // The prompt is now set above, so we can continue to the rest of the function
-  } else if (event.imagePrompt && event.imagePrompt.trim()) {
-    // Use AI-generated prompt as base, but clean it up
-    // IMPORTANT: Preserve the detailed description from Step 3 - it contains specific visual details!
-    let basePrompt = event.imagePrompt;
-    
-    // Remove narrative/exclamatory phrases from AI prompt
-    const narrativePatterns = [
-      /Oh dear!/gi,
-      /Talk about/gi,
-      /It was a/gi,
-      /This is/gi,
-      /What a/gi,
-      /\.\.\./g,
-    ];
-    narrativePatterns.forEach(pattern => {
-      basePrompt = basePrompt.replace(pattern, '');
-    });
-    
-    // Check if this is a good, detailed prompt (contains specific visual details)
-    const hasSpecificDetails = basePrompt.toLowerCase().includes('showing') ||
-      basePrompt.toLowerCase().includes('with') ||
-      basePrompt.toLowerCase().includes('during') ||
-      basePrompt.toLowerCase().includes('at ') ||
-      basePrompt.toLowerCase().includes('gestation') ||
-      basePrompt.toLowerCase().includes('process of') ||
-      basePrompt.length > 60;
-    
-    // If it's a good detailed prompt, preserve it as-is (just add style prefix if needed)
-    if (hasSpecificDetails) {
-      // Check for famous people and make safe (only if timeline includes people)
-      if (includesPeople && (containsFamousPerson(basePrompt) || containsFamousPerson(event.title))) {
-        basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
-        const safeStyle = getSafeStyleForFamousPeople(imageStyle);
-        if (safeStyle !== imageStyle && !basePrompt.toLowerCase().includes(safeStyle.toLowerCase())) {
-          prompt = `${safeStyle} style: ${basePrompt}`;
-        } else {
-          prompt = basePrompt;
-        }
-      } else {
-        // For non-people content, just ensure style is present
-        if (!basePrompt.toLowerCase().includes(imageStyle.toLowerCase())) {
-          prompt = `${imageStyle} style: ${basePrompt}`;
-        } else {
-          prompt = basePrompt;
-        }
-      }
-    } else {
-      // If prompt is too generic, fall through to rebuilding logic below
-      prompt = '';
-    }
-  } else {
-    // Build from scratch using event title and description directly
-    // Use the FULL description to ensure accuracy, not just first 15 words
-    
-    // Start with the event title as the main subject
-    let visualDescription = event.title;
-    
-    // Use the full description to build a comprehensive, accurate prompt
-    if (event.description) {
-      // Use the full description (or at least more of it) to ensure accuracy
-      // For medical/scientific/technical content, we need the full context
-      const fullDescription = event.description.trim();
-      visualDescription = `${event.title}: ${fullDescription}`;
-    }
-    
-    // Build base prompt
-    const yearContext = event.year ? `, historical period ${event.year}` : '';
-    let basePrompt = `${imageStyle} style: ${visualDescription}${yearContext}`;
-    
-    // Check for famous people and make safe (only if timeline includes people)
-    if (includesPeople && (containsFamousPerson(visualDescription) || containsFamousPerson(event.title))) {
-      basePrompt = makePromptSafeForFamousPeople(basePrompt, imageStyle);
-      const safeStyle = getSafeStyleForFamousPeople(imageStyle);
-      if (safeStyle !== imageStyle) {
-        basePrompt = basePrompt.replace(new RegExp(imageStyle, 'gi'), safeStyle);
-      }
-    }
-    
-    prompt = basePrompt;
-  }
-  
-  // Always ensure the prompt centers the subject from title and description
-  // Abstract prompts often describe scenes, charts, screens, or artistic interpretations instead of the actual subject
-  // Examples of abstract: "Illustration of a chart", "screen showing", "displaying", "presenting"
-  // We want: "A detailed image of a fetus at 4 weeks showing neural tube formation"
-  const promptIsAbstract = event.imagePrompt && (
-    event.imagePrompt.toLowerCase().includes('illustration of a') ||
-    event.imagePrompt.toLowerCase().includes('illustration of an') ||
-    event.imagePrompt.toLowerCase().includes('chart') ||
-    event.imagePrompt.toLowerCase().includes('screen showing') ||
-    event.imagePrompt.toLowerCase().includes('displaying') ||
-    event.imagePrompt.toLowerCase().includes('presenting') ||
-    event.imagePrompt.toLowerCase().includes('video frame') ||
-    event.imagePrompt.toLowerCase().includes('monitor showing') ||
-    event.imagePrompt.toLowerCase().includes('computer screen') ||
-    (event.imagePrompt.toLowerCase().startsWith('minimalist') && 
-     !event.imagePrompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0]))
+  const likenessLine = buildGenericLikenessLine(likenessMode, subjectName);
+
+  const fallbackContinuity =
+    layerGlobal && !anchorStyle?.trim() ? DEFAULT_IMAGE_SERIES_CONTINUITY : null;
+  const seriesStyleNote = buildOptionalSeriesStyleNote(
+    anchorStyle,
+    imageSeriesContinuity,
+    fallbackContinuity
   );
 
-  // Check if the existing prompt is already good (contains specific subject details, not just title)
-  // Good prompts: "A detailed illustration of a zygote showing the fusion of sperm and egg with visible pronuclei"
-  // Bad prompts: "Illustration of a chart showing development" or just the title
-  const promptIsGood = event.imagePrompt && 
-    !promptIsAbstract &&
-    (event.imagePrompt.toLowerCase().includes('showing') ||
-     event.imagePrompt.toLowerCase().includes('with') ||
-     event.imagePrompt.toLowerCase().includes('during') ||
-     event.imagePrompt.toLowerCase().includes('at ') ||
-     event.imagePrompt.toLowerCase().includes('gestation') ||
-     event.imagePrompt.toLowerCase().includes('process of') ||
-     event.imagePrompt.length > 60); // Longer prompts usually have more detail
+  const visualTreatmentLine = `${imageStyle} — ${styleVisualLanguage}`;
 
-  // If prompt is abstract or doesn't exist, rebuild it to center the actual subject
-  // The goal is to show the SUBJECT at this specific stage/moment, not charts/screens/abstract representations
-  // BUT: If the prompt is already good and specific, preserve it!
-  // CRITICAL: Skip this logic if anchorStyle is provided (we've already handled it above)
-  if (!anchorStyle && (promptIsAbstract || !event.imagePrompt) && !includesPeople && !promptIsGood) {
-    // Extract the core subject from the title (remove meta words like "Updated", "Released", "Published")
-    const titleWords = event.title.split(' ');
-    const coreSubject = titleWords.filter(word => 
-      !['updated', 'released', 'published', 'launched', 'created', 'announced', 'draft', 'of', 'the', 'first', 'second', 'third'].includes(word.toLowerCase())
-    ).join(' ').trim();
-    
-    // Build direct subject description - show the subject at this specific stage
-    let directSubject = coreSubject;
-    
-    if (event.description) {
-      // Extract key content from description, focusing on what the subject looks like at this stage
-      // Remove meta descriptions about "released", "updated", etc.
-      // Focus on the actual state/condition/appearance of the subject
-      const descWords = event.description
-        .split(' ')
-        .filter(word => !['released', 'updated', 'published', 'launched', 'offering', 'allowing', 'debuts', 'is', 'are', 'the', 'a', 'an'].includes(word.toLowerCase()))
-        .slice(0, 30)
-        .join(' ');
-      
-      // If description contains stage/age/time info (e.g., "4 weeks", "week 4", "at 25 weeks"), include it
-      const stageMatch = event.description.match(/(\d+\s*(?:weeks?|months?|days?|years?|stages?|phases?))/i);
-      if (stageMatch) {
-        directSubject = `${coreSubject} at ${stageMatch[1]}: ${descWords}`;
-      } else {
-        directSubject = `${coreSubject}: ${descWords}`;
-      }
-    }
-    
-    // Replace with a direct, subject-centered prompt that shows the subject at this stage
-    prompt = `${imageStyle} style: A detailed image of ${directSubject}`;
-  } else if (event.imagePrompt && !includesPeople) {
-    // If the prompt is already good and specific, preserve it (just add style if needed)
-    if (promptIsGood && !prompt.toLowerCase().includes(imageStyle.toLowerCase())) {
-      // Just prepend the style, don't rebuild the whole prompt
-      prompt = `${imageStyle} style: ${event.imagePrompt || event.title}`;
-    } else if (promptIsAbstract || !prompt.toLowerCase().includes(event.title.toLowerCase().split(' ')[0])) {
-      // Rebuild to center on subject
-      const titleWords = event.title.split(' ');
-      const coreSubject = titleWords.filter(word => 
-        !['updated', 'released', 'published', 'launched', 'created', 'announced'].includes(word.toLowerCase())
-      ).join(' ').trim();
-      
-      const stageMatch = event.description?.match(/(\d+\s*(?:weeks?|months?|days?|years?|stages?|phases?))/i);
-      const subjectDesc = stageMatch 
-        ? `${coreSubject} at ${stageMatch[1]}`
-        : coreSubject;
-      
-      prompt = `${imageStyle} style: A detailed image of ${subjectDesc}${event.description ? `: ${event.description.split(' ').slice(0, 25).join(' ')}` : ''}`;
-    }
-    // If prompt is good and already has style, use it as-is
-  } else {
-    // For people content, use existing logic
-    prompt += `. CRITICAL: Accurately depict the specific event: ${event.title}`;
-  }
-  
-  if (event.description && !includesPeople && !prompt.includes(event.description.substring(0, 30))) {
-    // Add description context, but keep it focused on showing the subject
-    prompt += `. Show: ${event.description}`;
-  }
-  
-  // Add theme color as a subtle accent (if provided and not default blue)
-  // Use it as a subtle motif, not the dominant color
-  if (themeColor && themeColor !== '#3B82F6' && colorName !== 'thematic color') {
-    prompt += `. Use ${colorName} as a subtle accent color or lighting tone - not dominant, but as a thematic element`;
-  }
-  
-  // Add style-specific visual language
-  prompt += `. ${styleVisualLanguage}`;
-  
-  // Add historical period context if year is available
-  if (event.year) {
-    const century = Math.floor(event.year / 100) + 1;
-    prompt += `. ${century}th century period detail, historically accurate`;
-  }
-  
-  // Composition: avoid default "centered poster" language — vary framing per beat (editorial + legacy paths)
-  prompt += `. ${COMPOSITION_GUIDANCE_FOR_MODELS}`;
+  const subtleColorAccent =
+    themeColor && themeColor !== '#3B82F6' && colorName !== 'thematic color'
+      ? colorName
+      : null;
 
-  const styleKeyword = imageStyle.toLowerCase();
-  if (!layerGlobal) {
-    // Lighter than old block — same series look without forcing identical staging every time
-    if (styleKeyword.includes('illustration') || styleKeyword.includes('cartoon') || styleKeyword.includes('watercolor')) {
-      prompt += `. Keep a coherent ${imageStyle} look across the series; vary shot scale and focal emphasis by event`;
-    } else if (styleKeyword.includes('photo') || styleKeyword.includes('realistic')) {
-      prompt += `. Coherent photographic treatment across images; vary composition and distance by beat`;
-    } else {
-      prompt += `. Coherent ${imageStyle} treatment; vary framing by beat`;
-    }
+  let prompt = assembleUniversalModelFacingPrompt({
+    eventTitle: event.title,
+    eventDateOrPeriod,
+    brief,
+    seriesStyleNote,
+    visualTreatmentLine,
+    subtleColorAccent,
+    likenessLine,
+  });
+
+  if (includesPeople && (containsFamousPerson(prompt) || containsFamousPerson(event.title))) {
+    prompt = makePromptSafeForFamousPeople(prompt, imageStyle);
   }
-  
-  // Add person matching instructions when reference images are provided AND timeline includes people
-  // These instructions are critical for accurate person matching with Imagen
-  // Place BEFORE text instructions so they have more weight
-  // IMPORTANT: Only process people who are actually relevant to THIS event
-  // Use relevantImageRefs if provided, otherwise fall back to all imageReferences
-  const peopleToProcess = (relevantImageRefs && relevantImageRefs.length > 0) 
-    ? relevantImageRefs 
-    : (imageReferences || []);
-    
+
+  const peopleToProcess =
+    relevantImageRefs && relevantImageRefs.length > 0
+      ? relevantImageRefs
+      : imageReferences || [];
+
   if (includesPeople && hasReferenceImage && peopleToProcess.length > 0) {
     const personNames = extractPersonNames(peopleToProcess);
     if (personNames.length > 0) {
-      // CRITICAL: Ensure the prompt uses FULL person names, not just last names
-      // Replace instances of just last names with full names in the prompt
-      personNames.forEach(personName => {
+      personNames.forEach((personName) => {
         const nameParts = personName.split(' ');
         if (nameParts.length >= 2) {
           const firstName = nameParts[0];
           const lastName = nameParts[nameParts.length - 1];
           const promptLower = prompt.toLowerCase();
           const personNameLower = personName.toLowerCase();
-          
-          // Check if full name is already in prompt
           if (promptLower.includes(personNameLower)) {
-            // Full name is present - good!
             return;
           }
-          
-          // Replace standalone last name with full name (case-insensitive, word boundary)
-          // This handles cases like "Wonder on stage" -> "Stevie Wonder on stage"
-          // IMPORTANT: Use a more specific regex that doesn't match if the full name is already nearby
-          // e.g., don't replace "Wonder" in "Stevie Wonder" but do replace standalone "Wonder"
           const fullNameRegex = new RegExp(
             `\\b${escapeRegExp(firstName)}\\s+${escapeRegExp(lastName)}\\b`,
             'gi'
           );
           const lastNameRegex = new RegExp(`\\b${escapeRegExp(lastName)}\\b`, 'gi');
-          
-          // Only replace if full name isn't already present nearby
           if (!prompt.match(fullNameRegex)) {
             if (prompt.match(lastNameRegex)) {
               prompt = prompt.replace(lastNameRegex, personName);
-              console.log(`[ImageGen] Replaced "${lastName}" with "${personName}" in prompt`);
             }
           }
-          
-          // Also check for first name only and replace with full name
           const firstNameRegex = new RegExp(`\\b${escapeRegExp(firstName)}\\b`, 'gi');
           if (prompt.match(firstNameRegex) && !promptLower.includes(personNameLower)) {
             prompt = prompt.replace(firstNameRegex, personName);
-            console.log(`[ImageGen] Replaced "${firstName}" with "${personName}" in prompt`);
           }
-          
-          // If person still isn't mentioned at all, add them explicitly
-          if (!promptLower.includes(personNameLower)) {
-            // Try to add after style prefix or at the start of the main description
-            // Look for pattern like "Watercolor style: Wonder on stage" -> "Watercolor style: Stevie Wonder on stage"
+          if (!prompt.toLowerCase().includes(personNameLower)) {
             const stylePrefixRegex = /(Watercolor|Illustration|Minimalist|Photorealistic|Sketch|Vintage|3D Render|Abstract)\s+style:\s*/i;
             if (prompt.match(stylePrefixRegex)) {
-              // Add person name right after style prefix
               prompt = prompt.replace(stylePrefixRegex, `$1 style: ${personName} `);
-              console.log(`[ImageGen] Added "${personName}" after style prefix`);
             } else {
-              // Add at the beginning if no style prefix
-              prompt = `${personName} ${prompt}`;
-              console.log(`[ImageGen] Added "${personName}" at the start of prompt`);
+              prompt = `${personName}. ${prompt}`;
             }
           }
         }
       });
-      
-      // Add specific person matching instructions - SIMPLIFIED for Imagen
-      // Imagen works better with concise, clear instructions
-      const isMultiplePeople = personNames.length > 1;
-      if (isMultiplePeople) {
-        prompt += `. Match the appearance of ${personNames.join(' and ')} from the reference images. Preserve their facial features, hair, and physical characteristics`;
-      } else {
-        prompt += `. Match the appearance of ${personNames[0]} from the reference image. Preserve facial features, hair color, and physical characteristics`;
-      }
-    } else {
-      // Generic person matching instruction if names can't be extracted
-      prompt += `. CRITICAL PERSON MATCHING: Match the exact person's appearance from the reference image. PRESERVE EXACT HAIR COLOR from reference - if reference has black hair, generate black hair (NOT grey, NOT white). PRESERVE EXACT SKIN TONE from reference. PRESERVE EXACT FACIAL FEATURES, eye color, hair style, and all physical characteristics. DO NOT alter hair color, skin tone, or any physical attributes. Maintain accurate facial structure, distinctive characteristics, and physical appearance exactly as shown in reference`;
+      prompt += `. Match facial features and presentation to the supplied reference image when provided.`;
     }
   } else if (includesPeople && event.imagePrompt) {
-    // If no reference image but person is mentioned in the prompt, check if race/ethnicity is explicitly stated
-    // Extract person names from event title/description to check if we need to add race info
     const eventText = `${event.title} ${event.description || ''}`.toLowerCase();
-    const commonNames = ['tatum', 'art', 'wonder', 'swift', 'obama', 'trump', 'biden']; // Add more as needed
-    
-    // Check if prompt already mentions race/ethnicity
+    const commonNames = ['tatum', 'art', 'wonder', 'swift', 'obama', 'trump', 'biden'];
     const promptLower = event.imagePrompt.toLowerCase();
-    const hasRaceDescriptor = /\b(black|white|asian|latino|hispanic|african|european|middle eastern|indian|native american)\b/i.test(promptLower);
-    
-    // If person name detected but no race descriptor, add explicit instruction
-    const hasPersonName = commonNames.some(name => eventText.includes(name.toLowerCase()));
-    
+    const hasRaceDescriptor =
+      /\b(black|white|asian|latino|hispanic|african|european|middle eastern|indian|native american)\b/i.test(
+        promptLower
+      );
+    const hasPersonName = commonNames.some((name) => eventText.includes(name.toLowerCase()));
     if (hasPersonName && !hasRaceDescriptor) {
-      // Add explicit race/ethnicity preservation instruction
-      // Note: We can't infer race from name alone, but we can add a strong instruction
-      prompt += `. CRITICAL: The person in this image must match their actual race/ethnicity as they exist in reality. If the person is Black, show a Black person. If White, show a White person. If Asian, show an Asian person. Preserve the exact race/ethnicity, skin tone, and physical characteristics of the person accurately. DO NOT change or misrepresent their race or ethnicity.`;
-      console.log(`[ImageGen] Added explicit race/ethnicity preservation instruction for event: ${event.title}`);
+      prompt += `. The person shown must match their publicly documented race/ethnicity and presentation when known.`;
     }
   }
-  
-  // Add text handling instructions - always minimize text
-  // REMOVED: "No text" instructions - Imagen ignores these and generates text anyway
-  // Better to rely on negative prompts in the model-specific parameters
+
   if (needsText) {
-    // For images that need text (e.g., newspaper headlines, signs, book covers)
-    prompt += `. Include minimal text - only essential headlines or signs`;
+    prompt += `. Include minimal text only where essential (e.g. headline or sign).`;
   }
-  // Note: Text prevention is now handled via negative_prompt parameter
 
   prompt += getImageGuardrailClause(event.title, event.description);
-  
-  // Note: Reference images are now handled separately via direct image input
-  // Don't include URLs in prompt when using image-to-image
-  
-  // Model prompt limits:
-  // - SDXL (used for Illustration, Watercolor, Sketch, etc.): ~77 tokens (~400-500 characters on Replicate)
-  // - Imagen 4 Fast: 480 tokens (~1,900 characters)
-  // - Flux models: ~200 tokens (~1,000 characters)
-  // Layered Storywall prompts (global block + anchor + beat) need more headroom than legacy single-blob prompts.
-  // Cap high enough for Imagen (~480 tokens); SDXL may still truncate internally.
-  const promptCap = layerGlobal ? 2200 : 1500;
-  if (
-    layerGlobal &&
-    !anchorStyle?.trim() &&
-    prompt &&
-    !prompt.includes('STORYWALL GLOBAL')
-  ) {
-    prompt = `${STORYWALL_GLOBAL_IMAGE_BLOCK}
 
-CONTINUITY: ${continuityLine}
-
-THIS EVENT (beat-specific):
-${prompt}`;
-  }
-
-  return prompt.substring(0, promptCap).trim();
+  return sanitizeImagePromptAssembly(prompt, 2000).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -2488,6 +2161,30 @@ export async function POST(request: NextRequest) {
     if (!hasPreparedReferences && hasReferenceImages && !willUseImagen) {
       console.log(`[ImageGen]    ⚠️ WARNING: Reference images were provided but none were successfully prepared!`);
     }
+
+    const eventNeedsLikeness = (() => {
+      if (!includesPeople) return false;
+      return events.some((e: { omitLikenessReference?: boolean }, i: number) => {
+        const omit =
+          (Array.isArray(omitLikenessRefsBody) && omitLikenessRefsBody[i] === true) ||
+          e?.omitLikenessReference === true;
+        return !omit;
+      });
+    })();
+
+    if (eventNeedsLikeness && !hasPreparedReferences) {
+      console.error(
+        '[ImageGen] Blocking generation: likeness required for at least one event but no reference images could be prepared (404/replace failures).'
+      );
+      return NextResponse.json(
+        {
+          error:
+            'Cannot generate images that require a recognizable likeness without at least one working reference photo. Fix or replace broken image URLs, then retry. For scenes without a specific person, mark those events with omit likeness in enrichment.',
+          code: 'LIKENESS_REFERENCE_REQUIRED',
+        },
+        { status: 422 }
+      );
+    }
     
     // BATCHED GENERATION: Respect Replicate's rate limits (burst of 5 requests when balance < $10)
     const BATCH_SIZE = 5; // Replicate's burst limit
@@ -2785,8 +2482,13 @@ export async function POST(request: NextRequest) {
           includesPeople && relevantImageRefs.length > 0, // Only include people if event mentions them
           anchorStyle,
           relevantImageRefs.length > 0 ? relevantImageRefs : undefined, // Only process relevant people
-          imageSeriesContinuity
+          imageSeriesContinuity,
+          omitLikeness
         );
+
+        if (usesSdxlFamilyModel(selectedModel) && !selectedModel.includes('google-imagen')) {
+          prompt = compressPromptForSdxl(prompt, { anchorOneLiner: anchorStyle ?? null });
+        }
         
         // Check if this is a faceless mannequin prompt (after prompt is built)
         isFacelessMannequin = event.imagePrompt?.toLowerCase().includes('faceless') || 
@@ -2876,7 +2578,7 @@ export async function POST(request: NextRequest) {
           // Add negative prompt for artistic styles
           // Prevent grids, panels, multiple images, text, brand names, logos
           // If faceless mannequin, also prevent faces
-          const baseNegativePrompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, brand names, company names, logos, Netflix, Amazon, Google, Apple, Microsoft, Facebook, Twitter, Instagram, YouTube, Disney, HBO, CNN, BBC, CBS, NBC, ABC, ESPN, service names, streaming services, platform logos, trademark symbols, copyright symbols, registered trademarks, brand logos, company logos, corporate logos, product logos, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+          const baseNegativePrompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, brand names, company names, logos, Netflix, Amazon, Google, Apple, Microsoft, Facebook, Twitter, Instagram, YouTube, Disney, HBO, CNN, BBC, CBS, NBC, ABC, ESPN, service names, streaming services, platform logos, trademark symbols, copyright symbols, registered trademarks, brand logos, company logos, corporate logos, product logos, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
           const facelessNegativePrompt = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
           if (!needsText) {
             input.negative_prompt = baseNegativePrompt + facelessNegativePrompt;
@@ -2991,8 +2693,8 @@ export async function POST(request: NextRequest) {
           // Also prevent grids, panels, multiple images, comic strips
           // If faceless mannequin, also prevent faces
           const baseNegativeSDXL = !needsText 
-            ? "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage"
-            : "excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+            ? `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`
+            : `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
           const facelessNegativeSDXL = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
           input.negative_prompt = baseNegativeSDXL + facelessNegativeSDXL;
           
@@ -3300,7 +3002,7 @@ export async function POST(request: NextRequest) {
             const relevantForPrompt = omitRetry ? [] : relevantImageRefs;
 
             // Rebuild prompt with only relevant image references
-            const prompt = buildImagePrompt(
+            let prompt = buildImagePrompt(
               result.event,
               imageStyle,
               themeColor,
@@ -3311,8 +3013,12 @@ export async function POST(request: NextRequest) {
               includesPeople && relevantForPrompt.length > 0,
               anchorStyle,
               relevantForPrompt.length > 0 ? relevantForPrompt : undefined, // Only process relevant people
-              imageSeriesContinuity
+              imageSeriesContinuity,
+              omitRetry
             );
+            if (usesSdxlFamilyModel(selectedModel) && !selectedModel.includes('google-imagen')) {
+              prompt = compressPromptForSdxl(prompt, { anchorOneLiner: anchorStyle ?? null });
+            }
             
             // Build input (simplified - reuse same logic as original)
             const input: any = { prompt };
@@ -3327,7 +3033,7 @@ export async function POST(request: NextRequest) {
                   input.scale = 0.75; // Use "scale" parameter, not "ip_adapter_scale"
                 }
               }
-              if (!needsText) input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+              if (!needsText) input.negative_prompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
             } else if (selectedModel.includes('imagen')) {
               // Google Imagen - only used if explicitly selected
               input.enhancePrompt = false;
@@ -3351,7 +3057,7 @@ export async function POST(request: NextRequest) {
               input.guidance_scale = 7.5;
               input.num_inference_steps = 25;
               if (!needsText) {
-                input.negative_prompt = "text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage";
+                input.negative_prompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
               }
               if (referenceImageUrl) {
                 input.image = referenceImageUrl;

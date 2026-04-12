@@ -4,7 +4,7 @@
  */
 
 const ANALYTICAL_TITLE_HINTS =
-  /\b(signals?\s+(national|wider)?|national\s+impact|exit\s+poll|polls?\s+showed?|donor\s+composition|energiz(es|ed)?\s+(young|voters|turnout)|turnout\s+jump|demographic|momentum\s+among|support\s+from\s+.+\s+signals|emerging\s+trend|victory\s+energizes)\b/i;
+  /\b(signals?\s+(national|wider)?|national\s+impact|exit\s+poll|polls?\s+(showed?|numbers?|surge)|polling\s+numbers?|donor\s+composition|fundraising|outpacing|leads?\s+in|emphasizes\s+|affordability\s+and|progressive\s+policies|first\s+100\s+days|celebrity\s+appeal|policy\s+initiatives|energiz(es|ed)?\s+(young|voters|turnout)|turnout\s+jump|demographic|momentum\s+among|support\s+from\s+.+\s+signals|emerging\s+trend|victory\s+energizes)\b/i;
 
 /**
  * Title (or description snippet) reads like analysis / polling narrative rather than a dated occurrence.
