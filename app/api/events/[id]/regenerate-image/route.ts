@@ -83,7 +83,7 @@ export async function POST(
       ? baseUrl 
       : `https://${baseUrl}`;
 
-    // Call the image generation API
+    // Call the image generation API (timeline-level anchor + continuity from DB)
     const generateImageResponse = await fetch(`${appUrl}/api/ai/generate-images`, {
       method: 'POST',
       headers: {
@@ -106,6 +106,8 @@ export async function POST(
         themeColor,
         imageReferences: [], // No reference images for regeneration
         includesPeople: false, // Default to false for regeneration
+        anchorStyle: timeline.anchor_style || undefined,
+        imageSeriesContinuity: timeline.image_series_continuity || undefined,
       }),
     });
 

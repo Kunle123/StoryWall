@@ -39,7 +39,9 @@ export const BASE_TIMELINE_PROMPT = `**Objective:** Generate a balanced, factual
 
 10. **Timeline name & headline tone:** When the name is broad, still choose event titles so the **sequence** reflects a deliberate thesis (as in instruction 1). Ideal timeline **names** read like a clear promise (e.g. how X shifted from A to B over [years])—**confident and specific**, not tabloid melodrama; the story should not need an overblown headline. If the given name stays broad, the **beat order and specificity** must still make the implied story obvious.
 
-11. **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
+11. **Discrete, imageable beats (on-site illustrations):** Each row should be a **verifiable occurrence** (dated action, vote, filing, hearing, rally, election result, ruling, swearing-in, named official step)—not a freestanding “event” that is only **polling interpretation**, **demographic narrative**, **donor-composition analysis**, **abstract national impact**, or **mood-of-the-electorate** unless you tie it to a **specific dated moment** (e.g. election night at a named place, a published report’s date). Merge analytical commentary into a concrete milestone or omit if no discrete fact exists.
+
+12. **Adhere to Output Format:** You must return only valid JSON, starting with \`{\` and ending with \`}\`. Do not include any explanatory text or comments outside of the JSON structure.`;
 
 /**
  * Module 1: Controversy & Media

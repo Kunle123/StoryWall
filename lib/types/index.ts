@@ -54,6 +54,10 @@ export interface Timeline {
   is_numbered?: boolean;
   number_label?: string;
   hashtags?: string[];
+  /** Series-wide anchor from Step 3 enrichment — used when generating/regenerating images */
+  anchor_style?: string | null;
+  /** Optional continuity line for image pipeline */
+  image_series_continuity?: string | null;
   view_count: number;
   /** Timeline likes (users who liked this story) */
   likes_count?: number;
@@ -91,6 +95,8 @@ export interface CreateTimelineInput {
   start_date?: string | null;
   end_date?: string | null;
   hashtags?: string[];
+  anchor_style?: string | null;
+  image_series_continuity?: string | null;
 }
 
 export interface CreateEventInput {

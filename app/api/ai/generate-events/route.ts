@@ -3,6 +3,7 @@ import { getAIClient, createChatCompletion, AIClientConfig } from '@/lib/ai/clie
 import { parseYear } from '@/lib/utils/dateFormat';
 import { getDebugLogger } from '@/lib/utils/debugLogger';
 import { buildTimelinePrompt, getApplicableModules } from '@/lib/prompts/timeline-modules';
+import { FACTUAL_EVENT_IMAGEABILITY_BLOCK } from '@/lib/prompts/event-imageability-guidance';
 import { getPersonLookupNameForImageRef } from '@/lib/utils/imageReferenceLookupName';
 
 /**
@@ -303,6 +304,8 @@ STORYWALL — THESIS, ENDING, AND PRODUCT FIT:
 - **Ending:** Avoid **stacking** several beats in the **same year** or days apart that are the same reform wave or theme split artificially—**merge** or drop so the reader lands on **one** strong conclusion. Each late beat must add a **distinct** new development.
 - **Names:** Timeline name + description should signal **what exact story** the reader gets, not only the category. Event titles reinforce that same spine. Prefer a **confident, specific** timeline name over melodramatic tabloid tone—the events should carry drama.
 - **Where this ships:** Optimize for the **full on-site StoryWall** (canonical, context-first, chronological). Do **not** tune this list for a pasted X thread—a **shorter** social version (~6–8 beats) would be a **separate** pass.
+
+${FACTUAL_EVENT_IMAGEABILITY_BLOCK}
 
 If isProgression is true: Generate events that show stages of the progression. Each event title must describe a specific state or milestone in the process. Do NOT create meta-events like "planning phase" or "research complete." Focus on physical, observable changes. Each event should represent a distinct stage or milestone that allows the user to see how the subject progresses through time.
 
@@ -1433,6 +1436,8 @@ ACCURACY REQUIREMENTS:
 - If you can only find 8 unique events, return 8. If you can find ${batchMaxEvents} unique events, return ${batchMaxEvents}. Do not force the count.
 
 IMPORTANT: Only include month and day if you know the exact date. For events where only the year is known, only include the year. Do not default to January 1 or any other date. Only include precise dates when you are confident about them.
+
+${FACTUAL_EVENT_IMAGEABILITY_BLOCK}
 
 Events should be chronologically ordered and relevant to the timeline description.`
     : `You are a creative timeline event generator for fictional narratives. Generate up to ${batchMaxEvents} engaging fictional events based on the provided timeline description. Return events as a JSON object with an "events" array. Each event must have: year (required, number or string), title (required, string), and optionally month (number 1-12) and day (number 1-31). Do NOT include descriptions - those will be generated in a separate step.

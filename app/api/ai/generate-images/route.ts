@@ -7,6 +7,13 @@ import { getOrCreateUser } from '@/lib/db/users';
 import { prisma } from '@/lib/db/prisma';
 import { progressStore } from '@/lib/utils/progressStore';
 import { getPersonLookupNameForImageRef } from '@/lib/utils/imageReferenceLookupName';
+import {
+  STORYWALL_GLOBAL_IMAGE_BLOCK,
+  DEFAULT_IMAGE_SERIES_CONTINUITY,
+  shouldLayerStorywallGlobal,
+  COMPOSITION_GUIDANCE_FOR_MODELS,
+} from '@/lib/prompts/image-prompt-architecture';
+import { getImageGuardrailClause } from '@/lib/utils/imageBeatHeuristics';
 
 // Helper to extract famous person names from event text using OpenAI
 // Returns array of objects with {name, search_query}
@@ -177,11 +184,25 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Wikimedia titles use underscores (`Zohran_Mamdani_...`); JS word boundaries `\b` do not
+ * treat `_` as a separator, so "mamdani" fails to match as a whole word. Normalize to spaces.
+ */
+function normalizeForPersonNameMatch(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/^file:/i, '')
+    .replace(/_/g, ' ')
+    .replace(/[-–—]/g, ' ')
+    .replace(/\.(jpe?g|png|webp|gif|svg)$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Helper to check if a filename/title matches a person's name
-// Strict name matching to avoid false positives
-// Since AI-provided names are likely correct, we require strict matching
+// Strict name matching to avoid false positives — run on normalized titles so Commons filenames match
 function scorePersonNameMatch(filename: string, personName: string): number {
-  const filenameLower = filename.toLowerCase();
+  const filenameLower = normalizeForPersonNameMatch(filename);
   const nameParts = personName.toLowerCase().split(/\s+/).filter((p: string) => p.length > 2); // Ignore short words like "de", "van", etc.
   
   if (nameParts.length === 0) return 0;
@@ -1502,10 +1523,15 @@ function buildImagePrompt(
   hasReferenceImage: boolean = false,
   includesPeople: boolean = true,
   anchorStyle?: string | null,
-  relevantImageRefs?: Array<{ name: string; url: string }> // Only people relevant to this specific event
+  relevantImageRefs?: Array<{ name: string; url: string }>, // Only people relevant to this specific event
+  imageSeriesContinuity?: string | null
 ): string {
   const colorName = COLOR_NAMES[themeColor] || 'thematic color';
-  
+  const layerGlobal = shouldLayerStorywallGlobal(imageStyle, anchorStyle);
+  const continuityLine =
+    (imageSeriesContinuity && imageSeriesContinuity.trim()) ||
+    (layerGlobal ? DEFAULT_IMAGE_SERIES_CONTINUITY : '');
+
   // STEP 4: If Anchor is provided (for progression timelines), use it as the base
   // The Anchor defines the consistent visual style for the entire series
   let prompt = '';
@@ -1596,13 +1622,22 @@ function buildImagePrompt(
       }
     }
     
-    // ALWAYS build prompt with Anchor + event-specific description
-    // The Anchor contains specific visual instructions (color washes, vignettes, lighting) that MUST be preserved
-    // Don't truncate the Anchor - it needs to include all visual consistency instructions
-    // The Anchor should be prepended in full to ensure all visual effects are applied
-    
-    const anchorReminder = 'ANCHOR (FOLLOW EXACTLY — keep palette, composition, camera, props, and setting as described; do NOT replace or downplay these anchor elements)';
-    prompt = `${anchorReminder}: ${normalizedAnchor}. Apply the anchor verbatim, then render this specific event within that anchor: ${eventDescription}`;
+    // Storywall editorial: global rules + series anchor + beat brief (avoid repeating boilerplate in Step 3 JSON)
+    if (layerGlobal) {
+      prompt = `${STORYWALL_GLOBAL_IMAGE_BLOCK}
+
+SERIES VISUAL LANGUAGE (this timeline):
+${normalizedAnchor}
+
+CONTINUITY: ${continuityLine}
+
+THIS EVENT (beat-specific):
+${eventDescription}`;
+    } else {
+      const anchorReminder =
+        'ANCHOR (FOLLOW EXACTLY — keep palette, composition, camera, props, and setting as described; do NOT replace or downplay these anchor elements)';
+      prompt = `${anchorReminder}: ${normalizedAnchor}. Apply the anchor verbatim, then render this specific event within that anchor: ${eventDescription}`;
+    }
     console.log(`[ImageGen] Enforced Anchor consistency for "${event.title}" (Anchor: ${normalizedAnchor.length} chars)`);
     
     // CRITICAL: When anchorStyle is provided, we MUST use it - don't fall through to other logic
@@ -1799,19 +1834,19 @@ function buildImagePrompt(
     prompt += `. ${century}th century period detail, historically accurate`;
   }
   
-  // Add composition guidance (concise)
-  prompt += `. Balanced composition, centered focal point, clear visual storytelling`;
-  
-  // Add series consistency instructions - SIMPLIFIED for Imagen
-  // Imagen struggles with complex, contradictory instructions
-  // Keep it simple: maintain consistent style across all images
+  // Composition: avoid default "centered poster" language — vary framing per beat (editorial + legacy paths)
+  prompt += `. ${COMPOSITION_GUIDANCE_FOR_MODELS}`;
+
   const styleKeyword = imageStyle.toLowerCase();
-  if (styleKeyword.includes('illustration') || styleKeyword.includes('cartoon') || styleKeyword.includes('watercolor')) {
-    prompt += `. STYLE CONSISTENCY: Maintain consistent ${imageStyle} style across all images - same artistic technique, same level of detail, same visual approach`;
-  } else if (styleKeyword.includes('photo') || styleKeyword.includes('realistic')) {
-    prompt += `. STYLE CONSISTENCY: Maintain consistent photographic style - same lighting, same composition, same visual approach`;
-  } else {
-    prompt += `. STYLE CONSISTENCY: Maintain consistent ${imageStyle} style across all images`;
+  if (!layerGlobal) {
+    // Lighter than old block — same series look without forcing identical staging every time
+    if (styleKeyword.includes('illustration') || styleKeyword.includes('cartoon') || styleKeyword.includes('watercolor')) {
+      prompt += `. Keep a coherent ${imageStyle} look across the series; vary shot scale and focal emphasis by event`;
+    } else if (styleKeyword.includes('photo') || styleKeyword.includes('realistic')) {
+      prompt += `. Coherent photographic treatment across images; vary composition and distance by beat`;
+    } else {
+      prompt += `. Coherent ${imageStyle} treatment; vary framing by beat`;
+    }
   }
   
   // Add person matching instructions when reference images are provided AND timeline includes people
@@ -1926,6 +1961,8 @@ function buildImagePrompt(
     prompt += `. Include minimal text - only essential headlines or signs`;
   }
   // Note: Text prevention is now handled via negative_prompt parameter
+
+  prompt += getImageGuardrailClause(event.title, event.description);
   
   // Note: Reference images are now handled separately via direct image input
   // Don't include URLs in prompt when using image-to-image
@@ -1934,9 +1971,24 @@ function buildImagePrompt(
   // - SDXL (used for Illustration, Watercolor, Sketch, etc.): ~77 tokens (~400-500 characters on Replicate)
   // - Imagen 4 Fast: 480 tokens (~1,900 characters)
   // - Flux models: ~200 tokens (~1,000 characters)
-  // Use 1,500 chars as a safe limit that works across all models
-  // This ensures person matching instructions and detailed descriptions aren't cut off
-  return prompt.substring(0, 1500).trim();
+  // Layered Storywall prompts (global block + anchor + beat) need more headroom than legacy single-blob prompts.
+  // Cap high enough for Imagen (~480 tokens); SDXL may still truncate internally.
+  const promptCap = layerGlobal ? 2200 : 1500;
+  if (
+    layerGlobal &&
+    !anchorStyle?.trim() &&
+    prompt &&
+    !prompt.includes('STORYWALL GLOBAL')
+  ) {
+    prompt = `${STORYWALL_GLOBAL_IMAGE_BLOCK}
+
+CONTINUITY: ${continuityLine}
+
+THIS EVENT (beat-specific):
+${prompt}`;
+  }
+
+  return prompt.substring(0, promptCap).trim();
 }
 
 // Helper to wait for Replicate prediction to complete
@@ -2056,6 +2108,7 @@ export async function POST(request: NextRequest) {
       referencePhoto,
       includesPeople = true,
       anchorStyle,
+      imageSeriesContinuity,
       styleReferenceUrl,
       omitLikenessReferences: omitLikenessRefsBody,
     } = body;
@@ -2731,7 +2784,8 @@ export async function POST(request: NextRequest) {
           hasReferenceImage,
           includesPeople && relevantImageRefs.length > 0, // Only include people if event mentions them
           anchorStyle,
-          relevantImageRefs.length > 0 ? relevantImageRefs : undefined // Only process relevant people
+          relevantImageRefs.length > 0 ? relevantImageRefs : undefined, // Only process relevant people
+          imageSeriesContinuity
         );
         
         // Check if this is a faceless mannequin prompt (after prompt is built)
@@ -3256,7 +3310,8 @@ export async function POST(request: NextRequest) {
               hasReferenceImage,
               includesPeople && relevantForPrompt.length > 0,
               anchorStyle,
-              relevantForPrompt.length > 0 ? relevantForPrompt : undefined // Only process relevant people
+              relevantForPrompt.length > 0 ? relevantForPrompt : undefined, // Only process relevant people
+              imageSeriesContinuity
             );
             
             // Build input (simplified - reuse same logic as original)

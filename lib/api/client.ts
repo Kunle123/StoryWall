@@ -90,6 +90,8 @@ export async function updateTimeline(id: string, updates: {
   visualization_type?: 'horizontal' | 'vertical' | 'grid';
   is_public?: boolean;
   is_collaborative?: boolean;
+  anchor_style?: string | null;
+  image_series_continuity?: string | null;
 }): Promise<ApiResponse<any>> {
   try {
     const response = await fetch(`/api/timelines/${id}`, {
@@ -138,6 +140,8 @@ export async function createTimeline(timelineData: {
   number_label?: string | null;
   start_date?: string | null;
   end_date?: string | null;
+  anchor_style?: string | null;
+  image_series_continuity?: string | null;
 }): Promise<ApiResponse<any>> {
   try {
     console.log('[API] Creating timeline:', timelineData);

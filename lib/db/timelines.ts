@@ -35,7 +35,13 @@ export async function createTimeline(
     if (input.hashtags !== undefined) {
       timelineData.hashtags = input.hashtags;
     }
-    
+    if (input.anchor_style !== undefined) {
+      timelineData.anchorStyle = input.anchor_style;
+    }
+    if (input.image_series_continuity !== undefined) {
+      timelineData.imageSeriesContinuity = input.image_series_continuity;
+    }
+
     const timeline = await prisma.timeline.create({
       data: timelineData,
       include: {
@@ -784,6 +790,10 @@ export async function updateTimeline(
       ...(updates.visualization_type && { visualizationType: updates.visualization_type }),
       ...(updates.is_public !== undefined && { isPublic: updates.is_public }),
       ...(updates.is_collaborative !== undefined && { isCollaborative: updates.is_collaborative }),
+      ...(updates.anchor_style !== undefined && { anchorStyle: updates.anchor_style }),
+      ...(updates.image_series_continuity !== undefined && {
+        imageSeriesContinuity: updates.image_series_continuity,
+      }),
     },
     include: {
       creator: {
@@ -1400,6 +1410,8 @@ function transformTimeline(timeline: any): Timeline {
     is_numbered: timeline.isNumbered !== undefined ? timeline.isNumbered : undefined,
     number_label: timeline.numberLabel || undefined,
     hashtags: timeline.hashtags || [],
+    anchor_style: timeline.anchorStyle ?? undefined,
+    image_series_continuity: timeline.imageSeriesContinuity ?? undefined,
     view_count: timeline.viewCount,
     likes_count:
       typeof timeline._count?.likes === 'number' ? timeline._count.likes : 0,

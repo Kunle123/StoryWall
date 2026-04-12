@@ -23,7 +23,20 @@ export async function POST(request: NextRequest) {
     // Get or create user (auto-creates if doesn't exist)
     const user = await getOrCreateUser(userId);
 
-    const { title, description, visualization_type, is_public, is_collaborative, is_numbered, number_label, start_date, end_date, hashtags } = body;
+    const {
+      title,
+      description,
+      visualization_type,
+      is_public,
+      is_collaborative,
+      is_numbered,
+      number_label,
+      start_date,
+      end_date,
+      hashtags,
+      anchor_style,
+      image_series_continuity,
+    } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -69,6 +82,8 @@ export async function POST(request: NextRequest) {
       start_date: start_date || null,
       end_date: end_date || null,
       hashtags: hashtags || [],
+      anchor_style: anchor_style ?? undefined,
+      image_series_continuity: image_series_continuity ?? undefined,
     });
 
     if (is_public !== false) {
@@ -112,6 +127,8 @@ export async function POST(request: NextRequest) {
           start_date: body.start_date || null,
           end_date: body.end_date || null,
           hashtags: body.hashtags || [],
+          anchor_style: body.anchor_style ?? undefined,
+          image_series_continuity: body.image_series_continuity ?? undefined,
         });
 
         if (body.is_public !== false) {

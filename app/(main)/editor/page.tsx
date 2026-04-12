@@ -60,6 +60,8 @@ const TimelineEditor = () => {
   const [imageReferences, setImageReferences] = useState<Array<{ name: string; url: string }>>([]);
   const [sourceRestrictions, setSourceRestrictions] = useState<string[]>([]);
   const [hashtags, setHashtags] = useState<string[]>([]);
+  const [anchorStyle, setAnchorStyle] = useState<string | null>(null);
+  const [imageSeriesContinuity, setImageSeriesContinuity] = useState<string | null>(null);
   const [includesPeople, setIncludesPeople] = useState(true); // Default to true for backward compatibility
   const [referencePhoto, setReferencePhoto] = useState<{
     file: File | null;
@@ -182,6 +184,8 @@ const TimelineEditor = () => {
         setImageReferences(Array.isArray(state.imageReferences) ? state.imageReferences : []);
         setSourceRestrictions(Array.isArray(state.sourceRestrictions) ? state.sourceRestrictions : []);
         setHashtags(Array.isArray(state.hashtags) ? state.hashtags : []);
+        setAnchorStyle(state.anchorStyle ?? null);
+        setImageSeriesContinuity(state.imageSeriesContinuity ?? null);
         setIncludesPeople(state.includesPeople !== undefined ? state.includesPeople : true);
         setReferencePhoto(state.referencePhoto && typeof state.referencePhoto === 'object' ? {
           file: null, // File objects can't be stored in localStorage
@@ -244,6 +248,8 @@ const TimelineEditor = () => {
         imageReferences: Array.isArray(imageReferences) ? imageReferences : [],
         sourceRestrictions: Array.isArray(sourceRestrictions) ? sourceRestrictions : [],
         hashtags: Array.isArray(hashtags) ? hashtags : [],
+        anchorStyle,
+        imageSeriesContinuity,
         includesPeople,
         referencePhoto: {
           url: referencePhoto?.url || null,
@@ -270,7 +276,7 @@ const TimelineEditor = () => {
         // Ignore errors when clearing
       }
     }
-  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, includesPeople, referencePhoto, currentStep, timelineType, statisticsMetrics, statisticsChartType, statisticsDataSource, statisticsDataMode, statisticsEvents]);
+  }, [timelineName, timelineDescription, isPublic, isFactual, isNumbered, numberLabel, maxEvents, startDate, endDate, writingStyle, customStyle, imageStyle, themeColor, events, imageReferences, sourceRestrictions, hashtags, anchorStyle, imageSeriesContinuity, includesPeople, referencePhoto, currentStep, timelineType, statisticsMetrics, statisticsChartType, statisticsDataSource, statisticsDataMode, statisticsEvents]);
 
   // Handle Stripe success return and query parameters
   useEffect(() => {
@@ -673,6 +679,8 @@ const TimelineEditor = () => {
         start_date: timelineType === 'statistics' ? null : (startDate?.toISOString() || null),
         end_date: timelineType === 'statistics' ? null : (endDate?.toISOString() || null),
         hashtags: hashtags.length > 0 ? hashtags : undefined,
+        anchor_style: anchorStyle ?? undefined,
+        image_series_continuity: imageSeriesContinuity ?? undefined,
       });
 
       console.log('[Timeline Save] Timeline creation result:', timelineResult);
@@ -1094,6 +1102,10 @@ const TimelineEditor = () => {
                   sourceRestrictions={sourceRestrictions}
                   hashtags={hashtags}
                   setHashtags={setHashtags}
+                  onEnrichmentMeta={({ anchorStyle: a, imageSeriesContinuity: c }) => {
+                    setAnchorStyle(a);
+                    setImageSeriesContinuity(c);
+                  }}
                 />
                 )
               )}
@@ -1138,6 +1150,8 @@ const TimelineEditor = () => {
                     referencePhoto={referencePhoto}
                     includesPeople={includesPeople}
                     hasSelectedImageStyle={currentStep > 4} // True if user has been to step 4
+                    anchorStyle={anchorStyle}
+                    imageSeriesContinuity={imageSeriesContinuity}
                   />
                 )
               )}

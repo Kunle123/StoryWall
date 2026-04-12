@@ -57,6 +57,10 @@ model Timeline {
   isNumbered        Boolean  @default(false) @map("is_numbered")
   numberLabel       String?  @default("Day") @map("number_label") @db.VarChar(50)
   hashtags          String[] @default([]) @map("hashtags")
+  /// Step 3 enrichment: series-wide visual language for image generation (layered once per request)
+  anchorStyle            String?  @map("anchor_style") @db.Text
+  /// Optional one-line continuity note between beats (layered at image generation)
+  imageSeriesContinuity  String?  @map("image_series_continuity") @db.Text
   viewCount         Int      @default(0) @map("view_count")
   // Best-effort: incremented when users share or copy timeline link
   shareCount        Int      @default(0) @map("share_count")

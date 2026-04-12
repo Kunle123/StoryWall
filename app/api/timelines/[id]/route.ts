@@ -111,7 +111,15 @@ export async function PATCH(
     const userEmail = userProfile?.email || null;
 
     const body = await request.json();
-    const { title, description, visualization_type, is_public, is_collaborative } = body;
+    const {
+      title,
+      description,
+      visualization_type,
+      is_public,
+      is_collaborative,
+      anchor_style,
+      image_series_continuity,
+    } = body;
 
     const existing = await prisma.timeline.findUnique({
       where: { id },
@@ -128,6 +136,8 @@ export async function PATCH(
     if (visualization_type !== undefined) updates.visualization_type = visualization_type;
     if (is_public !== undefined) updates.is_public = is_public;
     if (is_collaborative !== undefined) updates.is_collaborative = is_collaborative;
+    if (anchor_style !== undefined) updates.anchor_style = anchor_style;
+    if (image_series_continuity !== undefined) updates.image_series_continuity = image_series_continuity;
 
     const timeline = await updateTimeline(id, user.id, updates, userEmail);
 

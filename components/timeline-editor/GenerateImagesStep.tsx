@@ -46,6 +46,9 @@ interface GenerateImagesStepProps {
   includesPeople?: boolean;
   timelineId?: string; // Optional: if timeline already exists, save images immediately
   hasSelectedImageStyle?: boolean; // True if user has selected image style in step 4
+  /** From Step 3 enrichment — layered once at image API, not repeated in each imagePrompt */
+  anchorStyle?: string | null;
+  imageSeriesContinuity?: string | null;
 }
 
 const CREDIT_COST_PER_IMAGE = 1; // 1 credit per image
@@ -62,6 +65,8 @@ export const GenerateImagesStep = ({
   includesPeople = true,
   timelineId,
   hasSelectedImageStyle = false,
+  anchorStyle = null,
+  imageSeriesContinuity = null,
 }: GenerateImagesStepProps) => {
   const [customStyle, setCustomStyle] = useState("");
   const [customColor, setCustomColor] = useState(themeColor || "#3B82F6");
@@ -231,6 +236,8 @@ export const GenerateImagesStep = ({
           themeColor,
           imageReferences,
           includesPeople,
+          anchorStyle: anchorStyle || undefined,
+          imageSeriesContinuity: imageSeriesContinuity || undefined,
           referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
             ? {
                 url: referencePhoto.url,
@@ -321,6 +328,8 @@ export const GenerateImagesStep = ({
           themeColor,
           imageReferences,
           includesPeople,
+          anchorStyle: anchorStyle || undefined,
+          imageSeriesContinuity: imageSeriesContinuity || undefined,
           referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
             ? {
                 url: referencePhoto.url,
@@ -558,6 +567,9 @@ export const GenerateImagesStep = ({
                   imageStyle,
                   themeColor,
                   imageReferences,
+                  includesPeople,
+                  anchorStyle: anchorStyle || undefined,
+                  imageSeriesContinuity: imageSeriesContinuity || undefined,
                   referencePhoto: referencePhoto && referencePhoto.url && referencePhoto.personName && referencePhoto.hasPermission
                     ? {
                         url: referencePhoto.url,

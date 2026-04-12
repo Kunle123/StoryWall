@@ -10,6 +10,7 @@ import { useState } from "react";
 import { TermsViolationDialog } from "./TermsViolationDialog";
 import { VerificationDialog } from "./VerificationDialog";
 import { CreationFlowCallout } from "./CreationFlowCallout";
+import { updateTimeline } from "@/lib/api/client";
 
 interface EventDetailsStepProps {
   events: TimelineEvent[];
@@ -23,9 +24,16 @@ interface EventDetailsStepProps {
   timelineType?: string; // 'social' or 'statistics' or undefined
   hashtags?: string[];
   setHashtags?: (hashtags: string[]) => void;
+  /** Step 3 meta for image generation (global anchor + continuity; not stored on each event) */
+  onEnrichmentMeta?: (meta: {
+    anchorStyle: string | null;
+    imageSeriesContinuity: string | null;
+  }) => void;
+  /** When set (e.g. editing an existing saved timeline), persist anchor fields to the timeline record */
+  persistTimelineId?: string | null;
 }
 
-export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [], timelineType, hashtags = [], setHashtags }: EventDetailsStepProps) => {
+export const EventDetailsStep = ({ events, setEvents, timelineDescription, timelineName, writingStyle, imageStyle, themeColor, sourceRestrictions = [], timelineType, hashtags = [], setHashtags, onEnrichmentMeta, persistTimelineId }: EventDetailsStepProps) => {
   const { toast } = useToast();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -91,6 +99,18 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
 
       if (!data.descriptions || data.descriptions.length === 0) {
         throw new Error("No description was generated");
+      }
+
+      onEnrichmentMeta?.({
+        anchorStyle: data.anchorStyle ?? null,
+        imageSeriesContinuity: data.imageSeriesContinuity ?? null,
+      });
+
+      if (persistTimelineId) {
+        void updateTimeline(persistTimelineId, {
+          anchor_style: data.anchorStyle ?? null,
+          image_series_continuity: data.imageSeriesContinuity ?? null,
+        }).catch((err) => console.warn("[EventDetailsStep] persist image meta failed:", err));
       }
 
       // Update event with description and image prompt (if available)
@@ -192,6 +212,18 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
 
       if (!data.descriptions || data.descriptions.length === 0) {
         throw new Error("No descriptions were generated");
+      }
+
+      onEnrichmentMeta?.({
+        anchorStyle: data.anchorStyle ?? null,
+        imageSeriesContinuity: data.imageSeriesContinuity ?? null,
+      });
+
+      if (persistTimelineId) {
+        void updateTimeline(persistTimelineId, {
+          anchor_style: data.anchorStyle ?? null,
+          image_series_continuity: data.imageSeriesContinuity ?? null,
+        }).catch((err) => console.warn("[EventDetailsStep] persist image meta failed:", err));
       }
 
       setEvents(

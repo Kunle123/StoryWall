@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAIClient, createChatCompletion } from '@/lib/ai/client';
 import { buildEnrichmentPrompt } from '@/lib/prompts/enrichment-optimized';
+import { sanitizeImagePromptAssembly } from '@/lib/prompts/image-prompt-architecture';
 import { testNewsworthiness } from '@/lib/utils/newsworthinessTest';
 import { hashContent, getCached, setCached } from '@/lib/utils/cache';
 import { verifyAndCorrectEvents } from '@/lib/utils/verifyAndCorrect';
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       imageStyle,
       themeColor,
       sourceRestrictions,
-      descPromptVersion: 'v2-omitLikeness', // bump when description output schema changes
+      descPromptVersion: 'v5-factual-discipline-wikimedia-names', // bump when enrichment / image prompt instructions change
     });
     
     const cached = getCached<any>(cacheKey);
@@ -285,9 +286,8 @@ export async function POST(request: NextRequest) {
 
     // Extract anchor style and create preview (60-80 chars)
     const anchorStyle = content.anchorStyle || '';
-    const anchorStylePreview = anchorStyle.length > 80 
-      ? anchorStyle.substring(0, 80) + '...'
-      : anchorStyle;
+    const imageSeriesContinuity =
+      typeof content.imageSeriesContinuity === 'string' ? content.imageSeriesContinuity.trim() : '';
 
     // Extract and normalize hashtags
     const rawHashtags = content.hashtags || [];
@@ -305,11 +305,8 @@ export async function POST(request: NextRequest) {
     items.forEach((item: any, idx: number) => {
       descriptions.push(item.description || 'Description not generated.');
       
-      // Prepend anchor preview to image prompt if not already present
-      let imagePrompt = item.imagePrompt || '';
-      if (anchorStylePreview && !imagePrompt.includes('ANCHOR:')) {
-        imagePrompt = `ANCHOR: ${anchorStylePreview}. ${imagePrompt}`;
-      }
+      // Compact beat briefs only — global style + anchor applied at image generation time
+      const imagePrompt = sanitizeImagePromptAssembly(item.imagePrompt || '');
       imagePrompts.push(imagePrompt);
       omitLikenessReferences.push(Boolean(item.omitLikenessReference));
     });
@@ -370,6 +367,7 @@ export async function POST(request: NextRequest) {
       imagePrompts: imagePrompts.slice(0, events.length),
       omitLikenessReferences: omitLikenessReferences.slice(0, events.length),
       anchorStyle: anchorStyle || null,
+      imageSeriesContinuity: imageSeriesContinuity || null,
       hashtags: hashtags.length > 0 ? hashtags : undefined,
     };
 
@@ -389,6 +387,7 @@ export async function POST(request: NextRequest) {
       imagePrompts: responseData.imagePrompts,
       omitLikenessReferences: responseData.omitLikenessReferences,
       anchorStyle: responseData.anchorStyle,
+      imageSeriesContinuity: responseData.imageSeriesContinuity,
       hashtags: responseData.hashtags,
     };
     setCached(cacheKey, cacheData);
@@ -535,6 +534,7 @@ async function generateBatched(
   
   // Generate anchor style first (from first batch)
   let anchorStyle = '';
+  let imageSeriesContinuity = '';
   try {
     const firstBatchPrompt = buildEnrichmentPrompt({
       timelineName: params.timelineName,
@@ -565,14 +565,13 @@ async function generateBatched(
     if (anchorResponse.choices?.[0]?.message?.content) {
       const anchorContent = JSON.parse(anchorResponse.choices[0].message.content);
       anchorStyle = anchorContent.anchorStyle || '';
+      if (typeof anchorContent.imageSeriesContinuity === 'string') {
+        imageSeriesContinuity = anchorContent.imageSeriesContinuity.trim();
+      }
     }
   } catch (error: any) {
     console.warn('[GenerateDescriptionsV2] Anchor generation failed, continuing:', error.message);
   }
-  
-  const anchorStylePreview = anchorStyle.length > 80 
-    ? anchorStyle.substring(0, 80) + '...'
-    : anchorStyle;
   
   // Process batches in parallel (with concurrency limit)
   const allDescriptions: string[] = [];
@@ -622,13 +621,7 @@ async function generateBatched(
       
       return {
         descriptions: items.map((item: any) => item.description || ''),
-        imagePrompts: items.map((item: any) => {
-          let prompt = item.imagePrompt || '';
-          if (anchorStylePreview && !prompt.includes('ANCHOR:')) {
-            prompt = `ANCHOR: ${anchorStylePreview}. ${prompt}`;
-          }
-          return prompt;
-        }),
+        imagePrompts: items.map((item: any) => sanitizeImagePromptAssembly(item.imagePrompt || '')),
         omitLikenessReferences: items.map((item: any) => Boolean(item.omitLikenessReference)),
       };
     });
@@ -672,6 +665,7 @@ async function generateBatched(
     imagePrompts: allImagePrompts.slice(0, params.events.length),
     omitLikenessReferences: allOmitLikeness.slice(0, params.events.length),
     anchorStyle: anchorStyle || null,
+    imageSeriesContinuity: imageSeriesContinuity || null,
   };
   
   // Cache the result
