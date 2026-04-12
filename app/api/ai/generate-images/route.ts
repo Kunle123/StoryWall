@@ -19,6 +19,14 @@ import {
   UNIVERSAL_SDXL_NEGATIVE_PROMPT,
 } from '@/lib/prompts/image-prompt-architecture';
 import { getImageGuardrailClause } from '@/lib/utils/imageBeatHeuristics';
+import {
+  ILLUSTRATION_ANTI_PHOTO_NEGATIVE,
+  MIN_REFERENCE_MATCH_SCORE,
+  corePersonNameForMatch,
+  isPhotorealisticImageStyle,
+  scoreRefAgainstEventText,
+  shouldSuppressLikenessRefForTemporalMismatch,
+} from '@/lib/utils/imageReferencePolicy';
 
 // Helper to extract famous person names from event text using OpenAI
 // Returns array of objects with {name, search_query}
@@ -2230,23 +2238,27 @@ export async function POST(request: NextRequest) {
         
         // Use hasPreparedReferences or styleReferenceUrl - we need actual prepared images or a style reference
         const hasAnyReference = hasPreparedReferences || !!styleReferenceUrl;
+        const useLikenessInjectionModel =
+          hasPreparedReferences && isPhotorealisticImageStyle(imageStyle) && !willUseImagen;
         
         // Use the willUseImagen flag set during preparation (not hasPreparedReferences which can be false after Replicate upload failures)
         if (willUseImagen && hasPreparedReferences) {
           selectedModel = 'google-imagen-4-fast'; // Special marker for Imagen (not a Replicate model)
           console.log(`[ImageGen] ✅ Model Selection: Using Google Imagen 4 Fast for abridged flow (face reference + text style, $0.02/image, better separation)`);
-        } else if (hasAnyReference) {
-          // For SDXL with reference images, use IP-Adapter (SDXL + IP-Adapter)
-          // This is cheaper than Flux Kontext Pro and works well with SDXL
+        } else if (useLikenessInjectionModel && hasAnyReference) {
           if (isSDXL || isArtistic) {
             selectedModel = MODELS.ARTISTIC_WITH_REF; // IP-Adapter (SDXL + IP-Adapter)
             const refType = styleReferenceUrl ? 'styleReference' : 'preparedReferences';
-            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to IP-Adapter (${refType}=true, preparedCount=${preparedCount}, $0.028/image)`);
+            console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to IP-Adapter (${refType}=true, preparedCount=${preparedCount}, photoreal style)`);
           } else if (selectedModel.includes('flux') && !selectedModel.includes('kontext')) {
             // Fallback for other flux models
             selectedModel = "black-forest-labs/flux-kontext-pro";
             console.log(`[ImageGen] ✅ Model Selection: Switching from ${originalModel} to Flux Kontext Pro (hasPreparedReferences=true, preparedCount=${preparedCount}, $0.04/image)`);
           }
+        } else if (hasPreparedReferences && !isPhotorealisticImageStyle(imageStyle) && !willUseImagen) {
+          console.log(
+            `[ImageGen] ℹ️ Model Selection: Illustration/editorial style ("${imageStyle}") — plain SDXL without IP-Adapter (likeness refs not injected; avoids photo-like face dominating illustration)`
+          );
         } else {
           // No prepared reference images - SDXL is the default for all styles
           if (isSDXL) {
@@ -2353,43 +2365,31 @@ export async function POST(request: NextRequest) {
           }
           
           if (relevantImageRefs.length > 0) {
-            // If multiple matches, prefer the one with the most specific match (full name > first+last > last only)
+            // Prefer ref with best core-name score (ignore year suffix in ref label vs event text)
             let bestMatch = relevantImageRefs[0];
             let bestScore = 0;
-            
+
             for (const ref of relevantImageRefs) {
-              const personName = ref.name.toLowerCase().trim();
-              let score = 0;
-              
-              // Full name match = highest score
-              if (eventText.includes(personName)) {
-                score = 100;
-              } else {
-                const nameParts = personName.split(' ').filter((p: string) => p.length > 0);
-                if (nameParts.length >= 2) {
-                  const firstName = nameParts[0];
-                  const lastName = nameParts[nameParts.length - 1];
-                  if (eventText.includes(firstName) && eventText.includes(lastName)) {
-                    score = 50; // First + last name match
-                  }
-                }
-              }
-              
+              const score = scoreRefAgainstEventText(eventText, ref.name);
               if (score > bestScore) {
                 bestScore = score;
                 bestMatch = ref;
               }
             }
-            
-            const relevantRef = bestMatch;
-            const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
-            referenceImageUrl = preparedReferences[refIndex] || null;
-            
-            if (referenceImageUrl) {
-              console.log(`[ImageGen] ✓ Event "${event.title}" mentions "${relevantRef.name}" - using reference image (match score: ${bestScore})`);
-            }
 
-            // Same identifying name across multiple URLs: rotate refs by event so likeness/conditioning varies across beats
+            const relevantRef = bestMatch;
+            let refIndex = finalImageReferences.findIndex((r) => r.name === relevantRef.name);
+            if (refIndex < 0) {
+              refIndex = finalImageReferences.findIndex(
+                (r) => corePersonNameForMatch(r.name) === corePersonNameForMatch(relevantRef.name)
+              );
+            }
+            if (refIndex < 0) {
+              refIndex = 0;
+            }
+            referenceImageUrl = preparedReferences[refIndex] ?? preparedReferences[0] ?? null;
+
+            // Rotate among multiple URLs for the same person (variety across beats)
             if (
               referenceImageUrl &&
               validImageReferences.length > 1 &&
@@ -2409,6 +2409,31 @@ export async function POST(request: NextRequest) {
                 }
               }
             }
+
+            if (bestScore < MIN_REFERENCE_MATCH_SCORE) {
+              console.warn(
+                `[ImageGen] Match score ${bestScore} < ${MIN_REFERENCE_MATCH_SCORE} for "${relevantRef.name}" — skipping likeness ref for "${event.title}"`
+              );
+              referenceImageUrl = null;
+            } else if (
+              referenceImageUrl &&
+              shouldSuppressLikenessRefForTemporalMismatch(
+                typeof event.year === 'number' ? event.year : undefined,
+                relevantRef.name,
+                { illustrationFamily: !isPhotorealisticImageStyle(imageStyle) }
+              )
+            ) {
+              console.log(
+                `[ImageGen] Skipping likeness ref for "${event.title}" (year ${event.year}): ref label year too far from event year for illustration timeline`
+              );
+              referenceImageUrl = null;
+            }
+
+            if (referenceImageUrl) {
+              console.log(
+                `[ImageGen] ✓ Event "${event.title}" → ref "${relevantRef.name}" (match score: ${bestScore})`
+              );
+            }
           } else {
             console.log(`[ImageGen] Event "${event.title}" does not mention any people from imageReferences - skipping person matching`);
           }
@@ -2426,6 +2451,14 @@ export async function POST(request: NextRequest) {
           console.log(
             `[ImageGen] omitLikenessReference for event ${index + 1}: "${event.title}" (scene/prop/location only — no face ref)`
           );
+        }
+
+        // Editorial/illustration styles: never pass a photo ref into Replicate (text-driven scene only)
+        if (!isPhotorealisticImageStyle(imageStyle) && referenceImageUrl) {
+          console.log(
+            `[ImageGen] Editorial style ("${imageStyle}") — omitting reference image URL for model (avoids photo likeness dominating illustration)`
+          );
+          referenceImageUrl = null;
         }
 
         // Style reference can be used if provided, but face reference takes priority
@@ -2555,8 +2588,8 @@ export async function POST(request: NextRequest) {
             
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
-              input.scale = 0.75; // Control strength of reference image (0.5-1.0) - parameter is "scale" not "ip_adapter_scale"
-              console.log(`[ImageGen] Using reference image with IP-Adapter (scale: 0.75, $0.028/image)`);
+              input.scale = 0.38; // Lower = less photo face drag into illustration-like outputs (was 0.75)
+              console.log(`[ImageGen] Using reference image with IP-Adapter (scale: ${input.scale}, photoreal style)`);
             } else {
               console.warn(`[ImageGen] Invalid reference image URL format for IP-Adapter: ${referenceImageUrl.substring(0, 50)}`);
               // Fall back to SDXL
@@ -2580,17 +2613,20 @@ export async function POST(request: NextRequest) {
           // If faceless mannequin, also prevent faces
           const baseNegativePrompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, brand names, company names, logos, Netflix, Amazon, Google, Apple, Microsoft, Facebook, Twitter, Instagram, YouTube, Disney, HBO, CNN, BBC, CBS, NBC, ABC, ESPN, service names, streaming services, platform logos, trademark symbols, copyright symbols, registered trademarks, brand logos, company logos, corporate logos, product logos, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
           const facelessNegativePrompt = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
+          const illustrationAntiPhotoNeg = !isPhotorealisticImageStyle(imageStyle)
+            ? `, ${ILLUSTRATION_ANTI_PHOTO_NEGATIVE}`
+            : '';
           if (!needsText) {
-            input.negative_prompt = baseNegativePrompt + facelessNegativePrompt;
+            input.negative_prompt = baseNegativePrompt + facelessNegativePrompt + illustrationAntiPhotoNeg;
           }
           
           // SDXL can optionally use reference images (but not required like IP-Adapter)
           if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
             if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
               input.image = referenceImageUrl;
-              input.prompt_strength = 0.75;
-              input.strength = 0.75;
-              console.log(`[ImageGen] Using reference image with SDXL (optional, not required)`);
+              input.prompt_strength = 0.82;
+              input.strength = 0.48;
+              console.log(`[ImageGen] Using reference image with SDXL img2img (strength: ${input.strength}, prompt_leading)`);
             }
           }
         } else if (selectedModel.includes('imagen')) {
@@ -2696,17 +2732,18 @@ export async function POST(request: NextRequest) {
             ? `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, announcements, posters with text, billboards, newspapers, documents, books, magazines, readable text, legible text, alphabet, numbers, digits, characters, symbols, written language, printed text, handwriting, calligraphy, inscriptions, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`
             : `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, excessive text, too much text, text blocks, paragraphs, multiple lines of text, small text, tiny text, blurry text, misspelled words, garbled text, unreadable text, text errors, wrong spelling, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
           const facelessNegativeSDXL = isFacelessMannequin ? ", face, faces, facial features, eyes, nose, mouth, facial expression, human face, person face, recognizable face, detailed face, portrait, facial details, eyebrows, lips, facial hair, facial structure" : "";
-          input.negative_prompt = baseNegativeSDXL + facelessNegativeSDXL;
+          const illustrationAntiPhotoNegSdxl = !isPhotorealisticImageStyle(imageStyle)
+            ? `, ${ILLUSTRATION_ANTI_PHOTO_NEGATIVE}`
+            : '';
+          input.negative_prompt = baseNegativeSDXL + facelessNegativeSDXL + illustrationAntiPhotoNegSdxl;
           
           // Add reference image if available (for image-to-image transformation)
           // SDXL supports direct image input via 'image' parameter (URL from Replicate)
           if (referenceImageUrl) {
             input.image = referenceImageUrl;
-            // Higher prompt_strength (0.7-0.85) for better person matching while allowing scene adaptation
-            // Lower values (0.5-0.7) preserve more of reference, higher (0.8-0.9) allow more transformation
-            input.prompt_strength = 0.75; // Balanced: maintain person likeness while adapting to scene
-            input.strength = 0.75; // Additional strength parameter for some models
-            console.log(`[ImageGen] Using reference image for image-to-image transformation with person matching (strength: 0.75)`);
+            input.prompt_strength = 0.82;
+            input.strength = 0.48;
+            console.log(`[ImageGen] Using reference image for SDXL img2img (strength: ${input.strength})`);
           }
         }
         
@@ -2960,16 +2997,13 @@ export async function POST(request: NextRequest) {
             const isArtistic = isSDXL || originalSelectedModel === MODELS.ARTISTIC;
             const isPhotorealistic = originalSelectedModel === MODELS.PHOTOREALISTIC || originalSelectedModel.includes('flux-dev');
             
-            // For retries, use the same model selection logic as original
-            // BUT: Don't use Imagen (google/imagen-4-fast) as it doesn't expose versions via Replicate API
-            // Use hasPreparedReferences to ensure we actually have prepared images, not just attempted ones
-            if (hasPreparedReferences) {
+            // Same as main path: IP-Adapter only for photorealistic styles (avoid illustration + strong likeness)
+            if (hasPreparedReferences && isPhotorealisticImageStyle(imageStyle)) {
               if (isSDXL || isArtistic) {
-                selectedModel = MODELS.ARTISTIC_WITH_REF; // Use IP-Adapter, not Imagen
+                selectedModel = MODELS.ARTISTIC_WITH_REF;
               } else if (originalSelectedModel.includes('flux') && !originalSelectedModel.includes('kontext')) {
                 selectedModel = "black-forest-labs/flux-kontext-pro";
               }
-              // Don't use Imagen for retries - it doesn't expose versions via Replicate API
             }
             
             const modelVersion = await getLatestModelVersion(selectedModel, replicateApiKey);
@@ -2985,17 +3019,27 @@ export async function POST(request: NextRequest) {
                 })
               : [];
             
-            let referenceImageUrl = relevantImageRefs.length > 0
-              ? (() => {
-                  const relevantRef = relevantImageRefs[0];
-                  const refIndex = finalImageReferences.findIndex(r => r.name === relevantRef.name);
-                  return preparedReferences[refIndex] || null;
-                })()
-              : (preparedReferences[result.index] || preparedReferences[0] || null);
+            let referenceImageUrl: string | null = null;
+            if (relevantImageRefs.length > 0) {
+              const relevantRef = relevantImageRefs[0];
+              let refIndex = finalImageReferences.findIndex((r) => r.name === relevantRef.name);
+              if (refIndex < 0) {
+                refIndex = finalImageReferences.findIndex(
+                  (r) => corePersonNameForMatch(r.name) === corePersonNameForMatch(relevantRef.name)
+                );
+              }
+              if (refIndex < 0) refIndex = 0;
+              referenceImageUrl = preparedReferences[refIndex] ?? preparedReferences[0] ?? null;
+            } else {
+              referenceImageUrl = preparedReferences[0] ?? null;
+            }
             const omitRetry =
               (Array.isArray(omitLikenessRefsBody) && omitLikenessRefsBody[result.index] === true) ||
               (result.event as { omitLikenessReference?: boolean }).omitLikenessReference === true;
             if (omitRetry) {
+              referenceImageUrl = null;
+            }
+            if (!isPhotorealisticImageStyle(imageStyle)) {
               referenceImageUrl = null;
             }
             const hasReferenceImage = !!referenceImageUrl;
@@ -3030,10 +3074,13 @@ export async function POST(request: NextRequest) {
               if (referenceImageUrl && typeof referenceImageUrl === 'string' && referenceImageUrl.length > 0) {
                 if (referenceImageUrl.startsWith('http://') || referenceImageUrl.startsWith('https://')) {
                   input.image = referenceImageUrl;
-                  input.scale = 0.75; // Use "scale" parameter, not "ip_adapter_scale"
+                  input.scale = 0.38;
                 }
               }
-              if (!needsText) input.negative_prompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage`;
+              if (!needsText) {
+                const ill = !isPhotorealisticImageStyle(imageStyle) ? `, ${ILLUSTRATION_ANTI_PHOTO_NEGATIVE}` : '';
+                input.negative_prompt = `${UNIVERSAL_SDXL_NEGATIVE_PROMPT}, text, words, letters, typography, writing, captions, titles, labels, signs, banners, headlines, grid, grids, multiple images, image grid, panel, panels, comic strip, comic panels, triptych, diptych, polyptych, split screen, divided image, multiple panels, image array, photo grid, collage of images, separate images, image montage${ill}`;
+              }
             } else if (selectedModel.includes('imagen')) {
               // Google Imagen - only used if explicitly selected
               input.enhancePrompt = false;
