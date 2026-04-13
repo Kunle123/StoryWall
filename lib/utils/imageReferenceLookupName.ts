@@ -3,6 +3,18 @@
  * which breaks Wikimedia search and strict filename matching. Derive a short person-style
  * label from Commons upload URLs (filename before `_at_the_` / `_at_`) or from caption text.
  */
+/** Commons thumb segments look like "800px-Keir_Starmer_2020.jpg" — strip size prefix + file year for search. */
+function personHintFromCommonsFilenameSegment(segment: string): string | null {
+  const last = decodeURIComponent(segment).replace(/\.(jpe?g|png|webp|gif)$/i, "");
+  if (last.length < 2) return null;
+  const beforeVenue = last.split(/_at_the_/i)[0]?.split(/_at_/i)[0];
+  const base = (beforeVenue || last).replace(/_/g, " ").trim();
+  const noPx = base.replace(/^\d+px[-\s]/i, "").trim();
+  const noYear = noPx.replace(/\s+(19|20)\d{2}\s*$/i, "").trim();
+  if (noYear.length >= 3 && /^[A-Za-z]/.test(noYear)) return noYear;
+  return null;
+}
+
 export function getPersonLookupNameForImageRef(ref: { name: string; url: string }): string {
   const rawName = (ref.name || "").trim();
 
@@ -11,6 +23,8 @@ export function getPersonLookupNameForImageRef(ref: { name: string; url: string 
     if (u.hostname.includes("upload.wikimedia.org") || u.hostname.includes("commons.wikimedia.org")) {
       const seg = u.pathname.split("/").pop();
       if (seg) {
+        const fromThumb = personHintFromCommonsFilenameSegment(seg);
+        if (fromThumb) return fromThumb;
         const last = decodeURIComponent(seg).replace(/\.(jpe?g|png|webp|gif)$/i, "");
         if (last.length >= 2) {
           const beforeVenue = last.split(/_at_the_/i)[0]?.split(/_at_/i)[0];

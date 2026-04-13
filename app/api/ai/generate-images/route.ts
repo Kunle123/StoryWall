@@ -790,7 +790,7 @@ const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
 // Rate limit tracking for Wikimedia requests
 let lastWikimediaRequest = 0;
-const WIKIMEDIA_MIN_DELAY = 200; // Minimum 200ms between requests to avoid rate limits
+const WIKIMEDIA_MIN_DELAY = 900; // Space out Wikimedia requests; 200ms still tripped 429 from hotlink validators
 
 // Helper to throttle Wikimedia requests
 async function throttleWikimediaRequest(): Promise<void> {
@@ -829,6 +829,19 @@ async function retryWithBackoff<T>(
   return null;
 }
 
+/** Direct file on Commons (HEAD often 429; GET + upload step is the real check). */
+function isUploadCommonsDirectImageUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' || !u.hostname.includes('upload.wikimedia.org')) return false;
+    if (!u.pathname.includes('/wikipedia/commons/')) return false;
+    const path = u.pathname.split('?')[0];
+    return /\.(jpe?g|png|webp|gif)$/i.test(path);
+  } catch {
+    return false;
+  }
+}
+
 // Helper to validate that a URL actually points to an image
 async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): Promise<boolean> {
   const commonHeaders = {
@@ -839,7 +852,8 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
 
   const contentTypeIsImage = (ct: string) => (ct || '').toLowerCase().startsWith('image/');
 
-  const tryGetImageProbe = async (): Promise<boolean> => {
+  type ProbeOnce = 'ok' | '429' | 'hard_fail' | 'soft_fail';
+  const tryGetImageProbeOnce = async (timeoutMs: number): Promise<ProbeOnce> => {
     if (url.includes('wikimedia.org')) {
       await throttleWikimediaRequest();
     }
@@ -850,10 +864,26 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
         ...commonHeaders,
         Range: 'bytes=0-32767',
       },
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     const ct = getResponse.headers.get('content-type') || '';
     const okStatus = getResponse.ok || getResponse.status === 206;
+    if (getResponse.status === 429) {
+      try {
+        getResponse.body?.cancel();
+      } catch {
+        /* ignore */
+      }
+      return '429';
+    }
+    if (getResponse.status === 404 || getResponse.status === 410) {
+      try {
+        getResponse.body?.cancel();
+      } catch {
+        /* ignore */
+      }
+      return 'hard_fail';
+    }
     if (okStatus && contentTypeIsImage(ct)) {
       try {
         getResponse.body?.cancel();
@@ -861,7 +891,7 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
         /* ignore */
       }
       console.log(`[ImageGen] Validated image URL (GET): ${url.substring(0, 100)} (${ct})`);
-      return true;
+      return 'ok';
     }
     try {
       getResponse.body?.cancel();
@@ -871,7 +901,60 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
     console.warn(
       `[ImageGen] GET probe failed (${getResponse.status}, type=${ct || 'none'}): ${url.substring(0, 100)}`
     );
+    return getResponse.status >= 500 ? 'soft_fail' : 'hard_fail';
+  };
+
+  const tryGetImageProbe = async (): Promise<boolean> => {
+    const timeoutMs = url.includes('wikimedia.org') ? 22000 : 12000;
+    if (!url.includes('wikimedia.org')) {
+      const once = await tryGetImageProbeOnce(timeoutMs);
+      return once === 'ok';
+    }
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) {
+        const backoff = Math.min(10000, 1200 * Math.pow(2, attempt - 1));
+        console.warn(`[ImageGen] Wikimedia GET probe retry ${attempt}/5 after ${backoff}ms`);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+      try {
+        const once = await tryGetImageProbeOnce(timeoutMs);
+        if (once === 'ok') return true;
+        if (once === '429' || once === 'soft_fail') continue;
+        return false;
+      } catch (e: any) {
+        if (e?.name === 'AbortError' || e?.name === 'TimeoutError') {
+          console.warn(`[ImageGen] GET probe timeout (attempt ${attempt + 1}): ${url.substring(0, 90)}`);
+          continue;
+        }
+        throw e;
+      }
+    }
     return false;
+  };
+
+  const validateCommonsUploadWithFallback = async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) {
+        const backoff = Math.min(12000, 1500 * Math.pow(2, attempt - 1));
+        console.warn(`[ImageGen] Commons direct GET retry ${attempt}/5 after ${backoff}ms`);
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+      try {
+        const once = await tryGetImageProbeOnce(25000);
+        if (once === 'ok') return true;
+        if (once === 'hard_fail') return false;
+        if (once === '429' || once === 'soft_fail') continue;
+      } catch (e: any) {
+        if (e?.name === 'AbortError' || e?.name === 'TimeoutError') {
+          console.warn(`[ImageGen] Commons direct probe timeout (attempt ${attempt + 1}): ${url.substring(0, 90)}`);
+          continue;
+        }
+      }
+    }
+    console.warn(
+      `[ImageGen] Commons upload URL assumed valid after probe failures (429/timeout); download will verify: ${url.substring(0, 100)}`
+    );
+    return true;
   };
 
   const validateRequest = async (): Promise<boolean> => {
@@ -902,12 +985,12 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
         console.warn(
           `[ImageGen] HEAD returned ${headResponse.status} — trying GET (many CDNs block HEAD): ${url.substring(0, 100)}`
         );
+      } else if (headResponse.status === 429) {
+        console.warn(
+          `[ImageGen] HEAD 429 — skipping retry-throw, using GET (Wikimedia often rate-limits HEAD): ${url.substring(0, 100)}`
+        );
+        return tryGetImageProbe();
       } else {
-        if (headResponse.status === 429 && retryOnRateLimit) {
-          const error: any = new Error(`Rate limited: ${headResponse.status}`);
-          error.status = headResponse.status;
-          throw error;
-        }
         console.warn(`[ImageGen] Image URL HEAD ${headResponse.status}: ${url.substring(0, 100)}`);
       }
     }
@@ -916,6 +999,10 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
   };
 
   try {
+    if (isUploadCommonsDirectImageUrl(url)) {
+      return await validateCommonsUploadWithFallback();
+    }
+
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'];
     const hasImageExtension = imageExtensions.some((ext) => url.toLowerCase().includes(ext));
     const looksTrustedImageHost =
@@ -942,6 +1029,12 @@ async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): 
       console.warn(`[ImageGen] Timeout validating image URL: ${url.substring(0, 100)}`);
     } else {
       console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+    }
+    if (isUploadCommonsDirectImageUrl(url)) {
+      console.warn(
+        `[ImageGen] Commons upload URL assumed valid after error; download will verify: ${url.substring(0, 100)}`
+      );
+      return true;
     }
     return false;
   }
