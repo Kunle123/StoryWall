@@ -31,5 +31,11 @@ export function getPersonLookupNameForImageRef(ref: { name: string; url: string 
   const caption = rawName.match(/^(.+?)\s+at\s+(the\s+)?/i);
   if (caption && caption[1].trim().length >= 2) return caption[1].trim();
 
+  // Labels like "Alison Hammond 2023" / "Alison Hammond 2024" must share one search identity
+  const withoutTrailingYear = rawName.replace(/\s+(19|20)\d{2}\s*$/i, "").trim();
+  if (withoutTrailingYear.length >= 2 && withoutTrailingYear !== rawName) {
+    return withoutTrailingYear;
+  }
+
   return rawName || "Unknown";
 }

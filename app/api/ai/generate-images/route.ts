@@ -1157,20 +1157,14 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
         contentType: contentType,
       });
       
-      // Get headers from form-data (includes boundary). Also include Content-Length when available.
+      // Do NOT set Content-Length: undici + fetch streaming multipart often throws
+      // UND_ERR_REQ_CONTENT_LENGTH_MISMATCH when getLengthSync disagrees with the actual body.
       const formHeaders = formData.getHeaders();
-      try {
-        const contentLength = formData.getLengthSync();
-        if (typeof contentLength === 'number' && Number.isFinite(contentLength)) {
-          formHeaders['Content-Length'] = contentLength;
-        }
-      } catch (err) {
-        // getLengthSync may throw; skip setting Content-Length in that case.
-      }
-      
+      delete (formHeaders as Record<string, unknown>)['content-length'];
+      delete (formHeaders as Record<string, unknown>)['Content-Length'];
+
       console.log(`[ImageGen] Attempting fetch upload to Replicate API...`);
       console.log(`[ImageGen] Headers:`, Object.keys(formHeaders).join(', '));
-      console.log(`[ImageGen] Content-Length: ${formHeaders['Content-Length'] || 'not set'}`);
       
       try {
     const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
@@ -2384,9 +2378,19 @@ export async function POST(request: NextRequest) {
         let relevantImageRefs: Array<{ name: string; url: string }> = [];
         let referenceImageUrl: string | null = null;
         
-        const singleSubjectRef = finalImageReferences && finalImageReferences.length === 1
-          ? finalImageReferences[0]
-          : null;
+        // Treat multiple refs as "one subject" when core identity matches (e.g. two year-tagged photo rows).
+        const singleSubjectRef = (() => {
+          if (!finalImageReferences || finalImageReferences.length === 0) return null;
+          if (finalImageReferences.length === 1) return finalImageReferences[0];
+          const core0 = corePersonNameForMatch(finalImageReferences[0].name);
+          if (
+            core0.length >= 2 &&
+            finalImageReferences.every((r) => corePersonNameForMatch(r.name) === core0)
+          ) {
+            return finalImageReferences[0];
+          }
+          return null;
+        })();
         
         if (finalImageReferences && finalImageReferences.length > 0) {
           // Find which reference images are relevant to this event
@@ -2461,17 +2465,13 @@ export async function POST(request: NextRequest) {
             referenceImageUrl = preparedReferences[refIndex] ?? preparedReferences[0] ?? null;
 
             // Rotate among multiple URLs for the same person (variety across beats)
-            if (
-              referenceImageUrl &&
-              validImageReferences.length > 1 &&
-              preparedReferences.length > 0
-            ) {
-              const distinctNames = new Set(
-                validImageReferences.map((r: { name: string }) => r.name.toLowerCase().trim())
+            if (referenceImageUrl && validImageReferences.length > 1 && preparedReferences.length > 0) {
+              const distinctCores = new Set(
+                validImageReferences.map((r: { name: string }) => corePersonNameForMatch(r.name))
               );
-              if (distinctNames.size === 1) {
+              if (distinctCores.size === 1) {
                 const rotIdx = index % validImageReferences.length;
-                const rotated = preparedReferences[rotIdx];
+                const rotated = preparedReferences[rotIdx] ?? preparedReferences[0];
                 if (rotated) {
                   referenceImageUrl = rotated;
                   console.log(
