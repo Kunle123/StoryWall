@@ -790,7 +790,7 @@ const SDXL_MODEL_NAME = "stability-ai/sdxl";
 
 // Rate limit tracking for Wikimedia requests
 let lastWikimediaRequest = 0;
-const WIKIMEDIA_MIN_DELAY = 900; // Space out Wikimedia requests; 200ms still tripped 429 from hotlink validators
+const WIKIMEDIA_MIN_DELAY = 1200; // Space out Wikimedia requests (parallel prep + validation still tripped 429 at 900ms)
 
 // Helper to throttle Wikimedia requests
 async function throttleWikimediaRequest(): Promise<void> {
@@ -800,6 +800,17 @@ async function throttleWikimediaRequest(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, WIKIMEDIA_MIN_DELAY - timeSinceLastRequest));
   }
   lastWikimediaRequest = Date.now();
+}
+
+/** Serialize hotlink downloads/uploads to Commons — parallel Promise.all reliably returns 429 from the same egress IP. */
+let wikimediaDownloadChain: Promise<unknown> = Promise.resolve();
+function runWikimediaDownloadSerialized<T>(fn: () => Promise<T>): Promise<T> {
+  const run = wikimediaDownloadChain.then(fn, fn);
+  wikimediaDownloadChain = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
 }
 
 // Helper to retry with exponential backoff
@@ -1165,44 +1176,49 @@ async function uploadImageToReplicateViaHttps(buffer: Buffer, contentType: strin
 
 // Helper to upload image to Replicate's file storage
 async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string): Promise<string | null> {
+  const isWiki = imageUrl.includes('wikimedia.org');
+  const doUpload = async (): Promise<string | null> => {
   try {
-    console.log(`[ImageGen] Starting Wikimedia download for upload to Replicate: ${imageUrl.substring(0, 80)}...`);
-    
-    // Throttle Wikimedia requests before downloading
-    if (imageUrl.includes('wikimedia.org')) {
-      await throttleWikimediaRequest();
-    }
-    
+    console.log(
+      `${isWiki ? '[ImageGen] Starting Wikimedia download' : '[ImageGen] Starting download'} for upload to Replicate: ${imageUrl.substring(0, 80)}...`
+    );
+
+    const downloadTimeoutMs = isWiki ? 32000 : 10000;
+    const downloadRetries = isWiki ? 8 : 1;
+    const downloadBaseDelayMs = isWiki ? 4500 : 2000;
+
     // Download the image with retry logic for rate limits AND timeouts
     const downloadImage = async (): Promise<Response> => {
-    const imageResponse = await fetch(imageUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'image/*',
-      },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
+      if (isWiki) {
+        await throttleWikimediaRequest();
+      }
+      const imageResponse = await fetch(imageUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          Accept: 'image/*',
+        },
+        signal: AbortSignal.timeout(downloadTimeoutMs),
+      });
 
-    if (!imageResponse.ok) {
-        // If rate limited, throw to trigger retry
+      if (!imageResponse.ok) {
         if (imageResponse.status === 429 || imageResponse.status === 503 || imageResponse.status === 502) {
           const error: any = new Error(`Rate limited or server error: ${imageResponse.status}`);
           error.status = imageResponse.status;
           throw error;
         }
-        // For other errors, throw to fail immediately
         const error: any = new Error(`Failed to download: ${imageResponse.status}`);
         error.status = imageResponse.status;
         throw error;
       }
-      
+
       return imageResponse;
     };
-    
+
     let imageResponse: Response;
     try {
-      if (imageUrl.includes('wikimedia.org')) {
-        const result = await retryWithBackoff(downloadImage, 3, 2000, [429, 503, 502]);
+      if (isWiki) {
+        const result = await retryWithBackoff(downloadImage, downloadRetries, downloadBaseDelayMs, [429, 503, 502]);
         if (!result) {
           console.warn(`[ImageGen] Failed to download image after retries: ${imageUrl.substring(0, 100)}`);
           return null;
@@ -1405,6 +1421,12 @@ async function uploadImageToReplicate(imageUrl: string, replicateApiKey: string)
     }
     return null;
   }
+  };
+
+  if (isWiki) {
+    return runWikimediaDownloadSerialized(doUpload);
+  }
+  return doUpload();
 }
 
 // Helper to prepare image for Imagen (download and convert to base64)
@@ -2195,8 +2217,13 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] 🔄 Fetching replacement images for ${invalidRefs.length} invalid URL(s): ${invalidRefs.map(r => r.name).join(', ')}`);
         const fetchStartTime = Date.now();
         
-        // For invalid refs, try to fetch real image URLs using the person's name
-        const fetchPromises = invalidRefs.map(async (ref: { name: string; url: string }) => {
+        // Sequential replacement fetch: parallel GPT+Commons hits the same egress IP and triggers 429.
+        const fetchedRefs: { name: string; url: string }[] = [];
+        for (let fi = 0; fi < invalidRefs.length; fi++) {
+          const ref = invalidRefs[fi];
+          if (fi > 0) {
+            await new Promise((resolve) => setTimeout(resolve, WIKIMEDIA_MIN_DELAY));
+          }
           try {
             const lookupName = getPersonLookupNameForImageRef(ref);
             console.log(
@@ -2207,17 +2234,14 @@ export async function POST(request: NextRequest) {
               (await searchWikimediaForPerson(lookupName, lookupName));
             if (realUrl) {
               console.log(`[ImageGen] ✓ Found replacement for ${lookupName}: ${realUrl.substring(0, 80)}...`);
-              return { name: lookupName, url: realUrl };
+              fetchedRefs.push({ name: lookupName, url: realUrl });
             } else {
               console.warn(`[ImageGen] ✗ No replacement found for ${lookupName}`);
             }
           } catch (error: any) {
             console.error(`[ImageGen] Error fetching replacement for ${ref.name}:`, error.message);
           }
-          return null;
-        });
-        
-        const fetchedRefs = (await Promise.all(fetchPromises)).filter((r): r is { name: string; url: string } => r !== null);
+        }
         const fetchTime = Date.now() - fetchStartTime;
         validImageReferences = [...validRefs, ...fetchedRefs];
         console.log(`[ImageGen] 📊 After replacement fetch: ${validImageReferences.length} total valid (${fetchedRefs.length} replacements found, took ${fetchTime}ms)`);
@@ -2240,9 +2264,11 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Imagen (base64)...`);
         const prepStartTime = Date.now();
         try {
-          const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
+          const slice = validImageReferences.slice(0, events.length);
+          const sequentialWiki = slice.some((r) => r.url.includes('wikimedia.org'));
+          const prepareOne = async (ref: { name: string; url: string }, index: number) => {
             try {
-              console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name} for Imagen...`);
+              console.log(`[ImageGen] Preparing [${index + 1}/${slice.length}] ${ref.name} for Imagen...`);
               const preparedBase64 = await prepareImageForImagen(ref.url);
               if (preparedBase64) {
                 console.log(`[ImageGen] ✓ Prepared ${ref.name} (${preparedBase64.length} chars base64)`);
@@ -2250,12 +2276,22 @@ export async function POST(request: NextRequest) {
                 console.warn(`[ImageGen] ✗ Failed to prepare ${ref.name} (returned null)`);
               }
               return preparedBase64;
-          } catch (error: any) {
+            } catch (error: any) {
               console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
-            return null;
+              return null;
+            }
+          };
+          if (sequentialWiki) {
+            preparedReferences = [];
+            for (let index = 0; index < slice.length; index++) {
+              preparedReferences.push(await prepareOne(slice[index], index));
+              if (slice[index].url.includes('wikimedia.org') && index < slice.length - 1) {
+                await new Promise((r) => setTimeout(r, WIKIMEDIA_MIN_DELAY));
+              }
+            }
+          } else {
+            preparedReferences = await Promise.all(slice.map((ref, index) => prepareOne(ref, index)));
           }
-        });
-        preparedReferences = await Promise.all(referenceImagePromises);
           const prepTime = Date.now() - prepStartTime;
           const successCount = preparedReferences.filter(r => r !== null).length;
           const failureCount = preparedReferences.length - successCount;
@@ -2276,9 +2312,11 @@ export async function POST(request: NextRequest) {
         console.log(`[ImageGen] 🚀 Starting preparation of ${Math.min(validImageReferences.length, events.length)} reference image(s) for Replicate...`);
         const prepStartTime = Date.now();
         try {
-          const referenceImagePromises = validImageReferences.slice(0, events.length).map(async (ref: { name: string; url: string }, index: number) => {
+          const slice = validImageReferences.slice(0, events.length);
+          const sequentialWiki = slice.some((r) => r.url.includes('wikimedia.org'));
+          const prepareOne = async (ref: { name: string; url: string }, index: number) => {
             try {
-              console.log(`[ImageGen] Preparing [${index + 1}/${Math.min(validImageReferences.length, events.length)}] ${ref.name}...`);
+              console.log(`[ImageGen] Preparing [${index + 1}/${slice.length}] ${ref.name}...`);
               const preparedUrl = await prepareImageForReplicate(ref.url, replicateApiKey);
               if (preparedUrl) {
                 console.log(`[ImageGen] ✓ Prepared ${ref.name}: ${preparedUrl.substring(0, 60)}...`);
@@ -2290,8 +2328,18 @@ export async function POST(request: NextRequest) {
               console.error(`[ImageGen] ✗ Error preparing ${ref.name}:`, error.message);
               return null;
             }
-          });
-          preparedReferences = await Promise.all(referenceImagePromises);
+          };
+          if (sequentialWiki) {
+            preparedReferences = [];
+            for (let index = 0; index < slice.length; index++) {
+              preparedReferences.push(await prepareOne(slice[index], index));
+              if (slice[index].url.includes('wikimedia.org') && index < slice.length - 1) {
+                await new Promise((r) => setTimeout(r, WIKIMEDIA_MIN_DELAY));
+              }
+            }
+          } else {
+            preparedReferences = await Promise.all(slice.map((ref, index) => prepareOne(ref, index)));
+          }
           const prepTime = Date.now() - prepStartTime;
           const successCount = preparedReferences.filter(r => r !== null).length;
           const failureCount = preparedReferences.length - successCount;
