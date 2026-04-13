@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: 'StoryWall — Visual timelines for explainers & history',
   description:
-    'Create visual timelines that are easy to understand and easy to share. Free to start (~30 AI images). Best for current affairs, history, and explainers — not generic “anything goes” storytelling.',
+    'Create visual timelines that are easy to understand and easy to share. AI assists with researching beats and drafting copy you edit—best for current affairs, history, and explainers. Free to start (~30 AI image credits).',
   icons: {
     icon: '/favicon.png',
   },

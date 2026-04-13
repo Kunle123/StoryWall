@@ -33,7 +33,7 @@ export function ImageWithWatermark({
       {showWatermark && (
         <div className="absolute bottom-3 right-3 px-2.5 py-1.5 rounded-md bg-black/70 backdrop-blur-sm shadow-lg">
           <p className="text-[11px] text-white/95 leading-tight whitespace-nowrap">
-            Created with AI on{" "}
+            AI illustration on{" "}
             <Link
               href="/"
               onClick={(e) => {

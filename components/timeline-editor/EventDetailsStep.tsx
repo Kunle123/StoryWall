@@ -98,7 +98,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       }
 
       if (!data.descriptions || data.descriptions.length === 0) {
-        throw new Error("No description was generated");
+        throw new Error("No description was returned");
       }
 
       onEnrichmentMeta?.({
@@ -128,13 +128,13 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         updateEventDescription(id, data.descriptions[0] || "");
       }
       toast({
-        title: "Success!",
-        description: "Description generated",
+        title: "Draft ready",
+        description: "Description drafted from your premise—review for accuracy before publishing.",
       });
     } catch (error: any) {
       console.error("Error generating description:", error);
       toast({
-        title: "Failed to generate description",
+        title: "Description research failed",
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
@@ -211,7 +211,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
       }
 
       if (!data.descriptions || data.descriptions.length === 0) {
-        throw new Error("No descriptions were generated");
+        throw new Error("No descriptions were returned");
       }
 
       onEnrichmentMeta?.({
@@ -248,13 +248,13 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
         
         // Show success toast (auto-correction happens silently, no need to show details)
         toast({
-          title: "Success!",
-          description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
+          title: "Drafts ready",
+          description: `Researched descriptions for ${events.length} beats${data.hashtags ? ` and ${data.hashtags.length} hashtag ideas` : ""}. Verify anything you ship.`,
         });
       } else {
         toast({
-          title: "Success!",
-          description: `Generated descriptions for ${events.length} events${data.hashtags ? ` with ${data.hashtags.length} hashtags` : ''}`,
+          title: "Drafts ready",
+          description: `Researched descriptions for ${events.length} beats${data.hashtags ? ` and ${data.hashtags.length} hashtag ideas` : ""}. Verify anything you ship.`,
         });
       }
       
@@ -263,7 +263,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
     } catch (error: any) {
       console.error("Error generating descriptions:", error);
       toast({
-        title: "Failed to generate descriptions",
+        title: "Description research failed",
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
@@ -298,11 +298,13 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
             ) : (
               <Sparkles className="mr-2 h-5 w-5" />
             )}
-            {isGeneratingAll ? "Generating & Verifying..." : "Generate Descriptions with AI"}
+            {isGeneratingAll
+              ? "Researching & verifying…"
+              : "Research descriptions with AI"}
           </Button>
         </div>
         <p className="text-sm text-muted-foreground text-center mt-2">
-          or type your descriptions in the boxes below
+          or write your own in the boxes below
         </p>
       </div>
 
@@ -322,7 +324,7 @@ export const EventDetailsStep = ({ events, setEvents, timelineDescription, timel
             />
             {/* Hidden image prompt field - used for image generation but not visible to user */}
             <Textarea
-              placeholder="Image prompt (auto-generated, used for image creation)..."
+              placeholder="Image prompt (from research step, used for image creation)..."
               value={event.imagePrompt || ""}
               onChange={(e) => updateEventImagePrompt(event.id, e.target.value)}
               rows={2}

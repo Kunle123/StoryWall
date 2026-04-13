@@ -347,8 +347,10 @@ export const TimelineInfoStep = ({
           Step 1: Your story at a glance
         </h2>
         <p className="text-muted-foreground mb-4">
-          Give this timeline a sharp title and a description that sets up the arc—AI uses both
-          to generate events.
+          Give this timeline a sharp title and a description that sets up the arc—later steps use
+          both to research chronological beats and draft copy. The goal is grounded storytelling
+          (history, explainers, biography-style arcs), not invented facts—always verify what you
+          publish.
         </p>
         <div className="mb-6">
           <CreationFlowCallout step={1} />
@@ -374,11 +376,11 @@ export const TimelineInfoStep = ({
             Story description (the arc)
           </Label>
           
-          {/* AI-generated suggestions - show when title is entered and suggestions are available */}
+          {/* AI-assisted arc suggestions from title — drafts to edit, not authoritative facts */}
           {timelineName && timelineName.trim().length >= 3 && (
             <div className="mb-3 space-y-2">
               <div className="flex items-center gap-2">
-                <Label className="text-sm">Choose a description:</Label>
+                <Label className="text-sm">Suggested arcs (AI research from your title):</Label>
                 {isLoadingSuggestions && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
@@ -405,7 +407,7 @@ export const TimelineInfoStep = ({
                 </Select>
               ) : isLoadingSuggestions ? (
                 <div className="text-sm text-muted-foreground py-2">
-                  Generating suggestions...
+                  Researching arc options…
                 </div>
               ) : null}
             </div>
@@ -420,8 +422,8 @@ export const TimelineInfoStep = ({
             rows={5}
           />
           <p className="text-sm text-muted-foreground mt-2">
-            AI generates up to your max events from this—clearer descriptions yield tighter,
-            more chronological beats.
+            Clearer arcs here yield tighter, more chronological beats when you research events in
+            step 2 (up to your max beats).
           </p>
         </div>
 

@@ -54,7 +54,7 @@ export const StatisticsGenerateChartsStep = ({
     if (events.length === 0) {
       toast({
         title: "No Events",
-        description: "Please add events with data before generating charts.",
+        description: "Please add events with data before building charts.",
         variant: "destructive",
       });
       return;
@@ -63,7 +63,7 @@ export const StatisticsGenerateChartsStep = ({
     if (metrics.length === 0) {
       toast({
         title: "No Metrics",
-        description: "Please define metrics before generating charts.",
+        description: "Please define metrics before building charts.",
         variant: "destructive",
       });
       return;
@@ -106,8 +106,8 @@ export const StatisticsGenerateChartsStep = ({
       setIsGenerating(false);
       
       toast({
-        title: "Charts Ready",
-        description: `Ready to display ${eventsWithData.length} animated charts. Charts will render client-side when viewing the timeline.`,
+        title: "Chart visuals ready",
+        description: `${eventsWithData.length} chart${eventsWithData.length !== 1 ? "s" : ""} will render from your numbers when you view the timeline.`,
       });
     }, 500);
     
@@ -279,9 +279,10 @@ export const StatisticsGenerateChartsStep = ({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-display font-semibold mb-2">Generate Charts</h2>
+        <h2 className="text-2xl font-display font-semibold mb-2">Chart visuals</h2>
         <p className="text-muted-foreground">
-          Generate visual charts for each event showing the statistical data. Charts will be created as images that can be displayed in your timeline.
+          Build a chart image for each event from the numbers you entered or retrieved. These are
+          visualizations of your data—not new facts.
         </p>
       </div>
 
@@ -290,16 +291,16 @@ export const StatisticsGenerateChartsStep = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-[15px]">Chart Generation</Label>
+              <Label className="text-[15px]">Charts</Label>
               <p className="text-xs text-muted-foreground mt-1">
-                {events.length} event{events.length !== 1 ? 's' : ''} ready for chart generation
+                {events.length} event{events.length !== 1 ? "s" : ""} ready for chart visuals
               </p>
             </div>
             <div className="flex items-center gap-2">
               {allChartsGenerated && (
                 <div className="flex items-center gap-2 text-sm text-green-600">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>All charts generated</span>
+                  <span>All chart visuals ready</span>
                 </div>
               )}
               {!allChartsGenerated && (
@@ -313,12 +314,12 @@ export const StatisticsGenerateChartsStep = ({
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating Charts... {generatingCount}/{totalEvents}
+                      Building charts… {generatingCount}/{totalEvents}
                     </>
                   ) : (
                     <>
                       <BarChart3 className="w-4 h-4" />
-                      Generate Charts
+                      Build charts
                     </>
                   )}
                 </Button>
@@ -330,7 +331,7 @@ export const StatisticsGenerateChartsStep = ({
             <div className="space-y-2">
               <Progress value={progress} className="h-2" />
               <p className="text-xs text-center text-muted-foreground">
-                Generating chart {generatingCount} of {totalEvents} ({Math.round(progress)}%)
+                Building chart {generatingCount} of {totalEvents} ({Math.round(progress)}%)
               </p>
             </div>
           )}

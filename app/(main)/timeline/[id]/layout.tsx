@@ -31,7 +31,7 @@ export async function generateMetadata(props: {
   } catch {
     return {
       title: "Timeline | StoryWall",
-      description: "Visual timelines with AI-generated images on StoryWall.",
+      description: "Visual timelines on StoryWall—with optional AI illustrations and copy you can verify.",
     };
   }
 

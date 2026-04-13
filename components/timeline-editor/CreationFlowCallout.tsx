@@ -29,9 +29,10 @@ const STEP_COPY: Record<
     title: "Build a chronological arc",
     body: (
       <>
-        Choose a voice, then generate events or add them manually. Most strong walls use
-        about <strong className="text-foreground">6–12 beats</strong>—each event is one step
-        in the story. You can delete or merge panels later; clarity beats cleverness.
+        Choose a voice, then research beat ideas with AI from your premise or add them manually—then{" "}
+        <strong className="text-foreground">curate</strong>: keep the steps that belong in this arc.
+        Most strong walls use about <strong className="text-foreground">6–12 beats</strong>—each event is one deliberate
+        choice in the story. Delete or merge what does not earn a panel; clarity beats cleverness.
       </>
     ),
   },
@@ -60,7 +61,7 @@ const STEP_COPY: Record<
     title: "Images that add meaning",
     body: (
       <>
-        <strong className="text-foreground">AI</strong> uses your credits;{" "}
+        <strong className="text-foreground">AI illustration</strong> uses your credits;{" "}
         <strong className="text-foreground">upload</strong> when you already have the right
         photo. Either way, each image should make the beat clearer or more memorable—not
         filler. See{" "}

@@ -140,7 +140,7 @@ export const ImageStyleStep = ({
                 This timeline includes people (celebrities, politicians, public figures)
               </Label>
               <p className="text-sm text-muted-foreground">
-                Uncheck this if your timeline is about concepts, processes, science, medicine, or topics without specific named people. This helps generate more accurate images.
+                Uncheck this if your timeline is about concepts, processes, science, medicine, or topics without specific named people. This helps AI illustrations match the subject more safely.
               </p>
             </div>
           </div>

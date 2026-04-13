@@ -550,9 +550,10 @@ export default function DiscoverHome() {
                   Read the full arc — then publish your take
                 </h1>
                 <p className="text-muted-foreground text-sm sm:text-base mt-3 max-w-2xl leading-relaxed">
-                  StoryWall maps explainers and histories into chronological timelines with AI
-                  images or your own photos. Explore public walls here, then open the editor when
-                  you want your own angle.{" "}
+                  StoryWall maps explainers and histories into chronological timelines: AI-assisted
+                  research helps draft beats and descriptions you verify, plus optional AI images or
+                  your own photos. Explore public walls here, then open the editor when you want your
+                  own angle.{" "}
                   <span className="text-foreground/90 font-medium">Remix</span> — fork a public
                   story into your own editable timeline — is the creation loop we are building next
                   so you can start from a story you discover, not only from scratch. Free to start —
@@ -584,7 +585,7 @@ export default function DiscoverHome() {
                 <li className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
                   <ImageIcon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>
-                    <span className="font-medium text-foreground">Mix AI and your images</span>
+                    <span className="font-medium text-foreground">Mix AI illustrations and your images</span>
                     <span className="text-muted-foreground"> — upload whenever you want</span>
                   </span>
                 </li>
@@ -647,7 +648,7 @@ export default function DiscoverHome() {
                   <span className="text-xs font-semibold text-primary">2</span>
                   <p className="mt-1 text-foreground font-medium">Add visuals</p>
                   <p className="text-muted-foreground mt-0.5">
-                    AI images, your uploads, or a mix — tuned to your story.
+                    Optional AI illustrations from your prompts, your uploads, or a mix — tuned to your story.
                   </p>
                 </li>
                 <li className="rounded-lg border border-border bg-muted/20 p-3">

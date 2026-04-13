@@ -111,7 +111,7 @@ const SocialTimelinePage = () => {
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold font-display mb-2">Create Social Media Timeline</h1>
           <p className="text-sm text-muted-foreground">
-            Choose a social media platform and template to automatically generate a timeline from your social media content.
+            Choose a platform and template to build a draft timeline from your public posts—review and edit before publishing; StoryWall is not inventing your history.
           </p>
         </div>
 

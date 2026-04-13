@@ -382,14 +382,14 @@ const TimelineEditor = () => {
     { number: 2, title: "Data Source" },
     { number: 3, title: "Data Entry" },
     { number: 4, title: "Chart Style" },
-    { number: 5, title: "Generate Charts" },
+    { number: 5, title: "Chart visuals" },
     { number: 6, title: "Review & Publish" },
   ] : [
     { number: 1, title: "Timeline Info" },
     { number: 2, title: "Writing Style & Events" },
     { number: 3, title: "Event Details" },
     { number: 4, title: "Image Style" },
-    { number: 5, title: "Generate Images" },
+    { number: 5, title: "Images" },
     { number: 6, title: "Review & Publish" },
   ];
 
@@ -431,16 +431,16 @@ const TimelineEditor = () => {
             if (!statisticsDataMode) {
               errorMessage = "Please select a data source method (AI or Manual).";
             } else if (statisticsDataMode === 'ai' && !statisticsDataSource.trim()) {
-              errorMessage = "Please provide a data source for AI to search.";
+              errorMessage = "Please provide a data source for AI-assisted research.";
             } else if (statisticsDataMode === 'ai' && statisticsEvents.length === 0) {
-              errorMessage = "Please generate events with data using AI.";
+              errorMessage = "Please run AI research on your data source to add events, or enter them manually.";
               buttonToScroll = "generate-statistics-data-button";
             }
           } else {
           if (!writingStyle && !customStyle) {
             errorMessage = "Please select a writing style or enter a custom style.";
           } else if (events.length === 0) {
-            errorMessage = "Please add at least one event (generate with AI or add manually).";
+            errorMessage = "Please add at least one event (research with AI from your premise or add manually).";
             buttonToScroll = "generate-events-button";
           } else if (!events.every(e => e.title)) {
             errorMessage = "Please add titles to all events.";
@@ -450,7 +450,7 @@ const TimelineEditor = () => {
         case 3:
           if (timelineType === 'statistics') {
             if (statisticsEvents.length === 0) {
-              errorMessage = "Please generate or add at least one event with data.";
+              errorMessage = "Please add at least one event with data (research your source with AI or enter manually).";
             } else if (!statisticsEvents.every(e => e.title.trim().length > 0)) {
               errorMessage = "Please add titles to all events.";
             } else if (!statisticsEvents.every(e => Object.keys(e.data).length > 0)) {
@@ -460,10 +460,12 @@ const TimelineEditor = () => {
           // Check if descriptions are missing
           const eventsWithoutDescriptions = events.filter(e => !e.description || e.description.trim() === '');
           if (eventsWithoutDescriptions.length > 0) {
-            errorMessage = "Please add descriptions to all events.";
+            errorMessage =
+              "Please add descriptions to all beats (use “Research descriptions with AI” or write your own).";
             buttonToScroll = "generate-descriptions-button";
           } else {
-            errorMessage = "Please add descriptions to all events.";
+            errorMessage =
+              "Please add descriptions to all beats (use “Research descriptions with AI” or write your own).";
           }
           }
           break;
@@ -475,17 +477,16 @@ const TimelineEditor = () => {
             // Statistics charts should be generated
             const eventsWithoutCharts = statisticsEvents.filter(e => !e.chartUrl);
             if (eventsWithoutCharts.length > 0) {
-              errorMessage = "Please generate charts for all events.";
+              errorMessage = "Please add chart visuals for every event.";
               buttonToScroll = "generate-charts-button";
             }
           } else {
             // Check if images are missing
             const eventsWithoutImages = events.filter(e => !e.imageUrl);
             if (eventsWithoutImages.length > 0) {
-              errorMessage = "Please generate images for all events.";
+              errorMessage =
+                "Please add an image for every beat (AI illustration from your prompts or an upload).";
               buttonToScroll = "generate-images-button";
-            } else {
-              errorMessage = "Please generate images for all events.";
             }
           }
           break;
@@ -933,7 +934,7 @@ const TimelineEditor = () => {
                 Try conversational builder (beta)
               </Link>
               {" — "}
-              agree on factual milestones before full generation.
+              agree on factual milestones before descriptions and images.
             </p>
           )}
         </div>

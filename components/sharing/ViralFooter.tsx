@@ -66,7 +66,7 @@ export function ViralFooter({ timelineTitle, timelineId }: ViralFooterProps) {
               </span>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Turn your stories into beautiful visual timelines with AI-generated images
+              Turn your stories into visual timelines—AI-assisted research and drafts, optional AI illustrations
             </p>
           </div>
 

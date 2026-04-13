@@ -172,7 +172,7 @@ export const WritingStyleStep = ({
           throw new Error(data.error + (data.details ? ` ${data.details}` : ''));
         }
         
-        throw new Error("No events were generated. The AI may have been uncertain about the topic. Please try again or provide more details in your timeline description.");
+        throw new Error("No events were returned. The model may not have found enough grounded beats for this topic—try again with a clearer premise or add events manually.");
       }
 
       console.log('[GenerateEvents] Successfully parsed events:', data.events.length);
@@ -215,13 +215,13 @@ export const WritingStyleStep = ({
       // Show appropriate message
       if (wasConvertedToNumbered) {
         toast({
-          title: "Events Generated",
-          description: `${generatedEvents.length} events sequenced (no dates available)`,
+          title: "Beats in place",
+          description: `${generatedEvents.length} steps sequenced (no dates available)—review and edit as needed.`,
         });
       } else {
         toast({
-          title: "Success!",
-          description: `Generated ${generatedEvents.length} events`,
+          title: "Beats in place",
+          description: `Added ${generatedEvents.length} researched beats—always verify dates and facts you care about.`,
         });
       }
     } catch (error: any) {
@@ -233,7 +233,7 @@ export const WritingStyleStep = ({
       });
       
       // More detailed error message for mobile debugging
-      let errorMessage = error.message || "Failed to generate events";
+      let errorMessage = error.message || "Event research failed";
       if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
         errorMessage = "Network error. Please check your internet connection and try again.";
       } else if (errorMessage.includes("OPENAI_API_KEY")) {
@@ -241,7 +241,7 @@ export const WritingStyleStep = ({
       }
       
       toast({
-        title: "Failed to generate events",
+        title: "Could not research events",
         description: errorMessage,
         variant: "destructive",
       });
@@ -300,7 +300,11 @@ export const WritingStyleStep = ({
           Step 2: Voice & events (your beats)
         </h2>
         <p className="text-muted-foreground mb-4">
-          Choose how it reads, then generate events with AI or add them by hand.
+          Choose how it reads, then run AI-assisted research to propose chronological beats from your
+          premise—or add titles and dates by hand. Your job is to <strong className="text-foreground">curate</strong>: keep the
+          moments that belong in <em>this</em> arc, merge or delete the rest. StoryWall suits history and
+          biography-style storytelling; the model should ground proposals in real sequence, not invent
+          them—still verify anything you publish.
         </p>
         <div className="mb-6">
           <CreationFlowCallout step={2} />
@@ -345,9 +349,11 @@ export const WritingStyleStep = ({
         </div>
       </div>
 
-      {/* AI Generate Button */}
+      {/* AI research for event beats */}
       <div>
-        <Label className="text-base mb-3 block">2. Generate with AI or Add Events Manually</Label>
+        <Label className="text-base mb-3 block">
+          2. Research beats with AI or add them manually
+        </Label>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
             id="generate-events-button"
@@ -366,13 +372,21 @@ export const WritingStyleStep = ({
             ) : (
               <Sparkles className="mr-2 h-4 w-4" />
             )}
-            {isGenerating ? "Generating..." : hasGenerated ? "Events Generated" : "Generate with AI"}
+            {isGenerating
+              ? "Researching…"
+              : hasGenerated
+                ? "Research complete"
+                : "Research events with AI"}
           </Button>
           <Button variant="outline" onClick={addEvent} className="w-full sm:w-auto sm:flex-shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Add Manually
           </Button>
         </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Uses your title and arc from step 1 plus any sources you listed there. Outputs are drafts
+          for you to fact-check—not a substitute for your own judgment on sensitive claims.
+        </p>
       </div>
 
       {/* Events List */}

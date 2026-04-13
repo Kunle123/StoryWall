@@ -465,7 +465,7 @@ export function EditEventDialog({
                   ) : (
                     <>
                       <RotateCw className="w-4 h-4 mr-2" />
-                      Regenerate with AI
+                      Regenerate image (AI)
                     </>
                   )}
                 </Button>
@@ -502,7 +502,7 @@ export function EditEventDialog({
               </div>
               <div className="mt-2 space-y-1">
                 <p className="text-xs text-muted-foreground">
-                  <strong>AI Regeneration:</strong> Uses stored prompt, theme, and style (1 credit if timeline is published)
+                  <strong>AI image redo:</strong> Uses stored prompt, theme, and style (1 credit if timeline is published)
                 </p>
                 <p className="text-xs text-muted-foreground">
                   <strong>Upload:</strong> Free - upload your own image

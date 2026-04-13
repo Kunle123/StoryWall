@@ -125,15 +125,15 @@ export const StatisticsDataEntryStep = ({
         
         setEvents(transformedEvents);
         toast({
-          title: "Data Generated",
-          description: `Generated ${transformedEvents.length} events with statistical data.`,
+          title: "Data retrieved",
+          description: `Built ${transformedEvents.length} events from your source—verify figures before publishing.`,
         });
       } else {
         throw new Error('Invalid response format');
       }
     } catch (error) {
       console.error('Error generating data:', error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to generate data. Please try again.";
+      const errorMessage = error instanceof Error ? error.message : "Could not retrieve data. Please try again.";
       toast({
         title: "Error",
         description: errorMessage,
@@ -194,7 +194,7 @@ export const StatisticsDataEntryStep = ({
         <h2 className="text-2xl font-display font-semibold mb-2">Enter Data</h2>
         <p className="text-muted-foreground">
           {dataMode === 'ai' 
-            ? 'AI will search the data source for real statistical data matching your metrics and create events at significant periods. Only metrics available in the data source will be included.'
+            ? 'AI-assisted research searches your data source for real figures that match your metrics and proposes events at meaningful periods. Only metrics present in the source are included—always spot-check numbers you care about.'
             : 'Enter data manually for each event. Each event should have values for all metrics.'}
         </p>
       </div>
@@ -211,7 +211,8 @@ export const StatisticsDataEntryStep = ({
               <div className="space-y-2">
                 <Label className="text-[15px]">Time Period (Optional)</Label>
                 <p className="text-xs text-muted-foreground">
-                  Select a specific period or let AI choose based on data availability. AI will only use metrics that are available in the data source.
+                  Select a specific period or let the tool pick windows from what the source supports.
+                  Only metrics available in the data source are used.
                 </p>
                 <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                   <SelectTrigger className="w-full">
@@ -246,19 +247,19 @@ export const StatisticsDataEntryStep = ({
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Retrieving data and creating events... {generationProgress > 0 && `${generationProgress}%`}
+                      Researching source and building events… {generationProgress > 0 && `${generationProgress}%`}
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      Use AI to Retrieve Data
+                      Research source with AI
                     </>
                   )}
                 </Button>
               ) : (
                 <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
                   <p className="text-sm text-green-800 dark:text-green-200 font-medium">
-                    ✓ Data retrieved successfully ({events.length} events generated)
+                    ✓ Data retrieved ({events.length} events from source)
                   </p>
                   <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                     You can review and edit the events below, or click "Clear All" to retrieve new data.
@@ -285,7 +286,7 @@ export const StatisticsDataEntryStep = ({
           {events.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-[15px]">Generated Events ({events.length})</Label>
+                <Label className="text-[15px]">Events ({events.length})</Label>
                 <Button
                   variant="outline"
                   size="sm"

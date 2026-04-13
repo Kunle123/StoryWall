@@ -88,16 +88,16 @@ export default function AcceptableUsePage() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-semibold mt-8 mb-4">4. AI-Generated Content Guidelines</h2>
+          <h2 className="text-2xl font-semibold mt-8 mb-4">4. AI-assisted content guidelines</h2>
           <p>
-            When using AI-generated content, you must:
+            When using AI-assisted features (research drafts, descriptions, illustrations), you must:
           </p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Review and verify AI-generated content for accuracy before publishing</li>
-            <li>Not rely solely on AI-generated content for critical decisions</li>
-            <li>Clearly indicate when content is AI-generated if required by law or context</li>
-            <li>Ensure AI-generated content complies with all other provisions of this Policy</li>
-            <li>Not use AI to generate content that violates this Policy</li>
+            <li>Review and verify AI-assisted output for accuracy before publishing</li>
+            <li>Not rely solely on AI-assisted output for critical decisions</li>
+            <li>Clearly indicate when content is AI-assisted or AI-illustrated if required by law or context</li>
+            <li>Ensure AI-assisted output complies with all other provisions of this Policy</li>
+            <li>Not use AI in a way that produces content that violates this Policy</li>
           </ul>
         </section>
 

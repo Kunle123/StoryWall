@@ -15,7 +15,7 @@ export function WatermarkedImage({
   alt,
   className = "",
   showWatermark = false,
-  watermarkText = "Created with AI on StoryWall.com",
+  watermarkText = "AI illustration on StoryWall.com",
 }: WatermarkedImageProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
 

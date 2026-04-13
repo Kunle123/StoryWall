@@ -255,7 +255,7 @@ export const GenerateImagesStep = ({
       const data = await response.json();
       
       if (!data.images || data.images.length === 0 || !data.images[0]) {
-        throw new Error("No image was generated");
+        throw new Error("No image was returned");
       }
 
       // Update the event with the new image
@@ -267,22 +267,22 @@ export const GenerateImagesStep = ({
 
       // Deduct credits AFTER successful generation (only if not free)
       if (!isFree) {
-        await deductCredits(cost, `Image Regeneration for "${event.title}"`);
+        await deductCredits(cost, `AI image redo for "${event.title}"`);
       }
       
       // Update total regeneration count (cumulative across all images)
       setTotalRegenerations(prev => prev + 1);
 
       toast({
-        title: "Image regenerated",
-        description: isFree 
-          ? `New image generated for "${event.title}" (${10 - totalRegenerations - 1} free regenerations remaining)`
-          : `New image generated for "${event.title}" (10 credits used)`,
+        title: "Image updated",
+        description: isFree
+          ? `New AI illustration for "${event.title}" (${10 - totalRegenerations - 1} free redos left)`
+          : `New AI illustration for "${event.title}" (10 credits used)`,
       });
     } catch (error: any) {
       console.error("Error regenerating image:", error);
       toast({
-        title: "Failed to regenerate image",
+        title: "Could not redo image",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -490,7 +490,7 @@ export const GenerateImagesStep = ({
       }
 
       if (!finalData || !finalData.images || finalData.images.length === 0) {
-        throw new Error("No images were generated");
+        throw new Error("No images were returned");
       }
       
       const successfulImages = finalData.images.filter((img: any) => img !== null);
@@ -507,7 +507,7 @@ export const GenerateImagesStep = ({
         console.warn('[GenerateImages] Server did not deduct credits, using client-side fallback');
         const creditsDeducted = await deductCredits(
           totalCost, 
-          `AI Image Generation for ${eventCount} events`
+          `AI image creation for ${eventCount} events`
         );
         if (!creditsDeducted) {
           console.warn('Failed to deduct credits after image generation');
@@ -530,8 +530,8 @@ export const GenerateImagesStep = ({
         if (failedEvents.length > 0) {
           console.log(`[GenerateImages] Retrying ${failedEvents.length} failed images...`);
           toast({
-            title: "Retrying failed images",
-            description: `Generated ${successfulImages.length} of ${eventCount} images. Retrying ${failedEvents.length} failed images...`,
+            title: "Retrying failed illustrations",
+            description: `Created ${successfulImages.length} of ${eventCount} images. Retrying ${failedEvents.length}…`,
             variant: "default",
           });
           
@@ -644,25 +644,25 @@ export const GenerateImagesStep = ({
           if (remainingFailedEvents.length > 0) {
             toast({
               title: "Partial success",
-              description: `Generated ${finalSuccessful} of ${eventCount} images. ${remainingFailedEvents.length} images could not be generated after ${maxRetries} retries.`,
+              description: `Created ${finalSuccessful} of ${eventCount} AI illustrations. ${remainingFailedEvents.length} could not be completed after ${maxRetries} retries.`,
               variant: "default",
             });
           } else {
             toast({
-              title: "Success!",
-              description: `Generated all ${finalSuccessful} images (${retryAttempt > 0 ? `after ${retryAttempt} retry${retryAttempt > 1 ? 'ies' : ''}` : ''})`,
+              title: "Images ready",
+              description: `Created all ${finalSuccessful} AI illustrations${retryAttempt > 0 ? ` (after ${retryAttempt} retry${retryAttempt > 1 ? "ies" : ""})` : ""}.`,
             });
           }
         } else {
           toast({
-            title: "Success!",
-            description: `Generated ${successfulImages.length} images`,
+            title: "Images ready",
+            description: `Created ${successfulImages.length} AI illustrations.`,
           });
         }
       } else {
         toast({
-          title: "Success!",
-          description: `Generated ${successfulImages.length} images`,
+          title: "Images ready",
+          description: `Created ${successfulImages.length} AI illustrations.`,
         });
       }
     } catch (error: any) {
@@ -671,7 +671,7 @@ export const GenerateImagesStep = ({
       setGeneratingCount(0);
       console.error("Error generating images:", error);
       toast({
-        title: "Failed to generate images",
+        title: "Could not create AI images",
         description: error.message || "Please check your OpenAI API key configuration and try again.",
         variant: "destructive",
       });
@@ -697,7 +697,8 @@ export const GenerateImagesStep = ({
           Step 5: Images for each beat
         </h2>
         <p className="text-muted-foreground mb-4">
-          Generate with AI (uses credits) or upload your own when you have the right shot.
+          Illustrate each beat with AI from your prompts (uses credits), or upload your own when you
+          have the right shot. Images are interpretations of your text—not independent fact sources.
         </p>
         <div className="mb-6">
           <CreationFlowCallout step={5} />
@@ -706,11 +707,11 @@ export const GenerateImagesStep = ({
 
       <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ai">AI Generated</TabsTrigger>
+          <TabsTrigger value="ai">AI images</TabsTrigger>
           <TabsTrigger value="manual">Manual Upload</TabsTrigger>
         </TabsList>
 
-        {/* Generate Images button - appears beneath tabs for AI Generated */}
+        {/* Primary CTA: create AI illustrations from prompts */}
         {activeTab === "ai" && !hasStartedGeneration && (
           <div className="mt-4">
             <Button
@@ -722,12 +723,12 @@ export const GenerateImagesStep = ({
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating... {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
+                  Creating… {generatingCount > 0 && totalEvents > 0 ? `${generatingCount} of ${totalEvents} events` : `${Math.round(progress)}%`}
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Images ({selectedEvents.size * CREDIT_COST_PER_IMAGE} credit{selectedEvents.size !== 1 ? 's' : ''})
+                  Create AI images ({selectedEvents.size * CREDIT_COST_PER_IMAGE} credit{selectedEvents.size !== 1 ? 's' : ''})
                 </>
               )}
             </Button>
@@ -854,7 +855,7 @@ export const GenerateImagesStep = ({
               <div>
                 <Label className="text-base mb-3 block">Theme Color (Optional)</Label>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Select a dominant color theme for the generated images
+                  Select a dominant color theme for AI illustrations
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {themeColors.map((color) => (
@@ -903,7 +904,7 @@ export const GenerateImagesStep = ({
 
           {!hasStartedGeneration && (
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Select Events to Generate Images For</h3>
+              <h3 className="font-semibold mb-4">Select beats for AI images</h3>
               <div className="space-y-2 mb-4">
               {events.map((event) => (
                 <label 
@@ -946,9 +947,9 @@ export const GenerateImagesStep = ({
                 <div className="mt-4 space-y-2">
                   <Progress value={progress} />
                   <p className="text-sm text-center text-muted-foreground">
-                    {generatingCount > 0 && totalEvents > 0 
-                      ? `Generating image ${generatingCount} of ${totalEvents} (${Math.round(progress)}%)`
-                      : `Generating... ${Math.round(progress)}%`}
+                    {generatingCount > 0 && totalEvents > 0
+                      ? `Creating image ${generatingCount} of ${totalEvents} (${Math.round(progress)}%)`
+                      : `Creating… ${Math.round(progress)}%`}
                   </p>
                 </div>
               )}
@@ -957,13 +958,13 @@ export const GenerateImagesStep = ({
 
           {(hasStartedGeneration || events.some(e => e.imageUrl)) && (
             <Card className="p-6">
-              <h3 className="font-semibold mb-4">Generated Images</h3>
+              <h3 className="font-semibold mb-4">Your images</h3>
               {isGenerating && events.filter(e => e.imageUrl).length === 0 ? (
                 // Show spinner while waiting for first images
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <Loader2 className="w-12 h-12 animate-spin text-primary" />
                   <div className="text-center space-y-2">
-                    <p className="text-sm font-medium">Generating images...</p>
+                    <p className="text-sm font-medium">Creating AI illustrations…</p>
                     <p className="text-xs text-muted-foreground">
                       {generatingCount > 0 && totalEvents > 0 
                         ? `Processing ${generatingCount} of ${totalEvents} events (${Math.round(progress)}%)`
@@ -1041,7 +1042,7 @@ export const GenerateImagesStep = ({
                       <div key={`placeholder-${idx}`} className="border rounded-lg overflow-hidden aspect-square bg-muted/50 flex items-center justify-center">
                         <div className="text-center space-y-2">
                           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground mx-auto" />
-                          <p className="text-xs text-muted-foreground">Generating...</p>
+                          <p className="text-xs text-muted-foreground">Creating…</p>
                         </div>
                       </div>
                     ))}
@@ -1052,7 +1053,8 @@ export const GenerateImagesStep = ({
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>
-                          Generating remaining images... {generatingCount > 0 && totalEvents > 0 
+                          Finishing remaining illustrations…{" "}
+                          {generatingCount > 0 && totalEvents > 0
                             ? `${generatingCount} of ${totalEvents} complete (${Math.round(progress)}%)`
                             : `${Math.round(progress)}%`}
                         </span>
@@ -1130,7 +1132,7 @@ export const GenerateImagesStep = ({
         onOpenChange={setShowCreditsDialog}
         required={events.filter(e => selectedEvents.has(e.id)).length * CREDIT_COST_PER_IMAGE}
         current={credits}
-        action={`AI Image Generation`}
+        action="AI image creation"
         onBuyCredits={() => {
           const headerButton = document.querySelector('[data-buy-credits]');
           if (headerButton) {
@@ -1144,8 +1146,8 @@ export const GenerateImagesStep = ({
         }}
         onContinueWithout={() => {
           toast({
-            title: "Continue Without AI",
-            description: "You can skip image generation and save your timeline. Images can be added later.",
+            title: "Continue without AI images",
+            description: "You can skip AI illustration and save your timeline. Images can be added later.",
           });
         }}
       />

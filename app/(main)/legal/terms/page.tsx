@@ -57,15 +57,17 @@ export default function TermsPage() {
             You retain ownership of any content you create, upload, or submit to StoryWall ("User Content"). By submitting User Content, you grant us a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, adapt, publish, and distribute your User Content solely for the purpose of operating and providing the Service.
           </p>
           
-          <h3 className="text-xl font-semibold mt-6 mb-3">4.2 AI-Generated Content</h3>
+          <h3 className="text-xl font-semibold mt-6 mb-3">4.2 AI-assisted output</h3>
           <p>
-            StoryWall uses artificial intelligence to generate timelines, descriptions, and images. You acknowledge that:
+            StoryWall uses artificial intelligence to help research topics and draft timeline structure,
+            descriptions, and optional images. These outputs are starting points, not authoritative
+            facts—you acknowledge that:
           </p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>AI-generated content may not always be accurate or complete</li>
-            <li>You are responsible for reviewing and verifying AI-generated content before publishing</li>
-            <li>We do not guarantee the accuracy, completeness, or reliability of AI-generated content</li>
-            <li>You should not rely solely on AI-generated content for critical decisions</li>
+            <li>AI-assisted output may not always be accurate or complete</li>
+            <li>You are responsible for reviewing and verifying AI-assisted output before publishing</li>
+            <li>We do not guarantee the accuracy, completeness, or reliability of AI-assisted output</li>
+            <li>You should not rely solely on AI-assisted output for critical decisions</li>
           </ul>
 
           <h3 className="text-xl font-semibold mt-6 mb-3">4.3 Copyright and Fair Use</h3>

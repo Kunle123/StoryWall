@@ -110,8 +110,9 @@ export default function ConversationalEditorChatPage() {
           </p>
           <h1 className="text-2xl font-display font-bold">Propose story beats</h1>
           <p className="text-sm text-muted-foreground mt-2">
-            Step 1 of the new flow: we only generate factual milestones (year + headline). Review them
-            here; full descriptions and images will plug into the existing pipeline in a later ticket.
+            Step 1 of the new flow: we only propose factual milestones (year + headline) from AI-assisted
+            research—nothing here should be treated as verified truth. Review and edit here; full
+            descriptions and images will plug into the existing pipeline in a later ticket.
           </p>
         </div>
 

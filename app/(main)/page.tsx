@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title:
     "StoryWall — Read the arc, share it, build your take",
   description:
-    "Context-first timelines with AI images for explainers and histories. Explore public StoryWalls, create yours in the editor; fork-to-edit remix is next. Free to start — ~30 AI images for several stories.",
+    "Context-first timelines for explainers and histories—AI helps research beats and draft copy you verify, plus optional AI illustrations. Explore public StoryWalls; fork-to-edit remix is next. Free to start — ~30 AI image credits.",
   alternates: {
     canonical: "/",
   },
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title:
       "StoryWall — Read the arc, share it, build your take",
     description:
-      "Chronological StoryWalls with AI images. Discover public stories, publish your angle; remix from any public wall is on the way.",
+      "Chronological StoryWalls with AI-assisted research and optional AI images. Discover public stories, publish your angle; remix from any public wall is on the way.",
     url: "/",
   },
 };
