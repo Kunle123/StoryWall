@@ -33,6 +33,10 @@ export function extractYearFromLikenessRefName(name: string): number | null {
 /**
  * Score 0–100+. Full core name in event text = 100; first+last = 80; weak = 0.
  */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function scoreRefAgainstEventText(eventTextLower: string, refName: string): number {
   const core = corePersonNameForMatch(refName);
   if (!core || core.length < 3) return 0;
@@ -42,6 +46,14 @@ export function scoreRefAgainstEventText(eventTextLower: string, refName: string
     const first = parts[0];
     const last = parts[parts.length - 1];
     if (eventTextLower.includes(first) && eventTextLower.includes(last)) return 80;
+    // Headline-style: surname alone (e.g. "Biden signs…", "Swift releases…")
+    if (last.length >= 3 && new RegExp(`\\b${escapeRegExp(last)}\\b`, "i").test(eventTextLower)) {
+      return 55;
+    }
+  }
+  if (parts.length === 1 && parts[0].length >= 3) {
+    const only = parts[0];
+    if (new RegExp(`\\b${escapeRegExp(only)}\\b`, "i").test(eventTextLower)) return 70;
   }
   return 0;
 }

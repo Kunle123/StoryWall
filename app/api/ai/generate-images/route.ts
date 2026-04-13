@@ -831,67 +831,117 @@ async function retryWithBackoff<T>(
 
 // Helper to validate that a URL actually points to an image
 async function validateImageUrl(url: string, retryOnRateLimit: boolean = true): Promise<boolean> {
-  try {
-    // Check if URL has image extension
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'];
-    const hasImageExtension = imageExtensions.some(ext => url.toLowerCase().includes(ext));
-    
-    if (!hasImageExtension && !url.includes('upload.wikimedia.org')) {
-      console.warn(`[ImageGen] URL doesn't appear to be an image: ${url.substring(0, 100)}`);
-      return false;
-    }
-    
-    // Throttle Wikimedia requests
+  const commonHeaders = {
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+  };
+
+  const contentTypeIsImage = (ct: string) => (ct || '').toLowerCase().startsWith('image/');
+
+  const tryGetImageProbe = async (): Promise<boolean> => {
     if (url.includes('wikimedia.org')) {
       await throttleWikimediaRequest();
     }
-    
-    const validateRequest = async (): Promise<boolean> => {
-    // Make HEAD request to check content-type with proper headers to avoid 403
-    const headResponse = await fetch(url, { 
-      method: 'HEAD',
+    const getResponse = await fetch(url, {
+      method: 'GET',
       redirect: 'follow',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'image/*',
+        ...commonHeaders,
+        Range: 'bytes=0-32767',
       },
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      signal: AbortSignal.timeout(12000),
     });
-    
-    if (!headResponse.ok) {
-        // If rate limited and retry is enabled, throw to trigger retry
+    const ct = getResponse.headers.get('content-type') || '';
+    const okStatus = getResponse.ok || getResponse.status === 206;
+    if (okStatus && contentTypeIsImage(ct)) {
+      try {
+        getResponse.body?.cancel();
+      } catch {
+        /* ignore */
+      }
+      console.log(`[ImageGen] Validated image URL (GET): ${url.substring(0, 100)} (${ct})`);
+      return true;
+    }
+    try {
+      getResponse.body?.cancel();
+    } catch {
+      /* ignore */
+    }
+    console.warn(
+      `[ImageGen] GET probe failed (${getResponse.status}, type=${ct || 'none'}): ${url.substring(0, 100)}`
+    );
+    return false;
+  };
+
+  const validateRequest = async (): Promise<boolean> => {
+    if (url.includes('wikimedia.org')) {
+      await throttleWikimediaRequest();
+    }
+
+    const headResponse = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: commonHeaders,
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (headResponse.ok) {
+      const contentType = headResponse.headers.get('content-type') || '';
+      if (contentTypeIsImage(contentType)) {
+        console.log(`[ImageGen] Validated image URL (HEAD): ${url.substring(0, 100)} (${contentType})`);
+        return true;
+      }
+      console.warn(
+        `[ImageGen] HEAD OK but not image/* (${contentType}) — trying GET: ${url.substring(0, 100)}`
+      );
+    } else {
+      const retryHead =
+        [403, 405, 501, 404, 400].includes(headResponse.status) || headResponse.status >= 500;
+      if (retryHead) {
+        console.warn(
+          `[ImageGen] HEAD returned ${headResponse.status} — trying GET (many CDNs block HEAD): ${url.substring(0, 100)}`
+        );
+      } else {
         if (headResponse.status === 429 && retryOnRateLimit) {
           const error: any = new Error(`Rate limited: ${headResponse.status}`);
           error.status = headResponse.status;
           throw error;
         }
-      console.warn(`[ImageGen] Image URL returned ${headResponse.status}: ${url.substring(0, 100)}`);
-      return false;
+        console.warn(`[ImageGen] Image URL HEAD ${headResponse.status}: ${url.substring(0, 100)}`);
+      }
     }
-    
-    const contentType = headResponse.headers.get('content-type') || '';
-    const isImage = contentType.startsWith('image/');
-    
-    if (!isImage) {
-      console.warn(`[ImageGen] URL is not an image (content-type: ${contentType}): ${url.substring(0, 100)}`);
-      return false;
+
+    return tryGetImageProbe();
+  };
+
+  try {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.svg'];
+    const hasImageExtension = imageExtensions.some((ext) => url.toLowerCase().includes(ext));
+    const looksTrustedImageHost =
+      url.includes('upload.wikimedia.org') ||
+      url.includes('wikimedia.org') ||
+      url.includes('cloudinary.com') ||
+      url.includes('storywall');
+
+    if (!hasImageExtension && !looksTrustedImageHost && url.startsWith('https://')) {
+      console.warn(
+        `[ImageGen] URL has no obvious image extension — probing with GET: ${url.substring(0, 100)}`
+      );
+      return tryGetImageProbe();
     }
-    
-    console.log(`[ImageGen] Validated image URL: ${url.substring(0, 100)} (${contentType})`);
-    return true;
-    };
-    
+
     if (retryOnRateLimit && url.includes('wikimedia.org')) {
       const result = await retryWithBackoff(validateRequest, 3, 1000, [429, 503, 502]);
       return result ?? false;
     }
-    
+
     return await validateRequest();
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.warn(`[ImageGen] Timeout validating image URL: ${url.substring(0, 100)}`);
     } else {
-    console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
+      console.error(`[ImageGen] Error validating image URL: ${url.substring(0, 100)}`, error.message);
     }
     return false;
   }
@@ -1332,28 +1382,28 @@ async function prepareImageForReplicate(imageUrl: string, replicateApiKey: strin
       return null;
     }
     
-    // For Wikimedia URLs, we need to upload to Replicate's file storage first
-    // because IP-Adapter cannot fetch directly from Wikimedia (403 Forbidden / fetch failed)
-    if (finalUrl.includes('upload.wikimedia.org') || finalUrl.includes('wikimedia.org')) {
-      console.log(`[ImageGen] Wikimedia URL detected - uploading to Replicate: ${finalUrl.substring(0, 80)}...`);
-      const replicateUrl = await uploadImageToReplicate(finalUrl, replicateApiKey);
-      if (!replicateUrl) {
-        console.warn(`[ImageGen] Failed to upload Wikimedia image to Replicate: ${finalUrl.substring(0, 100)}`);
-        return null;
-      }
-      console.log(`[ImageGen] Successfully uploaded to Replicate, using Replicate URL for IP-Adapter`);
-      return replicateUrl;
+    // Replicate prediction workers often cannot fetch arbitrary hotlinked URLs (403/451 from origin).
+    // Always validate, then upload to Replicate file storage unless the asset is already on Replicate.
+    const isReplicateHosted = /replicate\.delivery|replicate\.com\/files|pbxt\.replicate/i.test(finalUrl);
+    if (isReplicateHosted) {
+      console.log(`[ImageGen] Reference already on Replicate: ${finalUrl.substring(0, 80)}...`);
+      return finalUrl;
     }
-    
-    // For non-Wikimedia URLs, validate that the URL actually points to an image
+
     const isValid = await validateImageUrl(finalUrl);
     if (!isValid) {
       console.warn(`[ImageGen] URL validation failed: ${finalUrl.substring(0, 100)}`);
       return null;
     }
-    
-    console.log(`[ImageGen] Validated and ready to use reference image: ${finalUrl.substring(0, 100)}...`);
-    return finalUrl;
+
+    console.log(`[ImageGen] Proxying external reference through Replicate: ${finalUrl.substring(0, 80)}...`);
+    const replicateUrl = await uploadImageToReplicate(finalUrl, replicateApiKey);
+    if (!replicateUrl) {
+      console.warn(`[ImageGen] Failed to upload reference to Replicate: ${finalUrl.substring(0, 100)}`);
+      return null;
+    }
+    console.log(`[ImageGen] Successfully uploaded to Replicate for model fetch`);
+    return replicateUrl;
   } catch (error: any) {
     console.error(`[ImageGen] Error preparing reference image: ${imageUrl.substring(0, 100)}`, error.message);
     return null;
@@ -1991,12 +2041,33 @@ export async function POST(request: NextRequest) {
           if (hasImageExtension && (ref.url.startsWith('http://') || ref.url.startsWith('https://'))) {
             return true;
           }
-          
-          // Reject category pages, article pages, etc.
-          if (ref.url.includes('/Category:') || ref.url.includes('/wiki/') && !ref.url.includes('/File:')) {
+
+          // Reject category pages and wiki *articles* (non-File) — not direct images
+          if (
+            ref.url.includes('/Category:') ||
+            (ref.url.includes('/wiki/') && !ref.url.includes('/File:'))
+          ) {
             return false;
           }
-          
+
+          // CDNs / app storage often serve images without ".jpg" in the path (query/format only)
+          const u = ref.url.toLowerCase();
+          const trustedImageHost =
+            u.includes('cloudinary.com') ||
+            u.includes('imagedelivery.net') ||
+            u.includes('storywall') ||
+            u.includes('supabase.co/storage') ||
+            u.includes('amazonaws.com/') ||
+            u.includes('googleusercontent.com');
+          if (trustedImageHost && ref.url.startsWith('https://')) {
+            return true;
+          }
+
+          // Other HTTPS URLs: validate with GET (HEAD often blocked)
+          if (ref.url.startsWith('https://') && ref.url.length < 2048) {
+            return true;
+          }
+
           return false;
         })
       : [];
